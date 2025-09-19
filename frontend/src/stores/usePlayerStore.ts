@@ -552,7 +552,7 @@ export const usePlayerStore = create<PlayerStore>()(
       };
     },
     {
-      name: "moodify-studio-player-storage",
+      name: "moodify-player-storage",
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         currentSong: state.currentSong

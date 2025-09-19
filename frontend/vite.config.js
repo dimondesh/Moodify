@@ -4,7 +4,7 @@ import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 import { visualizer } from "rollup-plugin-visualizer";
-var BUNNY_CDN_HOSTNAME = "moodify.b-cdn.net";
+var BUNNY_CDN_HOSTNAME = "moodify-one.b-cdn.net";
 export default defineConfig({
     base: "/",
     plugins: [
@@ -29,7 +29,7 @@ export default defineConfig({
                         urlPattern: new RegExp("^https://".concat(BUNNY_CDN_HOSTNAME, "/.*"), "i"),
                         handler: "CacheFirst",
                         options: {
-                            cacheName: "moodify-studio-assets-cache",
+                            cacheName: "moodify-assets-cache",
                             expiration: {
                                 maxEntries: 750,
                                 maxAgeSeconds: 60 * 60 * 24 * 60,
@@ -43,11 +43,11 @@ export default defineConfig({
                     {
                         urlPattern: function (_a) {
                             var url = _a.url;
-                            return url.origin === "https://moodify-yf1r.onrender.com/api";
+                            return url.origin === "https://moodify-fpvm.onrender.com/api";
                         },
                         handler: "NetworkFirst",
                         options: {
-                            cacheName: "moodify-studio-api-cache",
+                            cacheName: "moodify-api-cache",
                             networkTimeoutSeconds: 5,
                             expiration: {
                                 maxEntries: 50,
@@ -62,8 +62,7 @@ export default defineConfig({
             },
             includeAssets: [
                 "silent.mp3",
-                "Moodify-Studio.png",
-                "Moodify-Studio.svg",
+                "Moodify.svg",
                 "Spotify.svg",
                 "liked.png",
                 "liked.svg",
@@ -74,20 +73,20 @@ export default defineConfig({
                 "ir/large-hall.wav",
             ],
             manifest: {
-                name: "Moodify Studio",
-                short_name: "Moodify Studio",
+                name: "Moodify",
+                short_name: "Moodify",
                 description: "An advanced music streaming service for enthusiasts. Create complex mixes, use AI-generated playlists, and connect with friends in a rich audio environment.",
                 theme_color: "#7B39EC",
                 background_color: "#18181b",
                 icons: [
                     {
-                        src: "Moodify-Studio.png",
+                        src: "Moodify.png",
                         sizes: "192x192",
                         type: "image/png",
                         purpose: "any maskable",
                     },
                     {
-                        src: "Moodify-Studio.png",
+                        src: "Moodify.png",
                         sizes: "512x512",
                         type: "image/png",
                         purpose: "any maskable",

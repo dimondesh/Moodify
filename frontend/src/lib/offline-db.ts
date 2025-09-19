@@ -3,7 +3,7 @@
 import { openDB, DBSchema, IDBPDatabase, StoreNames } from "idb";
 import type { Song, Album, Playlist, Mix } from "@/types";
 
-const DB_NAME = "MoodifyStudioOfflineDB";
+const DB_NAME = "MoodifyOfflineDB";
 const DB_VERSION = 5;
 
 type StoredSong = Song & { userId: string };

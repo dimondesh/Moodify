@@ -82,14 +82,14 @@ define(['./workbox-7356b21a'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "index.html",
-    "revision": "0.6o3n89n2ti"
+    "revision": "0.n3qds4g66eg"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
     allowlist: [/^\/$/]
   }));
-  workbox.registerRoute(/^https:\/\/moodify.b-cdn.net\/.*/i, new workbox.CacheFirst({
-    "cacheName": "moodify-studio-assets-cache",
+  workbox.registerRoute(/^https:\/\/moodify-one.b-cdn.net\/.*/i, new workbox.CacheFirst({
+    "cacheName": "moodify-assets-cache",
     plugins: [new workbox.ExpirationPlugin({
       maxEntries: 750,
       maxAgeSeconds: 5184000
@@ -99,9 +99,9 @@ define(['./workbox-7356b21a'], (function (workbox) { 'use strict';
   }), 'GET');
   workbox.registerRoute(function (_a) {
     var url = _a.url;
-    return url.origin === "https://moodify-yf1r.onrender.com/api";
+    return url.origin === "https://moodify-fpvm.onrender.com/api";
   }, new workbox.NetworkFirst({
-    "cacheName": "moodify-studio-api-cache",
+    "cacheName": "moodify-api-cache",
     "networkTimeoutSeconds": 5,
     plugins: [new workbox.ExpirationPlugin({
       maxEntries: 50,
