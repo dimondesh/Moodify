@@ -1,0 +1,13 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#8B5CF6"/> <stop offset="100%" stop-color="#7C3AED"/> </linearGradient>
+  </defs>
+  <rect width="240" height="240" fill="url(#gradient)"/>
+  <path
+    fill-rule="evenodd"
+    clip-rule="evenodd"
+    d="M120 170.75L114.15 165.13C88.8 140.25 70 125.12 70 105.5C70 88.25 82.5 75 100 75C110 75 120 80.75 120 90.75C120 80.75 130 75 140 75C157.5 75 170 88.25 170 105.5C170 125.12 151.2 140.25 125.85 165.13L120 170.75Z"
+    fill="white"
+  />
+</svg>

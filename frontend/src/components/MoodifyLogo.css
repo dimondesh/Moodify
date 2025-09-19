@@ -1,0 +1,24 @@
+/* src/components/MoodifyLogo.css */
+
+.logo-container {
+  width: 200px; /* Задайте нужный вам размер */
+  height: 200px;
+}
+
+.reveal-rectangle {
+  /*
+    Изначально сдвигаем прямоугольник-маску влево на 100% его ширины,
+    чтобы он был полностью за пределами видимой области.
+  */
+  transform: translateX(-100%);
+
+  /* Анимация будет двигать его обратно на место. */
+  animation: reveal-from-left 1.5s ease-out forwards;
+}
+
+@keyframes reveal-from-left {
+  to {
+    /* Конечное состояние - прямоугольник на своем месте (сдвиг 0) */
+    transform: translateX(0);
+  }
+}
