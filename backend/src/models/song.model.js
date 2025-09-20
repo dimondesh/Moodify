@@ -28,25 +28,18 @@ const songSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
-    instrumentalUrl: {
+    // --- ИЗМЕНЕНИЯ НАЧАЛИСЬ ---
+    hlsPlaylistUrl: {
       type: String,
       required: true,
     },
-    instrumentalPublicId: {
+    hlsFolderPath: {
       type: String,
       required: true,
-      default: null,
     },
-
-    vocalsUrl: {
-      type: String,
-      default: null,
-    },
-    vocalsPublicId: {
-      type: String,
-      default: null,
-    },
-
+    // --- УДАЛЕНЫ СТАРЫЕ ПОЛЯ ---
+    // instrumentalUrl, instrumentalPublicId, vocalsUrl, vocalsPublicId
+    // --- ИЗМЕНЕНИЯ ЗАКОНЧИЛИСЬ ---
     duration: {
       type: Number,
       required: true,

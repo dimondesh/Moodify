@@ -1,3 +1,5 @@
+// frontend/src/types/index.ts
+
 export interface Artist {
   _id: string;
   name: string;
@@ -33,6 +35,8 @@ export interface Mood {
   _id: string;
   name: string;
 }
+
+// --- ИЗМЕНЕНИЯ НАЧАЛИСЬ ---
 export interface Song {
   _id: string;
   title: string;
@@ -40,8 +44,9 @@ export interface Song {
   albumId: string | null;
 
   imageUrl: string;
-  instrumentalUrl: string;
-  vocalsUrl?: string;
+  hlsPlaylistUrl: string; // Заменено
+  hlsFolderPath: string; // Добавлено для возможного управления
+
   duration: number;
   playCount: number;
   genres: Genre[];
@@ -52,6 +57,7 @@ export interface Song {
   likedAt?: string;
   lyrics?: string;
 }
+// --- ИЗМЕНЕНИЯ ЗАКОНЧИЛИСЬ ---
 
 export interface RecentSearchItem {
   _id: string;

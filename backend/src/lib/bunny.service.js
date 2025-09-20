@@ -106,6 +106,30 @@ export const uploadToBunny = async (source, remoteFolder) => {
   }
 };
 
+// --- НОВАЯ ФУНКЦИЯ ---
+export const uploadDirectoryToBunny = async (localDirPath, remoteDirPath) => {
+  const files = await fs.readdir(localDirPath);
+  let mainPlaylistUrl = "";
+
+  for (const file of files) {
+    const localFilePath = path.join(localDirPath, file);
+    const remoteFilePath = path.join(remoteDirPath, file).replace(/\\/g, "/");
+    await putFileToBunny(localFilePath, remoteFilePath);
+    if (file.endsWith(".m3u8")) {
+      mainPlaylistUrl = `https://${BUNNY_PULL_ZONE_HOSTNAME}/${remoteFilePath}`;
+    }
+  }
+
+  if (!mainPlaylistUrl) {
+    throw new Error(
+      "Main .m3u8 playlist not found in the directory after upload."
+    );
+  }
+
+  return { mainPlaylistUrl };
+};
+// --- КОНЕЦ НОВОЙ ФУНКЦИИ ---
+
 export const deleteFromBunny = async (remoteFilePath) => {
   if (!remoteFilePath) {
     console.warn("[Bunny] No remote file path provided. Skipping deletion.");
@@ -128,6 +152,35 @@ export const deleteFromBunny = async (remoteFilePath) => {
     }
   }
 };
+
+// --- НОВАЯ ФУНКЦИЯ ---
+export const deleteFolderFromBunny = async (remoteFolderPath) => {
+  if (!remoteFolderPath) {
+    console.warn("[Bunny] No remote folder path provided for deletion.");
+    return;
+  }
+  // Убеждаемся, что путь заканчивается слешем, как того требует API Bunny
+  const folderPath = remoteFolderPath.endsWith("/")
+    ? remoteFolderPath
+    : `${remoteFolderPath}/`;
+  try {
+    console.log(`[Bunny] Deleting folder: ${folderPath}`);
+    await bunnyAxios.delete(folderPath);
+    console.log(`[Bunny] Successfully deleted folder: ${folderPath}`);
+  } catch (error) {
+    if (error.response && error.response.status === 404) {
+      console.warn(
+        `[Bunny] Folder ${folderPath} not found, considering it deleted.`
+      );
+    } else {
+      console.error(
+        `[Bunny] Error deleting folder ${folderPath}:`,
+        error.response ? error.response.data : error.message
+      );
+    }
+  }
+};
+// --- КОНЕЦ НОВОЙ ФУНКЦИИ ---
 
 export const getPathFromUrl = (url) => {
   if (!url || !url.startsWith(`https://${BUNNY_PULL_ZONE_HOSTNAME}`)) {
