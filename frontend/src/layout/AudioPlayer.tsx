@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // frontend/src/layout/AudioPlayer.tsx
 import { useEffect, useRef } from "react";
 import Hls from "hls.js";
