@@ -11,8 +11,10 @@ import { useOfflineStore } from "@/stores/useOfflineStore";
 const AudioPlayer = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const hlsRef = useRef<Hls | null>(null);
-  const mediaSourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const mediaSourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
+
+  const listenRecordedRef = useRef(false);
 
   const {
     currentSong,
@@ -29,15 +31,13 @@ const AudioPlayer = () => {
   const { playbackRateEnabled, playbackRate } = useAudioSettingsStore();
   const { isOffline } = useOfflineStore();
   const { user } = useAuthStore();
-  const listenRecordedRef = useRef(false);
 
-  // --- ИЗМЕНЕНИЕ: Инициализация Web Audio API ---
-  // Этот useEffect выполняется один раз при монтировании компонента.
+  // --- ИЗМЕНЕНИЕ 1: Инициализация Web Audio API и плеера ---
   useEffect(() => {
     const audioEl = audioRef.current;
     if (!audioEl) return;
 
-    // Создаем AudioContext только если его еще нет.
+    // Инициализация AudioContext один раз
     if (!audioContextRef.current) {
       const AudioContextClass =
         window.AudioContext || (window as any).webkitAudioContext;
@@ -50,95 +50,91 @@ const AudioPlayer = () => {
     }
     const audioContext = audioContextRef.current;
 
-    // Создаем источник звука из нашего <audio> элемента.
-    // Это ключевой шаг для связи HTML-плеера с Web Audio API.
+    // Создаем мост между <audio> и Web Audio API
     if (!mediaSourceNodeRef.current) {
       mediaSourceNodeRef.current =
         audioContext.createMediaElementSource(audioEl);
+      // Инициализируем наш сервис эффектов
+      webAudioService.init(
+        audioContext,
+        mediaSourceNodeRef.current,
+        audioContext.destination
+      );
+      console.log("AudioPlayer initialized with Web Audio API bridge.");
     }
 
-    // Инициализируем наш сервис эффектов, передавая ему контекст,
-    // источник звука (наш <audio> элемент) и конечную точку (динамики).
-    webAudioService.init(
-      audioContext,
-      mediaSourceNodeRef.current,
-      audioContext.destination
-    );
-    console.log("AudioPlayer initialized with Web Audio API bridge.");
-
-    // Возобновляем контекст при первом взаимодействии пользователя
+    // Функция для "пробуждения" аудиоконтекста
     const resumeContext = () => {
       if (audioContext.state === "suspended") {
-        audioContext.resume();
+        audioContext
+          .resume()
+          .catch((e) => console.error("AudioContext resume failed:", e));
       }
+    };
+
+    // Вешаем обработчики для возобновления контекста
+    document.addEventListener("click", resumeContext, { once: true });
+    document.addEventListener("keydown", resumeContext, { once: true });
+    document.addEventListener("touchstart", resumeContext, { once: true });
+
+    return () => {
       document.removeEventListener("click", resumeContext);
       document.removeEventListener("keydown", resumeContext);
+      document.removeEventListener("touchstart", resumeContext);
     };
-    document.addEventListener("click", resumeContext);
-    document.addEventListener("keydown", resumeContext);
   }, []);
-  // --- КОНЕЦ ИЗМЕНЕНИЯ ---
 
-  // Управление загрузкой и воспроизведением HLS
+  // --- ИЗМЕНЕНИЕ 2: Управление загрузкой нового трека ---
   useEffect(() => {
     const audioEl = audioRef.current;
-    if (!audioEl) return;
-
-    if (currentSong?.hlsPlaylistUrl) {
-      if (Hls.isSupported()) {
-        if (hlsRef.current) {
-          hlsRef.current.destroy();
-        }
-        const hls = new Hls();
-        hlsRef.current = hls;
-        hls.loadSource(currentSong.hlsPlaylistUrl);
-        hls.attachMedia(audioEl);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          if (isPlaying)
-            audioEl.play().catch((e) => console.error("Autoplay failed", e));
-        });
-      } else if (audioEl.canPlayType("application/vnd.apple.mpegurl")) {
-        audioEl.src = currentSong.hlsPlaylistUrl;
-        if (isPlaying)
-          audioEl.play().catch((e) => console.error("Autoplay failed", e));
-      }
-    } else {
+    if (!audioEl || !currentSong) {
       if (hlsRef.current) hlsRef.current.destroy();
-      audioEl.src = "";
+      if (audioEl) audioEl.src = "";
+      return;
+    }
+
+    if (Hls.isSupported()) {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+      }
+      const hls = new Hls();
+      hlsRef.current = hls;
+      hls.loadSource(currentSong.hlsPlaylistUrl);
+      hls.attachMedia(audioEl);
+    } else if (audioEl.canPlayType("application/vnd.apple.mpegurl")) {
+      audioEl.src = currentSong.hlsPlaylistUrl;
     }
 
     listenRecordedRef.current = false;
-
-    return () => {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
-    };
   }, [currentSong]);
 
-  // Управление состоянием Play/Pause
+  // --- ИЗМЕНЕНИЕ 3: Централизованное управление Play/Pause ---
   useEffect(() => {
     const audioEl = audioRef.current;
-    if (!audioEl) return;
+    if (!audioEl || !currentSong) return;
+
     if (isPlaying) {
-      audioEl.play().catch((e) => console.error("Play failed:", e));
+      const playPromise = audioEl.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((error) => {
+          // Игнорируем AbortError, так как это ожидаемое поведение при смене трека
+          if (error.name !== "AbortError") {
+            console.error("Audio play failed:", error);
+          }
+        });
+      }
     } else {
       audioEl.pause();
     }
-  }, [isPlaying]);
+  }, [isPlaying, currentSong]); // Зависимость от currentSong КЛЮЧЕВАЯ!
 
   // Управление громкостью, скоростью и повтором
   useEffect(() => {
     const audioEl = audioRef.current;
     if (!audioEl) return;
     audioEl.volume = masterVolume / 100;
-
-    // --- ИЗМЕНЕНИЕ: Добавляем preservesPitch ---
-    audioEl.preservesPitch = false; // Это включает режим "resample"
+    audioEl.preservesPitch = false; // Включает режим "resample"
     audioEl.playbackRate = playbackRateEnabled ? playbackRate : 1.0;
-    // --- КОНЕЦ ИЗМЕНЕНИЯ ---
-
     audioEl.loop = repeatMode === "one";
   }, [masterVolume, playbackRateEnabled, playbackRate, repeatMode]);
 
@@ -146,12 +142,11 @@ const AudioPlayer = () => {
   useEffect(() => {
     const audioEl = audioRef.current;
     if (audioEl && Math.abs(audioEl.currentTime - currentTime) > 1.5) {
-      // Увеличил порог для HLS
       audioEl.currentTime = currentTime;
     }
-  }, [seekVersion, currentTime]);
+  }, [seekVersion]); // Убрали currentTime из зависимостей, чтобы избежать конфликтов
 
-  // Обновление состояния в сторе
+  // Обновление состояния в сторе (события плеера)
   useEffect(() => {
     const audioEl = audioRef.current;
     if (!audioEl) return;

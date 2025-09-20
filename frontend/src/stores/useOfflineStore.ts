@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // frontend/src/stores/useOfflineStore.ts
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import {
@@ -45,6 +45,28 @@ interface OfflineState {
     fetchAllDownloaded: () => Promise<(Album | Playlist | Mix)[]>;
   };
 }
+
+const BUNNY_CACHE_NAME = "bunny-assets-cache";
+
+// --- НОВАЯ ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ---
+const getHlsSegmentUrls = async (playlistUrl: string): Promise<string[]> => {
+  try {
+    const response = await fetch(playlistUrl);
+    if (!response.ok)
+      throw new Error(`Failed to fetch HLS playlist: ${response.statusText}`);
+    const playlistText = await response.text();
+    const lines = playlistText.split("\n");
+
+    const segmentUrls = lines
+      .filter((line) => line.trim().length > 0 && !line.startsWith("#"))
+      .map((segment) => new URL(segment, playlistUrl).href); // Корректно обрабатывает относительные и абсолютные URL
+
+    return [playlistUrl, ...segmentUrls];
+  } catch (error) {
+    console.error(`Could not parse HLS playlist at ${playlistUrl}:`, error);
+    return [];
+  }
+};
 
 export const useOfflineStore = create<OfflineState>()(
   persist(
@@ -184,6 +206,7 @@ export const useOfflineStore = create<OfflineState>()(
             toast.error(i18n.t("toasts.syncError"), { id: "sync-toast" });
           }
         },
+
         fetchAllDownloaded: async () => {
           const userId = useAuthStore.getState().user?.id;
           if (!userId) return [];
@@ -195,20 +218,18 @@ export const useOfflineStore = create<OfflineState>()(
           return [...albums, ...playlists, ...mixes];
         },
 
+        // --- ИЗМЕНЕНИЯ НАЧАЛИСЬ: ПЕРЕПИСАНА ЛОГИКА СКАЧИВАНИЯ ---
         downloadItem: async (itemId, itemType) => {
           const userId = useAuthStore.getState().user?.id;
           if (!userId) {
             toast.error(i18n.t("toasts.loginRequiredForDownload"));
             return;
           }
-
           if (get().downloadingItemIds.has(itemId)) return;
 
           set((state) => ({
             downloadingItemIds: new Set(state.downloadingItemIds).add(itemId),
           }));
-
-          let allOtherSongIds = new Set<string>();
 
           try {
             let endpoint = "";
@@ -235,94 +256,34 @@ export const useOfflineStore = create<OfflineState>()(
               throw new Error(i18n.t("errors.invalidServerData"));
             }
 
-            const oldItemData = await getUserItem(storeName, itemId, userId);
-            const newSongIds = new Set(
-              serverItemData.songs.map((s: Song) => s._id)
-            );
-            const removedSongs: Song[] = [];
-
-            if (oldItemData && (oldItemData as any).songsData) {
-              (oldItemData as any).songsData.forEach((oldSong: Song) => {
-                if (!newSongIds.has(oldSong._id)) {
-                  removedSongs.push(oldSong);
-                }
-              });
-            }
-
-            if (removedSongs.length > 0) {
-              console.log(
-                `Found ${removedSongs.length} songs to remove from offline storage.`
-              );
-              const [allAlbums, allPlaylists, allMixes] = await Promise.all([
-                getAllUserAlbums(userId),
-                getAllUserPlaylists(userId),
-                getAllUserMixes(userId),
-              ]);
-
-              allOtherSongIds = new Set<string>();
-              [...allAlbums, ...allPlaylists, ...allMixes].forEach((item) => {
-                if (item._id !== itemId) {
-                  (item.songsData || (item as any).songs || []).forEach(
-                    (song: Song) => allOtherSongIds.add(song._id)
-                  );
-                }
-              });
-
-              const urlsToDelete = new Set<string>();
-              for (const removedSong of removedSongs) {
-                if (!allOtherSongIds.has(removedSong._id)) {
-                  if (removedSong.imageUrl)
-                    urlsToDelete.add(removedSong.imageUrl);
-                  if (removedSong.instrumentalUrl)
-                    urlsToDelete.add(removedSong.instrumentalUrl);
-                  if (removedSong.vocalsUrl)
-                    urlsToDelete.add(removedSong.vocalsUrl);
-                  await deleteUserItem("songs", removedSong._id);
-                }
-              }
-              const assetsCache = await caches.open("bunny-assets-cache");
-              for (const url of urlsToDelete) {
-                await assetsCache.delete(url).catch((e) => console.warn(e));
-              }
-            }
-
             const songsData = serverItemData.songs as Song[];
             const urlsToCache = new Set<string>();
             if (serverItemData.imageUrl)
               urlsToCache.add(serverItemData.imageUrl);
-            songsData.forEach((song) => {
+
+            // Собираем URL всех HLS сегментов для всех песен
+            for (const song of songsData) {
               if (song.imageUrl) urlsToCache.add(song.imageUrl);
-              if (song.instrumentalUrl) urlsToCache.add(song.instrumentalUrl);
-              if (song.vocalsUrl) urlsToCache.add(song.vocalsUrl);
-            });
-
-            const allUrls = Array.from(urlsToCache).filter(Boolean);
-            const assetsCache = await caches.open("bunny-assets-cache");
-
-            for (const url of allUrls) {
-              try {
-                await assetsCache.add(url);
-              } catch (err) {
-                console.warn(`Could not cache URL: ${url}`, err);
+              if (song.hlsPlaylistUrl) {
+                const segmentUrls = await getHlsSegmentUrls(
+                  song.hlsPlaylistUrl
+                );
+                segmentUrls.forEach((url) => urlsToCache.add(url));
               }
             }
 
-            let itemToSave;
-            if (isGenerated) {
-              const user = useAuthStore.getState().user;
-              itemToSave = {
-                ...serverItemData,
-                title: i18n.t(serverItemData.nameKey),
-                description: i18n.t(serverItemData.descriptionKey),
-                owner: user,
-                type: "playlist",
-                isGenerated: true,
-                songsData,
-                userId,
-              };
-            } else {
-              itemToSave = { ...serverItemData, songsData, userId };
-            }
+            const allUrls = Array.from(urlsToCache).filter(Boolean);
+            const assetsCache = await caches.open(BUNNY_CACHE_NAME);
+            await assetsCache.addAll(allUrls);
+
+            // Сохраняем метаданные в IndexedDB
+            const itemToSave = {
+              ...(isGenerated
+                ? { ...serverItemData, isGenerated: true }
+                : serverItemData),
+              songsData,
+              userId,
+            };
             await saveUserItem(storeName, itemToSave as any);
 
             for (const song of songsData) {
@@ -338,14 +299,6 @@ export const useOfflineStore = create<OfflineState>()(
               const newDownloadedSongs = new Set(state.downloadedSongIds);
               songsData.forEach((song) => newDownloadedSongs.add(song._id));
 
-              removedSongs.forEach((song) => {
-                if (
-                  !allOtherSongIds.has(song._id) &&
-                  !newSongIds.has(song._id)
-                ) {
-                  newDownloadedSongs.delete(song._id);
-                }
-              });
               return {
                 downloadedItemIds: newDownloaded,
                 downloadingItemIds: newDownloading,
@@ -391,28 +344,30 @@ export const useOfflineStore = create<OfflineState>()(
               }
             });
 
-            const urlsToDelete = new Set<string>();
-            if (
-              itemToDelete.imageUrl &&
-              !allOtherSongIds.has(itemToDelete.imageUrl)
-            ) {
-              urlsToDelete.add(itemToDelete.imageUrl);
-            }
+            const assetsCache = await caches.open(BUNNY_CACHE_NAME);
 
+            // Удаляем HLS сегменты и обложки
             for (const song of songs) {
               if (!allOtherSongIds.has(song._id)) {
-                if (song.imageUrl) urlsToDelete.add(song.imageUrl);
-                if (song.instrumentalUrl)
-                  urlsToDelete.add(song.instrumentalUrl);
-                if (song.vocalsUrl) urlsToDelete.add(song.vocalsUrl);
+                if (song.hlsPlaylistUrl) {
+                  const segmentUrls = await getHlsSegmentUrls(
+                    song.hlsPlaylistUrl
+                  );
+                  for (const url of segmentUrls) {
+                    await assetsCache.delete(url).catch((e) => console.warn(e));
+                  }
+                }
+                if (song.imageUrl)
+                  await assetsCache
+                    .delete(song.imageUrl)
+                    .catch((e) => console.warn(e));
                 await deleteUserItem("songs", song._id);
               }
             }
-
-            const assetsCache = await caches.open("bunny-assets-cache");
-            for (const url of urlsToDelete) {
-              await assetsCache.delete(url).catch((e) => console.warn(e));
-            }
+            if (itemToDelete.imageUrl)
+              await assetsCache
+                .delete(itemToDelete.imageUrl)
+                .catch((e) => console.warn(e));
 
             await deleteUserItem(storeName, itemId);
 
@@ -437,6 +392,8 @@ export const useOfflineStore = create<OfflineState>()(
             toast.error(i18n.t("toasts.removeItemError", { itemTitle }));
           }
         },
+        // --- ИЗМЕНЕНИЯ ЗАКОНЧИЛИСЬ ---
+
         getStorageUsage: async () => {
           if (navigator.storage && navigator.storage.estimate) {
             const estimation = await navigator.storage.estimate();

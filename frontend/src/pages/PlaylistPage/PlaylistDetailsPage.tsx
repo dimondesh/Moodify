@@ -594,7 +594,7 @@ const PlaylistDetailsPage = () => {
   const ownerName = currentPlaylist.owner?.fullName || "a user";
   const metaDescription = `Listen to "${
     currentPlaylist.title
-  }", a playlist by ${ownerName} on Moodify Studio. Features ${
+  }", a playlist by ${ownerName} on Moodify. Features ${
     currentPlaylist.songs?.length || 0
   } songs. ${currentPlaylist.description || ""}`;
 

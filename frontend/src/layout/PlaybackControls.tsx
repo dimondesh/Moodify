@@ -47,33 +47,6 @@ const formatTime = (seconds: number) => {
   return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
 };
 
-interface LyricLine {
-  time: number;
-  text: string;
-}
-
-const parseLrc = (lrcContent: string): LyricLine[] => {
-  // ... (код остается без изменений)
-  if (!lrcContent) return [];
-  const lines = lrcContent.split("\n");
-  const parsedLyrics: LyricLine[] = [];
-
-  lines.forEach((line) => {
-    const timeMatch = line.match(/\[(\d{2}):(\d{2})\.(\d{2,3})\]/);
-    if (timeMatch) {
-      const minutes = parseInt(timeMatch[1], 10);
-      const seconds = parseInt(timeMatch[2], 10);
-      const milliseconds = parseInt(timeMatch[3].padEnd(3, "0"), 10);
-      const timeInSeconds = minutes * 60 + seconds + milliseconds / 1000;
-      const text = line.replace(/\[.*?\]/g, "").trim();
-      parsedLyrics.push({ time: timeInSeconds, text });
-    }
-  });
-
-  parsedLyrics.sort((a, b) => a.time - b.time);
-  return parsedLyrics;
-};
-
 const PlaybackControls = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -92,7 +65,6 @@ const PlaybackControls = () => {
     setIsFullScreenPlayerOpen,
     isDesktopLyricsOpen,
     setIsDesktopLyricsOpen,
-    setIsMobileLyricsFullScreen,
     masterVolume,
     setMasterVolume,
     currentTime,
@@ -129,30 +101,18 @@ const PlaybackControls = () => {
     useState(masterVolume);
 
   const [isCompactView, setIsCompactView] = useState(false);
-  const [lyrics, setLyrics] = useState<LyricLine[]>([]);
 
   const { extractColor } = useDominantColor();
   const [bgColors, setBgColors] = useState(["#18181b", "#18181b"]);
 
   const lastImageUrlRef = useRef<string | null>(null);
 
-  // --- Эффекты остаются практически без изменений, за исключением удаления логики вокала ---
-
   useEffect(() => {
     if ("mediaSession" in navigator) {
       if (!currentSong) {
         navigator.mediaSession.metadata = null;
-        navigator.mediaSession.playbackState = "none";
-        navigator.mediaSession.setActionHandler("play", null);
-        navigator.mediaSession.setActionHandler("pause", null);
-        navigator.mediaSession.setActionHandler("nexttrack", null);
-        navigator.mediaSession.setActionHandler("previoustrack", null);
-        navigator.mediaSession.setActionHandler("seekto", null);
-        navigator.mediaSession.setActionHandler("seekforward", null);
-        navigator.mediaSession.setActionHandler("seekbackward", null);
         return;
       }
-
       navigator.mediaSession.metadata = new MediaMetadata({
         title: currentSong.title,
         artist: getArtistNames(currentSong.artist, []),
@@ -160,35 +120,22 @@ const PlaybackControls = () => {
         artwork: [
           {
             src: currentSong.imageUrl || "/Moodify-Studio.png",
-            sizes: "96x96",
+            sizes: "512x512",
             type: "image/png",
           },
         ],
       });
-
       navigator.mediaSession.setActionHandler("play", () => togglePlay());
       navigator.mediaSession.setActionHandler("pause", () => togglePlay());
       navigator.mediaSession.setActionHandler("nexttrack", () => playNext());
       navigator.mediaSession.setActionHandler("previoustrack", () => {
-        if (currentTime > 3) {
-          seekToTime(0);
-        } else {
-          playPrevious();
-        }
+        if (currentTime > 3) seekToTime(0);
+        else playPrevious();
       });
-
       navigator.mediaSession.setActionHandler("seekto", (details) => {
         if (details.seekTime != null) {
           seekToTime(details.seekTime);
         }
-      });
-      navigator.mediaSession.setActionHandler("seekforward", (details) => {
-        const newTime = currentTime + (details.seekOffset || 10);
-        seekToTime(newTime);
-      });
-      navigator.mediaSession.setActionHandler("seekbackward", (details) => {
-        const newTime = currentTime - (details.seekOffset || 10);
-        seekToTime(newTime);
       });
     }
   }, [
@@ -207,12 +154,10 @@ const PlaybackControls = () => {
       "setPositionState" in navigator.mediaSession
     ) {
       if (currentSong && duration > 0) {
-        const safePosition = Math.min(currentTime, duration);
-
         navigator.mediaSession.setPositionState({
           duration: duration,
           playbackRate: 1,
-          position: safePosition,
+          position: Math.min(currentTime, duration),
         });
         navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
       }
@@ -226,8 +171,7 @@ const PlaybackControls = () => {
     ) {
       lastImageUrlRef.current = currentSong.imageUrl;
       extractColor(currentSong.imageUrl).then((color) => {
-        const newColor = color || "#18181b";
-        setBgColors((prev) => [newColor, prev[0]]);
+        setBgColors((prev) => [color || "#18181b", prev[0]]);
       });
     } else if (!currentSong) {
       setBgColors((prev) => ["#18181b", prev[0]]);
@@ -239,35 +183,25 @@ const PlaybackControls = () => {
   }, [fetchLikedSongs]);
 
   useEffect(() => {
-    const checkScreenSize = () => {
-      const isCompact = window.innerWidth < 1024;
-      setIsCompactView(isCompact);
-    };
+    const checkScreenSize = () => setIsCompactView(window.innerWidth < 1024);
     checkScreenSize();
     window.addEventListener("resize", checkScreenSize);
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
   useEffect(() => {
-    if (currentSong?.lyrics) {
-      setLyrics(parseLrc(currentSong.lyrics));
-    } else {
-      setLyrics([]);
-    }
-  }, [currentSong]);
-
-  useEffect(() => {
     const socket = useChatStore.getState().socket;
     if (socket) {
-      const songIdToSend = currentSong && isPlaying ? currentSong._id : null;
-      socket.emit("update_activity", { songId: songIdToSend });
+      socket.emit("update_activity", {
+        songId: currentSong && isPlaying ? currentSong._id : null,
+      });
     }
   }, [isPlaying, currentSong]);
 
   const toggleRepeatMode = () => {
-    if (repeatMode === "off") setRepeatMode("all");
-    else if (repeatMode === "all") setRepeatMode("one");
-    else setRepeatMode("off");
+    setRepeatMode(
+      repeatMode === "off" ? "all" : repeatMode === "all" ? "one" : "off"
+    );
   };
 
   const toggleMute = () => {
@@ -292,27 +226,21 @@ const PlaybackControls = () => {
 
   const handleArtistClick = (artistId: string) => {
     navigate(`/artists/${artistId}`);
-    if (isCompactView && isFullScreenPlayerOpen) {
+    if (isCompactView && isFullScreenPlayerOpen)
       setIsFullScreenPlayerOpen(false);
-    }
   };
 
   const handleAlbumClick = (albumId: string) => {
     navigate(`/albums/${albumId}`);
-    if (isCompactView && isFullScreenPlayerOpen) {
+    if (isCompactView && isFullScreenPlayerOpen)
       setIsFullScreenPlayerOpen(false);
-    }
   };
 
-  if (!currentSong) {
-    return null; // Плеер скрыт, если нет песни
-  }
+  if (!currentSong) return null;
 
-  // --- Рендеринг остается почти таким же, НО УБИРАЕМ ВСЕ СВЯЗАННОЕ С ВОКАЛОМ ---
   return (
     <>
       {isCompactView ? (
-        // ... (Код для мобильного плеера остается без изменений, т.к. там не было слайдера вокала)
         <>
           {!isFullScreenPlayerOpen && (
             <footer className="fixed bottom-20 left-0 right-0 h-14 sm:h-16 mx-1 mb-[4px] rounded-md bg-zinc-800/80 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between z-[60]">
@@ -385,11 +313,9 @@ const PlaybackControls = () => {
                   isAnyDialogOpen ? "player-dialog-blur" : ""
                 }`}
               >
-                {/* ... остальной код мобильного плеера без изменений, т.к. там нет слайдера вокала ... */}
                 <div
                   key={bgColors[1]}
-                  className="absolute
- inset-0 -z-10"
+                  className="absolute inset-0 -z-10"
                   style={{
                     background: `linear-gradient(to bottom, ${bgColors[1]} 0%, rgba(20, 20, 20, 1) 75%, #18181b 100%)`,
                   }}
@@ -428,7 +354,6 @@ const PlaybackControls = () => {
                     </button>
                     <div className="w-10 h-10"></div>
                   </div>
-
                   <div className="flex-1 flex flex-col items-center overflow-y-auto w-full hide-scrollbar">
                     <div className="flex flex-col items-center justify-center px-4 py-8 flex-shrink-0 w-full">
                       {currentSong ? (
@@ -800,8 +725,6 @@ const PlaybackControls = () => {
                 </Button>
               )}
 
-              {/* --- УДАЛЕН БЛОК УПРАВЛЕНИЯ ВОКАЛОМ --- */}
-
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -811,7 +734,6 @@ const PlaybackControls = () => {
                       reverbEnabled ? "text-violet-500" : "text-zinc-400"
                     }`}
                     title={t("player.reverb")}
-                    disabled={!currentSong || !reverbEnabled}
                     onClick={() => {
                       if (!reverbEnabled) setReverbEnabled(true);
                     }}

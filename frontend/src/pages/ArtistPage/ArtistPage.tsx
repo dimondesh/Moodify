@@ -158,7 +158,7 @@ const ArtistPage = () => {
   }
   const metaDescription = `Listen to ${
     artist.name
-  } on Moodify Studio. Discover popular tracks, albums, and the full discography. ${
+  } on Moodify. Discover popular tracks, albums, and the full discography. ${
     artist.bio ? artist.bio.substring(0, 120) + "..." : ""
   }`;
 

@@ -31,7 +31,6 @@ import SearchPage from "./pages/SearchPage/SearchPage";
 import LikedSongs from "./pages/LikedSongs/LikedSongs";
 import ChatPage from "./pages/ChatPage/ChatPage";
 
-
 function App() {
   const user = useAuthStore((state) => state.user);
   const isOffline = useOfflineStore((state) => state.isOffline);
@@ -41,8 +40,8 @@ function App() {
 
   const { fetchInitialData } = useUIStore();
   const { fetchLibrary } = useLibraryStore();
-  const { fetchMyPlaylists } = usePlaylistStore(); 
-const canonicalUrl = `https://moodify-studio.vercel.app${location.pathname}`;
+  const { fetchMyPlaylists } = usePlaylistStore();
+  const canonicalUrl = `https://moodify-studio.vercel.app${location.pathname}`;
 
   useEffect(() => {
     if (user && navigator.onLine) {
@@ -145,20 +144,20 @@ const canonicalUrl = `https://moodify-studio.vercel.app${location.pathname}`;
 
   return (
     <>
-    <Helmet
-  defaultTitle="Moodify Studio - Your Music Creation Space"
-  titleTemplate="%s | Moodify Studio"
->
-  <meta
-    name="description"
-    content="Moodify Studio is an advanced music streaming service for enthusiasts. Create complex mixes, use AI-generated playlists, and connect with friends in a rich audio environment."
-  />
-  <link rel="canonical" href={canonicalUrl} />
-</Helmet>
+      <Helmet
+        defaultTitle="Moodify - Your Music Creation Space"
+        titleTemplate="%s | Moodify"
+      >
+        <meta
+          name="description"
+          content="Moodify is an advanced music streaming service for enthusiasts. Create complex mixes, use AI-generated playlists, and connect with friends in a rich audio environment."
+        />
+        <link rel="canonical" href={canonicalUrl} />
+      </Helmet>
 
       <ErrorBoundary>
         <Routes>
-          <Route path="sitemap.xml" element={"sitemap.xml"}/>
+          <Route path="sitemap.xml" element={"sitemap.xml"} />
           <Route path="login" element={<AuthPage />} />
           <Route element={<MainLayout />}>
             <Route path="/" element={<HomePage />} />
@@ -169,7 +168,10 @@ const canonicalUrl = `https://moodify-studio.vercel.app${location.pathname}`;
             <Route path="/search" element={<SearchPage />} />
             <Route path="/liked-songs" element={<LikedSongs />} />
             <Route path="/library" element={<LibraryPage />} />
-            <Route path="/playlists/:playlistId" element={<PlaylistDetailsPage />} />
+            <Route
+              path="/playlists/:playlistId"
+              element={<PlaylistDetailsPage />}
+            />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/artists/:id" element={<ArtistPage />} />
             <Route path="/users/:userId" element={<ProfilePage />} />
@@ -177,7 +179,10 @@ const canonicalUrl = `https://moodify-studio.vercel.app${location.pathname}`;
             <Route path="/mixes/:mixId" element={<MixDetailsPage />} />
             <Route path="/all-mixes/:category" element={<AllMixesPage />} />
             <Route path="/offline" element={<OfflinePage />} />
-            <Route path="/generated-playlists/:id" element={<GeneratedPlaylistPage />} />
+            <Route
+              path="/generated-playlists/:id"
+              element={<GeneratedPlaylistPage />}
+            />
           </Route>
         </Routes>
       </ErrorBoundary>

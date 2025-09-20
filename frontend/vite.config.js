@@ -78,20 +78,6 @@ export default defineConfig({
                 description: "An advanced music streaming service for enthusiasts. Create complex mixes, use AI-generated playlists, and connect with friends in a rich audio environment.",
                 theme_color: "#7B39EC",
                 background_color: "#18181b",
-                icons: [
-                    {
-                        src: "Moodify.png",
-                        sizes: "192x192",
-                        type: "image/png",
-                        purpose: "any maskable",
-                    },
-                    {
-                        src: "Moodify.png",
-                        sizes: "512x512",
-                        type: "image/png",
-                        purpose: "any maskable",
-                    },
-                ],
             },
         }),
     ],
