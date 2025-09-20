@@ -2,7 +2,7 @@
 import { Song } from "../models/song.model.js";
 import { ListenHistory } from "../models/listenHistory.model.js";
 import { User } from "../models/user.model.js";
-import { UserRecommendation } from "../models/userRecommendation.model.js"; 
+import { UserRecommendation } from "../models/userRecommendation.model.js";
 import axios from "axios";
 
 export const getAllSongs = async (req, res, next) => {
@@ -333,39 +333,24 @@ export const getImageForColorAnalysis = async (req, res, next) => {
     return res.status(400).send({ message: "Image URL is required" });
   }
 
-  const decodedUrl = decodeURIComponent(url);
-  const maxRetries = 3;
-  const retryDelay = 500; // 500ms
+  try {
+    const decodedUrl = decodeURIComponent(url);
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      const response = await axios({
-        method: "get",
-        url: decodedUrl,
-        responseType: "stream",
-        timeout: 5000,
-      });
+    const response = await axios({
+      method: "get",
+      url: decodedUrl,
+      responseType: "arraybuffer", // Важно: получаем как buffer
+      timeout: 10000,
+    });
 
-      res.setHeader("Content-Type", response.headers["content-type"]);
-      response.data.pipe(res);
-      return;
-    } catch (error) {
-      console.error(
-        `Image proxy error (Attempt ${attempt}/${maxRetries}):`,
-        error.message
-      );
-
-      if (attempt === maxRetries) {
-        if (error.response) {
-          console.error(
-            "Proxy target responded with status:",
-            error.response.status
-          );
-        }
-        return next(new Error("Failed to proxy image after multiple attempts"));
-      }
-
-      await delay(retryDelay);
-    }
+    const contentType = response.headers["content-type"];
+    res.setHeader("Content-Type", contentType || "image/jpeg");
+    res.send(response.data);
+  } catch (error) {
+    console.error("Image proxy error:", error.message);
+    // Не передаем ошибку дальше через next(), чтобы избежать падения сервера,
+    // а просто отправляем статус ошибки клиенту.
+    res.status(500).send({ message: "Failed to proxy image." });
   }
 };
+// --- ИЗМЕНЕНИЯ ЗАКОНЧИЛИСЬ ---

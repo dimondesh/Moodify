@@ -12,6 +12,7 @@ const AudioPlayer = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const mediaSourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
   const {
     currentSong,
@@ -30,22 +31,53 @@ const AudioPlayer = () => {
   const { user } = useAuthStore();
   const listenRecordedRef = useRef(false);
 
-  // Инициализация Web Audio API с <audio> элементом
+  // --- ИЗМЕНЕНИЕ: Инициализация Web Audio API ---
+  // Этот useEffect выполняется один раз при монтировании компонента.
   useEffect(() => {
     const audioEl = audioRef.current;
     if (!audioEl) return;
 
-    const audioContext = webAudioService.getAudioContext();
-    if (audioContext && !mediaSourceNodeRef.current) {
+    // Создаем AudioContext только если его еще нет.
+    if (!audioContextRef.current) {
+      const AudioContextClass =
+        window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContextClass) {
+        audioContextRef.current = new AudioContextClass();
+      } else {
+        console.error("Web Audio API is not supported in this browser.");
+        return;
+      }
+    }
+    const audioContext = audioContextRef.current;
+
+    // Создаем источник звука из нашего <audio> элемента.
+    // Это ключевой шаг для связи HTML-плеера с Web Audio API.
+    if (!mediaSourceNodeRef.current) {
       mediaSourceNodeRef.current =
         audioContext.createMediaElementSource(audioEl);
-      webAudioService.init(
-        audioContext,
-        mediaSourceNodeRef.current,
-        audioContext.destination
-      );
     }
+
+    // Инициализируем наш сервис эффектов, передавая ему контекст,
+    // источник звука (наш <audio> элемент) и конечную точку (динамики).
+    webAudioService.init(
+      audioContext,
+      mediaSourceNodeRef.current,
+      audioContext.destination
+    );
+    console.log("AudioPlayer initialized with Web Audio API bridge.");
+
+    // Возобновляем контекст при первом взаимодействии пользователя
+    const resumeContext = () => {
+      if (audioContext.state === "suspended") {
+        audioContext.resume();
+      }
+      document.removeEventListener("click", resumeContext);
+      document.removeEventListener("keydown", resumeContext);
+    };
+    document.addEventListener("click", resumeContext);
+    document.addEventListener("keydown", resumeContext);
   }, []);
+  // --- КОНЕЦ ИЗМЕНЕНИЯ ---
 
   // Управление загрузкой и воспроизведением HLS
   useEffect(() => {
@@ -101,14 +133,20 @@ const AudioPlayer = () => {
     const audioEl = audioRef.current;
     if (!audioEl) return;
     audioEl.volume = masterVolume / 100;
+
+    // --- ИЗМЕНЕНИЕ: Добавляем preservesPitch ---
+    audioEl.preservesPitch = false; // Это включает режим "resample"
     audioEl.playbackRate = playbackRateEnabled ? playbackRate : 1.0;
+    // --- КОНЕЦ ИЗМЕНЕНИЯ ---
+
     audioEl.loop = repeatMode === "one";
   }, [masterVolume, playbackRateEnabled, playbackRate, repeatMode]);
 
   // Перемотка
   useEffect(() => {
     const audioEl = audioRef.current;
-    if (audioEl && Math.abs(audioEl.currentTime - currentTime) > 1) {
+    if (audioEl && Math.abs(audioEl.currentTime - currentTime) > 1.5) {
+      // Увеличил порог для HLS
       audioEl.currentTime = currentTime;
     }
   }, [seekVersion, currentTime]);
