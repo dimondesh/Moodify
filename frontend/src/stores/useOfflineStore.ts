@@ -48,7 +48,6 @@ interface OfflineState {
 
 const BUNNY_CACHE_NAME = "bunny-assets-cache";
 
-// --- НОВАЯ ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ---
 const getHlsSegmentUrls = async (playlistUrl: string): Promise<string[]> => {
   try {
     const response = await fetch(playlistUrl);
@@ -59,7 +58,7 @@ const getHlsSegmentUrls = async (playlistUrl: string): Promise<string[]> => {
 
     const segmentUrls = lines
       .filter((line) => line.trim().length > 0 && !line.startsWith("#"))
-      .map((segment) => new URL(segment, playlistUrl).href); // Корректно обрабатывает относительные и абсолютные URL
+      .map((segment) => new URL(segment, playlistUrl).href);
 
     return [playlistUrl, ...segmentUrls];
   } catch (error) {
@@ -116,14 +115,12 @@ export const useOfflineStore = create<OfflineState>()(
           window.addEventListener("offline", get().actions.checkOnlineStatus);
         },
 
-        checkOnlineStatus: () => {
-          set({ isOffline: !navigator.onLine });
-        },
-
+        checkOnlineStatus: () => set({ isOffline: !navigator.onLine }),
         isDownloaded: (itemId) => get().downloadedItemIds.has(itemId),
         isSongDownloaded: (songId) => get().downloadedSongIds.has(songId),
         isDownloading: (itemId) => get().downloadingItemIds.has(itemId),
 
+        // ... (syncLibrary и fetchAllDownloaded остаются без изменений)
         syncLibrary: async () => {
           const { isOffline } = get();
           const userId = useAuthStore.getState().user?.id;
@@ -206,7 +203,6 @@ export const useOfflineStore = create<OfflineState>()(
             toast.error(i18n.t("toasts.syncError"), { id: "sync-toast" });
           }
         },
-
         fetchAllDownloaded: async () => {
           const userId = useAuthStore.getState().user?.id;
           if (!userId) return [];
@@ -218,7 +214,6 @@ export const useOfflineStore = create<OfflineState>()(
           return [...albums, ...playlists, ...mixes];
         },
 
-        // --- ИЗМЕНЕНИЯ НАЧАЛИСЬ: ПЕРЕПИСАНА ЛОГИКА СКАЧИВАНИЯ ---
         downloadItem: async (itemId, itemType) => {
           const userId = useAuthStore.getState().user?.id;
           if (!userId) {
@@ -245,7 +240,7 @@ export const useOfflineStore = create<OfflineState>()(
                 itemType === "albums"
                   ? `/albums/${itemId}`
                   : `/${itemType}/${itemId}`;
-              storeName = itemType;
+              storeName = itemType as "albums" | "playlists" | "mixes";
             }
 
             const response = await axiosInstance.get(endpoint);
@@ -261,7 +256,6 @@ export const useOfflineStore = create<OfflineState>()(
             if (serverItemData.imageUrl)
               urlsToCache.add(serverItemData.imageUrl);
 
-            // Собираем URL всех HLS сегментов для всех песен
             for (const song of songsData) {
               if (song.imageUrl) urlsToCache.add(song.imageUrl);
               if (song.hlsPlaylistUrl) {
@@ -272,11 +266,32 @@ export const useOfflineStore = create<OfflineState>()(
               }
             }
 
-            const allUrls = Array.from(urlsToCache).filter(Boolean);
+            // --- ИЗМЕНЕНИЕ: Замена caches.addAll на более надежный метод ---
             const assetsCache = await caches.open(BUNNY_CACHE_NAME);
-            await assetsCache.addAll(allUrls);
+            const allUrls = Array.from(urlsToCache).filter(Boolean);
 
-            // Сохраняем метаданные в IndexedDB
+            for (const url of allUrls) {
+              try {
+                const existingResponse = await assetsCache.match(url);
+                if (!existingResponse) {
+                  // Делаем запрос с no-cors, чтобы избежать проблем с CORS на некоторых платформах
+                  // Серверные заголовки (Шаг 1) делают этот ответ НЕ-опак, но это дополнительная защита
+                  const req = new Request(url, { mode: "cors" }); // Меняем на cors, так как настроили сервер
+                  const res = await fetch(req);
+                  if (res.ok) {
+                    await assetsCache.put(req, res);
+                  } else {
+                    console.warn(
+                      `Skipping caching for ${url}, status: ${res.status}`
+                    );
+                  }
+                }
+              } catch (e) {
+                console.warn(`Could not cache URL: ${url}`, e);
+              }
+            }
+            // --- КОНЕЦ ИЗМЕНЕНИЯ ---
+
             const itemToSave = {
               ...(isGenerated
                 ? { ...serverItemData, isGenerated: true }
@@ -346,7 +361,6 @@ export const useOfflineStore = create<OfflineState>()(
 
             const assetsCache = await caches.open(BUNNY_CACHE_NAME);
 
-            // Удаляем HLS сегменты и обложки
             for (const song of songs) {
               if (!allOtherSongIds.has(song._id)) {
                 if (song.hlsPlaylistUrl) {
@@ -354,20 +368,34 @@ export const useOfflineStore = create<OfflineState>()(
                     song.hlsPlaylistUrl
                   );
                   for (const url of segmentUrls) {
-                    await assetsCache.delete(url).catch((e) => console.warn(e));
+                    await assetsCache
+                      .delete(url)
+                      .catch((e) =>
+                        console.warn(`Failed to delete from cache: ${url}`, e)
+                      );
                   }
                 }
                 if (song.imageUrl)
                   await assetsCache
                     .delete(song.imageUrl)
-                    .catch((e) => console.warn(e));
+                    .catch((e) =>
+                      console.warn(
+                        `Failed to delete from cache: ${song.imageUrl}`,
+                        e
+                      )
+                    );
                 await deleteUserItem("songs", song._id);
               }
             }
             if (itemToDelete.imageUrl)
               await assetsCache
                 .delete(itemToDelete.imageUrl)
-                .catch((e) => console.warn(e));
+                .catch((e) =>
+                  console.warn(
+                    `Failed to delete from cache: ${itemToDelete.imageUrl}`,
+                    e
+                  )
+                );
 
             await deleteUserItem(storeName, itemId);
 
@@ -392,7 +420,6 @@ export const useOfflineStore = create<OfflineState>()(
             toast.error(i18n.t("toasts.removeItemError", { itemTitle }));
           }
         },
-        // --- ИЗМЕНЕНИЯ ЗАКОНЧИЛИСЬ ---
 
         getStorageUsage: async () => {
           if (navigator.storage && navigator.storage.estimate) {
@@ -425,9 +452,9 @@ export const useOfflineStore = create<OfflineState>()(
               db.clear("mixes"),
               db.clear("songs"),
             ]);
-            await caches.delete("moodify-audio-cache");
-            await caches.delete("cloudinary-images-cache");
-            await caches.delete("bunny-assets-cache");
+
+            // Удаляем кеш с ассетами
+            await caches.delete(BUNNY_CACHE_NAME);
 
             set({
               downloadedItemIds: new Set(),
