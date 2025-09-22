@@ -44,6 +44,7 @@ const MainLayout = () => {
     playlistToDelete,
     songToRemoveFromPlaylist,
     isUserSheetOpen,
+    isFriendsActivityOpen,
   } = useUIStore();
 
   const isAnyDialogOpen =
@@ -131,20 +132,19 @@ const MainLayout = () => {
   return (
     <div
       className={cn(
-        "h-screen bg-zinc-950 text-white flex flex-col transition-transform ease-in-out",
+        "h-screen bg-[#0f0f0f] text-white flex flex-col transition-transform ease-in-out",
         isUserSheetOpen && isMobile
           ? "duration-300 -translate-x-[290px] rounded-none overflow-hidden"
           : "duration-300 translate-x-0 rounded-none"
       )}
     >
-      {" "}
       <DynamicTitleUpdater />
       <AudioPlayer />
       <Topbar />
       <ResizablePanelGroup
         direction="horizontal"
         className={`flex-1 flex overflow-hidden ${contentPaddingBottom} ${
-          isMobile ? "p-0" : "p-2"
+          isMobile ? "p-0" : "p-1"
         }`}
         id="main-layout-group"
       >
@@ -153,16 +153,16 @@ const MainLayout = () => {
             <ResizablePanel
               id="left-sidebar-panel"
               order={1}
-              defaultSize={20}
-              minSize={10}
-              maxSize={30}
+              defaultSize={15}
+              minSize={12}
+              maxSize={25}
               className="hidden lg:block"
             >
               <LeftSidebar />
             </ResizablePanel>
             <ResizableHandle
               id="left-handle"
-              className="w-2 bg-black rounded-lg transition-colors hidden lg:block"
+              className="w-1 bg-[#2a2a2a] transition-colors hidden lg:block hover:bg-[#8b5cf6]"
             />
           </>
         )}
@@ -170,10 +170,10 @@ const MainLayout = () => {
         <ResizablePanel
           id="main-content-panel"
           order={2}
-          className="overflow-y-auto flex-1"
+          className="overflow-y-auto flex-1 bg-[#0f0f0f]"
         >
           {isMobileLyricsFullScreen ? (
-            <div className="fixed inset-0 z-[80] bg-zinc-950">
+            <div className="fixed inset-0 z-[80] bg-[#0f0f0f]">
               <LyricsPage isMobileFullScreen={true} />
             </div>
           ) : !isCompactView && isDesktopLyricsOpen ? (
@@ -183,18 +183,18 @@ const MainLayout = () => {
           )}
         </ResizablePanel>
 
-        {!isMobile && (
+        {!isMobile && isFriendsActivityOpen && (
           <>
             <ResizableHandle
               id="right-handle"
-              className="w-2 bg-black rounded-lg transition-colors"
+              className="w-1 bg-[#2a2a2a] transition-colors hover:bg-[#8b5cf6]"
             />
             <ResizablePanel
               id="friends-activity-panel"
               order={3}
-              defaultSize={20}
+              defaultSize={15}
               minSize={0}
-              maxSize={25}
+              maxSize={20}
               collapsible={true}
               collapsedSize={0}
               className="hidden lg:block"

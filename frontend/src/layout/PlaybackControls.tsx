@@ -737,7 +737,7 @@ const PlaybackControls = () => {
         </>
       ) : (
         <footer
-          className={`h-20 bg-zinc-900 border-t border-zinc-800 px-4 z-40`}
+          className={`h-16 bg-[#0f0f0f] border-t border-[#2a2a2a] px-4 z-40`}
         >
           <div className="flex justify-between items-center h-full max-w-screen mx-auto">
             <div className="flex items-center gap-4 min-w-[180px] w-[30%]">
@@ -749,12 +749,12 @@ const PlaybackControls = () => {
                         handleAlbumClick(currentSong.albumId);
                       }
                     }}
-                    className="flex-shrink-0 rounded-md overflow-hidden"
+                    className="flex-shrink-0 rounded-md overflow-hidden hover-scale"
                   >
                     <img
                       src={currentSong.imageUrl || "/default-song-cover.png"}
                       alt={currentSong.title}
-                      className="w-14 h-14 object-cover"
+                      className="w-12 h-12 object-cover"
                     />
                   </button>
                   <div className="flex flex-col min-w-0">
@@ -764,16 +764,16 @@ const PlaybackControls = () => {
                           handleAlbumClick(currentSong.albumId);
                         }
                       }}
-                      className="font-medium truncate text-left hover:underline cursor-pointer focus:outline-none focus:underline"
+                      className="font-medium truncate text-left hover:text-[#8b5cf6] cursor-pointer focus:outline-none focus:text-[#8b5cf6] text-sm"
                     >
                       {currentSong.title}
                     </button>
-                    <div className="text-sm text-zinc-400 truncate">
+                    <div className="text-xs text-gray-400 truncate">
                       {currentSong.artist.map((artist, index) => (
                         <span key={artist._id}>
                           <button
                             onClick={() => handleArtistClick(artist._id)}
-                            className="hover:underline focus:outline-none focus:underline"
+                            className="hover:text-[#8b5cf6] focus:outline-none focus:text-[#8b5cf6]"
                           >
                             {artist.name}
                           </button>
@@ -787,12 +787,12 @@ const PlaybackControls = () => {
               )}
             </div>
             <div className="flex flex-col items-center gap-2 flex-1 max-w-full sm:max-w-[45%]">
-              <div className="flex items-center gap-4 sm:gap-6">
+              <div className="flex items-center gap-2 sm:gap-4">
                 <Button
                   size="icon"
                   variant="ghost"
-                  className={`hover:text-white ${
-                    isShuffle ? "text-violet-500" : "text-zinc-400"
+                  className={`hover:text-white hover:bg-[#2a2a2a] h-8 w-8 ${
+                    isShuffle ? "text-[#8b5cf6]" : "text-gray-400"
                   }`}
                   onClick={toggleShuffle}
                   title={t("player.toggleShuffle")}
@@ -802,7 +802,7 @@ const PlaybackControls = () => {
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="hover:text-white text-zinc-400"
+                  className="hover:text-white hover:bg-[#2a2a2a] text-gray-400 h-8 w-8"
                   onClick={() => {
                     if (currentTime > 3) {
                       seekToTime(0);
@@ -816,20 +816,20 @@ const PlaybackControls = () => {
                 </Button>
                 <Button
                   size="icon"
-                  className="bg-white hover:bg-white/90 text-black rounded-full h-8 w-8"
+                  className="bg-[#8b5cf6] hover:bg-[#7c3aed] text-white rounded-full h-10 w-10"
                   onClick={togglePlay}
                   disabled={!currentSong}
                 >
                   {isPlaying ? (
                     <Pause className="h-5 w-5 fill-current" />
                   ) : (
-                    <Play className="h-5 w-5 fill-current" />
+                    <Play className="h-5 w-5 fill-current ml-0.5" />
                   )}
                 </Button>
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="hover:text-white text-zinc-400"
+                  className="hover:text-white hover:bg-[#2a2a2a] text-gray-400 h-8 w-8"
                   onClick={playNext}
                   disabled={!currentSong}
                 >
@@ -838,8 +838,8 @@ const PlaybackControls = () => {
                 <Button
                   size="icon"
                   variant="ghost"
-                  className={`hover:text-white ${
-                    repeatMode !== "off" ? "text-violet-500" : "text-zinc-400"
+                  className={`hover:text-white hover:bg-[#2a2a2a] h-8 w-8 ${
+                    repeatMode !== "off" ? "text-[#8b5cf6]" : "text-gray-400"
                   }`}
                   onClick={toggleRepeatMode}
                   title={t("player.toggleRepeat")}
@@ -851,8 +851,8 @@ const PlaybackControls = () => {
                   )}
                 </Button>
               </div>
-              <div className="flex items-center gap-2 w-full">
-                <div className="text-xs text-zinc-400">
+              <div className="flex items-center gap-3 w-full">
+                <div className="text-xs text-gray-400 font-mono">
                   {formatTime(currentTime)}
                 </div>
                 <Slider
@@ -862,7 +862,7 @@ const PlaybackControls = () => {
                   className="w-full hover:cursor-grab active:cursor-grabbing"
                   onValueChange={(value) => seekToTime(value[0])}
                 />
-                <div className="text-xs text-zinc-400">
+                <div className="text-xs text-gray-400 font-mono">
                   {formatTime(duration)}
                 </div>
               </div>
@@ -872,8 +872,8 @@ const PlaybackControls = () => {
                 <Button
                   size="icon"
                   variant="ghost"
-                  className={`hover:text-white ${
-                    isDesktopLyricsOpen ? "text-violet-500" : "text-zinc-400"
+                  className={`hover:text-white hover:bg-[#2a2a2a] h-8 w-8 ${
+                    isDesktopLyricsOpen ? "text-[#8b5cf6]" : "text-gray-400"
                   }`}
                   onClick={() => setIsDesktopLyricsOpen(!isDesktopLyricsOpen)}
                   title={t("player.lyrics")}
@@ -888,8 +888,8 @@ const PlaybackControls = () => {
                     <Button
                       size="icon"
                       variant="ghost"
-                      className={`hover:text-white ${
-                        reverbEnabled ? "text-violet-500" : "text-zinc-400"
+                      className={`hover:text-white hover:bg-[#2a2a2a] h-8 w-8 ${
+                        reverbEnabled ? "text-[#8b5cf6]" : "text-gray-400"
                       }`}
                       title={t("player.reverb")}
                       disabled={!currentSong || !reverbEnabled}
@@ -903,12 +903,12 @@ const PlaybackControls = () => {
                   <DropdownMenuContent
                     side="top"
                     align="end"
-                    className="w-48 bg-zinc-800/50 backdrop-blur-md border-zinc-700 p-3 rounded-md shadow-lg"
+                    className="w-48 bg-[#1a1a1a] border-[#2a2a2a] p-3 rounded-md shadow-lg"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <DropdownMenuItem className="focus:bg-transparent">
                       <div className="flex items-center w-full gap-2">
-                        <span className="text-sm text-zinc-400 w-8 mr-4">
+                        <span className="text-sm text-gray-400 w-8 mr-4">
                           {t("player.reverb")}
                         </span>
                         <Slider
@@ -929,18 +929,19 @@ const PlaybackControls = () => {
               <Button
                 size="icon"
                 variant="ghost"
-                className="hover:text-white text-zinc-400"
+                className="hover:text-white hover:bg-[#2a2a2a] text-gray-400 h-8 w-8"
                 onClick={() =>
                   openShareDialog({ type: "song", id: currentSong._id })
                 }
+                title={t("player.share")}
               >
                 <Share className="h-4 w-4" />
               </Button>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="hover:text-white text-zinc-400"
+                  className="hover:text-white hover:bg-[#2a2a2a] text-gray-400 h-8 w-8"
                   onClick={toggleMute}
                 >
                   {renderVolumeIcon()}
@@ -949,7 +950,7 @@ const PlaybackControls = () => {
                   value={[masterVolume]}
                   max={100}
                   step={1}
-                  className="w-24 hover:cursor-grab active:cursor-grabbing"
+                  className="w-28 hover:cursor-grab active:cursor-grabbing"
                   onValueChange={(value) => {
                     const newVolume = value[0];
                     setMasterVolume(newVolume);

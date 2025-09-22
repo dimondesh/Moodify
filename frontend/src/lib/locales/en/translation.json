@@ -30,7 +30,8 @@
     "settings": "Settings",
     "adminDashboard": "Admin Dashboard",
     "logout": "Log Out",
-    "login": "Log In"
+    "login": "Log In",
+    "friendsActivity": "Friends Activity"
   },
   "player": {
     "noSong": "No song playing",

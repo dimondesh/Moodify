@@ -171,20 +171,21 @@ const LeftSidebar = () => {
   ]);
 
   return (
-    <div className="h-full flex flex-col gap-2">
-      <div className="rounded-lg bg-zinc-900 p-4">
-        <div className="space-y-2">
+    <div className="h-full flex flex-col bg-[#0f0f0f]">
+      <div className="p-4">
+        <div className="space-y-1">
           <Link
             to="/"
             className={cn(
               buttonVariants({
                 variant: "ghost",
-                className: "w-full justify-start text-white hover:bg-zinc-800",
+                className:
+                  "w-full justify-start text-gray-300 hover:text-white hover:bg-[#2a2a2a] h-8 px-2",
               })
             )}
           >
-            <HomeIcon className="mr-2 size-5" />
-            <span>{t("sidebar.home")}</span>
+            <HomeIcon className="mr-3 size-4" />
+            <span className="text-sm font-medium">{t("sidebar.home")}</span>
           </Link>
 
           <Link
@@ -192,12 +193,13 @@ const LeftSidebar = () => {
             className={cn(
               buttonVariants({
                 variant: "ghost",
-                className: "w-full justify-start text-white hover:bg-zinc-800",
+                className:
+                  "w-full justify-start text-gray-300 hover:text-white hover:bg-[#2a2a2a] h-8 px-2",
               })
             )}
           >
-            <Search className="mr-2 size-5" />
-            <span>{t("sidebar.search")}</span>
+            <Search className="mr-3 size-4" />
+            <span className="text-sm font-medium">{t("sidebar.search")}</span>
           </Link>
 
           {user && (
@@ -207,14 +209,16 @@ const LeftSidebar = () => {
                 buttonVariants({
                   variant: "ghost",
                   className:
-                    "w-full justify-start text-white hover:bg-zinc-800 relative",
+                    "w-full justify-start text-gray-300 hover:text-white hover:bg-[#2a2a2a] h-8 px-2 relative",
                 })
               )}
             >
-              <MessageCircle className="mr-2 size-5" />
-              <span>{t("sidebar.messages")}</span>
+              <MessageCircle className="mr-3 size-4" />
+              <span className="text-sm font-medium">
+                {t("sidebar.messages")}
+              </span>
               {totalUnread > 0 && (
-                <span className="absolute right-2 top-1/2 -translate-y-1/2 bg-violet-600 text-white text-xs rounded-full h-5 px-1.5 flex items-center justify-center font-semibold">
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#8b5cf6] text-white text-xs rounded-full h-4 px-1.5 flex items-center justify-center font-semibold">
                   {totalUnread > 99 ? "99+" : totalUnread}
                 </span>
               )}
@@ -228,32 +232,36 @@ const LeftSidebar = () => {
                 buttonVariants({
                   variant: "ghost",
                   className:
-                    "w-full justify-start text-white hover:bg-zinc-800",
+                    "w-full justify-start text-gray-300 hover:text-white hover:bg-[#2a2a2a] h-8 px-2",
                 })
               )}
             >
-              <Heart className="mr-2 size-5" />
-              <span>{t("sidebar.likedSongs")}</span>
+              <Heart className="mr-3 size-4" />
+              <span className="text-sm font-medium">
+                {t("sidebar.likedSongs")}
+              </span>
             </Link>
           )}
         </div>
       </div>
 
-      <div className="flex-1 rounded-lg bg-zinc-900 p-4 overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center text-white px-2">
-            <Library className="size-5 mr-2" />
-            <span>{t("sidebar.library")}</span>
+      <div className="flex-1 overflow-hidden flex flex-col px-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center text-gray-300 px-2">
+            <Library className="size-4 mr-3" />
+            <span className="text-sm font-semibold">
+              {t("sidebar.library")}
+            </span>
           </div>
           {user && (
             <Button
               variant="ghost"
               size="icon"
-              className="hover:bg-zinc-800"
+              className="hover:bg-[#2a2a2a] h-6 w-6"
               onClick={openCreatePlaylistDialog}
               title={t("sidebar.createPlaylist")}
             >
-              <Plus className="size-5" />
+              <Plus className="size-4" />
             </Button>
           )}
         </div>
@@ -331,7 +339,7 @@ const LeftSidebar = () => {
                   <Link
                     to={linkPath}
                     key={`${item.type}-${item._id}`}
-                    className="p-2 hover:bg-zinc-800 rounded-md flex items-center gap-3 group cursor-pointer"
+                    className="p-2 hover:bg-[#2a2a2a] rounded-md flex items-center gap-3 group cursor-pointer hover-scale"
                   >
                     <img
                       src={getOptimizedImageUrl(
@@ -339,20 +347,20 @@ const LeftSidebar = () => {
                         100
                       )}
                       alt={item.title}
-                      className={`size-12 object-cover ${imageClass} flex-shrink-0`}
+                      className={`size-10 object-cover ${imageClass} flex-shrink-0`}
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = fallbackImage;
                       }}
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="font-md truncate text-white">
+                      <p className="font-medium truncate text-white text-sm">
                         {item.title}
                       </p>
                       <div className="flex items-center gap-1.5">
                         {isDownloaded(item._id) && (
-                          <Download className="size-3 text-violet-400 flex-shrink-0" />
+                          <Download className="size-3 text-[#8b5cf6] flex-shrink-0" />
                         )}
-                        <p className="text-sm text-zinc-400 truncate">
+                        <p className="text-xs text-gray-400 truncate">
                           {subtitle}
                         </p>
                       </div>

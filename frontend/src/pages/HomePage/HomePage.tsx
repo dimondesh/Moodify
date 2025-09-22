@@ -234,9 +234,9 @@ const HomePageComponent = () => {
           content="Listen to trending music, discover personal mixes, and explore public playlists. Moodify Studio - your ultimate guide in the world of music."
         />
       </Helmet>
-      <main className="rounded-md overflow-y-auto h-full bg-gradient-to-b from-zinc-900 to-zinc-950 hide-scrollbar pb-30 lg:pb-0">
+      <main className="overflow-y-auto h-full bg-[#0f0f0f] hide-scrollbar pb-30 lg:pb-0">
         <div className="relative min-h-screen">
-          <div className="absolute hidden lg:block inset-0 h-[60vh] w-full pointer-events-none z-0">
+          <div className="absolute hidden lg:block inset-0 h-[50vh] w-full pointer-events-none z-0">
             {backgrounds
               .slice(0, 2)
               .reverse()
@@ -248,26 +248,18 @@ const HomePageComponent = () => {
                   }`}
                   aria-hidden="true"
                   style={{
-                    background: `linear-gradient(to bottom, ${bg.color}, transparent 60%)`,
+                    background: `linear-gradient(to bottom, ${bg.color}15, transparent 70%)`,
                   }}
                 />
               ))}
-            <div
-              className="absolute inset-0"
-              style={{
-                background:
-                  "linear-gradient(to bottom, rgba(0,0,0,0.4), transparent)",
-              }}
-              aria-hidden="true"
-            />
           </div>
 
           <div className="relative z-10">
             {isHomePageLoading ? (
               <HomePageSkeleton />
             ) : (
-              <div className="p-2 sm:p-6">
-                <h1 className="text-2xl sm:text-3xl font-bold mb-4 text-white">
+              <div className="p-4 sm:p-6">
+                <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-white">
                   {getGreeting()}
                 </h1>
 
@@ -276,7 +268,7 @@ const HomePageComponent = () => {
                   onSongLeave={handleSongLeave}
                 />
 
-                <div className="space-y-6 sm:space-y-8">
+                <div className="space-y-6">
                   <HorizontalSection
                     title={t("homepage.genreMixes")}
                     items={genreMixesItems}

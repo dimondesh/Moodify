@@ -35,11 +35,13 @@ interface UIStore {
   isSecondaryHomePageLoading: boolean;
   libraryFilter: LibraryFilter;
   isIosDevice: boolean; // <-- НОВЫЙ ФЛАГ
+  isFriendsActivityOpen: boolean;
 
   setIsIosDevice: (isIos: boolean) => void; // <-- НОВАЯ ФУНКЦИЯ
   setIsHomePageLoading: (isLoading: boolean) => void;
   setIsSecondaryHomePageLoading: (isLoading: boolean) => void;
   setLibraryFilter: (filter: LibraryFilter) => void;
+  setIsFriendsActivityOpen: (isOpen: boolean) => void;
 
   openCreatePlaylistDialog: () => void;
   openEditPlaylistDialog: (playlist: Playlist) => void;
@@ -67,6 +69,7 @@ export const useUIStore = create<UIStore>((set) => ({
   isSecondaryHomePageLoading: true,
   libraryFilter: "all",
   isIosDevice: false, // <-- ЗНАЧЕНИЕ ПО УМОЛЧАНИЮ
+  isFriendsActivityOpen: true,
 
   setIsIosDevice: (isIos: boolean) => set({ isIosDevice: isIos }), // <-- РЕАЛИЗАЦИЯ
   setIsHomePageLoading: (isLoading) => set({ isHomePageLoading: isLoading }),
@@ -74,6 +77,7 @@ export const useUIStore = create<UIStore>((set) => ({
     set({ isSecondaryHomePageLoading: isLoading }),
 
   setLibraryFilter: (filter) => set({ libraryFilter: filter }),
+  setIsFriendsActivityOpen: (isOpen) => set({ isFriendsActivityOpen: isOpen }),
 
   openCreatePlaylistDialog: () => set({ isCreatePlaylistDialogOpen: true }),
   openEditPlaylistDialog: (playlist) => set({ editingPlaylist: playlist }),
