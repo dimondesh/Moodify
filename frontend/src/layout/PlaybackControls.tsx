@@ -77,6 +77,7 @@ const parseLrc = (lrcContent: string): LyricLine[] => {
 const PlaybackControls = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { isIosDevice } = useUIStore();
 
   const {
     currentSong,
@@ -97,7 +98,6 @@ const PlaybackControls = () => {
     setMasterVolume,
     currentTime,
     duration,
-    setCurrentTime: setPlayerCurrentTime,
     seekToTime,
   } = usePlayerStore();
 
@@ -314,10 +314,6 @@ const PlaybackControls = () => {
     return <Volume2 className="h-4 w-4" />;
   };
 
-  const handleSeek = (value: number[]) => {
-    setPlayerCurrentTime(value[0]);
-  };
-
   const handleArtistClick = (artistId: string) => {
     navigate(`/artists/${artistId}`);
     if (isCompactView && isFullScreenPlayerOpen) {
@@ -527,7 +523,7 @@ const PlaybackControls = () => {
                           max={duration || 100}
                           step={1}
                           className="flex-1 hover:cursor-grab active:cursor-grabbing"
-                          onValueChange={handleSeek}
+                          onValueChange={(value) => seekToTime(value[0])}
                         />
                         <div className="text-xs text-zinc-400">
                           {formatTime(duration)}
@@ -552,7 +548,7 @@ const PlaybackControls = () => {
                           className="hover:text-white text-zinc-400"
                           onClick={() => {
                             if (currentTime > 3) {
-                              setPlayerCurrentTime(0);
+                              seekToTime(0);
                             } else {
                               playPrevious();
                             }
@@ -600,50 +596,51 @@ const PlaybackControls = () => {
 
                       <div className="flex items-center justify-between w-full pb-4 px-2">
                         <div className="flex items-center justify-start gap-2">
-                          {/* Кнопка вокала удалена */}
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className={`hover:text-white ${
-                                  reverbEnabled
-                                    ? "text-violet-500"
-                                    : "text-zinc-400"
-                                }`}
-                                title={t("player.reverb")}
-                                disabled={!currentSong || !reverbEnabled}
-                                onClick={() => {
-                                  if (!reverbEnabled) setReverbEnabled(true);
-                                }}
+                          {!isIosDevice && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className={`hover:text-white ${
+                                    reverbEnabled
+                                      ? "text-violet-500"
+                                      : "text-zinc-400"
+                                  }`}
+                                  title={t("player.reverb")}
+                                  disabled={!currentSong || !reverbEnabled}
+                                  onClick={() => {
+                                    if (!reverbEnabled) setReverbEnabled(true);
+                                  }}
+                                >
+                                  <Waves className="h-5 w-5" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                side="top"
+                                align="center"
+                                className="w-48 bg-zinc-800/50 border-zinc-700 p-3 rounded-md backdrop-blur-md shadow-lg z-70"
+                                onClick={(e) => e.stopPropagation()}
                               >
-                                <Waves className="h-5 w-5" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                              side="top"
-                              align="center"
-                              className="w-48 bg-zinc-800/50 border-zinc-700 p-3 rounded-md backdrop-blur-md shadow-lg z-70"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <DropdownMenuItem className="focus:bg-transparent">
-                                <div className="flex items-center w-full gap-2">
-                                  <span className="text-sm text-zinc-400 w-8 mr-4">
-                                    {t("player.reverb")}
-                                  </span>
-                                  <Slider
-                                    value={[reverbMix * 100]}
-                                    max={100}
-                                    step={1}
-                                    className="flex-1 hover:cursor-grab active:cursor-grabbing"
-                                    onValueChange={(value) =>
-                                      setReverbMix(value[0] / 100)
-                                    }
-                                  />
-                                </div>
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                                <DropdownMenuItem className="focus:bg-transparent">
+                                  <div className="flex items-center w-full gap-2">
+                                    <span className="text-sm text-zinc-400 w-8 mr-4">
+                                      {t("player.reverb")}
+                                    </span>
+                                    <Slider
+                                      value={[reverbMix * 100]}
+                                      max={100}
+                                      step={1}
+                                      className="flex-1 hover:cursor-grab active:cursor-grabbing"
+                                      onValueChange={(value) =>
+                                        setReverbMix(value[0] / 100)
+                                      }
+                                    />
+                                  </div>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
                         </div>
 
                         <div className="flex items-center gap-2 justify-end">
@@ -695,7 +692,7 @@ const PlaybackControls = () => {
                             const currentRate = playbackRateEnabled
                               ? playbackRate
                               : 1.0;
-                            const realCurrentTime = currentTime * currentRate;
+                            const realCurrentTime = currentTime / currentRate;
 
                             return lyrics.slice(0, 5).map((line, index) => (
                               <p
@@ -808,7 +805,7 @@ const PlaybackControls = () => {
                   className="hover:text-white text-zinc-400"
                   onClick={() => {
                     if (currentTime > 3) {
-                      setPlayerCurrentTime(0);
+                      seekToTime(0);
                     } else {
                       playPrevious();
                     }
@@ -863,7 +860,7 @@ const PlaybackControls = () => {
                   max={duration || 100}
                   step={1}
                   className="w-full hover:cursor-grab active:cursor-grabbing"
-                  onValueChange={handleSeek}
+                  onValueChange={(value) => seekToTime(value[0])}
                 />
                 <div className="text-xs text-zinc-400">
                   {formatTime(duration)}
@@ -871,7 +868,7 @@ const PlaybackControls = () => {
               </div>
             </div>
             <div className="flex items-center gap-4 min-w-[180px] w-[30%] justify-end">
-              {currentSong.lyrics && (
+              {currentSong.lyrics && !isIosDevice && (
                 <Button
                   size="icon"
                   variant="ghost"
@@ -884,46 +881,50 @@ const PlaybackControls = () => {
                   <Mic2 className="h-4 w-4" />
                 </Button>
               )}
-              {/* Кнопка вокала удалена */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className={`hover:text-white ${
-                      reverbEnabled ? "text-violet-500" : "text-zinc-400"
-                    }`}
-                    title={t("player.reverb")}
-                    disabled={!currentSong || !reverbEnabled}
-                    onClick={() => {
-                      if (!reverbEnabled) setReverbEnabled(true);
-                    }}
+
+              {!isIosDevice && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className={`hover:text-white ${
+                        reverbEnabled ? "text-violet-500" : "text-zinc-400"
+                      }`}
+                      title={t("player.reverb")}
+                      disabled={!currentSong || !reverbEnabled}
+                      onClick={() => {
+                        if (!reverbEnabled) setReverbEnabled(true);
+                      }}
+                    >
+                      <Waves className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    side="top"
+                    align="end"
+                    className="w-48 bg-zinc-800/50 backdrop-blur-md border-zinc-700 p-3 rounded-md shadow-lg"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    <Waves className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  side="top"
-                  align="end"
-                  className="w-48 bg-zinc-800/50 backdrop-blur-md border-zinc-700 p-3 rounded-md shadow-lg"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <DropdownMenuItem className="focus:bg-transparent">
-                    <div className="flex items-center w-full gap-2">
-                      <span className="text-sm text-zinc-400 w-8 mr-4">
-                        {t("player.reverb")}
-                      </span>
-                      <Slider
-                        value={[reverbMix * 100]}
-                        max={100}
-                        step={1}
-                        className="flex-1 hover:cursor-grab active:cursor-grabbing"
-                        onValueChange={(value) => setReverbMix(value[0] / 100)}
-                      />
-                    </div>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    <DropdownMenuItem className="focus:bg-transparent">
+                      <div className="flex items-center w-full gap-2">
+                        <span className="text-sm text-zinc-400 w-8 mr-4">
+                          {t("player.reverb")}
+                        </span>
+                        <Slider
+                          value={[reverbMix * 100]}
+                          max={100}
+                          step={1}
+                          className="flex-1 hover:cursor-grab active:cursor-grabbing"
+                          onValueChange={(value) =>
+                            setReverbMix(value[0] / 100)
+                          }
+                        />
+                      </div>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
 
               <Button
                 size="icon"

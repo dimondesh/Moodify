@@ -84,7 +84,7 @@ app.use(
 const tempDir = path.join(process.cwd(), "temp");
 
 cron.schedule(
-  "0 */6 * * *", // Каждые 6 часов
+  "*/5 * * * *", // Каждые 6 часов
   async () => {
     console.log(
       'CRON JOB: Starting "Featured Songs" generation for all users...'
@@ -190,7 +190,7 @@ cron.schedule("*/10 * * * *", () => {
 });
 
 cron.schedule(
-  "0 1 * * *",
+  "*/5 * * * *",
   () => {
     updateDailyMixes();
   },
@@ -202,7 +202,7 @@ cron.schedule(
 
 // Запускаем каждый день в 4 часа утра
 cron.schedule(
-  "0 4 * * *",
+  "*/10 * * * *",
   async () => {
     console.log('CRON JOB: Starting "On Repeat" playlist generation...');
     try {

@@ -34,7 +34,9 @@ interface UIStore {
   isHomePageLoading: boolean;
   isSecondaryHomePageLoading: boolean;
   libraryFilter: LibraryFilter;
+  isIosDevice: boolean; // <-- НОВЫЙ ФЛАГ
 
+  setIsIosDevice: (isIos: boolean) => void; // <-- НОВАЯ ФУНКЦИЯ
   setIsHomePageLoading: (isLoading: boolean) => void;
   setIsSecondaryHomePageLoading: (isLoading: boolean) => void;
   setLibraryFilter: (filter: LibraryFilter) => void;
@@ -64,7 +66,9 @@ export const useUIStore = create<UIStore>((set) => ({
   isHomePageLoading: true,
   isSecondaryHomePageLoading: true,
   libraryFilter: "all",
+  isIosDevice: false, // <-- ЗНАЧЕНИЕ ПО УМОЛЧАНИЮ
 
+  setIsIosDevice: (isIos: boolean) => set({ isIosDevice: isIos }), // <-- РЕАЛИЗАЦИЯ
   setIsHomePageLoading: (isLoading) => set({ isHomePageLoading: isLoading }),
   setIsSecondaryHomePageLoading: (isLoading) =>
     set({ isSecondaryHomePageLoading: isLoading }),

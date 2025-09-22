@@ -543,10 +543,11 @@ export const usePlayerStore = create<PlayerStore>()(
           set({ isMobileLyricsFullScreen: isOpen });
         },
         seekToTime: (time: number) => {
-          get().setCurrentTime(time, false);
-          if (!get().isPlaying) {
-            set({ isPlaying: true });
-          }
+          set((state) => ({
+            currentTime: time,
+            seekVersion: state.seekVersion + 1,
+            isPlaying: true,
+          }));
         },
       };
     },

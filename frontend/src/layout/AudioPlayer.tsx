@@ -58,6 +58,7 @@ const AudioPlayer = () => {
         masterGainNodeRef.current,
         context.destination
       );
+      webAudioService.applySettingsToGraph();
     }
 
     const audioEl = audioRef.current;
@@ -81,12 +82,11 @@ const AudioPlayer = () => {
     };
   }, []);
 
-  // Единый эффект для управления HLS и воспроизведением
+  // Управление HLS и воспроизведением
   useEffect(() => {
     const audioEl = audioRef.current;
     if (!audioEl) return;
 
-    // Если нет трека, все останавливаем
     if (!currentSong || !currentSong.hlsUrl) {
       if (hlsRef.current) {
         hlsRef.current.destroy();
@@ -97,7 +97,6 @@ const AudioPlayer = () => {
       return;
     }
 
-    // Если трек новый, настраиваем HLS
     if (lastSongIdRef.current !== currentSong._id) {
       listenRecordedRef.current = false;
       lastSongIdRef.current = currentSong._id;
@@ -124,15 +123,9 @@ const AudioPlayer = () => {
         });
       } else if (audioEl.canPlayType("application/vnd.apple.mpegurl")) {
         audioEl.src = currentSong.hlsUrl;
-        if (usePlayerStore.getState().isPlaying) {
-          audioEl
-            .play()
-            .catch((e) => console.error("Autoplay failed on new track", e));
-        }
       }
     }
 
-    // Управляем play/pause независимо от того, новый трек или нет
     if (isPlaying) {
       audioEl.play().catch((e) => console.error("Play command failed", e));
     } else {
@@ -148,8 +141,7 @@ const AudioPlayer = () => {
     ) {
       audioRef.current.currentTime = currentTime;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seekVersion]); // Зависимость только от seekVersion для предотвращения циклов
+  }, [seekVersion, currentTime]);
 
   // Управление громкостью и скоростью
   useEffect(() => {
@@ -162,7 +154,7 @@ const AudioPlayer = () => {
 
       audioRef.current.playbackRate = currentRate;
     }
-  }, [masterVolume, playbackRate, playbackRateEnabled]);
+  }, [masterVolume, playbackRate, playbackRateEnabled, currentSong]); // Добавил currentSong
 
   // Запись прослушивания
   useEffect(() => {
