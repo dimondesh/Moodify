@@ -346,7 +346,7 @@ const PlaybackControls = () => {
       {isCompactView ? (
         <>
           {!isFullScreenPlayerOpen && (
-            <footer className="fixed bottom-20 left-0 right-0 h-14 sm:h-16 mx-1 mb-[4px] rounded-md bg-zinc-800/80 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between z-[60]">
+            <footer className="fixed bottom-20 left-0 right-0 h-14 sm:h-16 mx-1 mb-[4px] rounded-md bg-[#1a1a1a]/80 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between z-[60]">
               <div
                 className="flex items-center gap-3 flex-1 cursor-pointer min-w-0"
                 onClick={() => setIsFullScreenPlayerOpen(true)}
@@ -737,7 +737,7 @@ const PlaybackControls = () => {
         </>
       ) : (
         <footer
-          className={`h-16 bg-[#0f0f0f] border-t border-[#2a2a2a] px-4 z-40`}
+          className={`h-18 sm:h-20 bg-[#0f0f0f] border-t border-zinc-800 px-4 z-40`}
         >
           <div className="flex justify-between items-center h-full max-w-screen mx-auto">
             <div className="flex items-center gap-4 min-w-[180px] w-[30%]">
@@ -816,7 +816,7 @@ const PlaybackControls = () => {
                 </Button>
                 <Button
                   size="icon"
-                  className="bg-[#8b5cf6] hover:bg-[#7c3aed] text-white rounded-full h-10 w-10"
+                  className="bg-violet-500 hover:bg-violet-400 text-black rounded-full h-10 w-10"
                   onClick={togglePlay}
                   disabled={!currentSong}
                 >

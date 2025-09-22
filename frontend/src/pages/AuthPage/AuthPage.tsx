@@ -280,13 +280,13 @@ const AuthPage: React.FC = () => {
                 </Button>
               </form>
 
-              <div className="text-center mt-6 text-sm text-zinc-400">
+              <div className="text-center mt-6 text-sm text-gray-400">
                 {isLoginView ? (
                   <span>
                     {t("auth.promptSignup")}{" "}
                     <button
                       onClick={() => setIsLoginView(false)}
-                      className="text-violet-400 hover:underline"
+                      className="text-[#8b5cf6] hover:underline"
                     >
                       {t("auth.signupLink")}
                     </button>
@@ -296,7 +296,7 @@ const AuthPage: React.FC = () => {
                     {t("auth.promptLogin")}{" "}
                     <button
                       onClick={() => setIsLoginView(true)}
-                      className="text-violet-400 hover:underline"
+                      className="text-[#8b5cf6] hover:underline"
                     >
                       {t("auth.loginLink")}
                     </button>

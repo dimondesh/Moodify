@@ -135,10 +135,10 @@ export const CreatePlaylistDialog: React.FC<CreatePlaylistDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px] bg-zinc-900/70 backdrop-blur-md   text-white border-zinc-700 z-[120]">
+      <DialogContent className="sm:max-w-[425px] bg-[#0f0f0f]/70 backdrop-blur-md   text-white border-[#2a2a2a] z-[120]">
         <DialogHeader>
           <DialogTitle className="text-white">{dialogTitle}</DialogTitle>
-          <DialogDescription className="text-zinc-400">
+          <DialogDescription className="text-gray-400">
             {dialogDescription}
           </DialogDescription>
         </DialogHeader>
@@ -219,7 +219,7 @@ export const CreatePlaylistDialog: React.FC<CreatePlaylistDialogProps> = ({
           </form>
         ) : (
           <Tabs defaultValue="manual" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-zinc-800">
+            <TabsList className="grid w-full grid-cols-2 bg-[#2a2a2a]">
               <TabsTrigger value="manual">
                 {t("pages.playlist.createDialog.manual")}
               </TabsTrigger>
@@ -245,7 +245,7 @@ export const CreatePlaylistDialog: React.FC<CreatePlaylistDialogProps> = ({
                       id="title-manual"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      className="col-span-3 bg-zinc-800 text-white border-zinc-700"
+                      className="col-span-3 bg-[#2a2a2a] text-white border-[#2a2a2a]"
                       required
                     />
                   </div>
@@ -260,7 +260,7 @@ export const CreatePlaylistDialog: React.FC<CreatePlaylistDialogProps> = ({
                       id="description-manual"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      className="col-span-3 bg-zinc-800 text-white border-zinc-700"
+                      className="col-span-3 bg-[#2a2a2a] text-white border-[#2a2a2a]"
                       rows={3}
                     />
                   </div>

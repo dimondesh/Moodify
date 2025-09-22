@@ -163,7 +163,7 @@ const ProfilePage = () => {
         <meta name="description" content={metaDescription} />
       </Helmet>
       <ScrollArea className="h-full">
-        <div className="relative min-h-screen pb-10 bg-zinc-950">
+        <div className="relative min-h-screen pb-10 bg-[#0f0f0f]">
           <div className="absolute inset-0 pointer-events-none h-[40vh]">
             {backgrounds
               .slice(0, 2)
@@ -320,7 +320,7 @@ const ProfilePage = () => {
                     <Link
                       to={`/playlists/${playlist._id}`}
                       key={playlist._id}
-                      className="bg-zinc-800/40 p-4 rounded-md hover:bg-zinc-700/40 transition-all group"
+                      className="bg-[#1a1a1a] p-4 rounded-md hover:bg-[#2a2a2a] transition-all group hover-scale"
                     >
                       <div className="aspect-square relative mb-2 overflow-hidden rounded-md">
                         <img

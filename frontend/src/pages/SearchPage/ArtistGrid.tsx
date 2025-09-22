@@ -34,13 +34,13 @@ const ArtistGridComponent: React.FC<ArtistGridProps> = ({
   const artistsToShow = showAll ? artists : artists.slice(0, 4);
 
   return (
-    <div className="mb-8 w-full">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl sm:text-2xl font-bold text-white">{title}</h2>
+    <div className="mb-6 w-full">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg sm:text-xl font-bold text-white">{title}</h2>
         {artists.length > 4 && (
           <Button
             variant="link"
-            className="text-sm text-zinc-400 hover:text-white"
+            className="text-sm text-gray-400 hover:text-[#8b5cf6]"
             onClick={() => setShowAll(!showAll)}
           >
             {showAll ? t("searchpage.showLess") : t("searchpage.showAll")}
@@ -48,11 +48,11 @@ const ArtistGridComponent: React.FC<ArtistGridProps> = ({
         )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {artistsToShow.map((artist) => (
           <div
             key={artist._id}
-            className="bg-zinc-800/40 p-4 rounded-md hover:bg-zinc-700/40 transition-all group cursor-pointer"
+            className="bg-[#1a1a1a] p-3 rounded-md hover:bg-[#2a2a2a] transition-all group cursor-pointer hover-scale"
             onClick={() => handleArtistClick(artist)}
           >
             <div className="relative mb-4 aspect-square rounded-full shadow-lg overflow-hidden">
@@ -69,7 +69,7 @@ const ArtistGridComponent: React.FC<ArtistGridProps> = ({
                 }}
               />
             </div>
-            <h3 className="font-medium mb-2 truncate text-white text-center">
+            <h3 className="font-medium mb-2 truncate text-white text-center text-sm">
               {artist.name}
             </h3>
           </div>

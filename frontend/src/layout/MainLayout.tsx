@@ -193,9 +193,9 @@ const MainLayout = () => {
               id="friends-activity-panel"
               order={3}
               defaultSize={15}
-              minSize={0}
+              minSize={15}
               maxSize={20}
-              collapsible={true}
+              collapsible={false}
               collapsedSize={0}
               className="hidden lg:block"
             >

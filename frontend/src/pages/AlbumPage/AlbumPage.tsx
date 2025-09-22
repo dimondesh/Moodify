@@ -121,11 +121,11 @@ const AlbumPage = () => {
         <Helmet>
           <title>Album Not Found</title>
         </Helmet>
-        <div className="p-4 sm:p-6 bg-zinc-900 min-h-screen text-white">
+        <div className="p-4 sm:p-6 bg-[#0f0f0f] min-h-screen text-white">
           <h1 className="text-2xl sm:text-3xl mb-6 font-bold">
             {t("pages.album.notFoundTitle")}
           </h1>
-          <p className="text-zinc-400">{t("pages.album.notFoundDesc")}</p>
+          <p className="text-gray-400">{t("pages.album.notFoundDesc")}</p>
         </div>
       </>
     );
@@ -166,8 +166,8 @@ const AlbumPage = () => {
         <div
           key={song._id}
           onClick={() => handlePlaySong(index)}
-          className={`grid grid-cols-[16px_4fr_2fr_auto] items-center gap-4 px-4 py-2 text-sm text-zinc-400 hover:bg-white/5 rounded-md group cursor-pointer ${
-            isCurrentSong ? "bg-white/10" : ""
+          className={`grid grid-cols-[16px_4fr_2fr_auto] items-center gap-4 px-4 py-2 text-sm text-gray-400 hover:bg-[#2a2a2a] rounded-md group cursor-pointer ${
+            isCurrentSong ? "bg-[#2a2a2a]" : ""
           }`}
         >
           <div className="flex items-center justify-center">
@@ -197,13 +197,13 @@ const AlbumPage = () => {
                   e.stopPropagation();
                   handleAlbumTitleClick(song.albumId);
                 }}
-                className={`font-medium text-left hover:underline focus:outline-none focus:underline truncate w-70 lg:w-60 xl:w-80 2xl:w-100 ${
-                  isCurrentSong ? "text-violet-400" : "text-white"
+                className={`font-medium text-left hover:text-[#8b5cf6] focus:outline-none focus:text-[#8b5cf6] truncate w-70 lg:w-60 xl:w-80 2xl:w-100 ${
+                  isCurrentSong ? "text-[#8b5cf6]" : "text-white"
                 }`}
               >
                 {song.title}
               </button>
-              <div className="text-zinc-400 truncate">
+              <div className="text-gray-400 truncate">
                 {song.artist.map((artist, artistIndex) => (
                   <span key={artist._id}>
                     <button
@@ -211,7 +211,7 @@ const AlbumPage = () => {
                         e.stopPropagation();
                         handleArtistClick(artist._id);
                       }}
-                      className="hover:underline focus:outline-none focus:underline"
+                      className="hover:text-[#8b5cf6] focus:outline-none focus:text-[#8b5cf6]"
                     >
                       {artist.name}
                     </button>
@@ -232,8 +232,8 @@ const AlbumPage = () => {
               variant="ghost"
               className={`rounded-full ${
                 songIsLiked
-                  ? "text-violet-500 hover:text-violet-400"
-                  : "text-zinc-400 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                  ? "text-[#8b5cf6] hover:text-[#7c3aed]"
+                  : "text-gray-400 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
               }`}
               onClick={(e) => {
                 e.stopPropagation();
@@ -242,7 +242,7 @@ const AlbumPage = () => {
               title={songIsLiked ? t("player.unlike") : t("player.like")}
             >
               <Heart
-                className={`h-5 w-5 ${songIsLiked ? "fill-violet-500" : ""}`}
+                className={`h-5 w-5 ${songIsLiked ? "fill-[#8b5cf6]" : ""}`}
               />
             </Button>
             <span className="w-10 text-right">
@@ -300,7 +300,7 @@ const AlbumPage = () => {
         </div>
       );
     });
-  const type = currentAlbum.type
+  const type = currentAlbum.type;
   return (
     <>
       <Helmet>
@@ -333,18 +333,18 @@ const AlbumPage = () => {
                 />
                 <div className="flex flex-col justify-end text-center sm:text-left min-w-0">
                   <p className="text-xs sm:text-sm font-medium ">
-                    {t(`pages.album.${type}`)  || currentAlbum.type}
+                    {t(`pages.album.${type}`) || currentAlbum.type}
                   </p>
                   <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold mt-2 mb-2 sm:my-4 break-words">
                     {currentAlbum.title}
                   </h1>
-                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 text-xs sm:text-sm text-zinc-100">
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 text-xs sm:text-sm text-gray-100">
                     <span className="font-medium text-white">
                       {currentAlbum.artist.map((artist, index) => (
                         <span key={artist._id}>
                           <button
                             onClick={() => handleArtistClick(artist._id)}
-                            className="hover:underline focus:outline-none focus:underline cursor-pointer"
+                            className="hover:text-[#8b5cf6] focus:outline-none focus:text-[#8b5cf6] cursor-pointer"
                           >
                             {artist.name}
                           </button>
@@ -367,7 +367,7 @@ const AlbumPage = () => {
                 <Button
                   onClick={handlePlayAlbum}
                   size="icon"
-                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-violet-500 hover:bg-violet-400 hover:scale-105 transition-all"
+                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white hover:bg-white/90 hover:scale-105 transition-all"
                 >
                   {isPlaying &&
                   currentAlbum.songs.some(
@@ -394,7 +394,7 @@ const AlbumPage = () => {
                     }
                   >
                     {inLibrary ? (
-                      <CheckCircle2 className="size-6  text-violet-400" />
+                      <CheckCircle2 className="size-6  text-[#8b5cf6]" />
                     ) : (
                       <PlusCircle className="size-6   text-white" />
                     )}
@@ -420,7 +420,7 @@ const AlbumPage = () => {
 
               <div className="bg-black/20 backdrop-blur-sm">
                 {!isMobile && (
-                  <div className="grid grid-cols-[16px_4fr_2.5fr_auto] gap-4 px-4 sm:px-6 md:px-10 py-2 text-sm text-zinc-400 border-b border-white/5">
+                  <div className="grid grid-cols-[16px_4fr_2.5fr_auto] gap-4 px-4 sm:px-6 md:px-10 py-2 text-sm text-gray-400 border-b border-[#2a2a2a]">
                     <div>#</div>
                     <div>{t("pages.album.headers.title")}</div>
                     <div className="hidden md:block">

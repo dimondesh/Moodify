@@ -546,7 +546,7 @@ const PlaylistDetailsPage = () => {
 
   if (error) {
     return (
-      <div className="p-4 sm:p-6 bg-zinc-900 min-h-screen text-white text-center">
+      <div className="p-4 sm:p-6 bg-[#0f0f0f] min-h-screen text-white text-center">
         <h1 className="text-2xl sm:text-3xl mb-6 font-bold">
           {t("pages.playlist.errorTitle")}
         </h1>
@@ -567,11 +567,11 @@ const PlaylistDetailsPage = () => {
             content="Sorry, the requested playlist could not be found or is private."
           />
         </Helmet>
-        <div className="p-4 sm:p-6 bg-zinc-900 min-h-screen text-white text-center">
+        <div className="p-4 sm:p-6 bg-[#0f0f0f] min-h-screen text-white text-center">
           <h1 className="text-2xl sm:text-3xl mb-6 font-bold">
             {t("pages.playlist.notFoundTitle")}
           </h1>
-          <p className="text-zinc-400">{t("pages.playlist.notFoundDesc")}</p>
+          <p className="text-gray-400">{t("pages.playlist.notFoundDesc")}</p>
         </div>
       </>
     );
@@ -618,7 +618,7 @@ const PlaylistDetailsPage = () => {
                   }`}
                   aria-hidden="true"
                   style={{
-                    background: `linear-gradient(to bottom, ${bg.color} 0%, rgba(20, 20, 20, 0.8) 50%, #18181b 100%)`,
+                    background: `linear-gradient(to bottom, ${bg.color} 0%, rgba(20, 20, 20, 0.8) 50%, #0f0f0f 100%)`,
                   }}
                 />
               ))}
@@ -641,11 +641,11 @@ const PlaylistDetailsPage = () => {
                     {currentPlaylist.title}
                   </h1>
                   {currentPlaylist.description && (
-                    <p className="text-zinc-400 text-base mt-2 break-words">
+                    <p className="text-gray-400 text-base mt-2 break-words">
                       {currentPlaylist.description}
                     </p>
                   )}
-                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 text-xs sm:text-sm text-zinc-100 mt-2">
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 text-xs sm:text-sm text-gray-100 mt-2">
                     {isOwner &&
                       (currentPlaylist.isPublic ? (
                         <Unlock className="size-3.5" />
@@ -688,7 +688,7 @@ const PlaylistDetailsPage = () => {
                 {currentPlaylist.songs.length > 0 && (
                   <Button
                     size="icon"
-                    className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-violet-500 hover:bg-violet-400 transition-colors shadow-lg flex-shrink-0 hover:scale-105"
+                    className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white hover:bg-white/90 transition-colors shadow-lg flex-shrink-0 hover:scale-105"
                     onClick={handlePlayPlaylist}
                   >
                     {isCurrentPlaylistPlaying ? (
@@ -706,7 +706,7 @@ const PlaylistDetailsPage = () => {
                     size="icon"
                   >
                     {isInLibrary ? (
-                      <CheckCircle2 className="size-6 text-violet-400" />
+                      <CheckCircle2 className="size-6 text-[#8b5cf6]" />
                     ) : (
                       <PlusCircle className="size-6 text-white" />
                     )}
@@ -734,7 +734,7 @@ const PlaylistDetailsPage = () => {
                       </Button>
                     </DrawerTrigger>
                     <DrawerContent
-                      className="bg-zinc-900 border-zinc-800 text-white p-4"
+                      className="bg-[#0f0f0f] border-[#2a2a2a] text-white p-4"
                       aria-describedby={undefined}
                     >
                       <DrawerHeaderComponent className="p-0 text-center mb-4">
@@ -991,7 +991,7 @@ const PlaylistDetailsPage = () => {
                             <Button
                               size="sm"
                               onClick={() => handleAddSongToPlaylist(song._id)}
-                              className="bg-violet-500 hover:bg-violet-600 text-white ml-4 flex-shrink-0"
+                              className="bg-violet-500 hover:bg-violet-400 text-white ml-4 flex-shrink-0"
                               disabled={currentPlaylist?.songs.some(
                                 (s) => s._id === song._id
                               )}
@@ -1049,7 +1049,7 @@ const PlaylistDetailsPage = () => {
                             <Button
                               size="sm"
                               onClick={() => handleAddSongToPlaylist(song._id)}
-                              className="bg-violet-500 hover:bg-violet-600 text-white ml-4 flex-shrink-0"
+                              className="bg-violet-500 hover:bg-violet-400 text-white ml-4 flex-shrink-0"
                               disabled={currentPlaylist?.songs.some(
                                 (s) => s._id === song._id
                               )}
@@ -1074,7 +1074,7 @@ const PlaylistDetailsPage = () => {
                   onClick={() => playlistId && fetchRecommendations(playlistId)}
                   disabled={isRecommendationsLoading}
                   title="Refresh recommendations"
-                  className="flex-shrink-0 mt-4 bg-violet-500 w-30 hover:bg-violet-600 transition-colors"
+                  className="flex-shrink-0 mt-4 bg-violet-500 w-30 hover:bg-violet-400 transition-colors"
                 >
                   <RefreshCw
                     className={`size-5 ${

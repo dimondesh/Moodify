@@ -304,11 +304,11 @@ const GeneratedPlaylistPage = () => {
 
   if (error || !currentPlaylist) {
     return (
-      <div className="p-4 sm:p-6 bg-zinc-900 min-h-screen text-white text-center">
+      <div className="p-4 sm:p-6 bg-[#0f0f0f] min-h-screen text-white text-center">
         <h1 className="text-2xl sm:text-3xl mb-6 font-bold">
           {t("pages.playlist.notFoundTitle")}
         </h1>
-        <p className="text-zinc-400">
+        <p className="text-gray-400">
           {error || t("pages.playlist.notFoundDesc")}
         </p>
       </div>
@@ -340,7 +340,7 @@ const GeneratedPlaylistPage = () => {
                   }`}
                   aria-hidden="true"
                   style={{
-                    background: `linear-gradient(to bottom, ${bg.color} 0%, rgba(20, 20, 20, 0.8) 50%, #18181b 100%)`,
+                    background: `linear-gradient(to bottom, ${bg.color} 0%, rgba(20, 20, 20, 0.8) 50%, #0f0f0f 100%)`,
                   }}
                 />
               ))}
@@ -361,12 +361,18 @@ const GeneratedPlaylistPage = () => {
                   <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold mt-2 mb-2 sm:my-4">
                     {t(currentPlaylist.nameKey)}
                   </h1>
-                  <p className="text-zinc-400 text-base mt-2">
+                  <p className="text-gray-400 text-base mt-2">
                     {t(currentPlaylist.descriptionKey)}
                   </p>
-                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 text-xs sm:text-sm text-zinc-100 mt-2">
-                    <img src="/Moodify-Studio.svg" alt="Moodify Studio" className="size-4" />
-                    <span className="font-semibold text-white">Moodify Studio</span>
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 text-xs sm:text-sm text-gray-100 mt-2">
+                    <img
+                      src="/Moodify-Studio.svg"
+                      alt="Moodify Studio"
+                      className="size-4"
+                    />
+                    <span className="font-semibold text-white">
+                      Moodify Studio
+                    </span>
                     <span className="hidden lg:inline">
                       • {currentPlaylist.songs.length}{" "}
                       {t("pages.playlist.songs")}

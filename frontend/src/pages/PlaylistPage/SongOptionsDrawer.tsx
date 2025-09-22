@@ -75,7 +75,7 @@ const SongOptionsDrawer: React.FC<SongOptionsDrawerProps> = ({
     <>
       <Drawer open={isOpen} onOpenChange={onOpenChange}>
         <DrawerContent
-          className="bg-zinc-900 border-zinc-800 text-white pb-4"
+          className="bg-[#0f0f0f] border-[#2a2a2a] text-white pb-4"
           aria-describedby={undefined}
         >
           <div className="mx-auto w-full max-w-md">
@@ -89,7 +89,7 @@ const SongOptionsDrawer: React.FC<SongOptionsDrawerProps> = ({
                 <DrawerTitle className="text-xl font-bold">
                   {song.title}
                 </DrawerTitle>
-                <p className="text-zinc-400">{getArtistNames(song.artist)}</p>
+                <p className="text-gray-400">{getArtistNames(song.artist)}</p>
               </div>
             </DrawerHeader>
             <div className="p-4 flex flex-col gap-2">
@@ -100,7 +100,7 @@ const SongOptionsDrawer: React.FC<SongOptionsDrawerProps> = ({
               >
                 <Heart
                   className={`w-5 h-5 mr-4 ${
-                    songIsLiked ? "fill-violet-500 text-violet-500" : ""
+                    songIsLiked ? "fill-[#8b5cf6] text-[#8b5cf6]" : ""
                   }`}
                 />
                 <span className="text-base">

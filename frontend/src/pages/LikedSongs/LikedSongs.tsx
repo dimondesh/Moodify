@@ -78,8 +78,8 @@ const LikedSongsPage = () => {
             if ((e.target as HTMLElement).closest("button")) return;
             handlePlaySpecificSong(song, index);
           }}
-          className={`grid grid-cols-[16px_4fr_2fr_1fr_min-content] md:grid-cols-[16px_4fr_2fr_1fr_min-content] gap-4 px-4 py-2 text-sm text-zinc-400 hover:bg-white/5 rounded-md group cursor-pointer ${
-            isCurrentlyPlaying ? "bg-white/10" : ""
+          className={`grid grid-cols-[16px_4fr_2fr_1fr_min-content] md:grid-cols-[16px_4fr_2fr_1fr_min-content] gap-4 px-4 py-2 text-sm text-gray-400 hover:bg-[#2a2a2a] rounded-md group cursor-pointer ${
+            isCurrentlyPlaying ? "bg-[#2a2a2a]" : ""
           }`}
         >
           <div className="flex items-center justify-center">
@@ -119,13 +119,13 @@ const LikedSongsPage = () => {
                   e.stopPropagation();
                   handleNavigateToAlbum(song.albumId);
                 }}
-                className={`font-medium w-full text-left hover:underline focus:outline-none focus:underline truncate ${
-                  isCurrentlyPlaying ? "text-violet-400" : "text-white"
+                className={`font-medium w-full text-left hover:text-[#8b5cf6] focus:outline-none focus:text-[#8b5cf6] truncate ${
+                  isCurrentlyPlaying ? "text-[#8b5cf6]" : "text-white"
                 }`}
               >
                 {song.title}
               </button>
-              <div className="text-zinc-400 text-xs sm:text-sm truncate">
+              <div className="text-gray-400 text-xs sm:text-sm truncate">
                 {song.artist.map((artist, artistIndex) => (
                   <span key={artist._id}>
                     <button
@@ -133,7 +133,7 @@ const LikedSongsPage = () => {
                         e.stopPropagation();
                         handleNavigateToArtist(artist._id);
                       }}
-                      className="hover:underline focus:outline-none focus:underline"
+                      className="hover:text-[#8b5cf6] focus:outline-none focus:text-[#8b5cf6]"
                     >
                       {artist.name}
                     </button>
@@ -155,7 +155,7 @@ const LikedSongsPage = () => {
             <Button
               size="icon"
               variant="ghost"
-              className="rounded-full size-6 sm:size-7 text-violet-500 hover:text-violet-400"
+              className="rounded-full size-6 sm:size-7 text-[#8b5cf6] hover:text-[#7c3aed]"
               onClick={(e) => {
                 e.stopPropagation();
                 toggleSongLike(song._id);
@@ -178,7 +178,7 @@ const LikedSongsPage = () => {
           key={song._id}
           onClick={() => handlePlaySpecificSong(song, index)}
           className={`flex items-center justify-between gap-4 p-2 rounded-md group cursor-pointer ${
-            isCurrentSong ? "bg-white/10" : "hover:bg-white/5"
+            isCurrentSong ? "bg-[#2a2a2a]" : "hover:bg-[#2a2a2a]"
           }`}
         >
           <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -199,13 +199,13 @@ const LikedSongsPage = () => {
                 )}
                 <p
                   className={`font-medium truncate w-45 sm:w-120 ${
-                    isCurrentSong ? "text-violet-400" : "text-white"
+                    isCurrentSong ? "text-[#8b5cf6]" : "text-white"
                   }`}
                 >
                   {song.title}
                 </p>
               </div>
-              <p className="text-sm text-zinc-400 truncate w-45 sm:w-120">
+              <p className="text-sm text-gray-400 truncate w-45 sm:w-120">
                 {getArtistNames(song.artist)}
               </p>
             </div>
@@ -218,7 +218,7 @@ const LikedSongsPage = () => {
               setSelectedSongForMenu(song);
             }}
           >
-            <MoreHorizontal className="h-5 w-5 text-zinc-400 group-hover:text-white" />
+            <MoreHorizontal className="h-5 w-5 text-gray-400 group-hover:text-white" />
           </Button>
         </div>
       );
@@ -229,18 +229,18 @@ const LikedSongsPage = () => {
 
   if (!isLoading && !error && likedSongs.length === 0) {
     return (
-      <div className="p-4 sm:p-6 bg-zinc-900 min-h-screen text-white text-center">
+      <div className="p-4 sm:p-6 bg-[#0f0f0f] min-h-screen text-white text-center">
         <h1 className="text-2xl sm:text-3xl mb-6 font-bold">
           {t("pages.likedSongs.title")}
         </h1>
-        <p className="text-zinc-400 mt-4">{t("pages.likedSongs.empty")}</p>
+        <p className="text-gray-400 mt-4">{t("pages.likedSongs.empty")}</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-4 sm:p-6 bg-zinc-900 min-h-screen text-white text-center">
+      <div className="p-4 sm:p-6 bg-[#0f0f0f] min-h-screen text-white text-center">
         <h1 className="text-2xl sm:text-3xl mb-6 font-bold">
           {t("pages.likedSongs.title")}
         </h1>
@@ -272,7 +272,7 @@ const LikedSongsPage = () => {
       </Helmet>
       <div className="h-full relative">
         <div
-          className="absolute inset-0 bg-gradient-to-b from-[#5038a0]/80 via-zinc-900/80 to-zinc-900 pointer-events-none animate-fade-in"
+          className="absolute inset-0 bg-gradient-to-b from-[#8b5cf6]/20 via-[#0f0f0f]/80 to-[#0f0f0f] pointer-events-none animate-fade-in"
           aria-hidden="true"
         />
         <ScrollArea className="h-full rounded-md">
@@ -291,7 +291,7 @@ const LikedSongsPage = () => {
                   <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold mt-2 mb-2 sm:my-4">
                     {t("pages.likedSongs.title")}
                   </h1>
-                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 text-xs sm:text-sm text-zinc-100">
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 text-xs sm:text-sm text-gray-100">
                     <span className="font-medium text-white">
                       {t("pages.likedSongs.yourLibrary")}
                     </span>
@@ -314,7 +314,7 @@ const LikedSongsPage = () => {
                 <Button
                   onClick={handlePlayLikedSongs}
                   size="icon"
-                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-violet-500 hover:bg-violet-400 hover:scale-105 transition-all"
+                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white hover:bg-white/90 hover:scale-105 transition-all"
                 >
                   {isPlaying && isAnyLikedSongPlaying ? (
                     <Pause className="w-6 h-6 sm:w-8 sm:h-8 text-black fill-current" />

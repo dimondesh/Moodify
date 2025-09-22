@@ -97,7 +97,7 @@ const PlaylistMenuContent: React.FC<PlaylistMenuContentProps> = memo(
       subtitle?: string;
     }) => (
       <div
-        className="flex items-center gap-3 p-2 rounded-md hover:bg-zinc-700 cursor-pointer"
+        className="flex items-center gap-3 p-2 rounded-md hover:bg-[#2a2a2a] cursor-pointer"
         onClick={() => onCheckedChange(!checked)}
       >
         {imageUrl && (
@@ -109,14 +109,14 @@ const PlaylistMenuContent: React.FC<PlaylistMenuContentProps> = memo(
         )}
         <div className="flex-1 min-w-0">
           <p className="font-semibold truncate max-w-50">{title}</p>
-          {subtitle && <p className="text-xs text-zinc-400">{subtitle}</p>}
+          {subtitle && <p className="text-xs text-gray-400">{subtitle}</p>}
         </div>
         <div
           className={cn(
             "w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0",
             checked
-              ? "bg-violet-500 border-violet-500"
-              : "border-zinc-500 group-hover:border-white"
+              ? "bg-violet-600 border-violet-600"
+              : "border-gray-500 group-hover:border-white"
           )}
         >
           {checked && <Check className="w-4 h-4 text-white" />}
@@ -134,12 +134,12 @@ const PlaylistMenuContent: React.FC<PlaylistMenuContentProps> = memo(
           <Plus className="mr-2 h-5 w-5" /> {t("player.newPlaylist")}
         </Button>
         <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
             placeholder={t("player.findPlaylist")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="bg-zinc-700/80 border-zinc-600 pl-9"
+            className="bg-[#2a2a2a]/80 border-[#2a2a2a] pl-9"
             onClick={(e) => e.stopPropagation()}
           />
         </div>
@@ -285,7 +285,7 @@ export const AddToPlaylistControl: React.FC<AddToPlaylistControlProps> = ({
           <PopoverContent
             side="top"
             align="end"
-            className="w-80 bg-zinc-800/70 backdrop-blur-md border-zinc-700 text-white p-4"
+            className="w-80 bg-[#0f0f0f]/70 backdrop-blur-md border-zinc-700 text-white p-4"
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
             <PlaylistMenuContent

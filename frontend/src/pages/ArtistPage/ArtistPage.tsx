@@ -136,7 +136,7 @@ const ArtistPage = () => {
   if (loading) {
     return (
       <main className="flex items-center justify-center h-full">
-        <Loader2 className="animate-spin text-violet-500 size-12" />
+        <Loader2 className="animate-spin text-[#8b5cf6] size-12" />
       </main>
     );
   }
@@ -151,7 +151,7 @@ const ArtistPage = () => {
 
   if (!artist) {
     return (
-      <main className="flex items-center justify-center h-full text-zinc-400">
+      <main className="flex items-center justify-center h-full text-gray-400">
         <p>{t("pages.artist.notFound")}</p>
       </main>
     );
@@ -168,7 +168,7 @@ const ArtistPage = () => {
         <title>{`${artist.name}`}</title>
         <meta name="description" content={metaDescription} />
       </Helmet>
-      <div className="bg-zinc-950 overflow-y-auto h-full hide-scrollbar pb-30 lg:pb-0">
+      <div className="bg-[#0f0f0f] overflow-y-auto h-full hide-scrollbar pb-30 lg:pb-0">
         <div className="relative w-full h-[340px] sm:h-[300px] md:h-[300px] lg:h-[400px]">
           <div
             className="absolute inset-0 bg-cover bg-center"
@@ -181,7 +181,7 @@ const ArtistPage = () => {
               )})`,
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/30 to-zinc-950 z-0" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/30 to-[#0f0f0f] z-0" />
           {!artist.bannerUrl && artist.imageUrl && (
             <div className="hidden lg:block absolute bottom-10 left-10 z-10">
               <div className="w-40 h-40 rounded-full overflow-hidden shadow-2xl border-4 border-white/10">
@@ -206,7 +206,7 @@ const ArtistPage = () => {
             </h1>
             <div className="mt-4 flex items-center gap-4">
               <Button
-                className="bg-violet-500 hover:bg-violet-600 text-black rounded-full h-12 w-12 sm:h-14 sm:w-14 flex items-center justify-center transition-transform hover:scale-105"
+                className="bg-white hover:bg-white/90 text-black rounded-full h-12 w-12 sm:h-14 sm:w-14 flex items-center justify-center transition-transform hover:scale-105"
                 onClick={handlePlayArtistSongs}
                 title={
                   isAnyPopularSongPlaying
@@ -222,7 +222,7 @@ const ArtistPage = () => {
               </Button>
               <Button
                 variant="outline"
-                className="rounded-full px-4 py-2 text-white border-zinc-500 hover:border-white hover:text-white flex items-center gap-2"
+                className="rounded-full px-4 py-2 text-white border-[#2a2a2a] hover:border-[#8b5cf6] hover:text-[#8b5cf6] flex items-center gap-2"
                 onClick={handleToggleFollow}
               >
                 {isArtistFollowed(artist._id) ? (

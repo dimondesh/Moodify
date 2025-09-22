@@ -140,8 +140,8 @@ const ChatPage = () => {
               message.type === "share"
                 ? "bg-transparent p-0"
                 : message.senderId === mongoUser?.id
-                ? "bg-violet-600 text-white p-3"
-                : "bg-zinc-800 text-white p-3"
+                ? "bg-[#8b5cf6] text-white p-3"
+                : "bg-[#1a1a1a] text-white p-3"
             }`}
           >
             {message.type === "share" && message.shareDetails ? (
@@ -152,11 +152,11 @@ const ChatPage = () => {
             ) : (
               <div className="flex flex-col">
                 <p className="text-sm break-words">{message.content}</p>
-                <div className="flex items-center justify-end gap-1 text-xs text-zinc-400 mt-1 self-end">
+                <div className="flex items-center justify-end gap-1 text-xs text-gray-400 mt-1 self-end">
                   <span>{formatTime(message.createdAt)}</span>
                   {message.senderId === mongoUser?.id &&
                     (message.isRead ? (
-                      <CheckCheck className="size-4 text-violet-400" />
+                      <CheckCheck className="size-4 text-[#8b5cf6]" />
                     ) : (
                       <Check className="size-4" />
                     ))}
@@ -175,7 +175,7 @@ const ChatPage = () => {
         <title>Chat</title>
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
-      <main className="h-full rounded-lg bg-gradient-to-b from-zinc-800 to-zinc-900 overflow-hidden">
+      <main className="h-full rounded-lg bg-gradient-to-b from-[#0f0f0f] to-[#0f0f0f] overflow-hidden">
         {/*ПК*/}
         <div className="hidden lg:grid lg:grid-cols-[300px_1fr] h-[calc(100vh-180px)]">
           <UsersList
@@ -184,14 +184,14 @@ const ChatPage = () => {
             onlineUsers={onlineUsers}
             userActivities={userActivities}
           />
-          <div className="flex flex-col h-full border-l border-zinc-800">
+          <div className="flex flex-col h-full border-l border-[#2a2a2a]">
             {selectedUser ? (
               <>
                 <ChatHeader />
                 <ScrollArea className="overflow-y-auto h-[calc(100vh-340px)]">
                   <div className="p-4 space-y-4">
                     {messages.length === 0 ? (
-                      <div className="text-center text-zinc-400 mt-8">
+                      <div className="text-center text-gray-400 mt-8">
                         <p>
                           {t("pages.chat.startChatting")}{" "}
                           {selectedUser.fullName}!
@@ -230,7 +230,7 @@ const ChatPage = () => {
               <ScrollArea className="flex-1 overflow-y-auto">
                 <div className="p-4 space-y-4">
                   {messages.length === 0 ? (
-                    <div className="text-center text-zinc-400 mt-8">
+                    <div className="text-center text-gray-400 mt-8">
                       <p>
                         {t("pages.chat.startChatting")} {selectedUser.fullName}!
                       </p>
@@ -259,14 +259,14 @@ const ChatPage = () => {
               <NoConversationPlaceholder />
               <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
                 <SheetTrigger asChild>
-                  <Button className="mt-8 bg-violet-600 hover:bg-violet-700 mb-10">
+                  <Button className="mt-8 bg-[#8b5cf6] hover:bg-[#7c3aed] mb-10">
                     <UsersIcon className="mr-2 h-4 w-4" />{" "}
                     {t("pages.chat.viewUsers")}
                   </Button>
                 </SheetTrigger>
                 <SheetContent
                   side="left"
-                  className="w-[300px] sm:w-[350px] p-0 bg-zinc-950 border-r border-zinc-800 text-white"
+                  className="w-[300px] sm:w-[350px] p-0 bg-[#0f0f0f] border-r border-[#2a2a2a] text-white"
                 >
                   <SheetTitle className="sr-only">Users List</SheetTitle>
                   <SheetDescription className="sr-only">

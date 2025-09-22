@@ -143,13 +143,13 @@ const SettingsPage: React.FC = () => {
         />
       </Helmet>
       <div className="h-full relative">
-        <div className="absolute inset-0 bg-radial from-violet-950 to-zinc-950 animate-fade-in" />
+        <div className="absolute inset-0 bg-[#0f0f0f] animate-fade-in" />
         <ScrollArea className="h-full pb-35 lg:pb-0">
           <div className="container mx-auto p-4 sm:p-6 md:p-8 max-w-2xl">
             <h1 className="text-3xl font-bold text-white mb-6">
               {t("settings.title")}
             </h1>
-            <Card className="bg-zinc-800/50 border-zinc-700 text-white shadow-lg p-6 space-y-8 mb-8 backdrop-blur-md">
+            <Card className="bg-[#1a1a1a] border-[#2a2a2a] text-white shadow-lg p-6 space-y-8 mb-8">
               <div>
                 <Label className="text-xl font-semibold mb-4 block">
                   {t("settings.language")}
@@ -158,17 +158,17 @@ const SettingsPage: React.FC = () => {
                   value={i18n.language}
                   onValueChange={handleLanguageChange}
                 >
-                  <SelectTrigger className="w-full bg-zinc-700 border-zinc-600 text-white">
+                  <SelectTrigger className="w-full bg-[#2a2a2a] border-[#2a2a2a] text-white">
                     <SelectValue placeholder={t("settings.language")} />
                   </SelectTrigger>
-                  <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
+                  <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a] text-white">
                     <SelectItem value="ru">Русский</SelectItem>
                     <SelectItem value="uk">Українська</SelectItem>
                     <SelectItem value="en">English</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="border-t border-zinc-700 pt-8">
+              <div className="border-t border-[#2a2a2a] pt-8">
                 <div className="flex items-center justify-between">
                   <Label
                     htmlFor="anonymous-mode-toggle"
@@ -183,7 +183,7 @@ const SettingsPage: React.FC = () => {
                     className="data-[state=checked]:bg-violet-600"
                   />
                 </div>
-                <p className="text-zinc-400 text-sm mt-2">
+                <p className="text-gray-400 text-sm mt-2">
                   {t("settings.privacy.anonymousModeDesc")}
                 </p>
               </div>
@@ -204,7 +204,7 @@ const SettingsPage: React.FC = () => {
             <h1 className="text-3xl font-bold text-white mb-6">
               {t("settings.audioTitle")}
             </h1>
-            <Card className="bg-zinc-800/50 backdrop-blur-md border-zinc-700 text-white shadow-lg p-6 space-y-8">
+            <Card className="bg-[#1a1a1a] border-[#2a2a2a] text-white shadow-lg p-6 space-y-8">
               {!isIosDevice && (
                 <>
                   {/* Equalizer Section */}
@@ -262,7 +262,7 @@ const SettingsPage: React.FC = () => {
                             >
                               <Label
                                 htmlFor={`slider-${freq}`}
-                                className="text-zinc-400 text-[0.65rem] sm:text-xs whitespace-nowrap"
+                                className="text-gray-400 text-[0.65rem] sm:text-xs whitespace-nowrap"
                               >
                                 {freq} Hz
                               </Label>
@@ -305,7 +305,7 @@ const SettingsPage: React.FC = () => {
                         <div className="mb-4">
                           <Label
                             htmlFor="reverb-room-size"
-                            className="text-sm font-medium text-zinc-400 mb-2 block"
+                            className="text-sm font-medium text-gray-400 mb-2 block"
                           >
                             {t("settings.roomSize")}
                           </Label>
@@ -335,12 +335,12 @@ const SettingsPage: React.FC = () => {
                         <div className="mb-4">
                           <Label
                             htmlFor="reverb-mix"
-                            className="text-sm font-medium text-zinc-400 mb-2 block"
+                            className="text-sm font-medium text-gray-400 mb-2 block"
                           >
                             {t("settings.dryWetMix")}
                           </Label>
                           <div className="flex items-center gap-2">
-                            <span className="text-xs text-zinc-400">
+                            <span className="text-xs text-gray-400">
                               {t("settings.dry")}
                             </span>
                             <Slider
@@ -354,7 +354,7 @@ const SettingsPage: React.FC = () => {
                               }
                               className="flex-1 hover:cursor-grab active:cursor-grabbing"
                             />
-                            <span className="text-xs text-zinc-400">
+                            <span className="text-xs text-gray-400">
                               {t("settings.wet")}
                             </span>
                             <span className="text-xs sm:text-sm text-zinc-300 whitespace-nowrap">
@@ -381,7 +381,7 @@ const SettingsPage: React.FC = () => {
                     className="data-[state=checked]:bg-violet-600"
                   />
                 </div>
-                <p className="text-zinc-400 text-sm mt-2 mb-4">
+                <p className="text-gray-400 text-sm mt-2 mb-4">
                   {t("settings.playbackSpeedDesc")}
                 </p>
 
@@ -434,7 +434,7 @@ const SettingsPage: React.FC = () => {
                         </SelectItem>
                       </SelectContent>
                     </Select>
-                    <p className="text-zinc-400 text-sm mt-2">
+                    <p className="text-gray-400 text-sm mt-2">
                       {t("settings.normalizationDesc")}
                     </p>
                   </div>
@@ -454,7 +454,7 @@ const SettingsPage: React.FC = () => {
                         className="data-[state=checked]:bg-violet-600"
                       />
                     </div>
-                    <p className="text-zinc-400 text-sm mt-2">
+                    <p className="text-gray-400 text-sm mt-2">
                       {t("settings.waveAnalyzerDesc")}
                     </p>
                   </div>
@@ -471,7 +471,7 @@ const SettingsPage: React.FC = () => {
                   >
                     {t("settings.resetAudio")}
                   </Button>
-                  <p className="text-zinc-400 text-sm mt-2 text-center">
+                  <p className="text-gray-400 text-sm mt-2 text-center">
                     {t("settings.resetAudioDesc")}
                   </p>
                 </div>
@@ -481,14 +481,14 @@ const SettingsPage: React.FC = () => {
               {" "}
               {t("settings.downloads")}
             </h1>
-            <Card className="bg-zinc-800/50 backdrop-blur-md border-zinc-700 text-white shadow-lg p-6 space-y-8">
+            <Card className="bg-[#1a1a1a] border-[#2a2a2a] text-white shadow-lg p-6 space-y-8">
               <div>
                 <Label className="text-xl font-semibold mb-4 block">
                   {t("settings.storage")}
                 </Label>
                 <div className="bg-zinc-700/50 p-4 rounded-md">
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-zinc-400">
+                    <span className="text-gray-400">
                       {" "}
                       {t("settings.usedStorage")}
                     </span>
@@ -520,7 +520,7 @@ const SettingsPage: React.FC = () => {
                   >
                     {t("settings.clearAllDownloads")}
                   </Button>
-                  <p className="text-zinc-400 text-sm mt-2 text-center">
+                  <p className="text-gray-400 text-sm mt-2 text-center">
                     {t("settings.clearLabel")}
                   </p>
                 </div>

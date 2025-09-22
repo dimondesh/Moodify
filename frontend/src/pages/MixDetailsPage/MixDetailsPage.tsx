@@ -179,7 +179,7 @@ const MixDetailsPage = () => {
           />
         </Helmet>
 
-        <div className="p-4 sm:p-6 bg-zinc-900 min-h-screen text-white text-center">
+        <div className="p-4 sm:p-6 bg-[#0f0f0f] min-h-screen text-white text-center">
           <h1 className="text-2xl sm:text-3xl mb-6 font-bold">
             {t("pages.playlist.errorTitle")}
           </h1>
@@ -201,11 +201,11 @@ const MixDetailsPage = () => {
             content="Sorry, the requested daily mix could not be found or has expired."
           />
         </Helmet>
-        <div className="p-4 sm:p-6 bg-zinc-900 min-h-screen text-white text-center">
+        <div className="p-4 sm:p-6 bg-[#0f0f0f] min-h-screen text-white text-center">
           <h1 className="text-2xl sm:text-3xl mb-6 font-bold">
             {t("pages.playlist.notFoundTitle")}
           </h1>
-          <p className="text-zinc-400">{t("pages.playlist.notFoundDesc")}</p>
+          <p className="text-gray-400">{t("pages.playlist.notFoundDesc")}</p>
         </div>
       </>
     );
@@ -232,8 +232,8 @@ const MixDetailsPage = () => {
             if ((e.target as HTMLElement).closest("button")) return;
             handlePlaySong(song, index);
           }}
-          className={`grid grid-cols-[16px_4fr_2fr_1fr_min-content] md:grid-cols-[16px_4fr_2fr_1fr_min-content] gap-4 px-4 py-2 text-sm text-zinc-400 hover:bg-white/5 rounded-md group cursor-pointer ${
-            isCurrentlyPlaying ? "bg-white/10" : ""
+          className={`grid grid-cols-[16px_4fr_2fr_1fr_min-content] md:grid-cols-[16px_4fr_2fr_1fr_min-content] gap-4 px-4 py-2 text-sm text-gray-400 hover:bg-[#2a2a2a] rounded-md group cursor-pointer ${
+            isCurrentlyPlaying ? "bg-[#2a2a2a]" : ""
           }`}
         >
           <div className="flex items-center justify-center">
@@ -270,13 +270,13 @@ const MixDetailsPage = () => {
                   e.stopPropagation();
                   handleSongTitleClick(song.albumId);
                 }}
-                className={`font-medium w-full text-left hover:underline focus:outline-none focus:underline truncate ${
-                  isCurrentlyPlaying ? "text-violet-400" : "text-white"
+                className={`font-medium w-full text-left hover:text-[#8b5cf6] focus:outline-none focus:text-[#8b5cf6] truncate ${
+                  isCurrentlyPlaying ? "text-[#8b5cf6]" : "text-white"
                 }`}
               >
                 {song.title}
               </button>
-              <div className="text-zinc-400 text-xs sm:text-sm truncate">
+              <div className="text-gray-400 text-xs sm:text-sm truncate">
                 {song.artist.map((artist, artistIndex) => (
                   <span key={artist._id}>
                     <button
@@ -284,7 +284,7 @@ const MixDetailsPage = () => {
                         e.stopPropagation();
                         handleArtistNameClick(artist._id);
                       }}
-                      className="hover:underline focus:outline-none focus:underline"
+                      className="hover:text-[#8b5cf6] focus:outline-none focus:text-[#8b5cf6]"
                     >
                       {artist.name}
                     </button>
@@ -308,8 +308,8 @@ const MixDetailsPage = () => {
               variant="ghost"
               className={`rounded-full size-6 sm:size-7 ${
                 songIsLiked
-                  ? "text-violet-500 hover:text-violet-400"
-                  : "text-zinc-400 hover:text-white opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity"
+                  ? "text-[#8b5cf6] hover:text-[#7c3aed]"
+                  : "text-gray-400 hover:text-white opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity"
               }`}
               onClick={(e) => {
                 e.stopPropagation();
@@ -359,13 +359,13 @@ const MixDetailsPage = () => {
                 )}
                 <p
                   className={`font-medium truncate w-45 sm:w-120 ${
-                    isCurrentSong ? "text-violet-400" : "text-white"
+                    isCurrentSong ? "text-[#8b5cf6]" : "text-white"
                   }`}
                 >
                   {song.title}
                 </p>
               </div>
-              <p className="text-sm text-zinc-400 truncate w-45 sm:w-120">
+              <p className="text-sm text-gray-400 truncate w-45 sm:w-120">
                 {getArtistNames(song.artist)}
               </p>
             </div>
@@ -378,7 +378,7 @@ const MixDetailsPage = () => {
               setSelectedSongForMenu(song);
             }}
           >
-            <MoreHorizontal className="h-5 w-5 text-zinc-400 group-hover:text-white" />
+            <MoreHorizontal className="h-5 w-5 text-gray-400 group-hover:text-white" />
           </Button>
         </div>
       );
@@ -411,7 +411,7 @@ const MixDetailsPage = () => {
                   }`}
                   aria-hidden="true"
                   style={{
-                    background: `linear-gradient(to bottom, ${bg.color} 0%, rgba(20, 20, 20, 0.8) 50%, #18181b 100%)`,
+                    background: `linear-gradient(to bottom, ${bg.color} 0%, rgba(20, 20, 20, 0.8) 50%, #0f0f0f 100%)`,
                   }}
                 />
               ))}
@@ -432,12 +432,18 @@ const MixDetailsPage = () => {
                   <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold mt-2 mb-2 sm:my-4">
                     {t(currentMix.name)}
                   </h1>
-                  <p className="text-zinc-400 text-base mt-2">{`A daily mix based on ${currentMix.type.toLowerCase()} '${
+                  <p className="text-gray-400 text-base mt-2">{`A daily mix based on ${currentMix.type.toLowerCase()} '${
                     currentMix.sourceName
                   }'.`}</p>
-                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 text-xs sm:text-sm text-zinc-100 mt-2">
-                    <img src="/Moodify-Studio.svg" alt="Moodify Studio" className="size-4" />
-                    <span className="font-semibold text-white">Moodify Studio</span>
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 text-xs sm:text-sm text-gray-100 mt-2">
+                    <img
+                      src="/Moodify-Studio.svg"
+                      alt="Moodify Studio"
+                      className="size-4"
+                    />
+                    <span className="font-semibold text-white">
+                      Moodify Studio
+                    </span>
                     <span className="hidden lg:inline">
                       • {currentMix.songs.length} {t("pages.playlist.songs")}
                     </span>
@@ -454,7 +460,7 @@ const MixDetailsPage = () => {
                 {currentMix.songs.length > 0 && (
                   <Button
                     size="icon"
-                    className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-violet-500 hover:bg-violet-400 transition-colors shadow-lg flex-shrink-0 hover:scale-105"
+                    className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white hover:bg-white/90 transition-colors shadow-lg flex-shrink-0 hover:scale-105"
                     onClick={handlePlayMix}
                     title={
                       isCurrentMixPlaying
@@ -484,7 +490,7 @@ const MixDetailsPage = () => {
                   }
                 >
                   {isInLibrary ? (
-                    <CheckCircle2 className="size-6 text-violet-400" />
+                    <CheckCircle2 className="size-6 text-[#8b5cf6]" />
                   ) : (
                     <PlusCircle className="size-6 text-white" />
                   )}

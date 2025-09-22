@@ -282,7 +282,7 @@ const LibraryPage = () => {
         <ScrollArea className="h-full rounded-md">
           <div className="relative min-h-screen p-4 sm:p-6 pb-40 sm:pb-50 lg:pb-10 ">
             <div
-              className="absolute inset-0 bg-gradient-to-b from-zinc-900/80 via-zinc-900/80 to-zinc-900 pointer-events-none"
+              className="absolute inset-0 bg-gradient-to-b from-[#8b5cf6]/10 via-[#0f0f0f]/80 to-[#0f0f0f] pointer-events-none"
               aria-hidden="true"
             />
             <div className="relative z-10">
@@ -294,7 +294,7 @@ const LibraryPage = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="hover:bg-zinc-800 "
+                    className="hover:bg-[#2a2a2a] "
                     onClick={openCreatePlaylistDialog}
                     title={t("sidebar.createPlaylist")}
                   >
@@ -311,7 +311,7 @@ const LibraryPage = () => {
                       "rounded-full h-8 px-4 text-xs font-semibold",
                       libraryFilter === "all"
                         ? "bg-white text-black hover:bg-white/90"
-                        : "bg-zinc-800 text-white hover:bg-zinc-700"
+                        : "bg-[#2a2a2a] text-white hover:bg-[#3a3a3a]"
                     )}
                   >
                     All
@@ -323,7 +323,7 @@ const LibraryPage = () => {
                     "rounded-full h-8 px-4 text-xs font-semibold",
                     libraryFilter === "downloaded"
                       ? "bg-white text-black hover:bg-white/90"
-                      : "bg-zinc-800 text-white hover:bg-zinc-700"
+                      : "bg-[#2a2a2a] text-white hover:bg-[#3a3a3a]"
                   )}
                 >
                   Downloaded
@@ -332,7 +332,7 @@ const LibraryPage = () => {
 
               <div className="flex flex-col gap-2">
                 {filteredLibraryItems.length === 0 ? (
-                  <p className="text-zinc-400 px-2">
+                  <p className="text-gray-400 px-2">
                     {libraryFilter === "downloaded"
                       ? "You have no downloaded content yet."
                       : t("sidebar.emptyLibrary")}
@@ -403,7 +403,7 @@ const LibraryPage = () => {
                         <Link
                           key={`${item.type}-${item._id}`}
                           to={linkPath}
-                          className="bg-transparent p-0 rounded-md hover:bg-zinc-800/50 transition-all group cursor-pointer flex flex-col items-center text-center"
+                          className="bg-transparent p-0 rounded-md hover:bg-[#2a2a2a]/50 transition-all group cursor-pointer flex flex-col items-center text-center hover-scale"
                         >
                           <div className="relative mb-2 w-full">
                             <div
@@ -434,9 +434,9 @@ const LibraryPage = () => {
                             </h3>
                             <div className="flex items-center gap-1.5 justify-center">
                               {isDownloaded(item._id) && (
-                                <Download className="size-3 text-violet-400 flex-shrink-0" />
+                                <Download className="size-3 text-[#8b5cf6] flex-shrink-0" />
                               )}
-                              <p className="text-xs text-zinc-400 truncate">
+                              <p className="text-xs text-gray-400 truncate">
                                 {subtitle}
                               </p>
                             </div>

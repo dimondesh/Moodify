@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "./ui/card";
 
@@ -13,8 +13,8 @@ const ErrorBoundary: React.FC<ErrorBoundaryProps> = ({ children }) => {
 
   React.useEffect(() => {
     const handleError = (event: ErrorEvent) => {
-      if (event.error?.name === 'ChunkLoadError') {
-        console.error('ChunkLoadError occurred:', event.error);
+      if (event.error?.name === "ChunkLoadError") {
+        console.error("ChunkLoadError occurred:", event.error);
         window.location.reload();
         return;
       }
@@ -22,16 +22,16 @@ const ErrorBoundary: React.FC<ErrorBoundaryProps> = ({ children }) => {
       setHasError(true);
     };
 
-    window.addEventListener('error', handleError);
-    return () => window.removeEventListener('error', handleError);
+    window.addEventListener("error", handleError);
+    return () => window.removeEventListener("error", handleError);
   }, []);
 
   if (hasError) {
     return (
-      <div className="h-screen w-full bg-zinc-950 flex items-center justify-center">
-        <Card className="w-[90%] max-w-md bg-zinc-900 border-zinc-800">
+      <div className="h-screen w-full bg-[#0f0f0f] flex items-center justify-center">
+        <Card className="w-[90%] max-w-md bg-[#1a1a1a] border-[#2a2a2a]">
           <CardContent className="flex flex-col items-center gap-4 pt-6">
-            <h2 className="text-zinc-400 text-xl font-bold">
+            <h2 className="text-gray-400 text-xl font-bold">
               {t("errors.somethingWentWrong")}
             </h2>
             <button
@@ -40,7 +40,7 @@ const ErrorBoundary: React.FC<ErrorBoundaryProps> = ({ children }) => {
             >
               {t("errors.reloadPage")}
             </button>
-            <p className="text-zinc-500 text-sm">{error?.message}</p>
+            <p className="text-gray-500 text-sm">{error?.message}</p>
           </CardContent>
         </Card>
       </div>

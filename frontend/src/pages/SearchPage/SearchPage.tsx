@@ -53,16 +53,16 @@ const SearchPage = () => {
         <title>{`${title}`}</title>
         <meta name="description" content={description} />
       </Helmet>
-      <main className="rounded-md overflow-hidden h-full bg-gradient-to-b from-zinc-900 to-zinc-950">
+      <main className="overflow-hidden h-full bg-[#0f0f0f]">
         <ScrollArea className="h-[90vh] w-full pb-20 md:pb-20 lg:pb-10">
-          <div className="py-10 px-4 sm:px-6">
+          <div className="py-6 px-4 sm:px-6">
             {queryParam ? (
-              <h1 className="text-2xl sm:text-3xl font-bold mb-8 text-center text-white">
+              <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-center text-white">
                 {t("searchpage.resultsFor")} "{queryParam}"
               </h1>
             ) : (
               <>
-                <h1 className="text-2xl sm:text-3xl font-bold mb-8 text-left text-white">
+                <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-left text-white">
                   {t("searchpage.findYourFavorites")}
                 </h1>
                 <BrowseMixes />
@@ -71,7 +71,7 @@ const SearchPage = () => {
 
             {loading && (
               <div className="flex justify-center">
-                <Loader2 className="text-violet-600 size-10 animate-spin align-middle" />
+                <Loader2 className="text-[#8b5cf6] size-10 animate-spin align-middle" />
               </div>
             )}
             {error && <p className="text-red-500">{error}</p>}
@@ -85,7 +85,7 @@ const SearchPage = () => {
               artists.length === 0 &&
               users.length === 0 &&
               mixes.length === 0 && (
-                <p className="text-zinc-400 text-center">
+                <p className="text-gray-400 text-center">
                   {t("searchpage.noResults")}
                 </p>
               )}

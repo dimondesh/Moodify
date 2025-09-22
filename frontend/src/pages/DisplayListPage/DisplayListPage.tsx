@@ -117,7 +117,7 @@ const DisplayListPage = () => {
             <Link
               to={getLink(item)}
               key={item._id}
-              className="p-2 rounded-md bg-zinc-950 hover:bg-zinc-700/40 transition-all group cursor-pointer"
+              className="p-2 rounded-md bg-[#1a1a1a] hover:bg-[#2a2a2a] transition-all group cursor-pointer hover-scale"
             >
               <div className="relative mb-3 aspect-square object-cover shadow-lg overflow-hidden rounded-md">
                 {item.type === "playlist" || item.type === "album" ? (
@@ -143,7 +143,7 @@ const DisplayListPage = () => {
               <h3 className="font-semibold truncate">
                 {item.name || item.title}
               </h3>
-              <p className="text-sm text-zinc-400 truncate">
+              <p className="text-sm text-gray-400 truncate">
                 {getSubtitle(item)}
               </p>
             </Link>

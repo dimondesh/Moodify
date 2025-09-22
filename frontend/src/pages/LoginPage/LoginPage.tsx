@@ -19,7 +19,7 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-white">
+    <div className="flex flex-col items-center justify-center h-screen bg-[#0f0f0f] text-white">
       <h1 className="mb-6 text-3xl font-bold">{t("auth.loginTitle")}</h1>
       <Button
         onClick={handleGoogleLogin}
