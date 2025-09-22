@@ -28,25 +28,14 @@ const songSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
-    instrumentalUrl: {
+    hlsUrl: {
       type: String,
       required: true,
     },
-    instrumentalPublicId: {
+    sourceAudioPublicId: {
       type: String,
       required: true,
-      default: null,
     },
-
-    vocalsUrl: {
-      type: String,
-      default: null,
-    },
-    vocalsPublicId: {
-      type: String,
-      default: null,
-    },
-
     duration: {
       type: Number,
       required: true,

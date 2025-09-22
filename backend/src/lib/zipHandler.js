@@ -1,3 +1,4 @@
+// backend/src/lib/zipHandler.js
 import yauzl from "yauzl";
 import path from "path";
 import fs from "fs";
@@ -74,35 +75,39 @@ export const extractZip = (zipFilePath, tempDir) => {
   });
 };
 
+/**
+ * Parses a track filename to identify its type (audio or lyrics).
+ * Now expects a single audio file per song.
+ * @param {string} filename - The full path to the file.
+ * @returns {{songName: string, trackType: 'audio' | 'lrc'} | null}
+ */
 export const parseTrackFileName = (filename) => {
   const baseName = path.basename(filename, path.extname(filename));
+  const extension = path.extname(filename).toLowerCase();
 
-  const patterns = {
-    vocals: /(.*)[_-](vocals|vocal)$/i,
-    instrumental: /(.*)[_-](instrumental|instr)$/i,
-    lrc: /(.*)[_-](lyrics|lrc)$/i,
-  };
+  const audioExtensions = [
+    ".mp3",
+    ".wav",
+    ".flac",
+    ".aac",
+    ".m4a",
+    ".ogg",
+    ".opus",
+  ];
 
-  for (const [trackType, regex] of Object.entries(patterns)) {
-    const match = baseName.match(regex);
-    if (match && match[1]) {
-      const songName = match[1].replace(/[_-]/g, " ").trim();
-      return { songName, trackType };
-    }
+  // Если это файл текста, обрабатываем его
+  if (extension === ".lrc") {
+    const songName = baseName.replace(/[-_](lyrics|lrc)$/i, "").trim();
+    return { songName, trackType: "lrc" };
   }
 
-  const spacePatterns = {
-    vocals: /(.*)\s-\s(vocals|vocal)$/i,
-    instrumental: /(.*)\s-\s(instrumental|instr)$/i,
-    lrc: /(.*)\s-\s(lyrics|lrc)$/i,
-  };
-
-  for (const [trackType, regex] of Object.entries(spacePatterns)) {
-    const match = baseName.match(regex);
-    if (match && match[1]) {
-      const songName = match[1].trim();
-      return { songName, trackType };
-    }
+  // Если это аудиофайл, обрабатываем его
+  if (audioExtensions.includes(extension)) {
+    // Убираем возможные старые суффиксы для чистого имени
+    const songName = baseName
+      .replace(/[-_](instrumental|instr|vocals|vocal)$/i, "")
+      .trim();
+    return { songName, trackType: "audio" };
   }
 
   console.warn(

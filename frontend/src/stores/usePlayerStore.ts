@@ -1,11 +1,11 @@
-// frontend/src/stores/usePlayerStore.ts
+// src/stores/usePlayerStore.ts
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { Song } from "../types";
 import toast from "react-hot-toast";
 import { useOfflineStore } from "./useOfflineStore";
 import { silentAudioService } from "@/lib/silentAudioService";
-import { axiosInstance } from "@/lib/axios"; 
+import { axiosInstance } from "@/lib/axios";
 
 interface PlayerStore {
   currentSong: Song | null;
@@ -17,8 +17,7 @@ interface PlayerStore {
   shuffleHistory: number[];
   shufflePointer: number;
   isFullScreenPlayerOpen: boolean;
-  vocalsVolume: number;
-  masterVolume: number;
+  masterVolume: number; // <-- vocalsVolume удален
   currentTime: number;
   duration: number;
   isDesktopLyricsOpen: boolean;
@@ -35,8 +34,7 @@ interface PlayerStore {
   playNext: () => void;
   playPrevious: () => void;
   setIsFullScreenPlayerOpen: (isOpen: boolean) => void;
-  setVocalsVolume: (volume: number) => void;
-  setMasterVolume: (volume: number) => void;
+  setMasterVolume: (volume: number) => void; // <-- setVocalsVolume удален
   setCurrentTime: (time: number, isPlayerUpdate?: boolean) => void;
   setDuration: (duration: number, originalDuration?: number) => void;
   setIsDesktopLyricsOpen: (isOpen: boolean) => void;
@@ -92,7 +90,6 @@ export const usePlayerStore = create<PlayerStore>()(
         shuffleHistory: [],
         shufflePointer: -1,
         isFullScreenPlayerOpen: false,
-        vocalsVolume: 100,
         masterVolume: 75,
         currentTime: 0,
         duration: 0,
@@ -522,7 +519,6 @@ export const usePlayerStore = create<PlayerStore>()(
         setRepeatMode: (mode) => set({ repeatMode: mode }),
         setIsFullScreenPlayerOpen: (isOpen: boolean) =>
           set({ isFullScreenPlayerOpen: isOpen }),
-        setVocalsVolume: (volume) => set({ vocalsVolume: volume }),
         setMasterVolume: (volume) => set({ masterVolume: volume }),
 
         setCurrentTime: (time, isPlayerUpdate = false) => {
@@ -571,7 +567,6 @@ export const usePlayerStore = create<PlayerStore>()(
         isShuffle: state.isShuffle,
         shuffleHistory: state.shuffleHistory,
         shufflePointer: state.shufflePointer,
-        vocalsVolume: state.vocalsVolume,
         masterVolume: state.masterVolume,
       }),
       onRehydrateStorage: () => {

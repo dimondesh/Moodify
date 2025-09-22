@@ -38,10 +38,8 @@ export interface Song {
   title: string;
   artist: Artist[];
   albumId: string | null;
-
   imageUrl: string;
-  instrumentalUrl: string;
-  vocalsUrl?: string;
+  hlsUrl: string;
   duration: number;
   playCount: number;
   genres: Genre[];

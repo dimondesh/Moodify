@@ -106,6 +106,31 @@ export const uploadToBunny = async (source, remoteFolder) => {
   }
 };
 
+export const uploadDirectoryToBunny = async (
+  localDirectory,
+  remoteDirectory
+) => {
+  try {
+    const files = await fs.readdir(localDirectory);
+    for (const file of files) {
+      const localFilePath = path.join(localDirectory, file);
+      const remotePath = path.join(remoteDirectory, file).replace(/\\/g, "/");
+      const mimeType = mime.lookup(file) || "application/octet-stream";
+      await putFileToBunny(localFilePath, remotePath, mimeType);
+      console.log(`[Bunny] Uploaded directory file: ${remotePath}`);
+    }
+    console.log(
+      `[Bunny] Successfully uploaded directory ${localDirectory} to ${remoteDirectory}`
+    );
+  } catch (error) {
+    console.error(
+      `[Bunny] Failed to upload directory ${localDirectory}:`,
+      error
+    );
+    throw new Error("Failed to upload directory to Bunny.net");
+  }
+};
+
 export const deleteFromBunny = async (remoteFilePath) => {
   if (!remoteFilePath) {
     console.warn("[Bunny] No remote file path provided. Skipping deletion.");

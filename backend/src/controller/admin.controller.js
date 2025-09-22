@@ -6,6 +6,7 @@ import {
   uploadToBunny,
   deleteFromBunny,
   getPathFromUrl,
+  uploadDirectoryToBunny,
 } from "../lib/bunny.service.js";
 import * as mm from "music-metadata";
 import { getTagsFromAI } from "../lib/ai.service.js";
@@ -27,6 +28,7 @@ import { getGenresAndMoodsForTrack } from "../lib/lastfm.service.js";
 import { Genre } from "../models/genre.model.js";
 import { Mood } from "../models/mood.model.js";
 import { v4 as uuidv4 } from "uuid";
+import { transcodeToHls } from "../lib/ffmpeg.service.js";
 
 const uploadFile = async (file, folder) => {
   try {
@@ -49,41 +51,63 @@ const uploadFile = async (file, folder) => {
 
 const updateArtistsContent = async (artistIds, contentId, contentType) => {
   if (!artistIds || artistIds.length === 0) return;
-
   const updateField = contentType === "songs" ? "songs" : "albums";
-
   await Artist.updateMany(
     { _id: { $in: artistIds } },
     { $addToSet: { [updateField]: contentId } }
-  );
-  console.log(
-    `[updateArtistsContent] Successfully updated ${contentType} for artists: ${artistIds}`
   );
 };
 
 const removeContentFromArtists = async (artistIds, contentId, contentType) => {
   if (!artistIds || artistIds.length === 0) return;
-
   const updateField = contentType === "songs" ? "songs" : "albums";
-
   await Artist.updateMany(
     { _id: { $in: artistIds } },
     { $pull: { [updateField]: contentId } }
   );
-  console.log(
-    `[removeContentFromArtists] Successfully removed ${contentType} for artists: ${artistIds}`
-  );
+};
+
+const processAndUploadSong = async (audioFilePath) => {
+  const tempHlsDir = path.join(process.cwd(), "temp_hls", uuidv4());
+
+  try {
+    const sourceAudioUpload = await uploadToBunny(
+      { tempFilePath: audioFilePath, name: path.basename(audioFilePath) },
+      "songs/source"
+    );
+
+    await transcodeToHls(audioFilePath, tempHlsDir);
+
+    const hlsRemotePath = `songs/hls/${uuidv4()}`;
+    await uploadDirectoryToBunny(tempHlsDir, hlsRemotePath);
+
+    const hlsUrl = `https://${process.env.BUNNY_PULL_ZONE_HOSTNAME}/${hlsRemotePath}/master.m3u8`;
+
+    const metadata = await mm.parseFile(audioFilePath);
+    const duration = Math.floor(metadata.format.duration || 0);
+
+    return {
+      hlsUrl,
+      sourceAudioPublicId: sourceAudioUpload.path, // ИСПРАВЛЕНО: используем .path
+      hlsRemotePath,
+      duration,
+    };
+  } finally {
+    await fs
+      .rm(tempHlsDir, { recursive: true, force: true })
+      .catch((err) =>
+        console.error(`Failed to cleanup temp HLS dir ${tempHlsDir}:`, err)
+      );
+  }
 };
 
 export const createSong = async (req, res, next) => {
-  try {
-    if (!req.user || !req.user.isAdmin)
-      return res.status(403).json({ message: "Access denied." });
-    if (!req.files || !req.files.instrumentalFile)
-      return res
-        .status(400)
-        .json({ message: "Instrumental file is required." });
+  if (!req.user || !req.user.isAdmin)
+    return res.status(403).json({ message: "Access denied." });
+  if (!req.files || !req.files.audioFile)
+    return res.status(400).json({ message: "Audio file is required." });
 
+  try {
     const {
       title,
       artistIds: artistIdsJsonString,
@@ -94,15 +118,8 @@ export const createSong = async (req, res, next) => {
       moodIds: moodIdsJson,
     } = req.body;
 
-    const instrumentalUpload = await uploadFile(
-      req.files.instrumentalFile,
-      "songs/instrumentals"
-    );
-
-    let vocalsUpload = { url: null, publicId: null };
-    if (req.files.vocalsFile) {
-      vocalsUpload = await uploadFile(req.files.vocalsFile, "songs/vocals");
-    }
+    const { hlsUrl, sourceAudioPublicId, duration } =
+      await processAndUploadSong(req.files.audioFile.tempFilePath);
 
     let imageUpload = { url: null, publicId: null };
     let finalAlbumId = albumId && albumId !== "none" ? albumId : null;
@@ -110,9 +127,7 @@ export const createSong = async (req, res, next) => {
 
     if (!finalAlbumId) {
       if (!req.files.imageFile)
-        return res
-          .status(400)
-          .json({ message: "Image file is required for singles." });
+        throw new Error("Image file is required for singles.");
 
       imageUpload = await uploadFile(req.files.imageFile, "songs/images");
 
@@ -129,31 +144,19 @@ export const createSong = async (req, res, next) => {
       await updateArtistsContent(artistIds, newAlbum._id, "albums");
     } else {
       const existingAlbum = await Album.findById(finalAlbumId);
-      if (!existingAlbum)
-        return res.status(404).json({ message: "Album not found." });
-
-      if (req.files.imageFile) {
-        imageUpload = await uploadFile(req.files.imageFile, "songs/images");
-      } else {
-        imageUpload.url = existingAlbum.imageUrl;
-      }
+      if (!existingAlbum) throw new Error("Album not found.");
+      imageUpload.url = existingAlbum.imageUrl;
+      imageUpload.publicId = existingAlbum.imagePublicId;
     }
-
-    const metadata = await mm.parseFile(
-      req.files.instrumentalFile.tempFilePath
-    );
-    const duration = Math.floor(metadata.format.duration || 0);
 
     const song = new Song({
       title,
       artist: artistIds,
       albumId: finalAlbumId,
-      instrumentalUrl: instrumentalUpload.url,
-      instrumentalPublicId: instrumentalUpload.publicId,
-      vocalsUrl: vocalsUpload.url,
-      vocalsPublicId: vocalsUpload.publicId,
       imageUrl: imageUpload.url,
       imagePublicId: imageUpload.publicId,
+      hlsUrl,
+      sourceAudioPublicId,
       duration,
       lyrics: lyrics || null,
       genres: genreIdsJson ? JSON.parse(genreIdsJson) : [],
@@ -171,123 +174,72 @@ export const createSong = async (req, res, next) => {
   }
 };
 
+// Обновленная функция updateSong
 export const updateSong = async (req, res, next) => {
+  if (!req.user || !req.user.isAdmin) {
+    return res
+      .status(403)
+      .json({ message: "Access denied. Admin privileges required." });
+  }
+
+  const { id } = req.params;
+  let {
+    title,
+    artistIds: artistIdsJson,
+    albumId,
+    lyrics,
+    genreIds: genreIdsJson,
+    moodIds: moodIdsJson,
+  } = req.body;
+  const audioFile = req.files ? req.files.audioFile : null;
+  const imageFile = req.files ? req.files.imageFile : null;
+
   try {
-    if (!req.user || !req.user.isAdmin) {
-      return res
-        .status(403)
-        .json({ message: "Access denied. Admin privileges required." });
-    }
-
-    const { id } = req.params;
-    let {
-      title,
-      artistIds,
-      albumId,
-      lyrics,
-      clearVocals,
-      genreIds: genreIdsJson,
-      moodIds: moodIdsJson,
-    } = req.body;
-    const instrumentalFile = req.files ? req.files.instrumentalFile : null;
-    const vocalsFile = req.files ? req.files.vocalsFile : null;
-    const imageFile = req.files ? req.files.imageFile : null;
-
     const song = await Song.findById(id);
     if (!song) {
       return res.status(404).json({ message: "Song not found." });
     }
 
-    let parsedArtistIds;
-    try {
-      parsedArtistIds = artistIds ? JSON.parse(artistIds) : [];
-      if (!Array.isArray(parsedArtistIds)) {
-        parsedArtistIds = [];
-      }
-    } catch (e) {
-      console.error("Failed to parse artistIds JSON:", e);
-      parsedArtistIds = [];
-    }
-
-    if (parsedArtistIds.length > 0) {
-      const existingArtists = await Artist.find({
-        _id: { $in: parsedArtistIds },
-      });
-      if (existingArtists.length !== parsedArtistIds.length) {
-        return res
-          .status(404)
-          .json({ message: "One or more new artists not found." });
-      }
-
+    if (artistIdsJson) {
+      const newArtistIds = JSON.parse(artistIdsJson);
       const oldArtistIds = song.artist.map((artist) => artist.toString());
-      const newArtistIds = parsedArtistIds;
-
       const artistsToRemove = oldArtistIds.filter(
         (oldId) => !newArtistIds.includes(oldId)
       );
       await removeContentFromArtists(artistsToRemove, song._id, "songs");
-
       const artistsToAdd = newArtistIds.filter(
         (newId) => !oldArtistIds.includes(newId)
       );
       await updateArtistsContent(artistsToAdd, song._id, "songs");
-
       song.artist = newArtistIds;
-    } else {
-      return res
-        .status(400)
-        .json({ message: "Song must have at least one artist." });
-    }
-    if (instrumentalFile) {
-      if (song.instrumentalPublicId) {
-        await deleteFromBunny(song.instrumentalPublicId);
-      }
-      const uploadResult = await uploadFile(
-        instrumentalFile,
-        "songs/instrumentals"
-      );
-      song.instrumentalUrl = uploadResult.url;
-      song.instrumentalPublicId = uploadResult.publicId;
-      try {
-        const metadata = await mm.parseFile(instrumentalFile.tempFilePath);
-        song.duration = Math.floor(metadata.format.duration || 0);
-      } catch (err) {
-        console.error("Error parsing new instrumental metadata:", err);
-      }
     }
 
-    if (vocalsFile) {
-      if (song.vocalsPublicId) {
-        await deleteFromBunny(song.vocalsPublicId);
+    if (audioFile) {
+      if (song.hlsUrl) {
+        const hlsPath = getPathFromUrl(song.hlsUrl);
+        if (hlsPath) {
+          const hlsDir = path.dirname(hlsPath);
+          await deleteFromBunny(hlsDir + "/");
+        }
       }
-      const uploadResult = await uploadFile(vocalsFile, "songs/vocals");
-      song.vocalsUrl = uploadResult.url;
-      song.vocalsPublicId = uploadResult.publicId;
-    } else if (clearVocals === "true" && song.vocalsUrl) {
-      if (song.vocalsPublicId) {
-        await deleteFromBunny(song.vocalsPublicId);
+      if (song.sourceAudioPublicId) {
+        await deleteFromBunny(song.sourceAudioPublicId);
       }
-      song.vocalsUrl = null;
-      song.vocalsPublicId = null;
+
+      const { hlsUrl, sourceAudioPublicId, duration } =
+        await processAndUploadSong(audioFile.tempFilePath);
+      song.hlsUrl = hlsUrl;
+      song.sourceAudioPublicId = sourceAudioPublicId;
+      song.duration = duration;
     }
 
     if (imageFile) {
       if (song.imagePublicId) {
         await deleteFromBunny(getPathFromUrl(song.imageUrl));
       }
-      const uploadResult = await uploadFile(imageFile, "songs/images");
-      song.imageUrl = uploadResult.url;
-      song.imagePublicId = uploadResult.publicId;
-    } else if (
-      !song.albumId ||
-      song.albumId === "none" ||
-      song.albumId === ""
-    ) {
-      if (!song.imageUrl) {
-        return res.status(400).json({
-          message: "Image file is required for singles.",
-        });
-      }
+      const imageUpload = await uploadFile(imageFile, "songs/images");
+      song.imageUrl = imageUpload.url;
+      song.imagePublicId = imageUpload.publicId;
     }
 
     if (albumId !== undefined) {
@@ -299,48 +251,18 @@ export const updateSong = async (req, res, next) => {
           $pull: { songs: song._id },
         });
       }
-
-      if (newAlbumId) {
-        const newAlbum = await Album.findById(newAlbumId);
-        if (!newAlbum) {
-          return res.status(404).json({ message: "New album not found." });
-        }
-        const songArtists = song.artist.map((artist) => artist.toString());
-        const albumArtists = newAlbum.artist.map((artist) => artist.toString());
-        const hasCommonArtist = songArtists.some((id) =>
-          albumArtists.includes(id)
-        );
-
-        if (!hasCommonArtist) {
-          return res.status(400).json({
-            message:
-              "Cannot move song to an album of a different or unrelated artist.",
-          });
-        }
-        if (!newAlbum.songs.includes(song._id)) {
-          newAlbum.songs.push(song._id);
-          await newAlbum.save();
-        }
+      if (newAlbumId && newAlbumId !== oldAlbumId) {
+        await Album.findByIdAndUpdate(newAlbumId, {
+          $addToSet: { songs: song._id },
+        });
       }
       song.albumId = newAlbumId;
     }
 
     song.title = title || song.title;
     song.lyrics = lyrics !== undefined ? lyrics : song.lyrics;
-    if (genreIdsJson) {
-      try {
-        song.genres = JSON.parse(genreIdsJson);
-      } catch (e) {
-        console.error("Failed to parse genreIds JSON on update:", e);
-      }
-    }
-    if (moodIdsJson) {
-      try {
-        song.moods = JSON.parse(moodIdsJson);
-      } catch (e) {
-        console.error("Failed to parse moodIds JSON on update:", e);
-      }
-    }
+    if (genreIdsJson) song.genres = JSON.parse(genreIdsJson);
+    if (moodIdsJson) song.moods = JSON.parse(moodIdsJson);
 
     await song.save();
     res.status(200).json(song);
@@ -676,7 +598,7 @@ export const deleteArtist = async (req, res, next) => {
 };
 
 export const uploadFullAlbumAuto = async (req, res, next) => {
-  console.log("🚀 Reached /admin/albums/upload-full-album route - AUTO UPLOAD");
+  console.log("🚀 Reached HLS /admin/albums/upload-full-album route");
 
   const DEFAULT_ARTIST_IMAGE_URL = `https://moodify.b-cdn.net/artist.jpeg`;
   const DEFAULT_ALBUM_IMAGE_URL = `https://moodify.b-cdn.net/default-album-cover.png`;
@@ -703,7 +625,7 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
     Date.now().toString()
   );
 
-  const uploadedFilePaths = [];
+  const uploadedBunnyPaths = [];
   const newlyCreatedArtistIds = [];
   const createdSongIds = [];
   let album = null;
@@ -738,12 +660,14 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
       const normalizedSpotifyName = spotifyTrackName
         .toLowerCase()
         .replace(/[^\p{L}\p{N}]/gu, "");
-
       if (trackFilesMap[normalizedSpotifyName]) {
         return trackFilesMap[normalizedSpotifyName];
       }
       for (const fileKey in trackFilesMap) {
-        if (normalizedSpotifyName.includes(fileKey)) {
+        if (
+          normalizedSpotifyName.includes(fileKey) ||
+          fileKey.includes(normalizedSpotifyName)
+        ) {
           console.log(
             `[AdminController] Fuzzy match: Spotify track "${spotifyTrackName}" matched to file key "${fileKey}"`
           );
@@ -754,18 +678,18 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
     };
 
     console.log(
-      "[AdminController] Performing pre-flight check for all required files..."
+      "[AdminController] Performing pre-flight check for all required audio files..."
     );
     for (const spotifyTrack of tracksToProcess) {
       const filesForTrack = findTrackFiles(spotifyTrack.name);
-      if (!filesForTrack || !filesForTrack.instrumentalPath) {
+      if (!filesForTrack || !filesForTrack.audioPath) {
         throw new Error(
-          `Validation failed: Instrumental file for track "${spotifyTrack.name}" could not be matched in the ZIP archive.`
+          `Validation failed: Audio file for track "${spotifyTrack.name}" could not be matched in the ZIP archive.`
         );
       }
     }
     console.log(
-      "[AdminController] Pre-flight check successful. All instrumentals matched."
+      "[AdminController] Pre-flight check successful. All audio files matched."
     );
 
     const albumArtistIds = [];
@@ -775,13 +699,11 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
         const artistDetails = await getArtistDataFromSpotify(spotifyArtist.id);
         const artistImageUrl =
           artistDetails?.images?.[0]?.url || DEFAULT_ARTIST_IMAGE_URL;
-
         const imageUploadResult = await uploadToBunny(
           artistImageUrl,
           "artists"
         );
-        uploadedFilePaths.push(imageUploadResult.path);
-
+        uploadedBunnyPaths.push(imageUploadResult.path);
         artist = new Artist({
           name: spotifyArtist.name,
           imageUrl: imageUploadResult.url,
@@ -805,7 +727,7 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
     const albumImageUrl =
       spotifyAlbumData.images?.[0]?.url || DEFAULT_ALBUM_IMAGE_URL;
     const albumImageUpload = await uploadToBunny(albumImageUrl, "albums");
-    uploadedFilePaths.push(albumImageUpload.path);
+    uploadedBunnyPaths.push(albumImageUpload.path);
 
     album = new Album({
       title: spotifyAlbumData.name,
@@ -823,8 +745,13 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
     const createdSongs = [];
     for (const spotifyTrack of tracksToProcess) {
       const songName = spotifyTrack.name;
-      const durationMs = spotifyTrack.duration_ms;
       console.log(`[AdminController] Processing track: ${songName}`);
+      const filesForTrack = findTrackFiles(songName);
+
+      const { hlsUrl, sourceAudioPublicId, hlsRemotePath, duration } =
+        await processAndUploadSong(filesForTrack.audioPath);
+      uploadedBunnyPaths.push(sourceAudioPublicId);
+      uploadedBunnyPaths.push(hlsRemotePath + "/");
 
       const songArtistIds = [];
       for (const spotifyTrackArtist of spotifyTrack.artists || []) {
@@ -839,13 +766,11 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
             artistImageUrl,
             "artists"
           );
-          uploadedFilePaths.push(imageUploadResult.path);
+          uploadedBunnyPaths.push(imageUploadResult.path);
           artist = new Artist({
             name: spotifyTrackArtist.name,
             imageUrl: imageUploadResult.url,
             imagePublicId: imageUploadResult.path,
-            bannerUrl: imageUploadResult.url,
-            bannerPublicId: imageUploadResult.path,
           });
           await artist.save();
           newlyCreatedArtistIds.push(artist._id);
@@ -858,27 +783,6 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
         primaryArtistName,
         songName
       );
-      const filesForTrack = findTrackFiles(songName);
-
-      let vocalsUpload = { url: null, publicId: null };
-      if (filesForTrack.vocalsPath) {
-        const result = await uploadToBunny(
-          filesForTrack.vocalsPath,
-          "songs/vocals"
-        );
-        vocalsUpload = { url: result.url, publicId: result.path };
-        uploadedFilePaths.push(result.path);
-      }
-
-      const instrumentalResult = await uploadToBunny(
-        filesForTrack.instrumentalPath,
-        "songs/instrumentals"
-      );
-      const instrumentalUpload = {
-        url: instrumentalResult.url,
-        publicId: instrumentalResult.path,
-      };
-      uploadedFilePaths.push(instrumentalResult.path);
 
       let lrcText = "";
       if (filesForTrack.lrcPath) {
@@ -888,13 +792,12 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
           console.error(`Error reading LRC file for ${songName}:`, readError);
         }
       }
-
       if (!lrcText) {
         lrcText = await getLrcLyricsFromLrclib({
           artistName: primaryArtistName,
-          songName: songName,
+          songName,
           albumName: album.title,
-          songDuration: durationMs,
+          songDuration: duration * 1000,
         });
       }
 
@@ -902,12 +805,10 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
         title: songName,
         artist: songArtistIds,
         albumId: album._id,
-        vocalsUrl: vocalsUpload.url,
-        vocalsPublicId: vocalsUpload.publicId,
-        instrumentalUrl: instrumentalUpload.url,
-        instrumentalPublicId: instrumentalUpload.publicId,
+        hlsUrl,
+        sourceAudioPublicId,
         lyrics: lrcText || "",
-        duration: Math.round(durationMs / 1000),
+        duration,
         imageUrl: album.imageUrl,
         imagePublicId: album.imagePublicId,
         genres: genreIds,
@@ -922,11 +823,6 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
       await updateArtistsContent(songArtistIds, song._id, "songs");
     }
 
-    console.log(
-      `[AdminController] Cleaning up temp directory: ${tempUnzipDir}`
-    );
-    await cleanUpTempDir(tempUnzipDir);
-
     res.status(200).json({
       success: true,
       message: `Album "${album.title}" (${album.type}) and ${createdSongs.length} tracks added successfully!`,
@@ -935,44 +831,36 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
     });
   } catch (error) {
     console.error(
-      "[AdminController] Critical error occurred. Starting rollback procedure...",
+      "[AdminController] Critical error occurred. Starting rollback...",
       error
     );
 
-    console.log(
-      `[Rollback] Deleting ${uploadedFilePaths.length} uploaded files...`
-    );
     await Promise.allSettled(
-      uploadedFilePaths.map((path) => deleteFromBunny(path))
+      uploadedBunnyPaths.map((bunnyPath) => {
+        if (!bunnyPath) return Promise.resolve();
+        if (bunnyPath.endsWith("/")) {
+          return deleteFromBunny(bunnyPath);
+        }
+        return deleteFromBunny(bunnyPath);
+      })
     );
 
     if (createdSongIds.length > 0) {
-      console.log(
-        `[Rollback] Deleting ${createdSongIds.length} created songs from DB...`
-      );
       await Song.deleteMany({ _id: { $in: createdSongIds } });
     }
-
     if (album) {
-      console.log(`[Rollback] Deleting album "${album.title}" from DB...`);
       await removeContentFromArtists(album.artist, album._id, "albums");
       await Album.findByIdAndDelete(album._id);
     }
-
     if (newlyCreatedArtistIds.length > 0) {
-      console.log(
-        `[Rollback] Deleting ${newlyCreatedArtistIds.length} newly created artists...`
-      );
       await Artist.deleteMany({ _id: { $in: newlyCreatedArtistIds } });
     }
 
-    console.log(`[Rollback] Cleaning up temp directory: ${tempUnzipDir}`);
-    await cleanUpTempDir(tempUnzipDir);
-
     next(error);
+  } finally {
+    await cleanUpTempDir(tempUnzipDir);
   }
 };
-
 export const getGenres = async (req, res, next) => {
   try {
     const genres = await Genre.find().sort({ name: 1 });

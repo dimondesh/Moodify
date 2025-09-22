@@ -1,4 +1,4 @@
-//src/layout/PlaybackControls.tsx
+// src/layout/PlaybackControls.tsx
 
 import { useEffect, useState, useRef } from "react";
 import { Drawer } from "vaul";
@@ -26,7 +26,6 @@ import {
   Volume2,
   VolumeX,
   ChevronDown,
-  Sliders,
   Mic2,
   Waves,
 } from "lucide-react";
@@ -94,8 +93,6 @@ const PlaybackControls = () => {
     isDesktopLyricsOpen,
     setIsDesktopLyricsOpen,
     setIsMobileLyricsFullScreen,
-    vocalsVolume,
-    setVocalsVolume,
     masterVolume,
     setMasterVolume,
     currentTime,
@@ -106,14 +103,8 @@ const PlaybackControls = () => {
 
   const { shareEntity, openShareDialog, closeAllDialogs } = useUIStore();
 
-  const {
-    reverbEnabled,
-    reverbMix,
-    setReverbEnabled,
-    setReverbMix,
-    playbackRateEnabled,
-    playbackRate,
-  } = useAudioSettingsStore();
+  const { reverbEnabled, reverbMix, setReverbEnabled, setReverbMix } =
+    useAudioSettingsStore();
 
   const { fetchLikedSongs } = useLibraryStore();
 
@@ -609,47 +600,7 @@ const PlaybackControls = () => {
 
                       <div className="flex items-center justify-between w-full pb-4 px-2">
                         <div className="flex items-center justify-start gap-2">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="hover:text-white text-zinc-400"
-                                title={t("player.vocals")}
-                                disabled={
-                                  !currentSong || !currentSong.vocalsUrl
-                                }
-                              >
-                                <Sliders className="h-5 w-5" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                              side="top"
-                              align="center"
-                              className="w-48 bg-zinc-800/70 border-zinc-700 p-3 rounded-md shadow-lg z-70 backdrop-blur-md"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <DropdownMenuItem className="focus:bg-transparent">
-                                <div className="flex items-center w-full gap-2">
-                                  <span className="text-sm text-zinc-400 w-8 mr-2">
-                                    {t("player.vocals")}
-                                  </span>
-                                  <Slider
-                                    value={[vocalsVolume]}
-                                    max={100}
-                                    step={1}
-                                    className="flex-1 hover:cursor-grab active:cursor-grabbing"
-                                    onValueChange={(value) =>
-                                      setVocalsVolume(value[0])
-                                    }
-                                    disabled={
-                                      !currentSong || !currentSong.vocalsUrl
-                                    }
-                                  />
-                                </div>
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          {/* Кнопка вокала удалена */}
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
@@ -739,6 +690,8 @@ const PlaybackControls = () => {
                         </h3>
                         <div className="w-full text-center relative cursor-pointer">
                           {(() => {
+                            const { playbackRateEnabled, playbackRate } =
+                              useAudioSettingsStore.getState();
                             const currentRate = playbackRateEnabled
                               ? playbackRate
                               : 1.0;
@@ -931,43 +884,7 @@ const PlaybackControls = () => {
                   <Mic2 className="h-4 w-4" />
                 </Button>
               )}
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="hover:text-white text-zinc-400"
-                    title={t("player.vocals")}
-                    disabled={!currentSong || !currentSong.vocalsUrl}
-                  >
-                    <Sliders className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  side="top"
-                  align="end"
-                  className="w-48 bg-zinc-800/50 backdrop-blur-md border-zinc-700 p-3 rounded-md shadow-lg"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <DropdownMenuItem className="focus:bg-transparent">
-                    <div className="flex items-center w-full gap-2">
-                      <span className="text-sm text-zinc-400 w-8 mr-2">
-                        {t("player.vocals")}
-                      </span>
-                      <Slider
-                        value={[vocalsVolume]}
-                        max={100}
-                        step={1}
-                        className="flex-1 hover:cursor-grab active:cursor-grabbing"
-                        onValueChange={(value) => setVocalsVolume(value[0])}
-                        disabled={!currentSong || !currentSong.vocalsUrl}
-                      />
-                    </div>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
+              {/* Кнопка вокала удалена */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button

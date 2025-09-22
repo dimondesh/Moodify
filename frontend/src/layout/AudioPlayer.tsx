@@ -1,553 +1,174 @@
-// frontend/src/layout/AudioPlayer.tsx
+// src/layout/AudioPlayer.tsx
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import Hls from "hls.js";
 import { usePlayerStore } from "../stores/usePlayerStore";
 import { webAudioService, useAudioSettingsStore } from "../lib/webAudio";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { axiosInstance } from "@/lib/axios";
 import { useMusicStore } from "@/stores/useMusicStore";
 import { useOfflineStore } from "@/stores/useOfflineStore";
-import { silentAudioService } from "@/lib/silentAudioService";
+
+// Расширяем интерфейс Window для поддержки webkitAudioContext
+interface CustomWindow extends Window {
+  webkitAudioContext?: typeof AudioContext;
+}
 
 const AudioPlayer = () => {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const instrumentalSourceRef = useRef<AudioBufferSourceNode | null>(null);
-  const vocalsSourceRef = useRef<AudioBufferSourceNode | null>(null);
-  const silentAudioRef = useRef<HTMLAudioElement>(null);
   const mediaElementSourceRef = useRef<MediaElementAudioSourceNode | null>(
     null
   );
-
-  const instrumentalGainNodeRef = useRef<GainNode | null>(null);
-  const vocalsGainNodeRef = useRef<GainNode | null>(null);
   const masterGainNodeRef = useRef<GainNode | null>(null);
-
-  const lastUpdatedSecondRef = useRef<number>(-1);
-
-  const instrumentalBufferRef = useRef<AudioBuffer | null>(null);
-  const vocalsBufferRef = useRef<AudioBuffer | null>(null);
-
-  const startTimeRef = useRef(0);
-  const offsetTimeRef = useRef(0);
-
-  const prevCurrentSongIdRef = useRef<string | null>(null);
-  const currentLoadRequestIdRef = useRef<string | null>(null);
-
-  const [isAudioContextReady, setIsAudioContextReady] = useState(false);
-  const [, setAudioContextState] = useState<
-    AudioContextState | "uninitialized"
-  >("uninitialized");
+  const lastSongIdRef = useRef<string | null>(null);
+  const listenRecordedRef = useRef(false);
 
   const {
     currentSong,
     isPlaying,
     playNext,
     repeatMode,
-    vocalsVolume,
     masterVolume,
-
     setCurrentTime,
     setDuration,
     currentTime,
-    originalDuration,
     seekVersion,
+    togglePlay,
   } = usePlayerStore();
 
   const { playbackRateEnabled, playbackRate } = useAudioSettingsStore();
-  const playbackRateRef = useRef(1.0);
-
   const { isOffline } = useOfflineStore();
   const { user } = useAuthStore();
-  const listenRecordedRef = useRef(false);
-  const isPlayingRef = useRef(isPlaying);
-  isPlayingRef.current = isPlaying;
-  const lastPlayerStoreCurrentTimeRef = useRef(0);
 
-  useEffect(() => {
-    const audioEl = silentAudioRef.current;
-    if (!audioEl) return;
-
-    let objectUrl: string;
-
-    const setupSilentAudio = async () => {
-      try {
-        const response = await fetch("/silent.mp3");
-        const blob = await response.blob();
-        objectUrl = URL.createObjectURL(blob);
-        audioEl.src = objectUrl;
-
-        silentAudioService.init(audioEl);
-        console.log("Silent audio initialized and ready.");
-      } catch (error) {
-        console.error("Failed to load silent audio:", error);
-      }
-    };
-
-    setupSilentAudio();
-
-    return () => {
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-      }
-    };
-  }, []);
-
+  // Инициализация Web Audio API
   useEffect(() => {
     const AudioContextClass =
-      window.AudioContext ||
-      (window as typeof window & { webkitAudioContext: typeof AudioContext })
-        .webkitAudioContext;
+      window.AudioContext || (window as CustomWindow).webkitAudioContext;
     if (!AudioContextClass) {
-      console.error("Web Audio API is not supported in this browser.");
-      setIsAudioContextReady(false);
-      setAudioContextState("uninitialized");
+      console.error("Web Audio API is not supported.");
       return;
     }
 
-    if (
-      audioContextRef.current &&
-      masterGainNodeRef.current &&
-      audioContextRef.current.state !== "closed"
-    ) {
-      if (
-        webAudioService.getAudioContext() !== audioContextRef.current ||
-        webAudioService.getAnalyserNode() === null
-      ) {
-        webAudioService.init(
-          audioContextRef.current,
-          masterGainNodeRef.current,
-          audioContextRef.current.destination
-        );
-      }
-      setAudioContextState(audioContextRef.current.state);
-      return;
-    }
-
-    try {
-      const newAudioContext = new AudioContextClass();
-      audioContextRef.current = newAudioContext;
-      masterGainNodeRef.current = newAudioContext.createGain();
-      instrumentalGainNodeRef.current = newAudioContext.createGain();
-      vocalsGainNodeRef.current = newAudioContext.createGain();
-      instrumentalGainNodeRef.current.connect(masterGainNodeRef.current);
-      vocalsGainNodeRef.current.connect(masterGainNodeRef.current);
-
+    if (!audioContextRef.current) {
+      const context = new AudioContextClass();
+      audioContextRef.current = context;
+      masterGainNodeRef.current = context.createGain();
       webAudioService.init(
-        newAudioContext,
+        context,
         masterGainNodeRef.current,
-        newAudioContext.destination
+        context.destination
       );
-
-      if (silentAudioRef.current && !mediaElementSourceRef.current) {
-        mediaElementSourceRef.current =
-          newAudioContext.createMediaElementSource(silentAudioRef.current);
-        mediaElementSourceRef.current.connect(newAudioContext.destination);
-        console.log(
-          "Silent audio source connected to AudioContext destination."
-        );
-      }
-
-      setIsAudioContextReady(true);
-      setAudioContextState(newAudioContext.state);
-      newAudioContext.onstatechange = () => {
-        setAudioContextState(newAudioContext.state);
-        if (newAudioContext.state === "running") {
-          webAudioService.applySettingsToGraph();
-        }
-      };
-    } catch (error) {
-      console.error("Failed to create AudioContext:", error);
-      setIsAudioContextReady(false);
-      setAudioContextState("closed");
-      return;
     }
 
-    const audioContext = audioContextRef.current;
+    const audioEl = audioRef.current;
+    if (audioEl && audioContextRef.current && !mediaElementSourceRef.current) {
+      mediaElementSourceRef.current =
+        audioContextRef.current.createMediaElementSource(audioEl);
+      if (masterGainNodeRef.current) {
+        mediaElementSourceRef.current.connect(masterGainNodeRef.current);
+      }
+    }
+
     const resumeContext = () => {
-      if (audioContext && audioContext.state === "suspended") {
-        audioContext
-          .resume()
-          .catch((err) => console.error("Error resuming AudioContext:", err));
+      if (audioContextRef.current?.state === "suspended") {
+        audioContextRef.current.resume();
       }
     };
-
     document.addEventListener("click", resumeContext, { once: true });
-    document.addEventListener("keydown", resumeContext, { once: true });
-    document.addEventListener("touchstart", resumeContext, { once: true });
 
     return () => {
       document.removeEventListener("click", resumeContext);
-      document.removeEventListener("keydown", resumeContext);
-      document.removeEventListener("touchstart", resumeContext);
-      if (
-        audioContextRef.current &&
-        audioContextRef.current.state !== "closed"
-      ) {
-        audioContextRef.current
-          .close()
-          .then(() => {
-            if (mediaElementSourceRef.current) {
-              mediaElementSourceRef.current.disconnect();
-              mediaElementSourceRef.current = null;
-            }
-            audioContextRef.current = null;
-            masterGainNodeRef.current = null;
-            instrumentalGainNodeRef.current = null;
-            vocalsGainNodeRef.current = null;
-            setIsAudioContextReady(false);
-            setAudioContextState("closed");
-          })
-          .catch((err) => console.error("Error closing AudioContext:", err));
-      }
     };
   }, []);
 
-  // --- Эффект 2: Загрузка и декодирование аудио при смене песни ---
+  // Управление HLS потоком при смене трека
   useEffect(() => {
-    if (!isAudioContextReady) {
-      instrumentalBufferRef.current = null;
-      vocalsBufferRef.current = null;
-      setDuration(0);
-      setCurrentTime(0);
-      return;
-    }
+    if (!audioRef.current) return;
 
-    const audioContext = audioContextRef.current;
-    if (!audioContext || audioContext.state === "closed") return;
+    const audioEl = audioRef.current;
 
-    if (!currentSong) {
-      if (instrumentalSourceRef.current) {
-        instrumentalSourceRef.current.stop();
-        instrumentalSourceRef.current.disconnect();
-        instrumentalSourceRef.current = null;
-      }
-      if (vocalsSourceRef.current) {
-        vocalsSourceRef.current.stop();
-        vocalsSourceRef.current.disconnect();
-        vocalsSourceRef.current = null;
-      }
-      instrumentalBufferRef.current = null;
-      vocalsBufferRef.current = null;
-      setDuration(0);
-      setCurrentTime(0);
-      prevCurrentSongIdRef.current = null;
-      currentLoadRequestIdRef.current = null;
-      lastPlayerStoreCurrentTimeRef.current = 0;
-      return;
-    }
+    if (currentSong && currentSong.hlsUrl) {
+      if (lastSongIdRef.current === currentSong._id) return;
+      lastSongIdRef.current = currentSong._id;
 
-    if (
-      prevCurrentSongIdRef.current === currentSong._id &&
-      instrumentalBufferRef.current
-    ) {
-      if (Math.abs(currentTime - 0) < 0.5) {
-        setCurrentTime(0);
-      }
-      offsetTimeRef.current = 0;
-      startTimeRef.current = 0;
-      lastPlayerStoreCurrentTimeRef.current = 0;
-      return;
-    }
-
-    const loadRequestId = Date.now().toString();
-    currentLoadRequestIdRef.current = loadRequestId;
-    prevCurrentSongIdRef.current = currentSong._id;
-
-    const instrumentalUrl = currentSong.instrumentalUrl;
-    const vocalsUrl = currentSong.vocalsUrl;
-
-    const loadAudio = async (url: string): Promise<AudioBuffer> => {
-      try {
-        const response = await fetch(url, { cache: "default" });
-
-        if (!response.ok) {
-          throw new Error(
-            `HTTP error! status: ${response.status} for url ${url}`
-          );
+      if (Hls.isSupported()) {
+        if (hlsRef.current) {
+          hlsRef.current.destroy();
         }
-
-        const arrayBuffer = await response.arrayBuffer();
-        if (!audioContext || audioContext.state === "closed") {
-          throw new Error("AudioContext closed during fetch/decode.");
+        const hls = new Hls();
+        hlsRef.current = hls;
+        hls.loadSource(currentSong.hlsUrl);
+        hls.attachMedia(audioEl);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (usePlayerStore.getState().isPlaying) {
+            audioEl.play().catch((e) => console.error("Autoplay failed", e));
+          }
+        });
+        hls.on(Hls.Events.ERROR, (_event, data) => {
+          if (data.fatal) {
+            console.error("HLS Fatal Error:", data.details);
+          }
+        });
+      } else if (audioEl.canPlayType("application/vnd.apple.mpegurl")) {
+        audioEl.src = currentSong.hlsUrl;
+        if (usePlayerStore.getState().isPlaying) {
+          audioEl.play().catch((e) => console.error("Autoplay failed", e));
         }
-        return audioContext.decodeAudioData(arrayBuffer);
-      } catch (error) {
-        console.error(
-          `[AudioPlayer] Failed to fetch or decode audio from ${url}:`,
-          error
-        );
-        throw error;
       }
-    };
-
-    const fetchAndDecodeAudio = async () => {
-      if (instrumentalSourceRef.current) {
-        instrumentalSourceRef.current.stop();
-        instrumentalSourceRef.current.disconnect();
-        instrumentalSourceRef.current = null;
+      listenRecordedRef.current = false;
+    } else {
+      lastSongIdRef.current = null;
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
       }
-      if (vocalsSourceRef.current) {
-        vocalsSourceRef.current.stop();
-        vocalsSourceRef.current.disconnect();
-        vocalsSourceRef.current = null;
-      }
-
-      try {
-        const [instrumentalBuffer, vocalsBuffer] = await Promise.all([
-          loadAudio(instrumentalUrl),
-          vocalsUrl ? loadAudio(vocalsUrl) : Promise.resolve(null),
-        ]);
-
-        if (currentLoadRequestIdRef.current !== loadRequestId) return;
-        if (!audioContext || audioContext.state === "closed") return;
-
-        instrumentalBufferRef.current = instrumentalBuffer;
-        vocalsBufferRef.current = vocalsBuffer;
-
-        const originalDur = Math.floor(instrumentalBuffer.duration);
-        const currentRate = useAudioSettingsStore.getState().playbackRateEnabled
-          ? useAudioSettingsStore.getState().playbackRate
-          : 1.0;
-        const displayDuration = Math.floor(originalDur / currentRate);
-
-        setDuration(displayDuration, originalDur);
-        setCurrentTime(0);
-        offsetTimeRef.current = 0;
-        startTimeRef.current = 0;
-        lastPlayerStoreCurrentTimeRef.current = 0;
-        lastUpdatedSecondRef.current = -1;
-      } catch (error) {
-        if (currentLoadRequestIdRef.current !== loadRequestId) return;
-        console.error("Error loading or decoding audio:", error);
-        usePlayerStore.setState({ isPlaying: false });
-        instrumentalBufferRef.current = null;
-        vocalsBufferRef.current = null;
-        setDuration(0);
-        setCurrentTime(0);
-        lastPlayerStoreCurrentTimeRef.current = 0;
-      }
-    };
-
-    fetchAndDecodeAudio();
+      audioEl.src = "";
+    }
 
     return () => {
-      instrumentalBufferRef.current = null;
-      vocalsBufferRef.current = null;
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
     };
-  }, [currentSong, isAudioContextReady, setDuration, setCurrentTime]);
+  }, [currentSong]);
 
-  // --- Эффект 3: Управление воспроизведением (старт/пауза/перемотка) ---
+  // Управление Play/Pause
+  useEffect(() => {
+    const audioEl = audioRef.current;
+    if (!audioEl) return;
+
+    if (isPlaying) {
+      audioEl.play().catch((e) => console.error("Play command failed", e));
+    } else {
+      audioEl.pause();
+    }
+  }, [isPlaying]);
+
+  // Управление перемоткой
   useEffect(() => {
     if (
-      !isAudioContextReady ||
-      !currentSong ||
-      !instrumentalBufferRef.current
+      audioRef.current &&
+      Math.abs(audioRef.current.currentTime - currentTime) > 1
     ) {
-      if (instrumentalSourceRef.current) {
-        instrumentalSourceRef.current.stop();
-        instrumentalSourceRef.current.disconnect();
-        instrumentalSourceRef.current = null;
-      }
-      if (vocalsSourceRef.current) {
-        vocalsSourceRef.current.stop();
-        vocalsSourceRef.current.disconnect();
-        vocalsSourceRef.current = null;
-      }
-      return;
+      audioRef.current.currentTime = currentTime;
     }
+  }, [seekVersion, currentTime]);
 
-    const audioContext = audioContextRef.current;
-    if (!audioContext || audioContext.state === "closed") return;
-
-    lastPlayerStoreCurrentTimeRef.current = currentTime;
-
-    const managePlayback = async () => {
-      if (instrumentalSourceRef.current) {
-        instrumentalSourceRef.current.onended = null;
-        instrumentalSourceRef.current.stop();
-        instrumentalSourceRef.current.disconnect();
-        instrumentalSourceRef.current = null;
-      }
-      if (vocalsSourceRef.current) {
-        vocalsSourceRef.current.stop();
-        vocalsSourceRef.current.disconnect();
-        vocalsSourceRef.current = null;
-      }
-
-      if (isPlaying) {
-        if (audioContext.state === "suspended") await audioContext.resume();
-
-        const uiCurrentTime = usePlayerStore.getState().currentTime;
-        const currentRate = playbackRateEnabled ? playbackRate : 1.0;
-        const realOffsetTime = uiCurrentTime * currentRate;
-
-        if (
-          instrumentalBufferRef.current &&
-          realOffsetTime >= instrumentalBufferRef.current.duration
-        ) {
-          console.warn(
-            "Seek time is beyond the original duration. Playing next song."
-          );
-          playNext();
-          return;
-        }
-
-        offsetTimeRef.current = uiCurrentTime;
-        startTimeRef.current = audioContext.currentTime;
-
-        const newInstrumentalSource = audioContext.createBufferSource();
-        newInstrumentalSource.buffer = instrumentalBufferRef.current;
-        newInstrumentalSource.playbackRate.value = currentRate;
-        newInstrumentalSource.connect(instrumentalGainNodeRef.current!);
-        instrumentalSourceRef.current = newInstrumentalSource;
-
-        if (
-          vocalsBufferRef.current &&
-          vocalsGainNodeRef.current &&
-          currentSong?.vocalsUrl
-        ) {
-          const newVocalsSource = audioContext.createBufferSource();
-          newVocalsSource.buffer = vocalsBufferRef.current;
-          newVocalsSource.playbackRate.value = currentRate;
-          newVocalsSource.connect(vocalsGainNodeRef.current);
-          vocalsSourceRef.current = newVocalsSource;
-        }
-
-        newInstrumentalSource.start(audioContext.currentTime, realOffsetTime);
-        if (vocalsSourceRef.current) {
-          vocalsSourceRef.current.start(
-            audioContext.currentTime,
-            realOffsetTime
-          );
-        }
-
-        newInstrumentalSource.onended = (event) => {
-          if (event.target === instrumentalSourceRef.current) {
-            if (repeatMode === "one") {
-              listenRecordedRef.current = false; // Сбрасываем флаг при повторе
-              usePlayerStore.getState().seekToTime(0);
-            } else {
-              playNext();
-            }
-          }
-        };
-      } else {
-        if (audioContext.state === "running") {
-          const elapsedRealTime =
-            audioContext.currentTime - startTimeRef.current;
-          const elapsedSongTime = elapsedRealTime * playbackRateRef.current;
-          offsetTimeRef.current += elapsedSongTime;
-          if (offsetTimeRef.current < 0) offsetTimeRef.current = 0;
-
-          setCurrentTime(Math.floor(offsetTimeRef.current), true);
-
-          audioContext
-            .suspend()
-            .catch((err) =>
-              console.error("Error suspending AudioContext:", err)
-            );
-        }
-      }
-    };
-
-    managePlayback();
-  }, [
-    isPlaying,
-    currentSong,
-    isAudioContextReady,
-    seekVersion,
-   
-  ]);
-
-  // --- Эффект 4: Обновление громкости ---
+  // Управление громкостью и скоростью
   useEffect(() => {
-    if (!isAudioContextReady) return;
-
     if (masterGainNodeRef.current) {
       masterGainNodeRef.current.gain.value = masterVolume / 100;
     }
-    if (vocalsGainNodeRef.current) {
-      if (currentSong?.vocalsUrl) {
-        vocalsGainNodeRef.current.gain.value = vocalsVolume / 100;
-      } else {
-        vocalsGainNodeRef.current.gain.value = 0;
-      }
+    if (audioRef.current) {
+      const currentRate = playbackRateEnabled ? playbackRate : 1.0;
+      audioRef.current.playbackRate = currentRate;
     }
-  }, [vocalsVolume, masterVolume, currentSong, isAudioContextReady]);
+  }, [masterVolume, playbackRate, playbackRateEnabled]);
 
-  // --- Реакция на изменение скорости и корректировка времени/длительности ---
-  useEffect(() => {
-    const currentRate = playbackRateEnabled ? playbackRate : 1.0;
-    playbackRateRef.current = currentRate;
-
-    if (originalDuration > 0) {
-      const newDisplayDuration = Math.floor(originalDuration / currentRate);
-
-      const currentTrackTime = usePlayerStore.getState().currentTime;
-      const oldDisplayDuration = usePlayerStore.getState().duration;
-
-      const progressPercent =
-        oldDisplayDuration > 0 ? currentTrackTime / oldDisplayDuration : 0;
-      const newCurrentTime = newDisplayDuration * progressPercent;
-
-      setDuration(newDisplayDuration, originalDuration);
-      setCurrentTime(newCurrentTime, true);
-    }
-
-    const instrumentalSource = instrumentalSourceRef.current;
-    const vocalsSource = vocalsSourceRef.current;
-    const audioContext = audioContextRef.current;
-
-    if (instrumentalSource && audioContext) {
-      instrumentalSource.playbackRate.linearRampToValueAtTime(
-        currentRate,
-        audioContext.currentTime + 0.5
-      );
-      if (vocalsSource) {
-        vocalsSource.playbackRate.linearRampToValueAtTime(
-          currentRate,
-          audioContext.currentTime + 0.5
-        );
-      }
-    }
-  }, [
-    playbackRate,
-    playbackRateEnabled,
-    originalDuration,
-    setDuration,
-    setCurrentTime,
-  ]);
-
-  // --- Эффект 5: Обновление текущего времени в сторе ---
-  useEffect(() => {
-    if (!isAudioContextReady) return;
-
-    const audioContext = audioContextRef.current;
-    if (!audioContext || audioContext.state === "closed") return;
-
-    const intervalId = setInterval(() => {
-      if (
-        isPlayingRef.current &&
-        instrumentalSourceRef.current &&
-        audioContext.state === "running"
-      ) {
-        const elapsedRealTime = audioContext.currentTime - startTimeRef.current;
-        const newTime = offsetTimeRef.current + elapsedRealTime;
-
-
-        usePlayerStore.getState().setCurrentTime(newTime, true);
-      }
-    }, 500);
-
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, [isAudioContextReady]);
-
-  useEffect(() => {
-    listenRecordedRef.current = false;
-  }, [currentSong]);
-
+  // Запись прослушивания
   useEffect(() => {
     if (
       isPlaying &&
@@ -560,35 +181,62 @@ const AudioPlayer = () => {
       !isOffline
     ) {
       listenRecordedRef.current = true;
-      const songId = currentSong._id;
-      const requestUrl = `/songs/${songId}/listen`;
-      console.log(`[AudioPlayer] Preparing to send POST to: ${requestUrl}`);
       axiosInstance
-        .post(requestUrl)
-        .then((response) => {
-          if (response.data.success) {
-            console.log(
-              `[AudioPlayer] Listen recorded successfully for song: ${currentSong.title}`
-            );
-          }
+        .post(`/songs/${currentSong._id}/listen`)
+        .then(() => {
+          console.log(`Listen recorded for ${currentSong.title}`);
           useMusicStore.getState().fetchRecentlyListenedSongs();
         })
-        .catch((error) => {
+        .catch((e) => {
           listenRecordedRef.current = false;
-          console.error("[AudioPlayer] Failed to record listen. Details:", {
-            errorMessage: error.message,
-            requestUrl: requestUrl,
-            songId: songId,
-            errorResponse: error.response?.data,
-          });
+          console.error("Failed to record listen", e);
         });
     }
   }, [currentTime, isPlaying, currentSong, user, isOffline]);
 
+  // Event Listeners для <audio>
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleTimeUpdate = () => setCurrentTime(audio.currentTime, true);
+    const handleDurationChange = () =>
+      setDuration(audio.duration, audio.duration);
+    const handleEnded = () => {
+      if (repeatMode === "one") {
+        audio.currentTime = 0;
+        audio.play();
+      } else {
+        playNext();
+      }
+    };
+    const handlePlay = () =>
+      !usePlayerStore.getState().isPlaying && togglePlay();
+    const handlePause = () =>
+      usePlayerStore.getState().isPlaying && togglePlay();
+
+    audio.addEventListener("timeupdate", handleTimeUpdate);
+    audio.addEventListener("durationchange", handleDurationChange);
+    audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("playing", handlePlay);
+    audio.addEventListener("pause", handlePause);
+
+    return () => {
+      audio.removeEventListener("timeupdate", handleTimeUpdate);
+      audio.removeEventListener("durationchange", handleDurationChange);
+      audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("playing", handlePlay);
+      audio.removeEventListener("pause", handlePause);
+    };
+  }, [setCurrentTime, setDuration, playNext, repeatMode, togglePlay]);
+
   return (
-    <>
-      <audio ref={silentAudioRef} src="/silent.mp3" loop playsInline />
-    </>
+    <audio
+      ref={audioRef}
+      playsInline
+      style={{ display: "none" }}
+      crossOrigin="anonymous"
+    />
   );
 };
 
