@@ -27,19 +27,20 @@ export default defineConfig({
 
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,wav,mp3}"],
-        maximumFileSizeToCacheInBytes: 15 * 1024 * 1024, 
+        maximumFileSizeToCacheInBytes: 15 * 1024 * 1024,
 
         runtimeCaching: [
           {
-            urlPattern: new RegExp(`^https://${BUNNY_CDN_HOSTNAME}/.*`, "i"),
+            // Этот кэш будет использоваться для явного скачивания HLS и обложек
+            urlPattern: ({ url }) => url.hostname === BUNNY_CDN_HOSTNAME,
             handler: "CacheFirst",
             options: {
-              cacheName: "moodify-studio-assets-cache", 
+              cacheName: "moodify-hls-assets-cache", // Новое, более точное имя
               expiration: {
-                maxEntries: 750, 
-                maxAgeSeconds: 60 * 60 * 24 * 60, 
+                maxEntries: 1000, // Увеличим лимит для сегментов
+                maxAgeSeconds: 60 * 60 * 24 * 90, // 90 дней
               },
-              rangeRequests: true, 
+              rangeRequests: true,
               cacheableResponse: {
                 statuses: [0, 200],
               },
@@ -77,9 +78,10 @@ export default defineConfig({
         "ir/large-hall.wav",
       ],
       manifest: {
-        name: "Moodify Studio",
-        short_name: "Moodify Studio",
-        description: "An advanced music streaming service for enthusiasts. Create complex mixes, use AI-generated playlists, and connect with friends in a rich audio environment.",
+        name: "Moodify",
+        short_name: "Moodify",
+        description:
+          "An advanced music streaming service for enthusiasts. Create complex mixes, use AI-generated playlists, and connect with friends in a rich audio environment.",
         theme_color: "#7B39EC",
         background_color: "#18181b",
         icons: [

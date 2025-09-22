@@ -20,6 +20,7 @@ import { useMusicStore } from "./useMusicStore";
 import i18n from "@/lib/i18n";
 
 type ItemType = "albums" | "playlists" | "mixes" | "generated-playlists";
+const HLS_ASSETS_CACHE_NAME = "moodify-hls-assets-cache";
 
 interface OfflineState {
   downloadedItemIds: Set<string>;
@@ -201,29 +202,22 @@ export const useOfflineStore = create<OfflineState>()(
             toast.error(i18n.t("toasts.loginRequiredForDownload"));
             return;
           }
-
           if (get().downloadingItemIds.has(itemId)) return;
 
           set((state) => ({
             downloadingItemIds: new Set(state.downloadingItemIds).add(itemId),
           }));
 
-          let allOtherSongIds = new Set<string>();
-
           try {
+            // 1. Fetch item metadata
             let endpoint = "";
             let storeName: "albums" | "playlists" | "mixes";
-            let isGenerated = false;
 
             if (itemType === "generated-playlists") {
               endpoint = `/generated-playlists/${itemId}`;
               storeName = "playlists";
-              isGenerated = true;
             } else {
-              endpoint =
-                itemType === "albums"
-                  ? `/albums/${itemId}`
-                  : `/${itemType}/${itemId}`;
+              endpoint = `/${itemType}/${itemId}`;
               storeName = itemType;
             }
 
@@ -235,130 +229,63 @@ export const useOfflineStore = create<OfflineState>()(
               throw new Error(i18n.t("errors.invalidServerData"));
             }
 
-            const oldItemData = await getUserItem(storeName, itemId, userId);
-            const newSongIds = new Set(
-              serverItemData.songs.map((s: Song) => s._id)
-            );
-            const removedSongs: Song[] = [];
-
-            if (oldItemData && (oldItemData as any).songsData) {
-              (oldItemData as any).songsData.forEach((oldSong: Song) => {
-                if (!newSongIds.has(oldSong._id)) {
-                  removedSongs.push(oldSong);
-                }
-              });
-            }
-
-            if (removedSongs.length > 0) {
-              console.log(
-                `Found ${removedSongs.length} songs to remove from offline storage.`
-              );
-              const [allAlbums, allPlaylists, allMixes] = await Promise.all([
-                getAllUserAlbums(userId),
-                getAllUserPlaylists(userId),
-                getAllUserMixes(userId),
-              ]);
-
-              allOtherSongIds = new Set<string>();
-              [...allAlbums, ...allPlaylists, ...allMixes].forEach((item) => {
-                if (item._id !== itemId) {
-                  (item.songsData || (item as any).songs || []).forEach(
-                    (song: Song) => allOtherSongIds.add(song._id)
-                  );
-                }
-              });
-
-              const urlsToDelete = new Set<string>();
-              for (const removedSong of removedSongs) {
-                if (!allOtherSongIds.has(removedSong._id)) {
-                  if (removedSong.imageUrl)
-                    urlsToDelete.add(removedSong.imageUrl);
-                  if (removedSong.instrumentalUrl)
-                    urlsToDelete.add(removedSong.instrumentalUrl);
-                  if (removedSong.vocalsUrl)
-                    urlsToDelete.add(removedSong.vocalsUrl);
-                  await deleteUserItem("songs", removedSong._id);
-                }
-              }
-              const assetsCache = await caches.open("bunny-assets-cache");
-              for (const url of urlsToDelete) {
-                await assetsCache.delete(url).catch((e) => console.warn(e));
-              }
-            }
-
-            const songsData = serverItemData.songs as Song[];
+            // 2. Collect all URLs to cache (images, manifests, segments)
             const urlsToCache = new Set<string>();
             if (serverItemData.imageUrl)
               urlsToCache.add(serverItemData.imageUrl);
-            songsData.forEach((song) => {
+
+            for (const song of serverItemData.songs as Song[]) {
               if (song.imageUrl) urlsToCache.add(song.imageUrl);
-              if (song.instrumentalUrl) urlsToCache.add(song.instrumentalUrl);
-              if (song.vocalsUrl) urlsToCache.add(song.vocalsUrl);
-            });
-
-            const allUrls = Array.from(urlsToCache).filter(Boolean);
-            const assetsCache = await caches.open("bunny-assets-cache");
-
-            for (const url of allUrls) {
-              try {
-                await assetsCache.add(url);
-              } catch (err) {
-                console.warn(`Could not cache URL: ${url}`, err);
+              if (song.hlsUrl) {
+                urlsToCache.add(song.hlsUrl);
+                // Fetch and parse manifest to get segment URLs
+                const manifestResponse = await fetch(song.hlsUrl);
+                const manifestText = await manifestResponse.text();
+                const baseUrl = new URL(song.hlsUrl);
+                const segments = manifestText
+                  .split("\n")
+                  .filter((line) => line.endsWith(".ts"));
+                segments.forEach((segment) => {
+                  const segmentUrl = new URL(segment, baseUrl);
+                  urlsToCache.add(segmentUrl.href);
+                });
               }
             }
 
-            let itemToSave;
-            if (isGenerated) {
-              const user = useAuthStore.getState().user;
-              itemToSave = {
-                ...serverItemData,
-                title: i18n.t(serverItemData.nameKey),
-                description: i18n.t(serverItemData.descriptionKey),
-                owner: user,
-                type: "playlist",
-                isGenerated: true,
-                songsData,
-                userId,
-              };
-            } else {
-              itemToSave = { ...serverItemData, songsData, userId };
-            }
+            // 3. Cache all assets using Cache API
+            const cache = await caches.open(HLS_ASSETS_CACHE_NAME);
+            await cache.addAll(Array.from(urlsToCache));
+
+            // 4. Save metadata to IndexedDB
+            const itemToSave = {
+              ...serverItemData,
+              songsData: serverItemData.songs,
+              userId,
+              isGenerated: itemType === "generated-playlists",
+            };
             await saveUserItem(storeName, itemToSave as any);
 
-            for (const song of songsData) {
+            for (const song of serverItemData.songs as Song[]) {
               await saveUserItem("songs", { ...song, userId });
             }
 
-            set((state) => {
-              const newDownloaded = new Set(state.downloadedItemIds).add(
-                itemId
-              );
-              const newDownloading = new Set(state.downloadingItemIds);
-              newDownloading.delete(itemId);
-              const newDownloadedSongs = new Set(state.downloadedSongIds);
-              songsData.forEach((song) => newDownloadedSongs.add(song._id));
-
-              removedSongs.forEach((song) => {
-                if (
-                  !allOtherSongIds.has(song._id) &&
-                  !newSongIds.has(song._id)
-                ) {
-                  newDownloadedSongs.delete(song._id);
-                }
-              });
-              return {
-                downloadedItemIds: newDownloaded,
-                downloadingItemIds: newDownloading,
-                downloadedSongIds: newDownloadedSongs,
-              };
-            });
+            // 5. Update state
+            set((state) => ({
+              downloadedItemIds: new Set(state.downloadedItemIds).add(itemId),
+              downloadedSongIds: new Set(state.downloadedSongIds).add(
+                ...serverItemData.songs.map((s: Song) => s._id)
+              ),
+              downloadingItemIds: new Set(
+                [...state.downloadingItemIds].filter((id) => id !== itemId)
+              ),
+            }));
           } catch (error) {
             console.error(`Failed to download ${itemType} ${itemId}:`, error);
-            set((state) => {
-              const newDownloading = new Set(state.downloadingItemIds);
-              newDownloading.delete(itemId);
-              return { downloadingItemIds: newDownloading };
-            });
+            set((state) => ({
+              downloadingItemIds: new Set(
+                [...state.downloadingItemIds].filter((id) => id !== itemId)
+              ),
+            }));
             throw error;
           }
         },
@@ -366,6 +293,7 @@ export const useOfflineStore = create<OfflineState>()(
         deleteItem: async (itemId, itemType, itemTitle) => {
           const userId = useAuthStore.getState().user?.id;
           if (!userId) return;
+
           try {
             const storeName: "albums" | "playlists" | "mixes" =
               itemType === "generated-playlists" ? "playlists" : itemType;
@@ -373,62 +301,77 @@ export const useOfflineStore = create<OfflineState>()(
             const itemToDelete = await getUserItem(storeName, itemId, userId);
             if (!itemToDelete) return;
 
-            const songs = ((itemToDelete as any).songsData ||
-              (itemToDelete as any).songs) as Song[];
-
-            const [allAlbums, allPlaylists, allMixes] = await Promise.all([
-              getAllUserAlbums(userId),
-              getAllUserPlaylists(userId),
-              getAllUserMixes(userId),
-            ]);
-
-            const allOtherSongIds = new Set<string>();
-            [...allAlbums, ...allPlaylists, ...allMixes].forEach((item) => {
-              if (item._id !== itemId) {
-                (item.songsData || (item as any).songs || []).forEach(
-                  (song: Song) => allOtherSongIds.add(song._id)
-                );
-              }
-            });
-
+            // 1. Collect all URLs to delete from cache
             const urlsToDelete = new Set<string>();
-            if (
-              itemToDelete.imageUrl &&
-              !allOtherSongIds.has(itemToDelete.imageUrl)
-            ) {
-              urlsToDelete.add(itemToDelete.imageUrl);
+            if (itemToDelete.imageUrl) urlsToDelete.add(itemToDelete.imageUrl);
+
+            const songs: Song[] = (itemToDelete as any).songsData || [];
+            for (const song of songs) {
+              if (song.imageUrl) urlsToDelete.add(song.imageUrl);
+              if (song.hlsUrl) {
+                urlsToDelete.add(song.hlsUrl);
+                try {
+                  const manifestResponse = await fetch(song.hlsUrl);
+                  const manifestText = await manifestResponse.text();
+                  const baseUrl = new URL(song.hlsUrl);
+                  const segments = manifestText
+                    .split("\n")
+                    .filter((line) => line.endsWith(".ts"));
+                  segments.forEach((segment) => {
+                    const segmentUrl = new URL(segment, baseUrl);
+                    urlsToDelete.add(segmentUrl.href);
+                  });
+                } catch (e) {
+                  console.warn(
+                    `Could not fetch manifest for deletion: ${song.hlsUrl}`,
+                    e
+                  );
+                }
+              }
             }
 
+            // 2. Delete from Cache Storage
+            const cache = await caches.open(HLS_ASSETS_CACHE_NAME);
+            for (const url of urlsToDelete) {
+              await cache.delete(url);
+            }
+
+            // 3. Delete from IndexedDB
+            await deleteUserItem(storeName, itemId);
             for (const song of songs) {
-              if (!allOtherSongIds.has(song._id)) {
-                if (song.imageUrl) urlsToDelete.add(song.imageUrl);
-                if (song.instrumentalUrl)
-                  urlsToDelete.add(song.instrumentalUrl);
-                if (song.vocalsUrl) urlsToDelete.add(song.vocalsUrl);
+              // Make sure not to delete a song if it's part of another downloaded item
+              const [allAlbums, allPlaylists, allMixes] = await Promise.all([
+                getAllUserAlbums(userId),
+                getAllUserPlaylists(userId),
+                getAllUserMixes(userId),
+              ]);
+              const isSongInOtherItems = [
+                ...allAlbums,
+                ...allPlaylists,
+                ...allMixes,
+              ].some(
+                (item) =>
+                  item._id !== itemId &&
+                  item.songsData.some((s: Song) => s._id === song._id)
+              );
+              if (!isSongInOtherItems) {
                 await deleteUserItem("songs", song._id);
               }
             }
 
-            const assetsCache = await caches.open("bunny-assets-cache");
-            for (const url of urlsToDelete) {
-              await assetsCache.delete(url).catch((e) => console.warn(e));
-            }
-
-            await deleteUserItem(storeName, itemId);
-
+            // 4. Update state
             set((state) => {
               const newDownloaded = new Set(state.downloadedItemIds);
               newDownloaded.delete(itemId);
               const newDownloadedSongs = new Set(state.downloadedSongIds);
-              songs.forEach((song) => {
-                if (!allOtherSongIds.has(song._id))
-                  newDownloadedSongs.delete(song._id);
-              });
+              songs.forEach((song) => newDownloadedSongs.delete(song._id));
+
               return {
                 downloadedItemIds: newDownloaded,
                 downloadedSongIds: newDownloadedSongs,
               };
             });
+
             toast.success(
               i18n.t("toasts.itemRemovedFromDownloads", { itemTitle })
             );
@@ -468,9 +411,8 @@ export const useOfflineStore = create<OfflineState>()(
               db.clear("mixes"),
               db.clear("songs"),
             ]);
-            await caches.delete("moodify-audio-cache");
-            await caches.delete("cloudinary-images-cache");
-            await caches.delete("bunny-assets-cache");
+
+            await caches.delete(HLS_ASSETS_CACHE_NAME);
 
             set({
               downloadedItemIds: new Set(),
