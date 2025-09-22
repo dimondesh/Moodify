@@ -4,11 +4,10 @@ import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
 import fs from "fs/promises";
 import path from "path";
 
-// Указываем fluent-ffmpeg, где найти исполняемый файл ffmpeg
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
 /**
- * Transcodes an audio file into HLS format (m3u8 playlist and ts segments).
+ * Transcodes an audio file into a highly compatible HLS format.
  * @param {string} inputPath - The local path to the source audio file.
  * @param {string} outputDir - The directory where HLS files will be created.
  * @returns {Promise<string>} A promise that resolves with the path to the master HLS manifest file.
@@ -24,21 +23,41 @@ export const transcodeToHls = (inputPath, outputDir) => {
       console.log(`[FFMPEG] Output Dir: ${outputDir}`);
 
       ffmpeg(inputPath)
-        .addOptions([
+        // Входные опции (если нужны, но пока пропускаем)
+        // .inputOptions(...)
+
+        .outputOptions([
+          // Убираем возможное видео из потока
+          "-vn",
+
+          // Аудио настройки для максимальной совместимости
           "-c:a",
-          "aac", // Указываем аудиокодек AAC
+          "aac",
           "-b:a",
-          "128k", // Битрейт аудио 128 kbps
+          "128k",
+          "-ar",
+          "44100",
+          "-ac",
+          "2",
+          "-profile:a",
+          "aac_low",
+
+          // Фильтр для совместимости с Apple
+          "-bsf:a",
+          "aac_adtstoasc",
+
+          // HLS настройки
           "-hls_time",
-          "10", // Длина сегмента 10 секунд
+          "10",
+          "-hls_playlist_type",
+          "vod",
           "-hls_list_size",
-          "0", // Неограниченный плейлист
+          "0",
           "-hls_segment_filename",
-          `${outputDir}/segment%03d.ts`, // Шаблон имен сегментов
-          "-f",
-          "hls",
+          `${outputDir}/segment%03d.ts`,
         ])
         .output(manifestPath)
+        .format("hls") // Указываем формат через метод
         .on("start", (commandLine) => {
           console.log(`[FFMPEG] Spawned Ffmpeg with command: ${commandLine}`);
         })
