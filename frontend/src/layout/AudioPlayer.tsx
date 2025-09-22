@@ -158,6 +158,8 @@ const AudioPlayer = () => {
     }
     if (audioRef.current) {
       const currentRate = playbackRateEnabled ? playbackRate : 1.0;
+      audioRef.current.preservesPitch = false;
+
       audioRef.current.playbackRate = currentRate;
     }
   }, [masterVolume, playbackRate, playbackRateEnabled]);
