@@ -135,13 +135,13 @@ const SectionGrid = ({
           </Button>
         )}
       </div>
-      <div className=" grid  grid-cols-2 grid-rows-1 sm:grid-cols-2  lg:grid-cols-4 gap-4 ">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {songsToShow.map((song) => {
           const originalIndex = safeSongs.findIndex((s) => s._id === song._id);
           return (
             <div
               key={song._id}
-              className="bg-zinc-800/40 p-4 rounded-md hover:bg-zinc-700/40 transition-all group cursor-pointer"
+              className="bg-[#1a1a1a] p-3 rounded-md hover:bg-[#2a2a2a] transition-all group cursor-pointer hover-scale"
               onClick={() => {
                 if (song.albumId) {
                   const albumIdStr = String(song.albumId);
@@ -156,7 +156,7 @@ const SectionGrid = ({
                 }
               }}
             >
-              <div className="relative mb-4">
+              <div className="relative mb-3">
                 <div className="aspect-square rounded-md shadow-lg overflow-hidden">
                   <button
                     onClick={(e) => handleNavigateToAlbum(e, song.albumId)}
@@ -165,7 +165,7 @@ const SectionGrid = ({
                     <img
                       src={song.imageUrl || "/default-song-cover.png"}
                       alt={song.title || t("common.noTitle")}
-                      className="w-auto h-auto object-cover transition-transform duration-300 group-hover:scale-105"
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src =
                           "/default-song-cover.png";
@@ -179,7 +179,7 @@ const SectionGrid = ({
                   songIndex={originalIndex}
                 />
               </div>
-              <h3 className="font-medium mb-2 truncate">
+              <h3 className="font-medium mb-1 truncate text-white text-sm">
                 <button
                   onClick={(e) => handleNavigateToAlbum(e, song.albumId)}
                   className="hover:underline focus:outline-none focus:underline text-left w-full"
@@ -187,7 +187,7 @@ const SectionGrid = ({
                   {song.title || t("common.noTitle")}
                 </button>
               </h3>
-              <p className="text-sm text-zinc-400 truncate">
+              <p className="text-xs text-gray-400 truncate">
                 {getArtistNamesDisplay(song.artist)}
               </p>
             </div>

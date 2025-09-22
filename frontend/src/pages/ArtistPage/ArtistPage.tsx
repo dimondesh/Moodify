@@ -128,7 +128,7 @@ const ArtistPage = () => {
       await toggleArtistFollow(artist._id);
       fetchArtistById(id, true);
     } catch (e) {
-      toast.error("Failed to change follow status");
+      toast.error(t("common.failedToChangeFollowStatus"));
       console.error("Error toggling artist follow:", e);
     }
   }, [artist, id, toggleArtistFollow, fetchArtistById]);

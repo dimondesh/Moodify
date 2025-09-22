@@ -22,20 +22,20 @@ const MixCategoryGrid = ({ title, mixes }: { title: string; mixes: Mix[] }) => {
   return (
     <div className="mb-10">
       <h2 className="text-2xl font-bold mb-4 text-white">{title}</h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
         {mixes.map((mix) => (
           <div
             key={mix._id}
             onClick={() => handleNavigateToMix(mix._id)}
-            className="group relative cursor-pointer overflow-hidden rounded-md bg-zinc-800/60 hover:bg-zinc-700/80 transition-all"
+            className="group relative cursor-pointer overflow-hidden rounded-md bg-[#1a1a1a] hover:bg-[#2a2a2a] transition-all hover-scale"
           >
             <img
               src={mix.imageUrl}
               alt={t(mix.name)}
               className="w-full h-full object-cover aspect-square transition-transform duration-300 group-hover:scale-105"
             />
-            <div className="absolute inset-0 flex items-end justify-start p-4 bg-gradient-to-t from-black/80 via-black/20 to-transparent">
-              <h3 className="text-white text-lg font-bold drop-shadow-lg break-words whitespace-normal leading-tight">
+            <div className="absolute inset-0 flex items-end justify-start p-3 bg-gradient-to-t from-black/80 via-black/20 to-transparent">
+              <h3 className="text-white text-sm font-bold drop-shadow-lg break-words whitespace-normal leading-tight">
                 {t(mix.name)}
               </h3>
             </div>

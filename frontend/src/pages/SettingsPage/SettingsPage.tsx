@@ -242,11 +242,11 @@ const SettingsPage: React.FC = () => {
                                   {preset.name}
                                 </SelectItem>
                               ))}
-                              {activePresetName === "Custom" &&
+                              {activePresetName === t("common.custom") &&
                                 !equalizerPresets.some(
-                                  (p) => p.name === "Custom"
+                                  (p) => p.name === t("common.custom")
                                 ) && (
-                                  <SelectItem value="Custom">
+                                  <SelectItem value={t("common.custom")}>
                                     {t("settings.custom")}
                                   </SelectItem>
                                 )}

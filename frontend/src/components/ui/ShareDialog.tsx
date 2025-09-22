@@ -13,6 +13,7 @@ import { ScrollArea } from "./scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
 import { Button } from "./button";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 
 interface ShareDialogProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
   entityType,
   entityId,
 }) => {
+  const { t } = useTranslation();
   const { users, fetchUsers, sendMessage } = useChatStore();
   const { user } = useAuthStore();
 
@@ -38,12 +40,12 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
 
   const handleSend = (receiverId: string) => {
     if (user) {
-      const content = `Check out this ${entityType}!`;
+      const content = `${t("common.checkOutThis")} ${entityType}!`;
       sendMessage(receiverId, user.id, content, "share", {
         entityType,
         entityId,
       });
-      toast.success(`Shared to chat!`);
+      toast.success(t("common.sharedToChat"));
       onClose();
     }
   };
@@ -52,9 +54,9 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-zinc-900/70 backdrop-blur-md text-white border-zinc-700 z-[150]">
         <DialogHeader>
-          <DialogTitle>Share with a friend</DialogTitle>
+          <DialogTitle>{t("common.shareWithFriend")}</DialogTitle>
           <DialogDescription>
-            Select a friend to share this {entityType} with.
+            {t("common.selectFriendToShare")} {entityType} {t("common.with")}.
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="h-64">
@@ -72,7 +74,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
                   <span>{friend.fullName}</span>
                 </div>
                 <Button size="sm" onClick={() => handleSend(friend._id)}>
-                  Send
+                  {t("common.send")}
                 </Button>
               </div>
             ))}

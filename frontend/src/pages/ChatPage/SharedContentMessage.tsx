@@ -71,7 +71,7 @@ export const SharedContentMessage: React.FC<SharedContentMessageProps> = ({
       if ((entity as Album | Playlist | Mix).songs?.length > 0) {
         playAlbum((entity as Album | Playlist | Mix).songs, 0);
       } else {
-        toast.error("This item has no songs to play.");
+        toast.error(t("common.noSongsToPlay"));
       }
     }
   };
@@ -93,7 +93,7 @@ export const SharedContentMessage: React.FC<SharedContentMessageProps> = ({
       await fetchLibrary();
     } catch (err) {
       console.error("Failed to update library.", err);
-      toast.error("Failed to update library.");
+      toast.error(t("common.failedToUpdateLibrary"));
     }
   };
 
@@ -108,7 +108,9 @@ export const SharedContentMessage: React.FC<SharedContentMessageProps> = ({
   if (!entity) {
     return (
       <div className="mt-2 w-full max-w-sm bg-zinc-800/80 p-3 rounded-lg">
-        <p className="text-zinc-400 text-sm">Content not available.</p>
+        <p className="text-zinc-400 text-sm">
+          {t("common.contentNotAvailable")}
+        </p>
       </div>
     );
   }
@@ -187,14 +189,14 @@ export const SharedContentMessage: React.FC<SharedContentMessageProps> = ({
           onClick={handleAddToLibrary}
         >
           {entityType === "song" ? (
-            <Heart className="mr-2 h-4 w-4" />
+            <Heart className={`mr-2 h-4 w-4 ${isAdded ? "fill-white" : ""}`} />
           ) : (
             <Plus className="mr-2 h-4 w-4" />
           )}
-          {isAdded ? "Added" : "Add"}
+          {isAdded ? t("common.added") : t("common.add")}
         </Button>
         <Button size="sm" className="flex-1" onClick={handlePlay}>
-          <Play className="mr-2 h-4 w-4" /> Play
+          <Play className="mr-2 h-4 w-4" /> {t("common.play")}
         </Button>
       </div>
     </div>

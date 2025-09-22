@@ -188,7 +188,7 @@ export const CreatePlaylistDialog: React.FC<CreatePlaylistDialogProps> = ({
               <div className="flex justify-center">
                 <img
                   src={imagePreviewUrl}
-                  alt="Preview"
+                  alt={t("common.preview")}
                   className="max-w-[100px] rounded-md"
                 />
               </div>
@@ -283,7 +283,7 @@ export const CreatePlaylistDialog: React.FC<CreatePlaylistDialogProps> = ({
                     <div className="flex justify-center">
                       <img
                         src={imagePreviewUrl}
-                        alt="Preview"
+                        alt={t("common.preview")}
                         className="max-w-[100px] rounded-md"
                       />
                     </div>

@@ -148,7 +148,9 @@ const MixDetailsPage = () => {
     try {
       await toggleMixInLibrary(mixId);
       toast.success(
-        isInLibrary ? "Mix removed from library" : "Mix added to library"
+        isInLibrary
+          ? t("common.mixRemovedFromLibrary")
+          : t("common.mixAddedToLibrary")
       );
     } catch (e) {
       toast.error("Failed to update library.");
@@ -498,7 +500,7 @@ const MixDetailsPage = () => {
                   variant="ghost"
                   size="icon"
                   className="w-9 h-9 sm:w-10 sm:h-10 rounded-md p-2 transition-colors"
-                  title="Share"
+                  title={t("common.share")}
                   onClick={() =>
                     openShareDialog({ type: "mix", id: currentMix._id })
                   }

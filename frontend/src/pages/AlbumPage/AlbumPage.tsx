@@ -409,7 +409,7 @@ const AlbumPage = () => {
                   variant="ghost"
                   size="icon"
                   className="w-9 h-9 sm:w-10 sm:h-10 rounded-md p-2 transition-colors"
-                  title="Share"
+                  title={t("common.share")}
                   onClick={() =>
                     openShareDialog({ type: "album", id: currentAlbum._id })
                   }

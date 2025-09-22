@@ -43,30 +43,28 @@ const MixGrid = ({ title, mixes, isLoading }: MixGridProps) => {
         )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {mixesToShow.map((mix) => (
           <div
             key={mix._id}
-            className="bg-zinc-800/40 p-4 rounded-md hover:bg-zinc-700/40 transition-all cursor-pointer group"
+            className="bg-[#1a1a1a] p-3 rounded-md hover:bg-[#2a2a2a] transition-all cursor-pointer group hover-scale"
             onClick={() => handleMixClick(mix)}
           >
-            <div className="relative mb-4">
-              <div className=" aspect-square rounded-md shadow-lg overflow-hidden">
-                <img
-                  src={mix.imageUrl || "https://moodify.b-cdn.net/artist.jpeg"}
-                  alt={mix.name}
-                  className=" w-auto h-auto object-cover transition-transform duration-300 group-hover:scale-105"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src =
-                      "https://moodify.b-cdn.net/artist.jpeg";
-                  }}
-                />
-              </div>
+            <div className="relative mb-3 aspect-square rounded-md shadow-lg overflow-hidden">
+              <img
+                src={mix.imageUrl || "https://moodify.b-cdn.net/artist.jpeg"}
+                alt={mix.name}
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src =
+                    "https://moodify.b-cdn.net/artist.jpeg";
+                }}
+              />
             </div>
-            <h3 className="font-medium mb-2 truncate text-white">
+            <h3 className="font-medium mb-1 truncate text-white text-sm">
               {t(mix.name)}
             </h3>
-            <p className="text-sm text-zinc-400 truncate">
+            <p className="text-xs text-gray-400 truncate">
               {t("sidebar.subtitle.dailyMix")}
             </p>
           </div>

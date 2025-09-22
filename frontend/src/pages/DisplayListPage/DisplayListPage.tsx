@@ -112,12 +112,12 @@ const DisplayListPage = () => {
     <ScrollArea className="h-full w-full rounded-md pr-4">
       <div className="p-4 sm:p-6">
         <h2 className="text-2xl sm:text-3xl font-bold mb-6">{title}</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
           {items?.map((item) => (
             <Link
               to={getLink(item)}
               key={item._id}
-              className="p-2 rounded-md bg-[#1a1a1a] hover:bg-[#2a2a2a] transition-all group cursor-pointer hover-scale"
+              className="p-3 rounded-md bg-[#1a1a1a] hover:bg-[#2a2a2a] transition-all group cursor-pointer hover-scale"
             >
               <div className="relative mb-3 aspect-square object-cover shadow-lg overflow-hidden rounded-md">
                 {item.type === "playlist" || item.type === "album" ? (
@@ -125,7 +125,7 @@ const DisplayListPage = () => {
                     src={
                       getOptimizedImageUrl(item.imageUrl, 300) || "/liked.png"
                     }
-                    alt={item.title || "Item cover"}
+                    alt={item.title || t("common.itemCover")}
                     className="absolute inset-0 h-full w-full object-cover rounded-md transition-transform duration-300 group-hover:scale-105"
                   />
                 ) : (
@@ -140,10 +140,10 @@ const DisplayListPage = () => {
                   </Avatar>
                 )}
               </div>
-              <h3 className="font-semibold truncate">
+              <h3 className="font-semibold truncate text-white text-sm">
                 {item.name || item.title}
               </h3>
-              <p className="text-sm text-gray-400 truncate">
+              <p className="text-xs text-gray-400 truncate">
                 {getSubtitle(item)}
               </p>
             </Link>

@@ -203,7 +203,11 @@ const AuthPage: React.FC = () => {
                 className="w-full h-12 border-zinc-700 hover:bg-zinc-800"
                 disabled={isLoading}
               >
-                <img src="/google.svg" alt="Google" className="w-5 h-5 mr-3" />
+                <img
+                  src="/google.svg"
+                  alt={t("common.google")}
+                  className="w-5 h-5 mr-3"
+                />
                 {t("auth.continueWithGoogle")}
               </Button>
 

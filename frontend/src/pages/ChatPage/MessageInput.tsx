@@ -52,7 +52,7 @@ const MessageInput = ({
   const isSendDisabled = !value.trim() || !selectedUser || !isMutual;
   const placeholderText = isMutual
     ? t("pages.chat.typeMessage")
-    : "You must be mutual followers to chat";
+    : t("common.mutualFollowersRequired");
   return (
     <div className="p-4 mb-10 sm:mb-14 lg:mb-0 mt-auto border-t border-zinc-800">
       <div className="flex gap-2">

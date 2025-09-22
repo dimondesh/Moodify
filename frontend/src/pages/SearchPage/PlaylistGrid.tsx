@@ -55,7 +55,7 @@ const PlaylistGridComponent = ({
             className="bg-[#1a1a1a] p-3 rounded-md hover:bg-[#2a2a2a] transition-all cursor-pointer group hover-scale"
             onClick={() => handlePlaylistClick(playlist)}
           >
-            <div className="relative mb-4 aspect-square rounded-md shadow-lg overflow-hidden">
+            <div className="relative mb-3 aspect-square rounded-md shadow-lg overflow-hidden">
               <img
                 src={getOptimizedImageUrl(
                   playlist.imageUrl || "/default_playlist_cover.png",
@@ -69,7 +69,7 @@ const PlaylistGridComponent = ({
                 }}
               />
             </div>
-            <h3 className="font-medium mb-2 truncate text-white text-sm">
+            <h3 className="font-medium mb-1 truncate text-white text-sm">
               {playlist.title}
             </h3>
             <p className="text-xs text-gray-400 truncate">

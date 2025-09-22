@@ -55,7 +55,7 @@ const ArtistGridComponent: React.FC<ArtistGridProps> = ({
             className="bg-[#1a1a1a] p-3 rounded-md hover:bg-[#2a2a2a] transition-all group cursor-pointer hover-scale"
             onClick={() => handleArtistClick(artist)}
           >
-            <div className="relative mb-4 aspect-square rounded-full shadow-lg overflow-hidden">
+            <div className="relative mb-3 aspect-square rounded-full shadow-lg overflow-hidden">
               <img
                 src={getOptimizedImageUrl(
                   artist.imageUrl || "/default_artist_cover.png",
@@ -69,7 +69,7 @@ const ArtistGridComponent: React.FC<ArtistGridProps> = ({
                 }}
               />
             </div>
-            <h3 className="font-medium mb-2 truncate text-white text-center text-sm">
+            <h3 className="font-medium mb-1 truncate text-white text-center text-sm">
               {artist.name}
             </h3>
           </div>

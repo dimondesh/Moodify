@@ -522,7 +522,7 @@ const PlaylistDetailsPage = () => {
                     playlistId: currentPlaylist._id,
                   });
                 }}
-                title="Remove from playlist"
+                title={t("common.removeFromPlaylist")}
               >
                 <X className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
@@ -1073,7 +1073,7 @@ const PlaylistDetailsPage = () => {
                   size="icon"
                   onClick={() => playlistId && fetchRecommendations(playlistId)}
                   disabled={isRecommendationsLoading}
-                  title="Refresh recommendations"
+                  title={t("common.refreshRecommendations")}
                   className="flex-shrink-0 mt-4 bg-violet-500 w-30 hover:bg-violet-400 transition-colors"
                 >
                   <RefreshCw

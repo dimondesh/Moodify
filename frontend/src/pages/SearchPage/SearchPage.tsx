@@ -42,7 +42,9 @@ const SearchPage = () => {
     }
   }, [debouncedInputSearchTerm, search, query]);
 
-  const title = queryParam ? `Results for "${queryParam}"` : "Search Music";
+  const title = queryParam
+    ? `${t("common.resultsFor")} "${queryParam}"`
+    : t("common.searchMusic");
   const description = queryParam
     ? `Find artists, songs, albums, mixes, and playlists for "${queryParam}" on Moodify.`
     : "Search for your favorite songs, artists, albums, mixes, playlists, and users on Moodify.";
@@ -121,7 +123,11 @@ const SearchPage = () => {
                   />
                 )}
                 {mixes.length > 0 && (
-                  <MixGrid title="Mixes" mixes={mixes} isLoading={loading} />
+                  <MixGrid
+                    title={t("common.mixes")}
+                    mixes={mixes}
+                    isLoading={loading}
+                  />
                 )}
                 {users.length > 0 && (
                   <UserGrid

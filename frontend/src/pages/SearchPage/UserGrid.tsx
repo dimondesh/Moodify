@@ -45,14 +45,14 @@ const UserGrid: React.FC<UserGridProps> = ({ title, users, isLoading }) => {
         )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {usersToShow.map((user) => (
           <div
             key={user._id}
-            className="bg-zinc-800/40 p-4 rounded-md hover:bg-zinc-700/40 transition-all group cursor-pointer"
+            className="bg-[#1a1a1a] p-3 rounded-md hover:bg-[#2a2a2a] transition-all group cursor-pointer hover-scale"
             onClick={() => handleUserClick(user)}
           >
-            <div className="relative mb-4 aspect-square">
+            <div className="relative mb-3 aspect-square">
               <Avatar className="h-full w-full shadow-lg">
                 <AvatarImage
                   src={getOptimizedImageUrl(user.imageUrl, 300)}
@@ -61,10 +61,10 @@ const UserGrid: React.FC<UserGridProps> = ({ title, users, isLoading }) => {
                 <AvatarFallback>{user.fullName?.[0]}</AvatarFallback>
               </Avatar>
             </div>
-            <h3 className="font-medium mb-1 truncate text-white text-center">
+            <h3 className="font-medium mb-1 truncate text-white text-center text-sm">
               {user.fullName}
             </h3>
-            <p className="text-sm text-zinc-400 text-center">
+            <p className="text-xs text-gray-400 text-center">
               {t("sidebar.subtitle.user")}
             </p>
           </div>
