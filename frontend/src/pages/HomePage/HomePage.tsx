@@ -231,7 +231,7 @@ const HomePageComponent = () => {
         <title>Home</title>
         <meta
           name="description"
-          content="Listen to trending music, discover personal mixes, and explore public playlists. Moodify Studio - your ultimate guide in the world of music."
+          content="Listen to trending music, discover personal mixes, and explore public playlists. Moodify - your ultimate guide in the world of music."
         />
       </Helmet>
       <main className="overflow-y-auto h-full bg-[#0f0f0f] hide-scrollbar pb-30 lg:pb-0">

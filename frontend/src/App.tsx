@@ -151,12 +151,12 @@ function App() {
   return (
     <>
       <Helmet
-        defaultTitle="Moodify Studio - Your Music Creation Space"
-        titleTemplate="%s | Moodify Studio"
+        defaultTitle="Moodify - Your Music Creation Space"
+        titleTemplate="%s | Moodify"
       >
         <meta
           name="description"
-          content="Moodify Studio is an advanced music streaming service for enthusiasts. Create complex mixes, use AI-generated playlists, and connect with friends in a rich audio environment."
+          content="Moodify is an advanced music streaming service for enthusiasts. Create complex mixes, use AI-generated playlists, and connect with friends in a rich audio environment."
         />
         <link rel="canonical" href={canonicalUrl} />
       </Helmet>

@@ -91,7 +91,7 @@ const LibraryPage = () => {
                 createdAt: new Date(
                   (item as any).addedAt || (item as any).generatedOn
                 ),
-                sourceName: "Moodify Studio",
+                sourceName: "Moodify",
               } as GeneratedPlaylistItem);
             } else if ((item as any).owner) {
               downloadedLibraryItemsMap.set(item._id, {
@@ -194,7 +194,7 @@ const LibraryPage = () => {
           title: t(playlist.nameKey),
           imageUrl: playlist.imageUrl,
           createdAt: new Date(playlist.addedAt || playlist.generatedOn),
-          sourceName: "Moodify Studio",
+          sourceName: "Moodify",
         } as GeneratedPlaylistItem);
       }
     });
@@ -275,7 +275,7 @@ const LibraryPage = () => {
         <title>Your Library</title>
         <meta
           name="description"
-          content="Access your saved albums, playlists, followed artists, and liked songs all in one place on Moodify Studio."
+          content="Access your saved albums, playlists, followed artists, and liked songs all in one place on Moodify."
         />
       </Helmet>
       <div className="h-full">

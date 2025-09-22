@@ -139,7 +139,7 @@ const SettingsPage: React.FC = () => {
         <title>Settings</title>
         <meta
           name="description"
-          content="Manage your language preferences and audio settings, including equalizer, reverb, and normalization, on Moodify Studio."
+          content="Manage your language preferences and audio settings, including equalizer, reverb, and normalization, on Moodify."
         />
       </Helmet>
       <div className="h-full relative">

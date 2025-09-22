@@ -147,14 +147,14 @@ const ProfilePage = () => {
           <title>User Not Found</title>
           <meta
             name="description"
-            content="The user profile you are looking for does not exist on Moodify Studio."
+            content="The user profile you are looking for does not exist on Moodify."
           />
         </Helmet>
         <div className="text-center p-10">{t("pages.profile.notFound")}</div>
       </>
     );
   }
-  const metaDescription = `${profileData.fullName} on Moodify Studio. Check out their public playlists, followers, and who they follow.`;
+  const metaDescription = `${profileData.fullName} on Moodify. Check out their public playlists, followers, and who they follow.`;
 
   return (
     <>

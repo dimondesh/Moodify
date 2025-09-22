@@ -44,8 +44,8 @@ const SearchPage = () => {
 
   const title = queryParam ? `Results for "${queryParam}"` : "Search Music";
   const description = queryParam
-    ? `Find artists, songs, albums, mixes, and playlists for "${queryParam}" on Moodify Studio.`
-    : "Search for your favorite songs, artists, albums, mixes, playlists, and users on Moodify Studio.";
+    ? `Find artists, songs, albums, mixes, and playlists for "${queryParam}" on Moodify.`
+    : "Search for your favorite songs, artists, albums, mixes, playlists, and users on Moodify.";
 
   return (
     <>

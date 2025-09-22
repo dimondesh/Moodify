@@ -51,7 +51,7 @@ export default defineConfig({
               url.origin === "https://moodify-yf1r.onrender.com/api",
             handler: "NetworkFirst",
             options: {
-              cacheName: "moodify-studio-api-cache",
+              cacheName: "moodify-api-cache",
               networkTimeoutSeconds: 5,
               expiration: {
                 maxEntries: 50,
@@ -66,11 +66,7 @@ export default defineConfig({
       },
       includeAssets: [
         "silent.mp3",
-        "Moodify-Studio.png",
-        "Moodify-Studio.svg",
-        "Spotify.svg",
-        "liked.png",
-        "liked.svg",
+        "Moodify.svg",
         "default-album-cover.png",
         "robots.txt",
         "ir/small-room.wav",
@@ -86,15 +82,15 @@ export default defineConfig({
         background_color: "#18181b",
         icons: [
           {
-            src: "Moodify-Studio.png",
+            src: "Moodify.svg",
             sizes: "192x192",
-            type: "image/png",
+            type: "image/svg+xml",
             purpose: "any maskable",
           },
           {
-            src: "Moodify-Studio.png",
+            src: "Moodify.svg",
             sizes: "512x512",
-            type: "image/png",
+            type: "image/svg+xml",
             purpose: "any maskable",
           },
         ],

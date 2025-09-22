@@ -436,14 +436,8 @@ const MixDetailsPage = () => {
                     currentMix.sourceName
                   }'.`}</p>
                   <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 text-xs sm:text-sm text-gray-100 mt-2">
-                    <img
-                      src="/Moodify-Studio.svg"
-                      alt="Moodify Studio"
-                      className="size-4"
-                    />
-                    <span className="font-semibold text-white">
-                      Moodify Studio
-                    </span>
+                    <img src="/Moodify.svg" alt="Moodify" className="size-4" />
+                    <span className="font-semibold text-white">Moodify</span>
                     <span className="hidden lg:inline">
                       • {currentMix.songs.length} {t("pages.playlist.songs")}
                     </span>

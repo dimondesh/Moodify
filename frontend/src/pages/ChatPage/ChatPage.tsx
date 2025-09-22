@@ -297,8 +297,8 @@ const NoConversationPlaceholder = () => {
   return (
     <div className="flex flex-col items-center justify-center h-full space-y-6 text-center">
       <img
-        src="/Moodify-Studio.svg"
-        alt="Moodify Studio"
+        src="/Moodify.svg"
+        alt="Moodify"
         className={`size-16 ${isReduceMotionEnabled ? "" : "animate-bounce"}`}
       />
       <div className="text-center">

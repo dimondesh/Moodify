@@ -158,32 +158,32 @@ const PlaybackControls = () => {
         album: currentSong.albumTitle || "",
         artwork: [
           {
-            src: currentSong.imageUrl || "/Moodify-Studio.png",
+            src: currentSong.imageUrl || "/Moodify.svg",
             sizes: "96x96",
             type: "image/png",
           },
           {
-            src: currentSong.imageUrl || "/Moodify-Studio.png",
+            src: currentSong.imageUrl || "/Moodify.svg",
             sizes: "128x128",
             type: "image/png",
           },
           {
-            src: currentSong.imageUrl || "/Moodify-Studio.png",
+            src: currentSong.imageUrl || "/Moodify.svg",
             sizes: "192x192",
             type: "image/png",
           },
           {
-            src: currentSong.imageUrl || "/Moodify-Studio.png",
+            src: currentSong.imageUrl || "/Moodify.svg",
             sizes: "256x256",
             type: "image/png",
           },
           {
-            src: currentSong.imageUrl || "/Moodify-Studio.png",
+            src: currentSong.imageUrl || "/Moodify.svg",
             sizes: "384x384",
             type: "image/png",
           },
           {
-            src: currentSong.imageUrl || "/Moodify-Studio.png",
+            src: currentSong.imageUrl || "/Moodify.svg",
             sizes: "512x512",
             type: "image/png",
           },

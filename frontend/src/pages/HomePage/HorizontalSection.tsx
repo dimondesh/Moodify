@@ -72,12 +72,14 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
 
     if (viewportElement) {
       checkScrollability();
-      viewportElement.addEventListener("scroll", checkScrollability, { passive: true });
+      viewportElement.addEventListener("scroll", checkScrollability, {
+        passive: true,
+      });
       window.addEventListener("resize", checkScrollability);
 
       const resizeObserver = new ResizeObserver(checkScrollability);
       resizeObserver.observe(viewportElement);
-      
+
       // Также наблюдаем за контейнером контента внутри viewport
       if (viewportElement.firstChild) {
         resizeObserver.observe(viewportElement.firstChild as Element);
@@ -163,7 +165,7 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
             (item as Playlist).owner?.fullName || t("sidebar.subtitle.user"),
         });
       case "generated-playlist":
-        return `${t("sidebar.subtitle.playlist")} • Moodify Studio`;
+        return `${t("sidebar.subtitle.playlist")} • Moodify`;
       case "mix":
         return t("sidebar.subtitle.dailyMix");
       case "artist":
