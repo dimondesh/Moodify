@@ -42,11 +42,12 @@ const PlaylistMenuContent: React.FC<PlaylistMenuContentProps> = memo(
     onClose,
   }) => {
     const { t } = useTranslation();
-    const { toggleSongLike } = useLibraryStore();
+    const { toggleSongLike, fetchLibrary } = useLibraryStore();
     const {
       addSongToPlaylist,
       removeSongFromPlaylist,
       createPlaylistFromSong,
+      fetchMyPlaylists,
     } = usePlaylistStore();
 
     const [searchTerm, setSearchTerm] = useState("");
@@ -69,6 +70,8 @@ const PlaylistMenuContent: React.FC<PlaylistMenuContentProps> = memo(
         } else {
           await removeSongFromPlaylist(playlistId, song._id);
         }
+        // Refresh library and playlists after successful operation
+        await Promise.all([fetchLibrary(), fetchMyPlaylists()]);
       } catch (e) {
         toast.error(t("player.playlistUpdateError"));
       }
@@ -77,10 +80,14 @@ const PlaylistMenuContent: React.FC<PlaylistMenuContentProps> = memo(
     const handleCreateAndAdd = async () => {
       onClose();
       await createPlaylistFromSong(song);
+      // Refresh library and playlists after creating new playlist
+      await Promise.all([fetchLibrary(), fetchMyPlaylists()]);
     };
 
     const handleLikeToggle = async (_shouldBeLiked: boolean) => {
       await toggleSongLike(song._id);
+      // Refresh library after toggling liked songs
+      await fetchLibrary();
     };
 
     const CheckboxItem = ({
@@ -197,7 +204,7 @@ export const AddToPlaylistControl: React.FC<AddToPlaylistControlProps> = ({
   iconClassName = "size-5",
 }) => {
   const { t } = useTranslation();
-  const { isSongLiked, toggleSongLike } = useLibraryStore();
+  const { isSongLiked, toggleSongLike, fetchLibrary } = useLibraryStore();
   const { ownedPlaylists, fetchOwnedPlaylists } = usePlaylistStore();
   const isMobile = useMediaQuery("(max-width: 1024px)");
   const [isOpen, setIsOpen] = useState(false);
@@ -221,6 +228,8 @@ export const AddToPlaylistControl: React.FC<AddToPlaylistControlProps> = ({
     e.stopPropagation();
     if (!isAdded) {
       await toggleSongLike(song._id);
+      // Refresh library after adding to liked songs
+      await fetchLibrary();
       toast.success(t("player.addedToLiked"));
     }
   };

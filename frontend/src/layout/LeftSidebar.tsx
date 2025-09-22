@@ -15,7 +15,7 @@ import { cn } from "../lib/utils";
 import { Button, buttonVariants } from "../components/ui/button";
 import { ScrollArea } from "../components/ui/scroll-area";
 import PlaylistSkeleton from "../components/ui/skeletons/PlaylistSkeleton";
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { useLibraryStore } from "../stores/useLibraryStore";
 import { usePlaylistStore } from "../stores/usePlaylistStore";
 import { useAuthState } from "react-firebase-hooks/auth";
@@ -50,7 +50,11 @@ const LeftSidebar = () => {
     generatedPlaylists,
   } = useLibraryStore();
 
-  const { myPlaylists, isLoading: isLoadingPlaylists } = usePlaylistStore();
+  const {
+    myPlaylists,
+    isLoading: isLoadingPlaylists,
+    fetchMyPlaylists,
+  } = usePlaylistStore();
   const { unreadMessages } = useChatStore();
   const totalUnread = Array.from(unreadMessages.values()).reduce(
     (acc, count) => acc + count,
@@ -67,6 +71,13 @@ const LeftSidebar = () => {
   } = useUIStore();
 
   const { artists } = useMusicStore();
+
+  // Fetch playlists when component mounts
+  useEffect(() => {
+    if (user) {
+      fetchMyPlaylists();
+    }
+  }, [user, fetchMyPlaylists]);
 
   const getArtistNames = (artistsData: string[] | Artist[] | undefined) => {
     if (!artistsData || artistsData.length === 0)
@@ -376,6 +387,7 @@ const LeftSidebar = () => {
       <CreatePlaylistDialog
         isOpen={isCreatePlaylistDialogOpen}
         onClose={closeAllDialogs}
+        onSuccess={fetchMyPlaylists}
       />
     </div>
   );
