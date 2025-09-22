@@ -17,7 +17,7 @@ interface PlayerStore {
   shuffleHistory: number[];
   shufflePointer: number;
   isFullScreenPlayerOpen: boolean;
-  masterVolume: number; // <-- vocalsVolume удален
+  masterVolume: number;
   currentTime: number;
   duration: number;
   isDesktopLyricsOpen: boolean;
@@ -34,7 +34,7 @@ interface PlayerStore {
   playNext: () => void;
   playPrevious: () => void;
   setIsFullScreenPlayerOpen: (isOpen: boolean) => void;
-  setMasterVolume: (volume: number) => void; // <-- setVocalsVolume удален
+  setMasterVolume: (volume: number) => void;
   setCurrentTime: (time: number, isPlayerUpdate?: boolean) => void;
   setDuration: (duration: number, originalDuration?: number) => void;
   setIsDesktopLyricsOpen: (isOpen: boolean) => void;
@@ -201,7 +201,7 @@ export const usePlayerStore = create<PlayerStore>()(
 
             enrichSongWithAlbumTitleIfNeeded(songToPlay);
 
-            const newState = {
+            return {
               queue: songs,
               isPlaying: true,
               currentSong: songToPlay,
@@ -210,9 +210,6 @@ export const usePlayerStore = create<PlayerStore>()(
               shufflePointer: newShufflePointer,
               currentTime: 0,
             };
-            set(newState);
-
-            return newState;
           });
         },
 
@@ -258,7 +255,7 @@ export const usePlayerStore = create<PlayerStore>()(
 
             enrichSongWithAlbumTitleIfNeeded(song);
 
-            const newState = {
+            return {
               currentSong: song,
               isPlaying: true,
               currentIndex: songIndex !== -1 ? songIndex : state.currentIndex,
@@ -266,16 +263,13 @@ export const usePlayerStore = create<PlayerStore>()(
               shufflePointer: newShufflePointer,
               currentTime: 0,
             };
-            set(newState);
-
-            return newState;
           });
         },
 
         togglePlay: () => {
           set((state) => {
             const newIsPlaying = !state.isPlaying;
-            if (newIsPlaying) {
+            if (newIsPlaying && state.currentSong) {
               silentAudioService.play();
             } else {
               silentAudioService.pause();
@@ -333,7 +327,7 @@ export const usePlayerStore = create<PlayerStore>()(
 
         playNext: () => {
           if (get().repeatMode === "one") {
-            set({ repeatMode: "all" });
+            set({ repeatMode: "off" });
           }
 
           const {
@@ -408,7 +402,12 @@ export const usePlayerStore = create<PlayerStore>()(
           if (nextIndex === -1) {
             toast(isOffline ? "No other downloaded songs." : "End of queue.");
             silentAudioService.pause();
-            set({ isPlaying: false });
+            set({
+              isPlaying: false,
+              currentSong: null,
+              currentIndex: -1,
+              currentTime: 0,
+            });
             return;
           }
 
@@ -431,11 +430,11 @@ export const usePlayerStore = create<PlayerStore>()(
           const { currentTime } = get();
 
           if (currentTime > 3) {
-            set({ currentTime: 0 });
+            get().seekToTime(0);
             return;
           }
           if (get().repeatMode === "one") {
-            set({ repeatMode: "all" });
+            set({ repeatMode: "off" });
           }
 
           const {
@@ -499,7 +498,7 @@ export const usePlayerStore = create<PlayerStore>()(
             toast(
               isOffline ? "No previous downloaded songs." : "Start of queue."
             );
-            set({ currentTime: 0 });
+            get().seekToTime(0);
             return;
           }
 
@@ -522,12 +521,14 @@ export const usePlayerStore = create<PlayerStore>()(
         setMasterVolume: (volume) => set({ masterVolume: volume }),
 
         setCurrentTime: (time, isPlayerUpdate = false) => {
-          set((state) => ({
-            currentTime: time,
-            seekVersion: isPlayerUpdate
-              ? state.seekVersion
-              : state.seekVersion + 1,
-          }));
+          if (!isPlayerUpdate) {
+            set((state) => ({
+              currentTime: time,
+              seekVersion: state.seekVersion + 1,
+            }));
+          } else {
+            set({ currentTime: time });
+          }
         },
         setDuration: (duration, originalDuration) => {
           set({
@@ -543,7 +544,9 @@ export const usePlayerStore = create<PlayerStore>()(
         },
         seekToTime: (time: number) => {
           get().setCurrentTime(time, false);
-          set({ isPlaying: true });
+          if (!get().isPlaying) {
+            set({ isPlaying: true });
+          }
         },
       };
     },

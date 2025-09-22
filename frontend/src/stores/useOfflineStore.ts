@@ -272,9 +272,10 @@ export const useOfflineStore = create<OfflineState>()(
             // 5. Update state
             set((state) => ({
               downloadedItemIds: new Set(state.downloadedItemIds).add(itemId),
-              downloadedSongIds: new Set(state.downloadedSongIds).add(
-                ...serverItemData.songs.map((s: Song) => s._id)
-              ),
+              downloadedSongIds: new Set([
+                ...state.downloadedSongIds,
+                ...serverItemData.songs.map((s: Song) => s._id),
+              ]),
               downloadingItemIds: new Set(
                 [...state.downloadingItemIds].filter((id) => id !== itemId)
               ),

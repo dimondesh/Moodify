@@ -9,7 +9,6 @@ import { axiosInstance } from "@/lib/axios";
 import { useMusicStore } from "@/stores/useMusicStore";
 import { useOfflineStore } from "@/stores/useOfflineStore";
 
-// Расширяем интерфейс Window для поддержки webkitAudioContext
 interface CustomWindow extends Window {
   webkitAudioContext?: typeof AudioContext;
 }
@@ -35,7 +34,6 @@ const AudioPlayer = () => {
     setDuration,
     currentTime,
     seekVersion,
-    togglePlay,
   } = usePlayerStore();
 
   const { playbackRateEnabled, playbackRate } = useAudioSettingsStore();
@@ -83,14 +81,25 @@ const AudioPlayer = () => {
     };
   }, []);
 
-  // Управление HLS потоком при смене трека
+  // Единый эффект для управления HLS и воспроизведением
   useEffect(() => {
-    if (!audioRef.current) return;
-
     const audioEl = audioRef.current;
+    if (!audioEl) return;
 
-    if (currentSong && currentSong.hlsUrl) {
-      if (lastSongIdRef.current === currentSong._id) return;
+    // Если нет трека, все останавливаем
+    if (!currentSong || !currentSong.hlsUrl) {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+      audioEl.src = "";
+      lastSongIdRef.current = null;
+      return;
+    }
+
+    // Если трек новый, настраиваем HLS
+    if (lastSongIdRef.current !== currentSong._id) {
+      listenRecordedRef.current = false;
       lastSongIdRef.current = currentSong._id;
 
       if (Hls.isSupported()) {
@@ -103,7 +112,9 @@ const AudioPlayer = () => {
         hls.attachMedia(audioEl);
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           if (usePlayerStore.getState().isPlaying) {
-            audioEl.play().catch((e) => console.error("Autoplay failed", e));
+            audioEl
+              .play()
+              .catch((e) => console.error("Autoplay failed on new track", e));
           }
         });
         hls.on(Hls.Events.ERROR, (_event, data) => {
@@ -114,48 +125,31 @@ const AudioPlayer = () => {
       } else if (audioEl.canPlayType("application/vnd.apple.mpegurl")) {
         audioEl.src = currentSong.hlsUrl;
         if (usePlayerStore.getState().isPlaying) {
-          audioEl.play().catch((e) => console.error("Autoplay failed", e));
+          audioEl
+            .play()
+            .catch((e) => console.error("Autoplay failed on new track", e));
         }
       }
-      listenRecordedRef.current = false;
-    } else {
-      lastSongIdRef.current = null;
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
-      audioEl.src = "";
     }
 
-    return () => {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
-    };
-  }, [currentSong]);
-
-  // Управление Play/Pause
-  useEffect(() => {
-    const audioEl = audioRef.current;
-    if (!audioEl) return;
-
+    // Управляем play/pause независимо от того, новый трек или нет
     if (isPlaying) {
       audioEl.play().catch((e) => console.error("Play command failed", e));
     } else {
       audioEl.pause();
     }
-  }, [isPlaying]);
+  }, [currentSong, isPlaying]);
 
   // Управление перемоткой
   useEffect(() => {
     if (
       audioRef.current &&
-      Math.abs(audioRef.current.currentTime - currentTime) > 1
+      Math.abs(audioRef.current.currentTime - currentTime) > 1.5
     ) {
       audioRef.current.currentTime = currentTime;
     }
-  }, [seekVersion, currentTime]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seekVersion]); // Зависимость только от seekVersion для предотвращения циклов
 
   // Управление громкостью и скоростью
   useEffect(() => {
@@ -203,32 +197,25 @@ const AudioPlayer = () => {
     const handleDurationChange = () =>
       setDuration(audio.duration, audio.duration);
     const handleEnded = () => {
-      if (repeatMode === "one") {
+      const state = usePlayerStore.getState();
+      if (state.repeatMode === "one") {
         audio.currentTime = 0;
         audio.play();
       } else {
-        playNext();
+        state.playNext();
       }
     };
-    const handlePlay = () =>
-      !usePlayerStore.getState().isPlaying && togglePlay();
-    const handlePause = () =>
-      usePlayerStore.getState().isPlaying && togglePlay();
 
     audio.addEventListener("timeupdate", handleTimeUpdate);
     audio.addEventListener("durationchange", handleDurationChange);
     audio.addEventListener("ended", handleEnded);
-    audio.addEventListener("playing", handlePlay);
-    audio.addEventListener("pause", handlePause);
 
     return () => {
       audio.removeEventListener("timeupdate", handleTimeUpdate);
       audio.removeEventListener("durationchange", handleDurationChange);
       audio.removeEventListener("ended", handleEnded);
-      audio.removeEventListener("playing", handlePlay);
-      audio.removeEventListener("pause", handlePause);
     };
-  }, [setCurrentTime, setDuration, playNext, repeatMode, togglePlay]);
+  }, [setCurrentTime, setDuration, playNext, repeatMode]);
 
   return (
     <audio
