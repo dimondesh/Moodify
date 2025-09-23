@@ -167,7 +167,7 @@ const SectionGrid = ({
                       src={song.imageUrl || "/default-song-cover.png"}
                       alt={song.title || t("common.noTitle")}
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      albumId={song.albumId}
+                      albumId={song.albumId || undefined}
                       fallbackSrc="/default-song-cover.png"
                     />
                   </button>
