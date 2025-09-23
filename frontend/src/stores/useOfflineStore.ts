@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // frontend/src/stores/useOfflineStore.ts
 import { create } from "zustand";
@@ -26,7 +27,7 @@ const HLS_ASSETS_CACHE_NAME = "moodify-hls-assets-cache";
 const calculateItemSize = async (
   item: any,
   cache: Cache,
-  cacheKeys: Request[]
+  _cacheKeys: Request[]
 ): Promise<number> => {
   let size = 0;
 
@@ -559,16 +560,15 @@ export const useOfflineStore = create<OfflineState>()(
 
           try {
             // Get all downloaded items
-            const [albums, playlists, mixes, songs] = await Promise.all([
+            const [albums, playlists, mixes] = await Promise.all([
               getAllUserAlbums(userId),
               getAllUserPlaylists(userId),
               getAllUserMixes(userId),
-              getAllUserSongs(userId),
             ]);
 
             let totalSize = 0;
             const cache = await caches.open(HLS_ASSETS_CACHE_NAME);
-            const cacheKeys = await cache.keys();
+            const cacheKeys = Array.from(await cache.keys());
 
             // Calculate size for each downloaded item
             for (const album of albums) {

@@ -24,8 +24,6 @@ export const DownloadButton = ({
   const { t } = useTranslation();
   const downloadedItemIds = useOfflineStore((s) => s.downloadedItemIds);
   const downloadingItemIds = useOfflineStore((s) => s.downloadingItemIds);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const downloadProgress = useOfflineStore((s) => s.downloadProgress);
   const { downloadItem, deleteItem, cancelDownload, getDownloadProgress } =
     useOfflineStore((s) => s.actions);
 

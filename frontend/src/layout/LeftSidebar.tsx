@@ -231,12 +231,14 @@ const LeftSidebar = () => {
               buttonVariants({
                 variant: "ghost",
                 className:
-                  "w-full justify-start text-gray-300 hover:text-white hover:bg-[#2a2a2a] h-8 px-2",
+                  "w-full justify-start text-gray-300 hover:text-white hover:bg-[#2a2a2a] h-8 px-0",
               })
             )}
           >
-            <HomeIcon className="mr-3 size-4" />
-            <span className="text-sm font-medium">{t("sidebar.home")}</span>
+            <div className="flex items-center px-2 w-full">
+              <HomeIcon className="mr-3 size-4" />
+              <span className="text-sm font-medium">{t("sidebar.home")}</span>
+            </div>
           </Link>
 
           <Link
@@ -245,12 +247,14 @@ const LeftSidebar = () => {
               buttonVariants({
                 variant: "ghost",
                 className:
-                  "w-full justify-start text-gray-300 hover:text-white hover:bg-[#2a2a2a] h-8 px-2",
+                  "w-full justify-start text-gray-300 hover:text-white hover:bg-[#2a2a2a] h-8 px-0",
               })
             )}
           >
-            <Search className="mr-3 size-4" />
-            <span className="text-sm font-medium">{t("sidebar.search")}</span>
+            <div className="flex items-center px-2 w-full">
+              <Search className="mr-3 size-4" />
+              <span className="text-sm font-medium">{t("sidebar.search")}</span>
+            </div>
           </Link>
 
           {user && (
@@ -260,14 +264,16 @@ const LeftSidebar = () => {
                 buttonVariants({
                   variant: "ghost",
                   className:
-                    "w-full justify-start text-gray-300 hover:text-white hover:bg-[#2a2a2a] h-8 px-2 relative",
+                    "w-full justify-start text-gray-300 hover:text-white hover:bg-[#2a2a2a] h-8 px-0 relative",
                 })
               )}
             >
-              <MessageCircle className="mr-3 size-4" />
-              <span className="text-sm font-medium">
-                {t("sidebar.messages")}
-              </span>
+              <div className="flex items-center px-2 w-full">
+                <MessageCircle className="mr-3 size-4" />
+                <span className="text-sm font-medium">
+                  {t("sidebar.messages")}
+                </span>
+              </div>
               {totalUnread > 0 && (
                 <span className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#8b5cf6] text-white text-xs rounded-full h-4 px-1.5 flex items-center justify-center font-semibold">
                   {totalUnread > 99 ? "99+" : totalUnread}
@@ -283,14 +289,16 @@ const LeftSidebar = () => {
                 buttonVariants({
                   variant: "ghost",
                   className:
-                    "w-full justify-start text-gray-300 hover:text-white hover:bg-[#2a2a2a] h-8 px-2",
+                    "w-full justify-start text-gray-300 hover:text-white hover:bg-[#2a2a2a] h-8 px-0",
                 })
               )}
             >
-              <Heart className="mr-3 size-4" />
-              <span className="text-sm font-medium">
-                {t("sidebar.likedSongs")}
-              </span>
+              <div className="flex items-center px-2 w-full">
+                <Heart className="mr-3 size-4" />
+                <span className="text-sm font-medium">
+                  {t("sidebar.likedSongs")}
+                </span>
+              </div>
             </Link>
           )}
         </div>

@@ -1,15 +1,9 @@
 {
-  "redirects": [
+  "rewrites": [
     {
-      "has": [
-        {
-          "type": "host",
-          "value": "moodify-ruddy.vercel.app"
-        }
-      ],
       "source": "/(.*)",
-      "destination": "https://moodify-studio.vercel.app/",
-      "permanent": true
+      "destination": "/index.html"
     }
   ]
+ 
 }
