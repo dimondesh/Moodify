@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
-import { Play, Heart, UserPlus, UserCheck, Pause, Loader2 } from "lucide-react";
+import { Play, Heart, UserPlus, UserCheck, Pause } from "lucide-react";
+import StandardLoader from "../../components/ui/StandardLoader";
 import { usePlayerStore } from "../../stores/usePlayerStore";
 import toast from "react-hot-toast";
 import { useLibraryStore } from "../../stores/useLibraryStore";
@@ -136,7 +137,7 @@ const ArtistPage = () => {
   if (loading) {
     return (
       <main className="flex items-center justify-center h-full">
-        <Loader2 className="animate-spin text-[#8b5cf6] size-12" />
+        <StandardLoader size="lg" />
       </main>
     );
   }

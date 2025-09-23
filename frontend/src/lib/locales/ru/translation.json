@@ -995,6 +995,7 @@
     "passwordMaxLength": "Пароль должен быть не длиннее 20 символов.",
     "googleSignInFailed": "Ошибка входа через Google. Пожалуйста, попробуйте еще раз.",
     "loginSuccess": "Вы успешно вошли!",
+    "loginRequired": "Требуется вход в систему",
     "signupSuccess": "Аккаунт создан! Пожалуйста, проверьте свою почту для верификации.",
     "errorInvalidCredentials": "Неверный email или пароль.",
     "errorEmailInUse": "Этот email уже зарегистрирован.",

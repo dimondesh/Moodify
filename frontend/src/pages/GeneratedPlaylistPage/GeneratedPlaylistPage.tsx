@@ -19,6 +19,8 @@ import Equalizer from "../../components/ui/equalizer";
 import { useGeneratedPlaylistStore } from "../../stores/useGeneratedPlaylistStore";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth } from "../../lib/firebase";
 import { useDominantColor } from "@/hooks/useDominantColor";
 import EqualizerTitle from "@/components/ui/equalizer-title";
 import { DownloadButton } from "@/components/ui/DownloadButton";
@@ -44,6 +46,7 @@ const formatDuration = (totalSeconds: number): string => {
 const GeneratedPlaylistPage = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const { t } = useTranslation();
+  const [user] = useAuthState(auth);
   const { id: playlistId } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -406,12 +409,16 @@ const GeneratedPlaylistPage = () => {
                 )}
                 <Button
                   onClick={handleToggleInLibrary}
-                  disabled={isTogglingLibrary}
+                  disabled={isTogglingLibrary || !user}
                   variant="ghost"
                   size="icon"
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full p-2 transition-colors hover:bg-white/10"
+                  className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full p-2 transition-colors hover:bg-white/10 ${
+                    !user ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                   title={
-                    isInLibrary
+                    !user
+                      ? t("auth.loginRequired")
+                      : isInLibrary
                       ? t("common.removeFromLibrary")
                       : t("common.addToLibrary")
                   }
@@ -426,6 +433,7 @@ const GeneratedPlaylistPage = () => {
                   itemId={currentPlaylist._id}
                   itemType="generated-playlists"
                   itemTitle={t(currentPlaylist.nameKey)}
+                  disabled={!user}
                 />
               </div>
 

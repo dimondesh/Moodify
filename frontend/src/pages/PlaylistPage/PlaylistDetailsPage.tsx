@@ -27,11 +27,11 @@ import {
   Heart,
   Lock,
   Unlock,
-  Loader2,
   RefreshCw,
   Share,
   Clock,
 } from "lucide-react";
+import StandardLoader from "../../components/ui/StandardLoader";
 import { usePlayerStore } from "../../stores/usePlayerStore";
 import { Song, Playlist } from "../../types";
 import { useAuthStore } from "../../stores/useAuthStore";
@@ -75,6 +75,8 @@ import Equalizer from "../../components/ui/equalizer";
 import { useDominantColor } from "@/hooks/useDominantColor";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth } from "../../lib/firebase";
 import { DownloadButton } from "@/components/ui/DownloadButton";
 import { ShareDialog } from "@/components/ui/ShareDialog";
 import { useUIStore } from "@/stores/useUIStore";
@@ -89,6 +91,7 @@ const formatDuration = (seconds: number): string => {
 const PlaylistDetailsPage = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const { socket } = useChatStore();
+  const [user] = useAuthState(auth);
   const { t } = useTranslation();
   const { playlistId } = useParams<{ playlistId: string }>();
   const {
@@ -701,9 +704,17 @@ const PlaylistDetailsPage = () => {
                 {!isOwner && (
                   <Button
                     onClick={handleTogglePlaylistInLibrary}
-                    disabled={isTogglingLibrary}
+                    disabled={isTogglingLibrary || !user}
                     variant="ghost"
                     size="icon"
+                    className={!user ? "opacity-50 cursor-not-allowed" : ""}
+                    title={
+                      !user
+                        ? t("auth.loginRequired")
+                        : isInLibrary
+                        ? t("pages.playlist.actions.removeFromLibrary")
+                        : t("pages.playlist.actions.addToLibrary")
+                    }
                   >
                     {isInLibrary ? (
                       <CheckCircle2 className="size-6 text-[#8b5cf6]" />
@@ -725,11 +736,18 @@ const PlaylistDetailsPage = () => {
                   itemId={currentPlaylist._id}
                   itemType="playlists"
                   itemTitle={currentPlaylist.title}
+                  disabled={!user}
                 />
                 {isMobile ? (
                   <Drawer>
                     <DrawerTrigger asChild>
-                      <Button variant="ghost" size="icon">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        disabled={!user}
+                        className={!user ? "opacity-50 cursor-not-allowed" : ""}
+                        title={!user ? t("auth.loginRequired") : ""}
+                      >
                         <MoreHorizontal className="size-6" />
                       </Button>
                     </DrawerTrigger>
@@ -786,7 +804,13 @@ const PlaylistDetailsPage = () => {
                 ) : (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        disabled={!user}
+                        className={!user ? "opacity-50 cursor-not-allowed" : ""}
+                        title={!user ? t("auth.loginRequired") : ""}
+                      >
                         <MoreHorizontal className="size-6" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -1010,7 +1034,7 @@ const PlaylistDetailsPage = () => {
                     <>
                       {isRecommendationsLoading ? (
                         <div className="flex justify-center items-center h-full">
-                          <Loader2 className="animate-spin text-violet-500 size-8" />
+                          <StandardLoader size="md" />
                         </div>
                       ) : recommendations.length === 0 ? (
                         <p className="text-zinc-400 px-2">Нет рекомендаций.</p>

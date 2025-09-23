@@ -20,6 +20,8 @@ import { format } from "date-fns";
 import { useDominantColor } from "@/hooks/useDominantColor";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth } from "../../lib/firebase";
 import { DownloadButton } from "@/components/ui/DownloadButton";
 import PlaylistDetailsSkeleton from "../../components/ui/skeletons/PlaylistDetailsSkeleton";
 import { Share } from "lucide-react";
@@ -41,6 +43,7 @@ const formatDuration = (seconds: number) => {
 const AlbumPage = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const { t } = useTranslation();
+  const [user] = useAuthState(auth);
   const { albumId } = useParams();
   const navigate = useNavigate();
   const { openShareDialog, closeAllDialogs, shareEntity } = useUIStore();
@@ -381,14 +384,16 @@ const AlbumPage = () => {
                 {currentAlbum && (
                   <Button
                     onClick={handleToggleAlbum}
-                    disabled={isToggling}
+                    disabled={isToggling || !user}
                     variant="ghost"
                     size="icon"
                     className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full p-2 transition-colors ${
                       inLibrary ? "hover:bg-white/20" : "hover:bg-white/10"
-                    }`}
+                    } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
                     title={
-                      inLibrary
+                      !user
+                        ? t("auth.loginRequired")
+                        : inLibrary
                         ? t("pages.album.actions.removeFromLibrary")
                         : t("pages.album.actions.addToLibrary")
                     }
@@ -404,15 +409,19 @@ const AlbumPage = () => {
                   itemId={currentAlbum._id}
                   itemType="albums"
                   itemTitle={currentAlbum.title}
+                  disabled={!user}
                 />
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-md p-2 transition-colors"
-                  title={t("common.share")}
+                  className={`w-9 h-9 sm:w-10 sm:h-10 rounded-md p-2 transition-colors ${
+                    !user ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                  title={!user ? t("auth.loginRequired") : t("common.share")}
                   onClick={() =>
                     openShareDialog({ type: "album", id: currentAlbum._id })
                   }
+                  disabled={!user}
                 >
                   <Share className="size-6 text-white" />
                 </Button>

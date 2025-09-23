@@ -1000,6 +1000,7 @@
     "passwordMaxLength": "Password must be 20 characters or less.",
     "googleSignInFailed": "Google sign-in failed. Please try again.",
     "loginSuccess": "Logged in successfully!",
+    "loginRequired": "Login required",
     "signupSuccess": "Account created! Please check your email to verify.",
     "errorInvalidCredentials": "Invalid email or password.",
     "errorEmailInUse": "This email is already registered.",

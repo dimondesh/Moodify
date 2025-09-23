@@ -12,12 +12,14 @@ interface DownloadButtonProps {
   itemId: string;
   itemType: ItemType;
   itemTitle: string;
+  disabled?: boolean;
 }
 
 export const DownloadButton = ({
   itemId,
   itemType,
   itemTitle,
+  disabled = false,
 }: DownloadButtonProps) => {
   const { t } = useTranslation();
   const downloadedItemIds = useOfflineStore((s) => s.downloadedItemIds);
@@ -36,6 +38,8 @@ export const DownloadButton = ({
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
 
+    if (disabled) return;
+
     if (status === "idle") {
       toast.promise(downloadItem(itemId, itemType), {
         loading: t("toasts.downloading", { itemTitle }),
@@ -48,6 +52,8 @@ export const DownloadButton = ({
   };
 
   const getTooltipText = () => {
+    if (disabled) return t("auth.loginRequired");
+
     switch (status) {
       case "downloaded":
         return t("tooltips.removeFromDownloads", { itemTitle });
@@ -64,8 +70,10 @@ export const DownloadButton = ({
       onClick={handleClick}
       variant="ghost"
       size="icon"
-      className="w-9 h-9 sm:w-10 sm:h-10  rounded-full flex-shrink-0"
-      disabled={status === "downloading"}
+      className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex-shrink-0 ${
+        disabled ? "opacity-50 cursor-not-allowed" : ""
+      }`}
+      disabled={status === "downloading" || disabled}
       title={getTooltipText()}
     >
       {status === "downloading" && (

@@ -41,6 +41,8 @@ import { useChatStore } from "../stores/useChatStore";
 import { getArtistNames } from "@/lib/utils";
 import { useUIStore } from "@/stores/useUIStore";
 import { CreatePlaylistDialog } from "../pages/PlaylistPage/CreatePlaylistDialog";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth } from "../lib/firebase";
 
 const formatTime = (seconds: number) => {
   if (isNaN(seconds) || seconds < 0) return "0:00";
@@ -78,6 +80,7 @@ const PlaybackControls = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { isIosDevice } = useUIStore();
+  const [user] = useAuthState(auth);
 
   const {
     currentSong,
@@ -385,6 +388,7 @@ const PlaybackControls = () => {
                   song={currentSong}
                   className="w-8 h-8"
                   iconClassName="h-5 w-5"
+                  disabled={!user}
                 />
                 <Button
                   size="icon"
@@ -509,6 +513,7 @@ const PlaybackControls = () => {
                             <AddToPlaylistControl
                               song={currentSong}
                               iconClassName="size-5"
+                              disabled={!user}
                             />
                           </div>
                         )}
@@ -674,6 +679,12 @@ const PlaybackControls = () => {
                                 id: currentSong._id,
                               })
                             }
+                            disabled={!user}
+                            title={
+                              !user
+                                ? t("auth.loginRequired")
+                                : t("player.share")
+                            }
                           >
                             <Share className="h-5 w-5" />
                           </Button>
@@ -782,7 +793,7 @@ const PlaybackControls = () => {
                       ))}
                     </div>
                   </div>
-                  <AddToPlaylistControl song={currentSong} />
+                  <AddToPlaylistControl song={currentSong} disabled={!user} />
                 </>
               )}
             </div>
@@ -933,7 +944,8 @@ const PlaybackControls = () => {
                 onClick={() =>
                   openShareDialog({ type: "song", id: currentSong._id })
                 }
-                title={t("player.share")}
+                disabled={!user}
+                title={!user ? t("auth.loginRequired") : t("player.share")}
               >
                 <Share className="h-4 w-4" />
               </Button>

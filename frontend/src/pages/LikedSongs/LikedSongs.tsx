@@ -8,7 +8,7 @@ import { ScrollArea } from "../../components/ui/scroll-area";
 import { Button } from "../../components/ui/button";
 import { Heart, Pause, Play, MoreHorizontal } from "lucide-react";
 import Equalizer from "../../components/ui/equalizer";
-import LibraryGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton";
+import LikedSongsSkeleton from "../../components/ui/skeletons/LikedSongsSkeleton";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import { format } from "date-fns";
@@ -225,7 +225,7 @@ const LikedSongsPage = () => {
     });
   };
 
-  if (isLoading) return <LibraryGridSkeleton />;
+  if (isLoading) return <LikedSongsSkeleton />;
 
   if (!isLoading && !error && likedSongs.length === 0) {
     return (

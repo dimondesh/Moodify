@@ -14,7 +14,7 @@ import MixGrid from "./MixGrid";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import BrowseMixes from "./BrowseMixes";
-import { Loader2 } from "lucide-react";
+import StandardLoader from "../../components/ui/StandardLoader";
 
 const SearchPage = () => {
   const { t } = useTranslation();
@@ -73,7 +73,7 @@ const SearchPage = () => {
 
             {loading && (
               <div className="flex justify-center">
-                <Loader2 className="text-[#8b5cf6] size-10 animate-spin align-middle" />
+                <StandardLoader size="lg" />
               </div>
             )}
             {error && <p className="text-red-500">{error}</p>}

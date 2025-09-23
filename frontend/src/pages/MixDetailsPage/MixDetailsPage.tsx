@@ -23,6 +23,8 @@ import Equalizer from "../../components/ui/equalizer";
 import { useMixesStore } from "../../stores/useMixesStore";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth } from "../../lib/firebase";
 import { DownloadButton } from "@/components/ui/DownloadButton";
 import { useDominantColor } from "@/hooks/useDominantColor";
 import { useChatStore } from "../../stores/useChatStore";
@@ -42,6 +44,7 @@ const formatDuration = (seconds: number): string => {
 const MixDetailsPage = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const { socket } = useChatStore();
+  const [user] = useAuthState(auth);
 
   const { t } = useTranslation();
   const { mixId } = useParams<{ mixId: string }>();
@@ -473,14 +476,16 @@ const MixDetailsPage = () => {
                 )}
                 <Button
                   onClick={handleToggleMixInLibrary}
-                  disabled={isTogglingLibrary}
+                  disabled={isTogglingLibrary || !user}
                   variant="ghost"
                   size="icon"
                   className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-transparent p-2 hover:border-white/20 transition-colors flex-shrink-0 ${
                     isInLibrary ? "hover:bg-white/20" : "hover:bg-white/10"
-                  }`}
+                  } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
                   title={
-                    isInLibrary
+                    !user
+                      ? t("auth.loginRequired")
+                      : isInLibrary
                       ? t("pages.playlist.actions.removeFromLibrary")
                       : t("pages.playlist.actions.addToLibrary")
                   }
@@ -495,15 +500,19 @@ const MixDetailsPage = () => {
                   itemId={currentMix._id}
                   itemType="mixes"
                   itemTitle={t(currentMix.name)}
+                  disabled={!user}
                 />
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-md p-2 transition-colors"
-                  title={t("common.share")}
+                  className={`w-9 h-9 sm:w-10 sm:h-10 rounded-md p-2 transition-colors ${
+                    !user ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                  title={!user ? t("auth.loginRequired") : t("common.share")}
                   onClick={() =>
                     openShareDialog({ type: "mix", id: currentMix._id })
                   }
+                  disabled={!user}
                 >
                   <Share className="size-6 text-white" />
                 </Button>

@@ -16,7 +16,8 @@ import toast from "react-hot-toast";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { Loader2, MailCheck } from "lucide-react";
+import { MailCheck } from "lucide-react";
+import StandardLoader from "../../components/ui/StandardLoader";
 import MoodifyLogo from "../../components/MoodifyLogo";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
@@ -277,9 +278,7 @@ const AuthPage: React.FC = () => {
                   className="w-full h-12 bg-violet-600 hover:bg-violet-700"
                   disabled={isLoading}
                 >
-                  {isLoading && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
+                  {isLoading && <StandardLoader size="sm" className="mr-2" />}
                   {isLoginView ? t("auth.loginButton") : t("auth.signupButton")}
                 </Button>
               </form>

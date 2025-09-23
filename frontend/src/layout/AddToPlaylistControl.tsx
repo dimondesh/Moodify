@@ -196,12 +196,14 @@ interface AddToPlaylistControlProps {
   song: Song | null;
   className?: string;
   iconClassName?: string;
+  disabled?: boolean;
 }
 
 export const AddToPlaylistControl: React.FC<AddToPlaylistControlProps> = ({
   song,
   className,
   iconClassName = "size-5",
+  disabled = false,
 }) => {
   const { t } = useTranslation();
   const { isSongLiked, toggleSongLike, fetchLibrary } = useLibraryStore();
@@ -247,10 +249,18 @@ export const AddToPlaylistControl: React.FC<AddToPlaylistControlProps> = ({
       className={cn(
         "hover:text-white",
         isAdded ? "text-violet-500" : "text-zinc-400",
+        disabled && "opacity-50 cursor-not-allowed",
         className
       )}
-      onClick={handleInitialAdd}
-      title={isAdded ? t("player.addToPlaylist") : t("player.saveToLibrary")}
+      onClick={disabled ? undefined : handleInitialAdd}
+      disabled={disabled}
+      title={
+        disabled
+          ? t("auth.loginRequired")
+          : isAdded
+          ? t("player.addToPlaylist")
+          : t("player.saveToLibrary")
+      }
     >
       {isAdded ? (
         <Check className={cn(iconClassName)} />
