@@ -334,10 +334,10 @@ const PlaybackControls = () => {
   if (!currentSong) {
     return (
       <footer
-        className={`h-20 sm:h-24 bg-zinc-900 border-t border-zinc-800 px-4 z-40
+        className={`h-18 sm:h-20 bg-[#0f0f0f] border-t border-[#2a2a2a] px-4 z-40
           ${isCompactView && isFullScreenPlayerOpen ? "hidden" : ""}`}
       >
-        <div className="flex items-center justify-center h-full text-zinc-500">
+        <div className="flex items-center justify-center h-full text-gray-400">
           {t("player.noSong")}
         </div>
       </footer>
@@ -748,7 +748,7 @@ const PlaybackControls = () => {
         </>
       ) : (
         <footer
-          className={`h-18 sm:h-20 bg-[#0f0f0f] border-t border-zinc-800 px-4 z-40`}
+          className={`h-18 sm:h-20 bg-[#0f0f0f] border-t border-[#2a2a2a] px-4 z-40`}
         >
           <div className="flex justify-between items-center h-full max-w-screen mx-auto">
             <div className="flex items-center gap-4 min-w-[180px] w-[30%]">

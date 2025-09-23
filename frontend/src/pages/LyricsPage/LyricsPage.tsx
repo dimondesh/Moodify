@@ -8,7 +8,6 @@ import { Button } from "../../components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { useDominantColor } from "@/hooks/useDominantColor";
 import { useTranslation } from "react-i18next";
-import { useAudioSettingsStore } from "@/lib/webAudio";
 
 interface LyricLine {
   time: number;
@@ -53,8 +52,6 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
     seekToTime,
   } = usePlayerStore();
 
-  const { playbackRateEnabled, playbackRate } = useAudioSettingsStore();
-
   const lyricsScrollAreaRef = useRef<HTMLDivElement>(null);
   const [isUserScrolling, setIsUserScrolling] = useState(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -70,6 +67,9 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
   const lyrics = useMemo(() => {
     return currentSong?.lyrics ? parseLrc(currentSong.lyrics) : [];
   }, [currentSong?.lyrics]);
+
+  // Test: Use currentTime directly first to see if basic sync works
+  const realCurrentTime = currentTime;
 
   useEffect(() => {
     const updateBackgroundColor = (color: string) => {
@@ -103,9 +103,6 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
 
   useEffect(() => {
     if (lyricsScrollAreaRef.current && lyrics.length > 0 && !isUserScrolling) {
-      const currentRate = playbackRateEnabled ? playbackRate : 1.0;
-      const realCurrentTime = currentTime * currentRate;
-
       const activeLineIndex = lyrics.findIndex(
         (line, index) =>
           realCurrentTime >= line.time &&
@@ -124,7 +121,7 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
         }
       }
     }
-  }, [currentTime, lyrics, isUserScrolling, playbackRate, playbackRateEnabled]);
+  }, [realCurrentTime, lyrics, isUserScrolling]);
 
   const handleScroll = useCallback(() => {
     if (!isUserScrolling) setIsUserScrolling(true);
@@ -173,9 +170,8 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
 
   const handleLyricLineClick = (time: number) => {
     setIsUserScrolling(false);
-    const currentRate = playbackRateEnabled ? playbackRate : 1.0;
-    const uiSeekTime = time / currentRate;
-    seekToTime(uiSeekTime);
+    // Seek directly to the lyric time - playback rate doesn't affect seek position
+    seekToTime(time);
   };
 
   if (!currentSong || !lyrics.length) {
@@ -194,9 +190,6 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
       </div>
     );
   }
-
-  const currentRate = playbackRateEnabled ? playbackRate : 1.0;
-  const realCurrentTime = currentTime * currentRate;
 
   return (
     <div className="relative min-h-screen overflow-hidden">
