@@ -779,7 +779,8 @@
       "tableArtists": "Исполнители",
       "tableReleaseYear": "Год выпуска",
       "tableSongs": "Треки",
-      "tableActions": "Действия"
+      "tableActions": "Действия",
+      "share": "Поделиться"
     },
     "artists": {
       "title": "Библиотека исполнителей",

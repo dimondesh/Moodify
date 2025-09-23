@@ -181,7 +181,7 @@ export const CreatePlaylistDialog: React.FC<CreatePlaylistDialogProps> = ({
                 type="file"
                 accept="image/*"
                 onChange={handleImageChange}
-                className="col-span-3 bg-zinc-800 text-white border-zinc-700 file:text-white file:bg-zinc-700 file:border-none hover:file:bg-zinc-600"
+                className="col-span-3 file:text-sm file:font-medium file:cursor-pointer file:bg-[#8b5cf6] file:text-white file:border-0 file:rounded-md file:px-3 file:py-1 file:mr-3 file:hover:bg-[#7c3aed] bg-[#1a1a1a] text-white border-[#2a2a2a] focus:border-[#8b5cf6] focus:ring-[#8b5cf6]"
               />
             </div>
             {imagePreviewUrl && (
@@ -212,7 +212,7 @@ export const CreatePlaylistDialog: React.FC<CreatePlaylistDialogProps> = ({
               >
                 {t("admin.common.cancel")}
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading || !title.trim()}>
                 {isLoading ? submittingText : submitButtonText}
               </Button>
             </DialogFooter>
@@ -276,7 +276,7 @@ export const CreatePlaylistDialog: React.FC<CreatePlaylistDialogProps> = ({
                       type="file"
                       accept="image/*"
                       onChange={handleImageChange}
-                      className="col-span-3 bg-zinc-800 text-white border-zinc-700 file:text-white file:bg-zinc-700 file:border-none hover:file:bg-zinc-600"
+                      className="col-span-3 file:text-sm file:font-medium file:cursor-pointer file:bg-[#8b5cf6] file:text-white file:border-0 file:rounded-md file:px-3 file:py-1 file:mr-3 file:hover:bg-[#7c3aed] bg-[#1a1a1a] text-white border-[#2a2a2a] focus:border-[#8b5cf6] focus:ring-[#8b5cf6]"
                     />
                   </div>
                   {imagePreviewUrl && (
@@ -310,7 +310,7 @@ export const CreatePlaylistDialog: React.FC<CreatePlaylistDialogProps> = ({
                     >
                       {t("admin.common.cancel")}
                     </Button>
-                    <Button type="submit" disabled={isLoading}>
+                    <Button type="submit" disabled={isLoading || !title.trim()}>
                       {isLoading ? submittingText : submitButtonText}
                     </Button>
                   </DialogFooter>

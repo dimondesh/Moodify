@@ -774,7 +774,8 @@
       "tableArtists": "Виконавці",
       "tableReleaseYear": "Рік випуску",
       "tableSongs": "Треки",
-      "tableActions": "Дії"
+      "tableActions": "Дії",
+      "share": "Поділитися"
     },
     "artists": {
       "title": "Бібліотека виконавців",

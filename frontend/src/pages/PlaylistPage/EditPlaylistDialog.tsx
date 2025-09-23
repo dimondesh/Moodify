@@ -174,7 +174,7 @@ export const EditPlaylistDialog: React.FC<EditPlaylistDialogProps> = ({
                 type="file"
                 accept="image/*"
                 onChange={handleFileChange}
-                className="file:text-sm file:font-medium file:cursor-pointer mb-2 bg-zinc-800 text-white border-zinc-700"
+                className="file:text-sm file:font-medium file:cursor-pointer file:bg-[#8b5cf6] file:text-white file:border-0 file:rounded-md file:px-3 file:py-1 file:mr-3 file:hover:bg-[#7c3aed] mb-2 bg-[#1a1a1a] text-white border-[#2a2a2a] focus:border-[#8b5cf6] focus:ring-[#8b5cf6]"
                 ref={fileInputRef}
               />
               {imagePreviewUrl && (
@@ -209,7 +209,7 @@ export const EditPlaylistDialog: React.FC<EditPlaylistDialogProps> = ({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isLoading}
+            disabled={isLoading || !title.trim()}
             className="bg-violet-500 hover:bg-violet-600 text-white"
           >
             {isLoading
