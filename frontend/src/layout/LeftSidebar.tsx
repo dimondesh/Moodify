@@ -15,7 +15,7 @@ import { cn } from "../lib/utils";
 import { Button, buttonVariants } from "../components/ui/button";
 import { ScrollArea } from "../components/ui/scroll-area";
 import PlaylistSkeleton from "../components/ui/skeletons/PlaylistSkeleton";
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useRef } from "react";
 import { useLibraryStore } from "../stores/useLibraryStore";
 import { usePlaylistStore } from "../stores/usePlaylistStore";
 import { useAuthState } from "react-firebase-hooks/auth";
@@ -71,13 +71,25 @@ const LeftSidebar = () => {
   } = useUIStore();
 
   const { artists } = useMusicStore();
+  const playlistsFetchedRef = useRef(false);
 
-  // Fetch playlists when component mounts
+  // Fetch playlists when library data is loaded and user is authenticated
   useEffect(() => {
-    if (user) {
+    if (
+      user &&
+      !isLoadingLibrary &&
+      !isOffline &&
+      !playlistsFetchedRef.current
+    ) {
+      playlistsFetchedRef.current = true;
       fetchMyPlaylists();
     }
-  }, [user, fetchMyPlaylists]);
+  }, [user, isLoadingLibrary, isOffline, fetchMyPlaylists]);
+
+  // Reset the ref when user changes
+  useEffect(() => {
+    playlistsFetchedRef.current = false;
+  }, [user]);
 
   const getArtistNames = (artistsData: string[] | Artist[] | undefined) => {
     if (!artistsData || artistsData.length === 0)
