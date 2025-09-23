@@ -136,12 +136,12 @@ const ChatPage = () => {
             />
           </Avatar>
           <div
-            className={`rounded-lg max-w-full ${
+            className={`rounded-xl max-w-full ${
               message.type === "share"
                 ? "bg-transparent p-0"
                 : message.senderId === mongoUser?.id
-                ? "bg-[#8b5cf6] text-white p-3"
-                : "bg-[#1a1a1a] text-white p-3"
+                ? "bg-[#8b5cf6] text-white p-3 shadow-lg"
+                : "bg-[#1a1a1a] text-white p-3 border border-[#2a2a2a]"
             }`}
           >
             {message.type === "share" && message.shareDetails ? (
@@ -151,15 +151,28 @@ const ChatPage = () => {
               />
             ) : (
               <div className="flex flex-col">
-                <p className="text-sm break-words">{message.content}</p>
-                <div className="flex items-center justify-end gap-1 text-xs text-gray-400 mt-1 self-end">
-                  <span>{formatTime(message.createdAt)}</span>
-                  {message.senderId === mongoUser?.id &&
-                    (message.isRead ? (
-                      <CheckCheck className="size-4 text-[#8b5cf6]" />
-                    ) : (
-                      <Check className="size-4" />
-                    ))}
+                <p className="text-sm break-words leading-relaxed">
+                  {message.content}
+                </p>
+                <div className="flex items-center justify-end gap-1 text-xs mt-2 self-end">
+                  <span
+                    className={
+                      message.senderId === mongoUser?.id
+                        ? "text-violet-200"
+                        : "text-gray-400"
+                    }
+                  >
+                    {formatTime(message.createdAt)}
+                  </span>
+                  {message.senderId === mongoUser?.id && (
+                    <div className="ml-2">
+                      {message.isRead ? (
+                        <CheckCheck className="size-4 text-violet-200 opacity-100" />
+                      ) : (
+                        <Check className="size-4 text-violet-200 opacity-70" />
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -184,7 +197,7 @@ const ChatPage = () => {
             onlineUsers={onlineUsers}
             userActivities={userActivities}
           />
-          <div className="flex flex-col h-full border-l border-[#2a2a2a]">
+          <div className="flex flex-col h-full border-l border-[#2a2a2a] bg-[#0f0f0f]">
             {selectedUser ? (
               <>
                 <ChatHeader />
@@ -223,9 +236,9 @@ const ChatPage = () => {
         </div>
         {/*Мобилка*/}
 
-        <div className="lg:hidden h-[calc(100vh-180px)] flex flex-col">
+        <div className="lg:hidden h-[calc(100vh-180px)] flex flex-col bg-[#0f0f0f]">
           {selectedUser ? (
-            <div className="flex flex-col h-full">
+            <div className="flex flex-col h-full bg-[#0f0f0f]">
               <ChatHeader showBackButton={true} onBack={handleBackToList} />
               <ScrollArea className="flex-1 overflow-y-auto">
                 <div className="p-4 space-y-4">
