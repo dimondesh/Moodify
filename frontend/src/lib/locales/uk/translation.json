@@ -660,7 +660,8 @@
     "addSongToPlaylistError": "Не вдалося додати трек до плейлиста.",
     "downloading": "Завантаження \"{{itemTitle}}\"...",
     "downloadSuccess": "\"{{itemTitle}}\" тепер доступно офлайн.",
-    "downloadError": "Помилка завантаження: {{error}}"
+    "downloadError": "Помилка завантаження: {{error}}",
+    "downloadCancelled": "Завантаження \"{{itemTitle}}\" скасовано"
   },
   "errors": {
     "userNotAvailableOffline": "Користувач недоступний для офлайн-медіатеки.",
@@ -687,7 +688,8 @@
   "tooltips": {
     "removeFromDownloads": "Видалити \"{{itemTitle}}\" із завантажень",
     "downloading": "Завантажується...",
-    "download": "Завантажити \"{{itemTitle}}\" для офлайн-прослуховування"
+    "download": "Завантажити \"{{itemTitle}}\" для офлайн-прослуховування",
+    "cancelDownload": "Скасувати завантаження \"{{itemTitle}}\""
   },
   "admin": {
     "unauthorized": "Немає доступу",

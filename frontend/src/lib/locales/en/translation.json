@@ -660,7 +660,8 @@
     "addSongToPlaylistError": "Failed to add song to playlist.",
     "downloading": "Downloading \"{{itemTitle}}\"...",
     "downloadSuccess": "\"{{itemTitle}}\" is now available offline.",
-    "downloadError": "Failed to download: {{error}}"
+    "downloadError": "Failed to download: {{error}}",
+    "downloadCancelled": "Download of \"{{itemTitle}}\" cancelled"
   },
   "errors": {
     "somethingWentWrong": "Something went wrong",
@@ -692,7 +693,8 @@
   "tooltips": {
     "removeFromDownloads": "Remove \"{{itemTitle}}\" from downloads",
     "downloading": "Downloading...",
-    "download": "Download \"{{itemTitle}}\" for offline playback"
+    "download": "Download \"{{itemTitle}}\" for offline playback",
+    "cancelDownload": "Cancel download of \"{{itemTitle}}\""
   },
   "admin": {
     "unauthorized": "Unauthorized",

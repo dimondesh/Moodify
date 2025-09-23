@@ -1,6 +1,6 @@
 // frontend/src/components/ui/DownloadButton.tsx
 
-import { Loader2 } from "lucide-react";
+import { X } from "lucide-react";
 import { useOfflineStore } from "@/stores/useOfflineStore";
 import { Button } from "./button";
 import toast from "react-hot-toast";
@@ -24,10 +24,13 @@ export const DownloadButton = ({
   const { t } = useTranslation();
   const downloadedItemIds = useOfflineStore((s) => s.downloadedItemIds);
   const downloadingItemIds = useOfflineStore((s) => s.downloadingItemIds);
-  const { downloadItem, deleteItem } = useOfflineStore((s) => s.actions);
+  const downloadProgress = useOfflineStore((s) => s.downloadProgress);
+  const { downloadItem, deleteItem, cancelDownload, getDownloadProgress } =
+    useOfflineStore((s) => s.actions);
 
   const isDownloaded = downloadedItemIds.has(itemId);
   const isDownloading = downloadingItemIds.has(itemId);
+  const progress = getDownloadProgress(itemId);
 
   const status = isDownloaded
     ? "downloaded"
@@ -46,6 +49,9 @@ export const DownloadButton = ({
         success: t("toasts.downloadSuccess", { itemTitle }),
         error: (err) => t("toasts.downloadError", { error: err.toString() }),
       });
+    } else if (status === "downloading") {
+      cancelDownload(itemId);
+      toast.success(t("toasts.downloadCancelled", { itemTitle }));
     } else if (status === "downloaded") {
       deleteItem(itemId, itemType, itemTitle);
     }
@@ -58,7 +64,7 @@ export const DownloadButton = ({
       case "downloaded":
         return t("tooltips.removeFromDownloads", { itemTitle });
       case "downloading":
-        return t("tooltips.downloading");
+        return t("tooltips.cancelDownload", { itemTitle });
       case "idle":
       default:
         return t("tooltips.download", { itemTitle });
@@ -73,11 +79,37 @@ export const DownloadButton = ({
       className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex-shrink-0 ${
         disabled ? "opacity-50 cursor-not-allowed" : ""
       }`}
-      disabled={status === "downloading" || disabled}
+      disabled={disabled}
       title={getTooltipText()}
     >
       {status === "downloading" && (
-        <Loader2 className="animate-spin text-white size-6" />
+        <div className="relative group">
+          <svg
+            className="size-6 transform -rotate-90"
+            xmlns="http://www.w3.org/2000/svg"
+            width="100"
+            height="100"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="white"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path
+              d="M12 2 A 10 10 0 0 1 12 22"
+              fill="none"
+              stroke="#8b5cf6"
+              strokeWidth="3"
+              strokeDasharray={`${2 * Math.PI * 10 * (progress / 100)} ${
+                2 * Math.PI * 10
+              }`}
+              strokeLinecap="round"
+            />
+          </svg>
+          <X className="absolute stroke-3 inset-0 m-auto size-4 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+        </div>
       )}
       {status === "downloaded" && (
         <svg

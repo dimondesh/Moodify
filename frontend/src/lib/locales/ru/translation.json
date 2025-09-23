@@ -660,7 +660,8 @@
     "addSongToPlaylistError": "Не удалось добавить трек в плейлист.",
     "downloading": "Загрузка \"{{itemTitle}}\"...",
     "downloadSuccess": "\"{{itemTitle}}\" теперь доступно оффлайн.",
-    "downloadError": "Ошибка загрузки: {{error}}"
+    "downloadError": "Ошибка загрузки: {{error}}",
+    "downloadCancelled": "Загрузка \"{{itemTitle}}\" отменена"
   },
   "errors": {
     "somethingWentWrong": "Что-то пошло не так",
@@ -692,7 +693,8 @@
   "tooltips": {
     "removeFromDownloads": "Удалить \"{{itemTitle}}\" из загрузок",
     "downloading": "Загружается...",
-    "download": "Скачать \"{{itemTitle}}\" для оффлайн-прослушивания"
+    "download": "Скачать \"{{itemTitle}}\" для оффлайн-прослушивания",
+    "cancelDownload": "Отменить загрузку \"{{itemTitle}}\""
   },
   "admin": {
     "unauthorized": "Нет доступа",

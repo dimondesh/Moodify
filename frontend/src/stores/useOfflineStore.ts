@@ -26,6 +26,8 @@ interface OfflineState {
   downloadedItemIds: Set<string>;
   downloadedSongIds: Set<string>;
   downloadingItemIds: Set<string>;
+  downloadProgress: Map<string, number>;
+  downloadCancelled: Set<string>;
   isOffline: boolean;
   _hasHydrated: boolean;
   actions: {
@@ -34,7 +36,9 @@ interface OfflineState {
     isDownloaded: (itemId: string) => boolean;
     isSongDownloaded: (songId: string) => boolean;
     isDownloading: (itemId: string) => boolean;
+    getDownloadProgress: (itemId: string) => number;
     downloadItem: (itemId: string, itemType: ItemType) => Promise<void>;
+    cancelDownload: (itemId: string) => void;
     deleteItem: (
       itemId: string,
       itemType: ItemType,
@@ -53,6 +57,8 @@ export const useOfflineStore = create<OfflineState>()(
       downloadedItemIds: new Set(),
       downloadedSongIds: new Set(),
       downloadingItemIds: new Set(),
+      downloadProgress: new Map(),
+      downloadCancelled: new Set(),
       isOffline: !navigator.onLine,
       _hasHydrated: false,
 
@@ -102,6 +108,26 @@ export const useOfflineStore = create<OfflineState>()(
         isDownloaded: (itemId) => get().downloadedItemIds.has(itemId),
         isSongDownloaded: (songId) => get().downloadedSongIds.has(songId),
         isDownloading: (itemId) => get().downloadingItemIds.has(itemId),
+        getDownloadProgress: (itemId) =>
+          get().downloadProgress.get(itemId) || 0,
+        cancelDownload: (itemId) => {
+          set((state) => ({
+            downloadCancelled: new Set(state.downloadCancelled).add(itemId),
+            downloadingItemIds: new Set(state.downloadingItemIds),
+            downloadProgress: new Map(state.downloadProgress),
+          }));
+          // Remove from downloading set
+          set((state) => {
+            const newDownloading = new Set(state.downloadingItemIds);
+            newDownloading.delete(itemId);
+            const newProgress = new Map(state.downloadProgress);
+            newProgress.delete(itemId);
+            return {
+              downloadingItemIds: newDownloading,
+              downloadProgress: newProgress,
+            };
+          });
+        },
 
         syncLibrary: async () => {
           const { isOffline } = get();
@@ -206,9 +232,16 @@ export const useOfflineStore = create<OfflineState>()(
 
           set((state) => ({
             downloadingItemIds: new Set(state.downloadingItemIds).add(itemId),
+            downloadProgress: new Map(state.downloadProgress).set(itemId, 0),
+            downloadCancelled: new Set(state.downloadCancelled),
           }));
 
           try {
+            // Check for cancellation before starting
+            if (get().downloadCancelled.has(itemId)) {
+              return;
+            }
+
             // 1. Fetch item metadata
             let endpoint = "";
             let storeName: "albums" | "playlists" | "mixes";
@@ -227,6 +260,16 @@ export const useOfflineStore = create<OfflineState>()(
 
             if (!serverItemData || !serverItemData.songs) {
               throw new Error(i18n.t("errors.invalidServerData"));
+            }
+
+            // Update progress: 20% - metadata fetched
+            set((state) => ({
+              downloadProgress: new Map(state.downloadProgress).set(itemId, 20),
+            }));
+
+            // Check for cancellation
+            if (get().downloadCancelled.has(itemId)) {
+              return;
             }
 
             // 2. Collect all URLs to cache (images, manifests, segments)
@@ -252,9 +295,29 @@ export const useOfflineStore = create<OfflineState>()(
               }
             }
 
+            // Update progress: 40% - URLs collected
+            set((state) => ({
+              downloadProgress: new Map(state.downloadProgress).set(itemId, 40),
+            }));
+
+            // Check for cancellation
+            if (get().downloadCancelled.has(itemId)) {
+              return;
+            }
+
             // 3. Cache all assets using Cache API
             const cache = await caches.open(HLS_ASSETS_CACHE_NAME);
             await cache.addAll(Array.from(urlsToCache));
+
+            // Update progress: 70% - assets cached
+            set((state) => ({
+              downloadProgress: new Map(state.downloadProgress).set(itemId, 70),
+            }));
+
+            // Check for cancellation
+            if (get().downloadCancelled.has(itemId)) {
+              return;
+            }
 
             // 4. Save metadata to IndexedDB
             const itemToSave = {
@@ -269,6 +332,16 @@ export const useOfflineStore = create<OfflineState>()(
               await saveUserItem("songs", { ...song, userId });
             }
 
+            // Update progress: 90% - data saved
+            set((state) => ({
+              downloadProgress: new Map(state.downloadProgress).set(itemId, 90),
+            }));
+
+            // Check for cancellation
+            if (get().downloadCancelled.has(itemId)) {
+              return;
+            }
+
             // 5. Update state
             set((state) => ({
               downloadedItemIds: new Set(state.downloadedItemIds).add(itemId),
@@ -279,14 +352,39 @@ export const useOfflineStore = create<OfflineState>()(
               downloadingItemIds: new Set(
                 [...state.downloadingItemIds].filter((id) => id !== itemId)
               ),
-            }));
-          } catch (error) {
-            console.error(`Failed to download ${itemType} ${itemId}:`, error);
-            set((state) => ({
-              downloadingItemIds: new Set(
-                [...state.downloadingItemIds].filter((id) => id !== itemId)
+              downloadProgress: new Map(state.downloadProgress).set(
+                itemId,
+                100
               ),
             }));
+
+            // Clean up progress and cancelled state
+            set((state) => {
+              const newProgress = new Map(state.downloadProgress);
+              const newCancelled = new Set(state.downloadCancelled);
+              newProgress.delete(itemId);
+              newCancelled.delete(itemId);
+              return {
+                downloadProgress: newProgress,
+                downloadCancelled: newCancelled,
+              };
+            });
+          } catch (error) {
+            console.error(`Failed to download ${itemType} ${itemId}:`, error);
+            set((state) => {
+              const newDownloading = new Set(
+                [...state.downloadingItemIds].filter((id) => id !== itemId)
+              );
+              const newProgress = new Map(state.downloadProgress);
+              const newCancelled = new Set(state.downloadCancelled);
+              newProgress.delete(itemId);
+              newCancelled.delete(itemId);
+              return {
+                downloadingItemIds: newDownloading,
+                downloadProgress: newProgress,
+                downloadCancelled: newCancelled,
+              };
+            });
             throw error;
           }
         },
