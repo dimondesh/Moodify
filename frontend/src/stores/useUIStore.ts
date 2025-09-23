@@ -122,6 +122,7 @@ export const useUIStore = create<UIStore>((set) => ({
         followedArtists: data.library.followedArtists || [],
         savedMixes: data.library.savedMixes || [],
         generatedPlaylists: data.library.generatedPlaylists || [],
+        isLoading: false,
       });
 
       usePlaylistStore.setState({
