@@ -22,6 +22,69 @@ import i18n from "@/lib/i18n";
 type ItemType = "albums" | "playlists" | "mixes" | "generated-playlists";
 const HLS_ASSETS_CACHE_NAME = "moodify-hls-assets-cache";
 
+// Helper function to calculate the size of a single item
+const calculateItemSize = async (
+  item: any,
+  cache: Cache,
+  cacheKeys: Request[]
+): Promise<number> => {
+  let size = 0;
+
+  try {
+    // Calculate size of item metadata (stored in IndexedDB)
+    const itemSize = new Blob([JSON.stringify(item)]).size;
+    size += itemSize;
+
+    // Calculate size of cached assets
+    const urlsToCheck = new Set<string>();
+
+    // Add image URL
+    if (item.imageUrl) {
+      urlsToCheck.add(item.imageUrl);
+    }
+
+    // Add song-related URLs
+    const songs = item.songsData || item.songs || [];
+    for (const song of songs) {
+      if (song.imageUrl) {
+        urlsToCheck.add(song.imageUrl);
+      }
+      if (song.hlsUrl) {
+        urlsToCheck.add(song.hlsUrl);
+        // Add HLS segment URLs
+        try {
+          const manifestResponse = await fetch(song.hlsUrl);
+          const manifestText = await manifestResponse.text();
+          const baseUrl = new URL(song.hlsUrl);
+          const segments = manifestText
+            .split("\n")
+            .filter((line) => line.endsWith(".ts"));
+          segments.forEach((segment) => {
+            const segmentUrl = new URL(segment, baseUrl);
+            urlsToCheck.add(segmentUrl.href);
+          });
+        } catch (e) {
+          // Skip if manifest can't be fetched
+        }
+      }
+    }
+
+    // Calculate size of cached assets
+    for (const url of urlsToCheck) {
+      const request = new Request(url);
+      const response = await cache.match(request);
+      if (response) {
+        const blob = await response.blob();
+        size += blob.size;
+      }
+    }
+  } catch (error) {
+    console.warn("Failed to calculate size for item:", item._id, error);
+  }
+
+  return size;
+};
+
 interface OfflineState {
   downloadedItemIds: Set<string>;
   downloadedSongIds: Set<string>;
@@ -46,6 +109,7 @@ interface OfflineState {
     ) => Promise<void>;
     syncLibrary: () => Promise<void>;
     getStorageUsage: () => Promise<{ usage: number; quota: number }>;
+    getDownloadedContentSize: () => Promise<{ usage: number; quota: number }>;
     clearAllDownloads: () => Promise<void>;
     fetchAllDownloaded: () => Promise<(Album | Playlist | Mix)[]>;
   };
@@ -488,6 +552,50 @@ export const useOfflineStore = create<OfflineState>()(
             };
           }
           return { usage: 0, quota: 0 };
+        },
+        getDownloadedContentSize: async () => {
+          const userId = useAuthStore.getState().user?.id;
+          if (!userId) return { usage: 0, quota: 0 };
+
+          try {
+            // Get all downloaded items
+            const [albums, playlists, mixes, songs] = await Promise.all([
+              getAllUserAlbums(userId),
+              getAllUserPlaylists(userId),
+              getAllUserMixes(userId),
+              getAllUserSongs(userId),
+            ]);
+
+            let totalSize = 0;
+            const cache = await caches.open(HLS_ASSETS_CACHE_NAME);
+            const cacheKeys = await cache.keys();
+
+            // Calculate size for each downloaded item
+            for (const album of albums) {
+              totalSize += await calculateItemSize(album, cache, cacheKeys);
+            }
+
+            for (const playlist of playlists) {
+              totalSize += await calculateItemSize(playlist, cache, cacheKeys);
+            }
+
+            for (const mix of mixes) {
+              totalSize += await calculateItemSize(mix, cache, cacheKeys);
+            }
+
+            // Get total quota
+            const quota = navigator.storage?.estimate
+              ? (await navigator.storage.estimate()).quota || 0
+              : 0;
+
+            return { usage: totalSize, quota };
+          } catch (error) {
+            console.error(
+              "Failed to calculate downloaded content size:",
+              error
+            );
+            return { usage: 0, quota: 0 };
+          }
         },
         clearAllDownloads: async () => {
           const userId = useAuthStore.getState().user?.id;

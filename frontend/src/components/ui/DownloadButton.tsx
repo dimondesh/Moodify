@@ -24,6 +24,7 @@ export const DownloadButton = ({
   const { t } = useTranslation();
   const downloadedItemIds = useOfflineStore((s) => s.downloadedItemIds);
   const downloadingItemIds = useOfflineStore((s) => s.downloadingItemIds);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const downloadProgress = useOfflineStore((s) => s.downloadProgress);
   const { downloadItem, deleteItem, cancelDownload, getDownloadProgress } =
     useOfflineStore((s) => s.actions);
@@ -85,7 +86,7 @@ export const DownloadButton = ({
       {status === "downloading" && (
         <div className="relative group">
           <svg
-            className="size-6 transform -rotate-90"
+            className="size-6 transform -rotate-90 transition-all duration-300 ease-out"
             xmlns="http://www.w3.org/2000/svg"
             width="100"
             height="100"
@@ -96,7 +97,12 @@ export const DownloadButton = ({
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <circle cx="12" cy="12" r="10" />
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+              className="transition-all duration-300 ease-out"
+            />
             <path
               d="M12 2 A 10 10 0 0 1 12 22"
               fill="none"
@@ -106,6 +112,14 @@ export const DownloadButton = ({
                 2 * Math.PI * 10
               }`}
               strokeLinecap="round"
+              className="transition-all duration-700 ease-out drop-shadow-sm"
+              style={{
+                strokeDashoffset: 0,
+                transition:
+                  "stroke-dasharray 0.7s cubic-bezier(0.4, 0, 0.2, 1), stroke-dashoffset 0.7s cubic-bezier(0.4, 0, 0.2, 1)",
+                transformOrigin: "center",
+                filter: "drop-shadow(0 0 4px rgba(139, 92, 246, 0.3))",
+              }}
             />
           </svg>
           <X className="absolute stroke-3 inset-0 m-auto size-4 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" />

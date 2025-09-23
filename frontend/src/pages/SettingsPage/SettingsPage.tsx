@@ -10,6 +10,7 @@ import {
   reverbIRPaths,
   useAudioSettingsStore,
 } from "../../lib/webAudio";
+import { RefreshCw } from "lucide-react";
 import { Label } from "../../components/ui/label";
 import { Slider } from "../../components/ui/slider";
 import { Switch } from "../../components/ui/switch";
@@ -115,14 +116,32 @@ const SettingsPage: React.FC = () => {
       }
     }
   };
-  const { getStorageUsage, clearAllDownloads } = useOfflineStore(
+  const { getDownloadedContentSize, clearAllDownloads } = useOfflineStore(
     (s) => s.actions
   );
+  const downloadedItemIds = useOfflineStore((s) => s.downloadedItemIds);
+  const downloadingItemIds = useOfflineStore((s) => s.downloadingItemIds);
   const [storageUsage, setStorageUsage] = useState({ usage: 0, quota: 0 });
+  const [isCalculatingStorage, setIsCalculatingStorage] = useState(false);
 
+  // Update storage usage when downloaded items change (with debouncing)
   useEffect(() => {
-    getStorageUsage().then(setStorageUsage);
-  }, [getStorageUsage]);
+    const calculateStorage = async () => {
+      setIsCalculatingStorage(true);
+      try {
+        const usage = await getDownloadedContentSize();
+        setStorageUsage(usage);
+      } catch (error) {
+        console.error("Failed to calculate storage usage:", error);
+      } finally {
+        setIsCalculatingStorage(false);
+      }
+    };
+
+    // Debounce the calculation to avoid excessive calls
+    const timeoutId = setTimeout(calculateStorage, 500);
+    return () => clearTimeout(timeoutId);
+  }, [getDownloadedContentSize, downloadedItemIds, downloadingItemIds]);
 
   const formatBytes = (bytes: number, decimals = 2) => {
     if (bytes === 0) return "0 Bytes";
@@ -131,6 +150,19 @@ const SettingsPage: React.FC = () => {
     const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
+  };
+
+  const handleRefreshStorage = async () => {
+    setIsCalculatingStorage(true);
+    try {
+      const usage = await getDownloadedContentSize();
+      setStorageUsage(usage);
+    } catch (error) {
+      console.error("Failed to refresh storage usage:", error);
+      toast.error(t("settings.storageRefreshFailed"));
+    } finally {
+      setIsCalculatingStorage(false);
+    }
   };
 
   return (
@@ -483,17 +515,37 @@ const SettingsPage: React.FC = () => {
             </h1>
             <Card className="bg-[#1a1a1a] border-[#2a2a2a] text-white shadow-lg p-6 space-y-8">
               <div>
-                <Label className="text-xl font-semibold mb-4 block">
-                  {t("settings.storage")}
-                </Label>
+                <div className="flex items-center justify-between mb-4">
+                  <Label className="text-xl font-semibold">
+                    {t("settings.storage")}
+                  </Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRefreshStorage}
+                    disabled={isCalculatingStorage}
+                    className="text-gray-400 hover:text-white"
+                  >
+                    <RefreshCw
+                      className={`size-4 ${
+                        isCalculatingStorage ? "animate-spin" : ""
+                      }`}
+                    />
+                  </Button>
+                </div>
                 <div className="bg-zinc-700/50 p-4 rounded-md">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-gray-400">
-                      {" "}
-                      {t("settings.usedStorage")}
+                      {t("settings.downloadedContent")}
                     </span>
                     <span className="font-semibold">
-                      {formatBytes(storageUsage.usage)}
+                      {isCalculatingStorage ? (
+                        <span className="text-gray-400">
+                          {t("settings.calculating")}
+                        </span>
+                      ) : (
+                        formatBytes(storageUsage.usage)
+                      )}
                     </span>
                   </div>
                   <div className="w-full bg-zinc-600 rounded-full h-2.5 mt-2">
