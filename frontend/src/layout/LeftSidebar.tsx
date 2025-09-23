@@ -116,69 +116,95 @@ const LeftSidebar = () => {
   const libraryItems = useMemo(() => {
     const libraryItemsMap = new Map<string, LibraryItem>();
 
-    (albums || []).forEach((album) =>
-      libraryItemsMap.set(album._id, {
-        _id: album._id,
-        type: "album",
-        title: album.title,
-        imageUrl: album.imageUrl,
-        createdAt: new Date(album.addedAt ?? new Date()),
-        artist: album.artist,
-        albumType: album.type,
-      } as AlbumItem)
-    );
+    // Helper function to check if item should be included based on offline state
+    const shouldIncludeItem = (
+      itemId: string,
+      itemType: "album" | "playlist" | "generated-playlist" | "mix" | "artist"
+    ) => {
+      if (!isOffline) return true; // Include all items when online
+
+      // When offline, only include downloaded items
+      if (itemType === "generated-playlist") {
+        return isDownloaded(itemId); // Generated playlists are stored as "playlist" type in offline store
+      }
+      return isDownloaded(itemId);
+    };
+
+    (albums || []).forEach((album) => {
+      if (shouldIncludeItem(album._id, "album")) {
+        libraryItemsMap.set(album._id, {
+          _id: album._id,
+          type: "album",
+          title: album.title,
+          imageUrl: album.imageUrl,
+          createdAt: new Date(album.addedAt ?? new Date()),
+          artist: album.artist,
+          albumType: album.type,
+        } as AlbumItem);
+      }
+    });
 
     [...(myPlaylists || []), ...(playlists || [])].forEach((playlist) => {
       if (!libraryItemsMap.has(playlist._id)) {
         const isGenerated = (playlist as any).isGenerated;
-        libraryItemsMap.set(playlist._id, {
-          _id: playlist._id,
-          type: isGenerated ? "generated-playlist" : "playlist",
-          title: isGenerated ? t((playlist as any).nameKey) : playlist.title,
-          imageUrl: playlist.imageUrl,
-          createdAt: new Date(
-            (playlist as any).addedAt || playlist.updatedAt || new Date()
-          ),
-          owner: playlist.owner,
-          isGenerated: isGenerated,
-        } as PlaylistItem);
+        const itemType = isGenerated ? "generated-playlist" : "playlist";
+
+        if (shouldIncludeItem(playlist._id, itemType)) {
+          libraryItemsMap.set(playlist._id, {
+            _id: playlist._id,
+            type: isGenerated ? "generated-playlist" : "playlist",
+            title: isGenerated ? t((playlist as any).nameKey) : playlist.title,
+            imageUrl: playlist.imageUrl,
+            createdAt: new Date(
+              (playlist as any).addedAt || playlist.updatedAt || new Date()
+            ),
+            owner: playlist.owner,
+            isGenerated: isGenerated,
+          } as PlaylistItem);
+        }
       }
     });
 
     (generatedPlaylists || []).forEach((playlist) => {
       if (!libraryItemsMap.has(playlist._id)) {
-        libraryItemsMap.set(playlist._id, {
-          _id: playlist._id,
-          type: "generated-playlist",
-          title: t(playlist.nameKey),
-          imageUrl: playlist.imageUrl,
-          createdAt: new Date(playlist.addedAt || playlist.generatedOn),
-          sourceName: "Moodify",
-        } as GeneratedPlaylistItem);
+        if (shouldIncludeItem(playlist._id, "generated-playlist")) {
+          libraryItemsMap.set(playlist._id, {
+            _id: playlist._id,
+            type: "generated-playlist",
+            title: t(playlist.nameKey),
+            imageUrl: playlist.imageUrl,
+            createdAt: new Date(playlist.addedAt || playlist.generatedOn),
+            sourceName: "Moodify",
+          } as GeneratedPlaylistItem);
+        }
       }
     });
 
-    (savedMixes || []).forEach((mix) =>
-      libraryItemsMap.set(mix._id, {
-        _id: mix._id,
-        type: "mix",
-        title: t(mix.name),
-        imageUrl: mix.imageUrl,
-        createdAt: new Date(mix.addedAt ?? new Date()),
-        sourceName: mix.sourceName,
-      } as MixItem)
-    );
+    (savedMixes || []).forEach((mix) => {
+      if (shouldIncludeItem(mix._id, "mix")) {
+        libraryItemsMap.set(mix._id, {
+          _id: mix._id,
+          type: "mix",
+          title: t(mix.name),
+          imageUrl: mix.imageUrl,
+          createdAt: new Date(mix.addedAt ?? new Date()),
+          sourceName: mix.sourceName,
+        } as MixItem);
+      }
+    });
 
-    (followedArtists || []).forEach((artist) =>
-      libraryItemsMap.set(artist._id, {
-        _id: artist._id,
-        type: "artist",
-        title: artist.name,
-        imageUrl: artist.imageUrl,
-        createdAt: new Date(artist.addedAt || artist.createdAt),
-        artistId: artist._id,
-      } as FollowedArtistItem)
-    );
+    (followedArtists || []).forEach((artist) => {
+      if (shouldIncludeItem(artist._id, "artist")) {
+        libraryItemsMap.set(artist._id, {
+          _id: artist._id,
+          type: "artist",
+          title: artist.name,
+          imageUrl: artist.imageUrl,
+          createdAt: new Date(artist.addedAt || artist.createdAt),
+          artistId: artist._id,
+        } as FollowedArtistItem);
+      }
+    });
 
     return Array.from(libraryItemsMap.values()).sort(
       (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
@@ -191,6 +217,8 @@ const LeftSidebar = () => {
     savedMixes,
     followedArtists,
     t,
+    isOffline,
+    isDownloaded,
   ]);
 
   return (

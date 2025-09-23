@@ -1,13 +1,30 @@
 // frontend/src/pages/OfflinePage/OfflinePage.tsx
 
 import { WifiOff } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
+import { useOfflineStore } from "@/stores/useOfflineStore";
+import { useEffect } from "react";
 
 const OfflinePage = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const isOffline = useOfflineStore((state) => state.isOffline);
+
+  // Redirect to homepage if user is online
+  useEffect(() => {
+    if (!isOffline) {
+      navigate("/", { replace: true });
+    }
+  }, [isOffline, navigate]);
+
+  // Don't render offline page content if user is online
+  if (!isOffline) {
+    return null;
+  }
+
   return (
     <>
       <Helmet>
