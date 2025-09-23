@@ -48,7 +48,7 @@ export default defineConfig({
           },
           {
             urlPattern: ({ url }) =>
-              url.origin === "https://moodify-yf1r.onrender.com/api",
+              url.origin === "https://moodify-fpvm.onrender.com/api",
             handler: "NetworkFirst",
             options: {
               cacheName: "moodify-api-cache",
