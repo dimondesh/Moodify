@@ -24,12 +24,19 @@ export const DownloadButton = ({
   const { t } = useTranslation();
   const downloadedItemIds = useOfflineStore((s) => s.downloadedItemIds);
   const downloadingItemIds = useOfflineStore((s) => s.downloadingItemIds);
-  const { downloadItem, deleteItem, cancelDownload, getDownloadProgress } =
-    useOfflineStore((s) => s.actions);
+  const downloadProgress = useOfflineStore((s) => s.downloadProgress);
+  const { downloadItem, deleteItem, cancelDownload } = useOfflineStore(
+    (s) => s.actions
+  );
 
   const isDownloaded = downloadedItemIds.has(itemId);
   const isDownloading = downloadingItemIds.has(itemId);
-  const progress = getDownloadProgress(itemId);
+  const progress = downloadProgress.get(itemId) || 0;
+  
+  // Debug logging
+  if (isDownloading) {
+    console.log(`Download progress for ${itemId}:`, progress);
+  }
 
   const status = isDownloaded
     ? "downloaded"
