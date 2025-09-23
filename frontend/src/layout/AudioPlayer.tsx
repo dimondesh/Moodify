@@ -23,6 +23,7 @@ const AudioPlayer = () => {
   const masterGainNodeRef = useRef<GainNode | null>(null);
   const lastSongIdRef = useRef<string | null>(null);
   const listenRecordedRef = useRef(false);
+  const fallbackTriggeredRef = useRef(false);
 
   const {
     currentSong,
@@ -99,6 +100,7 @@ const AudioPlayer = () => {
 
     if (lastSongIdRef.current !== currentSong._id) {
       listenRecordedRef.current = false;
+      fallbackTriggeredRef.current = false; // Reset fallback trigger for new song
       lastSongIdRef.current = currentSong._id;
 
       if (Hls.isSupported()) {
@@ -187,11 +189,30 @@ const AudioPlayer = () => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    const handleTimeUpdate = () => setCurrentTime(audio.currentTime, true);
+    const handleTimeUpdate = () => {
+      setCurrentTime(audio.currentTime, true);
+
+      // Fallback: Check if we're very close to the end and the ended event didn't fire
+      if (
+        audio.duration &&
+        audio.currentTime >= audio.duration - 0.1 &&
+        !fallbackTriggeredRef.current
+      ) {
+        fallbackTriggeredRef.current = true;
+        const state = usePlayerStore.getState();
+        if (state.repeatMode === "one") {
+          audio.currentTime = 0;
+          audio.play();
+        } else {
+          state.playNext();
+        }
+      }
+    };
     const handleDurationChange = () =>
       setDuration(audio.duration, audio.duration);
     const handleEnded = () => {
       const state = usePlayerStore.getState();
+      fallbackTriggeredRef.current = false; // Reset fallback trigger
       if (state.repeatMode === "one") {
         audio.currentTime = 0;
         audio.play();

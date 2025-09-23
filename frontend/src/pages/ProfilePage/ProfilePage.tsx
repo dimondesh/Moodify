@@ -11,7 +11,7 @@ import {
   AvatarImage,
 } from "../../components/ui/avatar";
 import { Button } from "../../components/ui/button";
-import { Loader2 } from "lucide-react";
+import StandardLoader from "../../components/ui/StandardLoader";
 import { ScrollArea } from "../../components/ui/scroll-area";
 import { EditProfileDialog } from "./EditProfileDialog";
 import ProfileSection from "./ProfileSection";
@@ -133,8 +133,12 @@ const ProfilePage = () => {
         <Helmet>
           <title>Loading Profile...</title>
         </Helmet>
-        <div className="flex justify-center items-center h-full bg-zinc-950">
-          <Loader2 className="animate-spin text-violet-500 size-12" />
+        <div className="flex justify-center items-center h-full bg-[#0f0f0f]">
+          <StandardLoader
+            size="lg"
+            text={t("pages.profile.loading")}
+            showText={true}
+          />
         </div>
       </>
     );

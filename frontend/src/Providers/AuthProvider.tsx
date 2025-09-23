@@ -41,8 +41,6 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        console.log("AuthProvider: Firebase user detected:", firebaseUser.uid);
-
         const isEmailPasswordProvider = firebaseUser.providerData.some(
           (p) => p.providerId === "password"
         );
@@ -60,7 +58,6 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           authState.user.isAdmin === undefined;
 
         if (needsSync && !authState.isLoading) {
-          console.log("AuthProvider: Online, syncing user with backend...");
           try {
             await fetchUser(firebaseUser.uid);
           } catch (error) {

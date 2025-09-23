@@ -202,13 +202,6 @@ export const useAuthStore = create<AuthStore>()(
 
           get().setUser(fullUser);
           set({ isLoading: false, error: null });
-
-          console.log(
-            "AuthStore: User synced with backend. MongoDB ID:",
-            syncedUserFromBackend._id,
-            "Is Admin:",
-            syncedUserFromBackend.isAdmin
-          );
         } catch (error: any) {
           console.error("AuthStore: Sync error:", error);
           set({
