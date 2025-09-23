@@ -6,6 +6,7 @@ import SectionGridSkeleton from "./SectionGridSkeleton";
 import { useMusicStore } from "../../stores/useMusicStore";
 import { JSX, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import AlbumCoverImage from "../../components/AlbumCoverImage";
 
 interface Artist {
   _id: string;
@@ -162,14 +163,12 @@ const SectionGrid = ({
                     onClick={(e) => handleNavigateToAlbum(e, song.albumId)}
                     className="w-full h-full block"
                   >
-                    <img
+                    <AlbumCoverImage
                       src={song.imageUrl || "/default-song-cover.png"}
                       alt={song.title || t("common.noTitle")}
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src =
-                          "/default-song-cover.png";
-                      }}
+                      albumId={song.albumId}
+                      fallbackSrc="/default-song-cover.png"
                     />
                   </button>
                 </div>

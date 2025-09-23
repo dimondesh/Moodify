@@ -9,6 +9,7 @@ import axios from "axios";
 import { ScrollArea, ScrollBar } from "../../components/ui/scroll-area";
 import { useMusicStore } from "../../stores/useMusicStore";
 import { useTranslation } from "react-i18next";
+import AlbumCoverImage from "../../components/AlbumCoverImage";
 import { getArtistNames, getOptimizedImageUrl } from "@/lib/utils";
 
 const AllSongsPage = () => {
@@ -89,17 +90,15 @@ const AllSongsPage = () => {
             >
               <div className="relative mb-3">
                 <div className="aspect-square rounded-md shadow-lg overflow-hidden">
-                  <img
+                  <AlbumCoverImage
                     src={getOptimizedImageUrl(
                       song.imageUrl || "/default-song-cover.png",
                       300
                     )}
                     alt={song.title || t("common.noTitle")}
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src =
-                        "/default-song-cover.png";
-                    }}
+                    albumId={song.albumId}
+                    fallbackSrc="/default-song-cover.png"
                   />
                 </div>
                 <PlayButton song={song} songs={songs} songIndex={index} />
