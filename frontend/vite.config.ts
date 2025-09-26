@@ -5,7 +5,7 @@ import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 import { visualizer } from "rollup-plugin-visualizer";
 
-const BUNNY_CDN_HOSTNAME = "moodify.b-cdn.net";
+const BUNNY_CDN_HOSTNAME = "moodify-one.b-cdn.net";
 
 export default defineConfig({
   base: "/",
