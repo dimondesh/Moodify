@@ -82,7 +82,7 @@ define(['./workbox-7356b21a'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "index.html",
-    "revision": "0.08edca5opa"
+    "revision": "0.rr8ftlf6cc8"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
@@ -90,7 +90,7 @@ define(['./workbox-7356b21a'], (function (workbox) { 'use strict';
   }));
   workbox.registerRoute(function (_a) {
     var url = _a.url;
-    return url.hostname === BUNNY_CDN_HOSTNAME;
+    return url.hostname === "moodify-one.b-cdn.net";
   }, new workbox.CacheFirst({
     "cacheName": "moodify-hls-assets-cache",
     plugins: [new workbox.ExpirationPlugin({

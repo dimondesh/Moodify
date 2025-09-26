@@ -5,8 +5,6 @@ import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 import { visualizer } from "rollup-plugin-visualizer";
 
-const BUNNY_CDN_HOSTNAME = "moodify-one.b-cdn.net";
-
 export default defineConfig({
   base: "/",
 
@@ -32,7 +30,7 @@ export default defineConfig({
         runtimeCaching: [
           {
             // Этот кэш будет использоваться для явного скачивания HLS и обложек
-            urlPattern: ({ url }) => url.hostname === BUNNY_CDN_HOSTNAME,
+            urlPattern: ({ url }) => url.hostname === "moodify-one.b-cdn.net",
             handler: "CacheFirst",
             options: {
               cacheName: "moodify-hls-assets-cache", // Новое, более точное имя
