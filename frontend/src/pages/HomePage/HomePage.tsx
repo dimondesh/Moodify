@@ -32,7 +32,7 @@ const HomePageComponent = () => {
   const {
     recentlyListenedSongs,
     madeForYouSongs,
-    trendingSongs,
+    trendingAlbums,
     featuredSongs,
     favoriteArtists,
     newReleases,
@@ -88,9 +88,15 @@ const HomePageComponent = () => {
       !isHomePageLoading &&
       (madeForYouSongs.length > 0 ||
         featuredSongs.length > 0 ||
-        trendingSongs.length > 0)
+        trendingAlbums.length > 0)
     ) {
-      const allSongs = [...featuredSongs, ...madeForYouSongs, ...trendingSongs];
+      const allSongs = [...featuredSongs, ...madeForYouSongs];
+      // Добавляем песни из трендовых альбомов
+      const trendingSongsFromAlbums = trendingAlbums.flatMap(
+        (album) => album.songs || []
+      );
+      allSongs.push(...trendingSongsFromAlbums);
+
       if (allSongs.length > 0) {
         initializeQueue(allSongs);
       }
@@ -99,7 +105,7 @@ const HomePageComponent = () => {
     initializeQueue,
     madeForYouSongs,
     featuredSongs,
-    trendingSongs,
+    trendingAlbums,
     currentSong,
     isHomePageLoading,
   ]);
@@ -152,9 +158,10 @@ const HomePageComponent = () => {
       madeForYouSongs.map((song) => ({ ...song, itemType: "song" as const })),
     [madeForYouSongs]
   );
-  const trendingSongsItems = useMemo(
-    () => trendingSongs.map((song) => ({ ...song, itemType: "song" as const })),
-    [trendingSongs]
+  const trendingAlbumsItems = useMemo(
+    () =>
+      trendingAlbums.map((album) => ({ ...album, itemType: "album" as const })),
+    [trendingAlbums]
   );
   const recentlyListenedItems = useMemo(
     () =>
@@ -219,10 +226,10 @@ const HomePageComponent = () => {
   );
   const handleShowAllTrending = useCallback(
     () =>
-      navigate("/all-songs/trending", {
-        state: { songs: trendingSongs, title: t("homepage.trending") },
+      navigate("/all-albums/trending", {
+        state: { albums: trendingAlbums, title: t("homepage.trending") },
       }),
-    [navigate, trendingSongs, t]
+    [navigate, trendingAlbums, t]
   );
 
   return (
@@ -311,7 +318,7 @@ const HomePageComponent = () => {
 
                   <HorizontalSection
                     title={t("homepage.trending")}
-                    items={trendingSongsItems}
+                    items={trendingAlbumsItems}
                     isLoading={isSecondaryHomePageLoading}
                     t={t}
                     limit={12}

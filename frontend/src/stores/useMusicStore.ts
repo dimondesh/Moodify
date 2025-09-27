@@ -42,6 +42,7 @@ interface MusicStore {
   moods: Mood[];
   madeForYouSongs: Song[];
   trendingSongs: Song[];
+  trendingAlbums: Album[];
   stats: Stats;
   paginatedSongs: Song[];
   songsPage: number;
@@ -74,7 +75,7 @@ interface MusicStore {
   fetchArtistAppearsOn: (artistId: string) => Promise<void>;
 }
 
-const CACHE_DURATION = 24 * 60 * 60 * 1000; 
+const CACHE_DURATION = 24 * 60 * 60 * 1000;
 
 export const useMusicStore = create<MusicStore>((set, get) => ({
   albums: [],
@@ -93,6 +94,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
   featuredSongs: [],
   madeForYouSongs: [],
   trendingSongs: [],
+  trendingAlbums: [],
   favoriteArtists: [],
   newReleases: [],
   paginatedSongs: [],

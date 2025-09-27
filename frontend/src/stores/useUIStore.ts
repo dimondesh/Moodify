@@ -108,6 +108,7 @@ export const useUIStore = create<UIStore>((set) => ({
       useMusicStore.setState({
         featuredSongs: data.featuredSongs || [],
         trendingSongs: data.trendingSongs || [],
+        trendingAlbums: data.trendingAlbums || [],
         madeForYouSongs: data.madeForYouSongs || [],
         recentlyListenedSongs: data.recentlyListenedSongs || [],
         favoriteArtists: data.favoriteArtists || [],

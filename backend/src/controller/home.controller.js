@@ -7,6 +7,7 @@ import {
   getMadeForYouSongs,
   getListenHistory,
 } from "./song.controller.js";
+import { getTrendingAlbums } from "./album.controller.js";
 import { getDailyMixes } from "./mix.controller.js";
 import { getPublicPlaylists } from "./playlist.controller.js";
 import {
@@ -96,7 +97,7 @@ export const getBootstrapData = async (req, res, next) => {
     const promises = [
       getQuickPicks(req, res, next, true, 6),
 
-      getTrendingSongs(req, res, next, true, HOME_SECTION_LIMIT),
+      getTrendingAlbums(req, res, next, true, HOME_SECTION_LIMIT),
 
       getDailyMixes(req, res, next, true, HOME_SECTION_LIMIT),
 
@@ -115,7 +116,7 @@ export const getBootstrapData = async (req, res, next) => {
 
     const [
       featuredSongs,
-      trendingSongs,
+      trendingAlbums,
       mixesData,
       publicPlaylists,
       allGeneratedPlaylists,
@@ -129,7 +130,7 @@ export const getBootstrapData = async (req, res, next) => {
 
     const bootstrapData = {
       featuredSongs,
-      trendingSongs,
+      trendingAlbums,
       genreMixes: mixesData.genreMixes,
       moodMixes: mixesData.moodMixes,
       publicPlaylists,
