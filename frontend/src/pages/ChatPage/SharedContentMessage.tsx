@@ -69,7 +69,17 @@ export const SharedContentMessage: React.FC<SharedContentMessageProps> = ({
       entityType === "mix"
     ) {
       if ((entity as Album | Playlist | Mix).songs?.length > 0) {
-        playAlbum((entity as Album | Playlist | Mix).songs, 0);
+        playAlbum((entity as Album | Playlist | Mix).songs, 0, {
+          type:
+            entityType === "mix"
+              ? "mix"
+              : entityType === "playlist"
+              ? "playlist"
+              : "album",
+          entityId: (entity as Album | Playlist | Mix)._id,
+          entityTitle:
+            (entity as Album | Playlist).title || (entity as Mix).name,
+        });
       } else {
         toast.error(t("common.noSongsToPlay"));
       }

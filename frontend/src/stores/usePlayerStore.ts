@@ -24,11 +24,20 @@ interface PlayerStore {
   isMobileLyricsFullScreen: boolean;
   originalDuration: number;
   seekVersion: number;
+  currentPlaybackContext: {
+    type: "album" | "playlist" | "generated-playlist" | "mix" | "artist";
+    entityId?: string;
+    entityTitle?: string;
+  } | null;
 
   setRepeatMode: (mode: "off" | "all" | "one") => void;
   toggleShuffle: () => void;
   initializeQueue: (songs: Song[]) => void;
-  playAlbum: (songs: Song[], startIndex?: number) => void;
+  playAlbum: (
+    songs: Song[],
+    startIndex?: number,
+    context?: { type: string; entityId?: string; entityTitle?: string }
+  ) => void;
   setCurrentSong: (song: Song | null) => void;
   togglePlay: () => void;
   playNext: () => void;
@@ -40,6 +49,9 @@ interface PlayerStore {
   setIsDesktopLyricsOpen: (isOpen: boolean) => void;
   setIsMobileLyricsFullScreen: (isOpen: boolean) => void;
   seekToTime: (time: number) => void;
+  setPlaybackContext: (
+    context: { type: string; entityId?: string; entityTitle?: string } | null
+  ) => void;
 }
 
 const shuffleQueue = (length: number) => {
@@ -91,6 +103,7 @@ export const usePlayerStore = create<PlayerStore>()(
         shufflePointer: -1,
         isFullScreenPlayerOpen: false,
         masterVolume: 75,
+        currentPlaybackContext: null,
         currentTime: 0,
         duration: 0,
         originalDuration: 0,
@@ -153,7 +166,11 @@ export const usePlayerStore = create<PlayerStore>()(
           });
         },
 
-        playAlbum: (songs: Song[], startIndex = 0) => {
+        playAlbum: (
+          songs: Song[],
+          startIndex = 0,
+          context?: { type: string; entityId?: string; entityTitle?: string }
+        ) => {
           if (songs.length === 0) {
             silentAudioService.pause();
             set({
@@ -209,6 +226,18 @@ export const usePlayerStore = create<PlayerStore>()(
               shuffleHistory: newShuffleHistory,
               shufflePointer: newShufflePointer,
               currentTime: 0,
+              currentPlaybackContext: context
+                ? {
+                    type: context.type as
+                      | "album"
+                      | "playlist"
+                      | "generated-playlist"
+                      | "mix"
+                      | "artist",
+                    entityId: context.entityId,
+                    entityTitle: context.entityTitle,
+                  }
+                : null,
             };
           });
         },
@@ -548,6 +577,29 @@ export const usePlayerStore = create<PlayerStore>()(
             seekVersion: state.seekVersion + 1,
             isPlaying: true,
           }));
+        },
+
+        setPlaybackContext: (
+          context: {
+            type: string;
+            entityId?: string;
+            entityTitle?: string;
+          } | null
+        ) => {
+          set({
+            currentPlaybackContext: context
+              ? {
+                  type: context.type as
+                    | "album"
+                    | "playlist"
+                    | "generated-playlist"
+                    | "mix"
+                    | "artist",
+                  entityId: context.entityId,
+                  entityTitle: context.entityTitle,
+                }
+              : null,
+          });
         },
       };
     },

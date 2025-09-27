@@ -2,7 +2,12 @@
 import { Song } from "../models/song.model.js";
 import { ListenHistory } from "../models/listenHistory.model.js";
 import { User } from "../models/user.model.js";
-import { UserRecommendation } from "../models/userRecommendation.model.js"; 
+import { UserRecommendation } from "../models/userRecommendation.model.js";
+import { Album } from "../models/album.model.js";
+import { Playlist } from "../models/playlist.model.js";
+import { Mix } from "../models/mix.model.js";
+import { Artist } from "../models/artist.model.js";
+import { GeneratedPlaylist } from "../models/generatedPlaylist.model.js";
 import axios from "axios";
 
 export const getAllSongs = async (req, res, next) => {
@@ -234,6 +239,7 @@ export const getMadeForYouSongs = async (
 export const recordListen = async (req, res, next) => {
   try {
     const { id: songId } = req.params;
+    const { playbackContext } = req.body;
 
     const userId = req.user.id;
     const user = await User.findById(userId).select("isAnonymous");
@@ -258,10 +264,38 @@ export const recordListen = async (req, res, next) => {
       return res.status(404).json({ message: "Song not found." });
     }
 
-    const listen = new ListenHistory({
+    // Валидация контекста воспроизведения (если предоставлен)
+    const validContextTypes = [
+      "album",
+      "playlist",
+      "generated-playlist",
+      "mix",
+      "artist",
+    ];
+
+    if (playbackContext && !validContextTypes.includes(playbackContext.type)) {
+      return res.status(400).json({
+        message: "Invalid playback context type.",
+        validTypes: validContextTypes,
+      });
+    }
+
+    // Создаем запись прослушивания
+    const listenData = {
       user: userId,
       song: songId,
-    });
+    };
+
+    // Добавляем контекст только если он предоставлен
+    if (playbackContext) {
+      listenData.playbackContext = {
+        type: playbackContext.type,
+        entityId: playbackContext.entityId || null,
+        entityTitle: playbackContext.entityTitle || null,
+      };
+    }
+
+    const listen = new ListenHistory(listenData);
     await listen.save();
 
     await Song.updateOne({ _id: songId }, { $inc: { playCount: 1 } });
@@ -299,28 +333,117 @@ export const getListenHistory = async (
       .lean();
 
     if (!fullHistory || fullHistory.length === 0) {
-      const result = { songs: [] };
+      const result = { entities: [] };
       if (returnInternal) return result;
       return res.json(result);
     }
 
-    const uniqueSongs = [];
-    const seenSongIds = new Set();
+    // Группируем по контексту воспроизведения и получаем уникальные сущности
+    const uniqueEntities = [];
+    const seenEntityKeys = new Set();
 
     for (const record of fullHistory) {
-      if (record.song && !seenSongIds.has(record.song._id.toString())) {
-        seenSongIds.add(record.song._id.toString());
-        uniqueSongs.push(record.song);
+      // Показываем только записи с контекстом воспроизведения
+      if (!record.playbackContext) continue;
+
+      const { type, entityId, entityTitle } = record.playbackContext;
+      const entityKey = `${type}-${entityId}`;
+
+      if (!seenEntityKeys.has(entityKey)) {
+        seenEntityKeys.add(entityKey);
+
+        // Создаем объект сущности на основе контекста
+        const entity = {
+          _id: entityId,
+          itemType: type,
+          title: entityTitle || "Unknown",
+          imageUrl: null, // Будет заполнено актуальной обложкой
+          songs: [],
+        };
+
+        if (entityId) {
+          // Получаем актуальную информацию о сущности (включая обновленную обложку)
+          try {
+            let entityData = null;
+            switch (type) {
+              case "album":
+                entityData = await Album.findById(entityId)
+                  .select("title imageUrl type artist")
+                  .populate("artist", "name")
+                  .lean();
+                break;
+              case "playlist":
+                entityData = await Playlist.findById(entityId)
+                  .select("title imageUrl owner")
+                  .populate("owner", "fullName")
+                  .lean();
+                break;
+              case "mix":
+                entityData = await Mix.findById(entityId)
+                  .select("name imageUrl type")
+                  .lean();
+                if (entityData) {
+                  // Для миксов сохраняем name как есть, так как фронтенд использует t(item.name)
+                  entityData.title = entityData.name;
+                }
+                break;
+              case "generated-playlist":
+                entityData = await GeneratedPlaylist.findById(entityId)
+                  .select("nameKey imageUrl")
+                  .lean();
+                if (entityData) {
+                  entityData.title = entityData.nameKey;
+                }
+                break;
+              case "artist":
+                entityData = await Artist.findById(entityId)
+                  .select("name imageUrl")
+                  .lean();
+                if (entityData) {
+                  entityData.title = entityData.name;
+                }
+                break;
+            }
+
+            if (entityData) {
+              entity.title = entityData.title || entityTitle;
+              entity.imageUrl = entityData.imageUrl; // Актуальная обложка
+
+              // Добавляем дополнительные поля для правильного отображения подзаголовков
+              if (type === "album") {
+                entity.type = entityData.type;
+                entity.artist = entityData.artist;
+              } else if (type === "playlist") {
+                entity.owner = entityData.owner;
+              } else if (type === "mix") {
+                entity.type = entityData.type;
+              } else if (type === "generated-playlist") {
+                entity.nameKey = entityData.nameKey;
+              } else if (type === "artist") {
+                entity.name = entityData.name;
+              }
+            }
+          } catch (error) {
+            console.warn(
+              `Could not fetch entity data for ${type} ${entityId}:`,
+              error.message
+            );
+            // Если не удалось получить данные, используем дефолтную обложку
+            entity.imageUrl = "/default-album-cover.png";
+          }
+        }
+
+        uniqueEntities.push(entity);
       }
     }
 
-    const result = { songs: uniqueSongs.slice(0, limit) };
+    const result = { entities: uniqueEntities.slice(0, limit) };
 
     if (returnInternal) return result;
     return res.status(200).json(result);
   } catch (error) {
     console.error("Error fetching listen history:", error);
-    if (returnInternal) return { songs: [] };
+    if (returnInternal) return { entities: [] };
     next(error);
   }
 };

@@ -36,6 +36,7 @@ interface MusicStore {
   currentArtist: Artist | null;
   cachedArtists: Map<string, CachedArtist>;
   recentlyListenedSongs: Song[];
+  recentlyListenedEntities: any[];
   homePageDataLastFetched: number | null;
   featuredSongs: Song[];
   genres: Genre[];
@@ -90,6 +91,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
   currentArtist: null,
   cachedArtists: new Map(),
   recentlyListenedSongs: [],
+  recentlyListenedEntities: [],
   homePageDataLastFetched: null,
   featuredSongs: [],
   madeForYouSongs: [],
@@ -330,16 +332,25 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
   },
   fetchRecentlyListenedSongs: async () => {
     if (useOfflineStore.getState().isOffline) return;
+    set({ isLoading: true, error: null });
     try {
       const response = await axiosInstance.get("/songs/history");
-      set({ recentlyListenedSongs: response.data.songs || [] });
-      console.log("✅ Recently Listened songs updated.");
+      set({
+        recentlyListenedSongs: response.data.songs || [],
+        recentlyListenedEntities: response.data.entities || [],
+        isLoading: false,
+      });
+      console.log("✅ Recently Listened songs and entities updated.");
     } catch (error: any) {
       console.error(
         "Could not fetch listen history:",
         error.response?.data?.message
       );
-      set({ recentlyListenedSongs: [] });
+      set({
+        recentlyListenedSongs: [],
+        recentlyListenedEntities: [],
+        isLoading: false,
+      });
     }
   },
   fetchTrendingSongs: async () => {

@@ -109,13 +109,23 @@ const GeneratedPlaylistPage = () => {
       isPlaying &&
       currentPlaylist.songs.some((song) => song._id === currentSong?._id);
     if (isThisPlaylistInPlayer) togglePlay();
-    else playAlbum(currentPlaylist.songs, 0);
+    else
+      playAlbum(currentPlaylist.songs, 0, {
+        type: "generated-playlist",
+        entityId: currentPlaylist._id,
+        entityTitle: currentPlaylist.nameKey,
+      });
   };
 
   const handlePlaySong = (song: Song, index: number) => {
     if (!currentPlaylist) return;
     if (currentSong?._id === song._id) togglePlay();
-    else playAlbum(currentPlaylist.songs, index);
+    else
+      playAlbum(currentPlaylist.songs, index, {
+        type: "generated-playlist",
+        entityId: currentPlaylist._id,
+        entityTitle: currentPlaylist.nameKey,
+      });
   };
 
   const handleSongTitleClick = (albumId: string | null | undefined) => {

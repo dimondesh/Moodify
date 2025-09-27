@@ -114,10 +114,45 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
     return null;
   }
 
-  const itemsToShow = items.slice(0, limit);
+  // Функция для проверки валидности элемента
+  const isValidItem = (item: DisplayItem): boolean => {
+    if (!item || !item._id || !item.itemType) return false;
+
+    switch (item.itemType) {
+      case "song":
+      case "album":
+      case "playlist":
+        return !!(item as Song | Album | Playlist).title;
+      case "artist":
+        return (
+          !!(item as Artist).name ||
+          !!(item as Artist & { title?: string }).title
+        );
+      case "mix":
+        return (
+          !!(item as Mix).name || !!(item as Mix & { title?: string }).title
+        );
+      case "generated-playlist":
+        return (
+          !!(item as GeneratedPlaylist).nameKey ||
+          !!(item as GeneratedPlaylist & { title?: string }).title
+        );
+      default:
+        return false;
+    }
+  };
+
+  // Фильтруем элементы с валидными данными
+  const validItems = items.filter(isValidItem);
+
+  if (validItems.length === 0) {
+    return null;
+  }
+
+  const itemsToShow = validItems.slice(0, limit);
   const canShowAll = onShowAll && items.length > limit;
 
-  const songsOnly = items.filter(
+  const songsOnly = validItems.filter(
     (item): item is Song & { itemType: "song" } => item.itemType === "song"
   );
 
@@ -145,25 +180,46 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
   };
 
   const getDisplayTitle = (item: DisplayItem): string => {
-    if (item.itemType === "artist") return item.name;
-    if (item.itemType === "mix") return t(item.name);
-    if (item.itemType === "generated-playlist") return t(item.nameKey);
-    return item.title;
+    if (item.itemType === "artist") {
+      return (
+        (item as Artist).name ||
+        (item as Artist & { title?: string }).title ||
+        "Unknown Artist"
+      );
+    }
+    if (item.itemType === "mix") {
+      // Для миксов используем name если есть, иначе title (из истории)
+      const mixName =
+        (item as Mix).name || (item as Mix & { title?: string }).title;
+      return mixName ? t(mixName) : "Unknown Mix";
+    }
+    if (item.itemType === "generated-playlist") {
+      const nameKey =
+        (item as GeneratedPlaylist).nameKey ||
+        (item as GeneratedPlaylist & { title?: string }).title;
+      return nameKey ? t(nameKey) : "Unknown Playlist";
+    }
+    return item.title || "Unknown Title";
   };
 
   const getSubtitle = (item: DisplayItem): string => {
     switch (item.itemType) {
       case "song":
         return getArtistNames((item as Song).artist, allArtists);
-      case "album":
-        return `${t(
-          `sidebar.subtitle.${(item as Album).type}`
-        )} • ${getArtistNames((item as Album).artist, allArtists)}`;
-      case "playlist":
+      case "album": {
+        const album = item as Album;
+        const albumType = album.type || "album";
+        const albumArtists = album.artist
+          ? getArtistNames(album.artist, allArtists)
+          : t("sidebar.subtitle.unknownArtist");
+        return `${t(`sidebar.subtitle.${albumType}`)} • ${albumArtists}`;
+      }
+      case "playlist": {
+        const playlist = item as Playlist;
         return t("sidebar.subtitle.byUser", {
-          name:
-            (item as Playlist).owner?.fullName || t("sidebar.subtitle.user"),
+          name: playlist.owner?.fullName || t("sidebar.subtitle.user"),
         });
+      }
       case "generated-playlist":
         return `${t("sidebar.subtitle.playlist")} • Moodify`;
       case "mix":
@@ -218,26 +274,6 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
       >
         <div className="flex gap-4 pb-4">
           {itemsToShow.map((item) => {
-            if (item.itemType === "mix") {
-              return (
-                <div
-                  key={`${item.itemType}-${item._id}`}
-                  onClick={() => handleItemClick(item)}
-                  className="group relative cursor-pointer overflow-hidden rounded-md bg-zinc-800/60 hover:bg-zinc-700/80 transition-all w-36 sm:w-44 flex-shrink-0"
-                >
-                  <img
-                    src={getOptimizedImageUrl(item.imageUrl, 200)}
-                    alt={getDisplayTitle(item)}
-                    className="w-full h-full object-cover aspect-square transition-transform duration-300 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 flex items-end justify-start p-2 sm:p-3 bg-gradient-to-t from-black/80 via-black/20 to-transparent">
-                    <h3 className="text-white text-base sm:text-lg font-bold drop-shadow-lg break-words whitespace-normal leading-tight">
-                      {getDisplayTitle(item)}
-                    </h3>
-                  </div>
-                </div>
-              );
-            }
             const songIndex =
               item.itemType === "song"
                 ? songsOnly.findIndex((s) => s._id === item._id)
@@ -258,7 +294,7 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
                           className="object-cover h-auto w-auto rounded-full transition-transform duration-300 group-hover:scale-105"
                         />
                         <AvatarFallback>
-                          {getDisplayTitle(item)[0]}
+                          {getDisplayTitle(item)?.[0] || "?"}
                         </AvatarFallback>
                       </Avatar>
                     ) : (

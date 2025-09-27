@@ -109,18 +109,27 @@ const ArtistPage = () => {
       return;
     }
     if (isAnyPopularSongPlaying) togglePlay();
-    else playAlbum(popularSongs, 0);
-  }, [popularSongs, isAnyPopularSongPlaying, togglePlay, playAlbum]);
+    else
+      playAlbum(popularSongs, 0, {
+        type: "artist",
+        entityId: artist?._id,
+        entityTitle: artist?.name,
+      });
+  }, [popularSongs, isAnyPopularSongPlaying, togglePlay, playAlbum, artist]);
 
   const handlePlaySpecificSong = useCallback(
     (song: Song, index: number) => {
       if (currentSong?._id === song._id) togglePlay();
       else {
         setCurrentSong(song);
-        playAlbum(popularSongs, index);
+        playAlbum(popularSongs, index, {
+          type: "artist",
+          entityId: artist?._id,
+          entityTitle: artist?.name,
+        });
       }
     },
-    [currentSong, togglePlay, setCurrentSong, playAlbum, popularSongs]
+    [currentSong, togglePlay, setCurrentSong, playAlbum, popularSongs, artist]
   );
 
   const handleToggleFollow = useCallback(async () => {
@@ -132,7 +141,7 @@ const ArtistPage = () => {
       toast.error(t("common.failedToChangeFollowStatus"));
       console.error("Error toggling artist follow:", e);
     }
-  }, [artist, id, toggleArtistFollow, fetchArtistById]);
+  }, [artist, id, toggleArtistFollow, fetchArtistById, t]);
 
   if (loading) {
     return (

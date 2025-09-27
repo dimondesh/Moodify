@@ -35,6 +35,7 @@ const AudioPlayer = () => {
     setDuration,
     currentTime,
     seekVersion,
+    currentPlaybackContext,
   } = usePlayerStore();
 
   const { playbackRateEnabled, playbackRate } = useAudioSettingsStore();
@@ -171,10 +172,20 @@ const AudioPlayer = () => {
       !isOffline
     ) {
       listenRecordedRef.current = true;
+
+      // Подготавливаем контекст воспроизведения
+      const playbackContext = currentPlaybackContext;
+
       axiosInstance
-        .post(`/songs/${currentSong._id}/listen`)
+        .post(`/songs/${currentSong._id}/listen`, { playbackContext })
         .then(() => {
-          console.log(`Listen recorded for ${currentSong.title}`);
+          console.log(
+            `Listen recorded for ${currentSong.title}${
+              playbackContext
+                ? ` from ${playbackContext.type}`
+                : " (no context)"
+            }`
+          );
           useMusicStore.getState().fetchRecentlyListenedSongs();
         })
         .catch((e) => {
@@ -182,7 +193,14 @@ const AudioPlayer = () => {
           console.error("Failed to record listen", e);
         });
     }
-  }, [currentTime, isPlaying, currentSong, user, isOffline]);
+  }, [
+    currentTime,
+    isPlaying,
+    currentSong,
+    user,
+    isOffline,
+    currentPlaybackContext,
+  ]);
 
   // Event Listeners для <audio>
   useEffect(() => {

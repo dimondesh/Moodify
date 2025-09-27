@@ -130,13 +130,23 @@ const MixDetailsPage = () => {
       queue.length > 0 &&
       currentMix.songs.some((song) => song._id === currentSong._id);
     if (isThisMixInPlayer) togglePlay();
-    else playAlbum(currentMix.songs, 0);
+    else
+      playAlbum(currentMix.songs, 0, {
+        type: "mix",
+        entityId: currentMix._id,
+        entityTitle: currentMix.name,
+      });
   };
 
   const handlePlaySong = (song: Song, index: number) => {
     if (!currentMix) return;
     if (currentSong?._id === song._id) togglePlay();
-    else playAlbum(currentMix.songs, index);
+    else
+      playAlbum(currentMix.songs, index, {
+        type: "mix",
+        entityId: currentMix._id,
+        entityTitle: currentMix.name,
+      });
   };
 
   const handleSongTitleClick = (albumId: string | null | undefined) => {

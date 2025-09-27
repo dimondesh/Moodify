@@ -14,6 +14,23 @@ const listenHistorySchema = new mongoose.Schema(
       ref: "Song",
       required: true,
     },
+    playbackContext: {
+      type: {
+        type: String,
+        enum: ["album", "playlist", "generated-playlist", "mix", "artist"],
+        required: false, // Контекст необязателен - может быть null для подсчета без показа в истории
+      },
+      entityId: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: false, // Может быть null для некоторых типов
+      },
+      entityTitle: {
+        type: String,
+        required: false,
+      },
+      // Примечание: entityImageUrl не сохраняется, так как обложки могут часто обновляться.
+      // Актуальная обложка получается при каждом запросе истории.
+    },
     listenedAt: {
       type: Date,
       default: Date.now,

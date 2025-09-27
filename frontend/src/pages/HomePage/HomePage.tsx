@@ -31,11 +31,14 @@ const HomePageComponent = () => {
 
   const {
     recentlyListenedSongs,
+    recentlyListenedEntities,
     madeForYouSongs,
     trendingAlbums,
     featuredSongs,
     favoriteArtists,
     newReleases,
+    fetchRecentlyListenedSongs,
+    isLoading: isMusicStoreLoading,
   } = useMusicStore();
 
   const { genreMixes, moodMixes } = useMixesStore();
@@ -81,6 +84,13 @@ const HomePageComponent = () => {
     changeBackgroundColor,
     isMobile,
   ]);
+
+  // Загружаем историю прослушивания при загрузке страницы
+  useEffect(() => {
+    if (user && !user.isAnonymous) {
+      fetchRecentlyListenedSongs();
+    }
+  }, [user, fetchRecentlyListenedSongs]);
 
   useEffect(() => {
     if (
@@ -165,11 +175,11 @@ const HomePageComponent = () => {
   );
   const recentlyListenedItems = useMemo(
     () =>
-      recentlyListenedSongs.map((song) => ({
-        ...song,
-        itemType: "song" as const,
+      recentlyListenedEntities.map((entity) => ({
+        ...entity,
+        itemType: entity.itemType,
       })),
-    [recentlyListenedSongs]
+    [recentlyListenedEntities]
   );
   const genreMixesItems = useMemo(
     () => genreMixes.map((mix) => ({ ...mix, itemType: "mix" as const })),
@@ -309,7 +319,7 @@ const HomePageComponent = () => {
                     <HorizontalSection
                       title={t("homepage.recentlyListened")}
                       items={recentlyListenedItems}
-                      isLoading={isSecondaryHomePageLoading}
+                      isLoading={isMusicStoreLoading}
                       t={t}
                       limit={12}
                       onShowAll={handleShowAllRecentlyListened}

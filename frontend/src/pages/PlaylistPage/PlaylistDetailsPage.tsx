@@ -250,7 +250,11 @@ const PlaylistDetailsPage = () => {
     if (isCurrentPlaylistPlaying) {
       togglePlay();
     } else {
-      playAlbum(currentPlaylist.songs, 0);
+      playAlbum(currentPlaylist.songs, 0, {
+        type: "playlist",
+        entityId: currentPlaylist._id,
+        entityTitle: currentPlaylist.title,
+      });
     }
   };
 
@@ -264,10 +268,18 @@ const PlaylistDetailsPage = () => {
         togglePlay();
       } else {
         setCurrentSong(song);
-        playAlbum(currentPlaylist.songs, index);
+        playAlbum(currentPlaylist.songs, index, {
+          type: "playlist",
+          entityId: currentPlaylist._id,
+          entityTitle: currentPlaylist.title,
+        });
       }
     } else {
-      playAlbum(currentPlaylist.songs, index);
+      playAlbum(currentPlaylist.songs, index, {
+        type: "playlist",
+        entityId: currentPlaylist._id,
+        entityTitle: currentPlaylist.title,
+      });
     }
   };
 

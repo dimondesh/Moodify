@@ -10,9 +10,20 @@ type PlayButtonProps = {
   songs: Song[];
   songIndex: number;
   onClick?: (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
+  playbackContext?: {
+    type: string;
+    entityId?: string;
+    entityTitle?: string;
+  };
 };
 
-const PlayButton = ({ song, songs, songIndex, onClick }: PlayButtonProps) => {
+const PlayButton = ({
+  song,
+  songs,
+  songIndex,
+  onClick,
+  playbackContext,
+}: PlayButtonProps) => {
   const { currentSong, isPlaying, playAlbum, togglePlay, queue } =
     usePlayerStore();
 
@@ -29,7 +40,7 @@ const PlayButton = ({ song, songs, songIndex, onClick }: PlayButtonProps) => {
     if (isCurrentlyPlayingFromThisList) {
       togglePlay();
     } else {
-      playAlbum(songs, songIndex);
+      playAlbum(songs, songIndex, playbackContext);
     }
   };
 

@@ -141,11 +141,20 @@ const AlbumPage = () => {
       (song) => song._id === currentSong?._id
     );
     if (isCurrentAlbumPlaying) togglePlay();
-    else playAlbum(currentAlbum.songs, 0);
+    else
+      playAlbum(currentAlbum.songs, 0, {
+        type: "album",
+        entityId: currentAlbum._id,
+        entityTitle: currentAlbum.title,
+      });
   };
 
   const handlePlaySong = (index: number) => {
-    playAlbum(currentAlbum.songs, index);
+    playAlbum(currentAlbum.songs, index, {
+      type: "album",
+      entityId: currentAlbum._id,
+      entityTitle: currentAlbum.title,
+    });
   };
 
   const handleArtistClick = (artistId: string) => {
