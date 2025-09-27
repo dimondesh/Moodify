@@ -37,6 +37,7 @@ interface MusicStore {
   cachedArtists: Map<string, CachedArtist>;
   recentlyListenedSongs: Song[];
   recentlyListenedEntities: any[];
+  isRecentlyListenedLoading: boolean;
   homePageDataLastFetched: number | null;
   featuredSongs: Song[];
   genres: Genre[];
@@ -92,6 +93,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
   cachedArtists: new Map(),
   recentlyListenedSongs: [],
   recentlyListenedEntities: [],
+  isRecentlyListenedLoading: false,
   homePageDataLastFetched: null,
   featuredSongs: [],
   madeForYouSongs: [],
@@ -332,13 +334,13 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
   },
   fetchRecentlyListenedSongs: async () => {
     if (useOfflineStore.getState().isOffline) return;
-    set({ isLoading: true, error: null });
+    set({ isRecentlyListenedLoading: true });
     try {
       const response = await axiosInstance.get("/songs/history");
       set({
         recentlyListenedSongs: response.data.songs || [],
         recentlyListenedEntities: response.data.entities || [],
-        isLoading: false,
+        isRecentlyListenedLoading: false,
       });
       console.log("✅ Recently Listened songs and entities updated.");
     } catch (error: any) {
@@ -349,7 +351,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
       set({
         recentlyListenedSongs: [],
         recentlyListenedEntities: [],
-        isLoading: false,
+        isRecentlyListenedLoading: false,
       });
     }
   },

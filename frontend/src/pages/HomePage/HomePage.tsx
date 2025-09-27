@@ -38,7 +38,7 @@ const HomePageComponent = () => {
     favoriteArtists,
     newReleases,
     fetchRecentlyListenedSongs,
-    isLoading: isMusicStoreLoading,
+    isRecentlyListenedLoading,
   } = useMusicStore();
 
   const { genreMixes, moodMixes } = useMixesStore();
@@ -87,10 +87,16 @@ const HomePageComponent = () => {
 
   // Загружаем историю прослушивания при загрузке страницы
   useEffect(() => {
-    if (user && !user.isAnonymous) {
+    if (
+      user &&
+      !user.isAnonymous &&
+      recentlyListenedEntities.length === 0 &&
+      !isRecentlyListenedLoading
+    ) {
       fetchRecentlyListenedSongs();
     }
-  }, [user, fetchRecentlyListenedSongs]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, recentlyListenedEntities.length, isRecentlyListenedLoading]); // fetchRecentlyListenedSongs стабильна из store
 
   useEffect(() => {
     if (
@@ -319,7 +325,7 @@ const HomePageComponent = () => {
                     <HorizontalSection
                       title={t("homepage.recentlyListened")}
                       items={recentlyListenedItems}
-                      isLoading={isMusicStoreLoading}
+                      isLoading={isRecentlyListenedLoading}
                       t={t}
                       limit={12}
                       onShowAll={handleShowAllRecentlyListened}
