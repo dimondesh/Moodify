@@ -206,8 +206,8 @@ const GeneratedPlaylistPage = () => {
             </div>
           </div>
           <div className="items-center hidden md:flex text-xs">
-            {song.createdAt
-              ? format(new Date(song.createdAt), "MMM dd, yyyy")
+            {currentPlaylist?.createdAt
+              ? format(new Date(currentPlaylist.createdAt), "MMM dd, yyyy")
               : "N/A"}
           </div>
           <div className="flex items-center text-xs sm:text-sm flex-shrink-0 justify-end md:mr-10">
@@ -392,11 +392,11 @@ const GeneratedPlaylistPage = () => {
                   </div>
                 </div>
               </div>
-              <div className="px-4 sm:px-6 pb-4 flex items-center gap-2">
+              <div className="px-4 sm:px-6 pb-4 flex items-center gap-1">
                 {currentPlaylist.songs.length > 0 && (
                   <Button
                     size="icon"
-                    className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-violet-500 hover:bg-violet-400 transition-colors shadow-lg flex-shrink-0 hover:scale-105"
+                    className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-violet-500 hover:bg-violet-400 transition-all duration-100 shadow-lg flex-shrink-0 hover:scale-105"
                     onClick={handlePlayPlaylist}
                     title={
                       isCurrentPlaylistPlaying
@@ -414,9 +414,9 @@ const GeneratedPlaylistPage = () => {
                 <Button
                   onClick={handleToggleInLibrary}
                   disabled={isTogglingLibrary || !user}
-                  variant="ghost"
+                  variant="ghost2"
                   size="icon"
-                  className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full p-2 transition-colors hover:bg-white/10 ${
+                  className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full p-2 transition-colors group ${
                     !user ? "opacity-50 cursor-not-allowed" : ""
                   }`}
                   title={
@@ -428,9 +428,9 @@ const GeneratedPlaylistPage = () => {
                   }
                 >
                   {isInLibrary ? (
-                    <CheckedIcon className="size-6 text-violet-400" />
+                    <CheckedIcon className="size-8 text-violet-400" />
                   ) : (
-                    <PlusCircle className="size-6 text-white" />
+                    <PlusCircle className="size-8 text-white/80 group-hover:text-white transition-colors" />
                   )}
                 </Button>
                 <DownloadButton

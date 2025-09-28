@@ -310,8 +310,8 @@ const MixDetailsPage = () => {
             </div>
           </div>
           <div className="items-center hidden md:flex text-xs">
-            {song.createdAt
-              ? format(new Date(song.createdAt), "MMM dd, yyyy")
+            {currentMix?.createdAt
+              ? format(new Date(currentMix.createdAt), "MMM dd, yyyy")
               : "N/A"}
           </div>
           <div className="flex items-center text-xs sm:text-sm flex-shrink-0 justify-end md:mr-10">
@@ -465,11 +465,11 @@ const MixDetailsPage = () => {
                 </div>
               </div>
 
-              <div className="px-4 sm:px-6 pb-4 flex flex-wrap sm:justify-start items-center gap-2">
+              <div className="px-4 sm:px-6 pb-4 flex flex-wrap sm:justify-start items-center gap-1">
                 {currentMix.songs.length > 0 && (
                   <Button
                     size="icon"
-                    className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white hover:bg-white/90 transition-colors shadow-lg flex-shrink-0 hover:scale-105"
+                    className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white hover:bg-white/90 transition-all duration-100 shadow-lg flex-shrink-0 hover:scale-105"
                     onClick={handlePlayMix}
                     title={
                       isCurrentMixPlaying
@@ -487,11 +487,11 @@ const MixDetailsPage = () => {
                 <Button
                   onClick={handleToggleMixInLibrary}
                   disabled={isTogglingLibrary || !user}
-                  variant="ghost"
+                  variant="ghost2"
                   size="icon"
-                  className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-transparent p-2 hover:border-white/20 transition-colors flex-shrink-0 ${
-                    isInLibrary ? "hover:bg-white/20" : "hover:bg-white/10"
-                  } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
+                  className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full border border-transparent p-2 transition-colors flex-shrink-0 group ${
+                    !user ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                   title={
                     !user
                       ? t("auth.loginRequired")
@@ -501,9 +501,9 @@ const MixDetailsPage = () => {
                   }
                 >
                   {isInLibrary ? (
-                    <CheckedIcon className="size-6 text-[#8b5cf6]" />
+                    <CheckedIcon className="size-8 text-[#8b5cf6]" />
                   ) : (
-                    <PlusCircle className="size-6 text-white" />
+                    <PlusCircle className="size-8 text-white/80 group-hover:text-white transition-colors" />
                   )}
                 </Button>
                 <DownloadButton
@@ -513,9 +513,9 @@ const MixDetailsPage = () => {
                   disabled={!user}
                 />
                 <Button
-                  variant="ghost"
+                  variant="ghost2"
                   size="icon"
-                  className={`w-9 h-9 sm:w-10 sm:h-10 rounded-md p-2 transition-colors ${
+                  className={`w-12 h-12 sm:w-14 sm:h-14 rounded-md p-2 transition-colors group ${
                     !user ? "opacity-50 cursor-not-allowed" : ""
                   }`}
                   title={!user ? t("auth.loginRequired") : t("common.share")}
@@ -524,7 +524,7 @@ const MixDetailsPage = () => {
                   }
                   disabled={!user}
                 >
-                  <Share className="size-6 text-white" />
+                  <Share className="size-8 text-white/80 group-hover:text-white transition-colors" />
                 </Button>
               </div>
 

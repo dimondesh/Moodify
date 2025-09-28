@@ -32,7 +32,7 @@ export const DownloadButton = ({
   const isDownloaded = downloadedItemIds.has(itemId);
   const isDownloading = downloadingItemIds.has(itemId);
   const progress = downloadProgress.get(itemId) || 0;
-  
+
   // Debug logging
   if (isDownloading) {
     console.log(`Download progress for ${itemId}:`, progress);
@@ -80,9 +80,9 @@ export const DownloadButton = ({
   return (
     <Button
       onClick={handleClick}
-      variant="ghost"
+      variant="ghost2"
       size="icon"
-      className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex-shrink-0 ${
+      className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex-shrink-0 group ${
         disabled ? "opacity-50 cursor-not-allowed" : ""
       }`}
       disabled={disabled}
@@ -91,13 +91,13 @@ export const DownloadButton = ({
       {status === "downloading" && (
         <div className="relative group">
           <svg
-            className="size-6 transform -rotate-90 transition-all duration-300 ease-out"
+            className="size-8 transform -rotate-90 transition-all duration-300 ease-out text-white/80 group-hover:text-white"
             xmlns="http://www.w3.org/2000/svg"
             width="100"
             height="100"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="white"
+            stroke="currentColor "
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -127,17 +127,17 @@ export const DownloadButton = ({
               }}
             />
           </svg>
-          <X className="absolute stroke-3 inset-0 m-auto size-4 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+          <X className="absolute stroke-3 inset-0 m-auto size-6 text-white/80 group-hover:text-white opacity-0 group-hover:opacity-100 transition-all duration-200" />
         </div>
       )}
       {status === "downloaded" && (
         <svg
-          className="size-6"
+          className="size-8 text-white/80 group-hover:text-white transition-colors"
           xmlns="http://www.w3.org/2000/svg"
           width="100"
           height="100"
           fill="none"
-          stroke="#000"
+          stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="2"
@@ -155,13 +155,13 @@ export const DownloadButton = ({
       )}
       {status === "idle" && (
         <svg
-          className="size-6"
+          className="size-8 text-white/80 group-hover:text-white transition-colors"
           xmlns="http://www.w3.org/2000/svg"
           width="100"
           height="100"
           viewBox="0 0 24 24"
           fill="none"
-          stroke="white"
+          stroke="currentColor"
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
