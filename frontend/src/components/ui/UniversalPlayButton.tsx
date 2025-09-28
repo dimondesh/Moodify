@@ -11,6 +11,7 @@ import type {
   Mix,
   Artist,
   GeneratedPlaylist,
+  LibraryItem,
 } from "@/types";
 
 type EntityType =
@@ -22,7 +23,14 @@ type EntityType =
   | "generated-playlist";
 
 type UniversalPlayButtonProps = {
-  entity: Song | Album | Playlist | Mix | Artist | GeneratedPlaylist;
+  entity:
+    | Song
+    | Album
+    | Playlist
+    | Mix
+    | Artist
+    | GeneratedPlaylist
+    | LibraryItem;
   entityType: EntityType;
   songs?: Song[];
   onClick?: (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
@@ -124,22 +132,42 @@ const UniversalPlayButton = ({
       case "song":
         return songs || [entity as Song];
       case "album":
+        // Проверяем, это LibraryItem или обычный Album
+        if ("type" in entity && entity.type === "album") {
+          return entitySongs; // Для LibraryItem используем загруженные песни
+        }
         return (entity as Album).songs?.length > 0
           ? (entity as Album).songs
           : entitySongs;
       case "playlist":
+        // Проверяем, это LibraryItem или обычный Playlist
+        if ("type" in entity && entity.type === "playlist") {
+          return entitySongs; // Для LibraryItem используем загруженные песни
+        }
         return (entity as Playlist).songs?.length > 0
           ? (entity as Playlist).songs
           : entitySongs;
       case "mix":
+        // Проверяем, это LibraryItem или обычный Mix
+        if ("type" in entity && entity.type === "mix") {
+          return entitySongs; // Для LibraryItem используем загруженные песни
+        }
         return (entity as Mix).songs?.length > 0
           ? (entity as Mix).songs
           : entitySongs;
       case "generated-playlist":
+        // Проверяем, это LibraryItem или обычный GeneratedPlaylist
+        if ("type" in entity && entity.type === "generated-playlist") {
+          return entitySongs; // Для LibraryItem используем загруженные песни
+        }
         return (entity as GeneratedPlaylist).songs?.length > 0
           ? (entity as GeneratedPlaylist).songs
           : entitySongs;
       case "artist":
+        // Проверяем, это LibraryItem или обычный Artist
+        if ("type" in entity && entity.type === "artist") {
+          return entitySongs.length > 0 ? entitySongs.slice(0, 5) : [];
+        }
         return entitySongs.length > 0
           ? entitySongs.slice(0, 5)
           : (entity as Artist).songs?.slice(0, 5) || [];
