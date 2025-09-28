@@ -1,5 +1,5 @@
 // frontend/src/components/ui/UniversalPlayButton.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Button } from "./button";
 import { Play, Pause } from "lucide-react";
 import { usePlayerStore } from "@/stores/usePlayerStore";
@@ -66,68 +66,86 @@ const UniversalPlayButton = ({
       "mix",
       "generated-playlist",
     ].includes(entityType);
-    const hasSongs =
-      (entity as Album | Playlist | Mix | GeneratedPlaylist).songs &&
-      (entity as Album | Playlist | Mix | GeneratedPlaylist).songs!.length > 0;
+
+    if (!needsSongs || isLoadingSongs) {
+      return;
+    }
+
+    const entitySongs =
+      (entity as Album | Playlist | Mix | GeneratedPlaylist).songs || [];
+    const hasSongs = entitySongs.length > 0;
+    const hasValidSongs = entitySongs.some((song) => song.hlsUrl);
+
+    // Если песни есть и они валидные, не загружаем заново
+    if (hasSongs && hasValidSongs) {
+      return;
+    }
+
+    // Если уже загружаем или уже загружены, не загружаем заново
+    if (entitySongs.length > 0) {
+      return;
+    }
 
     console.log(`UniversalPlayButton useEffect:`, {
       entityType,
       entityId: entity._id,
       needsSongs,
       hasSongs,
+      hasValidSongs,
       entitySongsLength: entitySongs.length,
       isLoadingSongs,
-      entity,
     });
 
-    if (needsSongs && !hasSongs && !entitySongs.length && !isLoadingSongs) {
-      setIsLoadingSongs(true);
+    setIsLoadingSongs(true);
 
-      let apiEndpoint = "";
-      switch (entityType) {
-        case "artist":
-          apiEndpoint = `/artists/${entity._id}`;
-          break;
-        case "album":
-          apiEndpoint = `/albums/${entity._id}`;
-          break;
-        case "playlist":
-          apiEndpoint = `/playlists/${entity._id}`;
-          break;
-        case "mix":
-          apiEndpoint = `/mixes/${entity._id}`;
-          break;
-        case "generated-playlist":
-          apiEndpoint = `/generated-playlists/${entity._id}`;
-          break;
-      }
-
-      if (apiEndpoint) {
-        console.log(`Loading songs for ${entityType} from ${apiEndpoint}`);
-        axiosInstance
-          .get(apiEndpoint)
-          .then((response) => {
-            console.log(`Loaded data for ${entityType}:`, response.data);
-            // Для альбомов данные приходят в формате { album: ... }
-            const songs =
-              entityType === "album"
-                ? response.data.album?.songs || []
-                : response.data.songs || [];
-            console.log(`Extracted ${songs.length} songs for ${entityType}`);
-            setEntitySongs(songs);
-          })
-          .catch((error) => {
-            console.error(`Failed to load ${entityType} songs:`, error);
-            setEntitySongs([]);
-          })
-          .finally(() => {
-            setIsLoadingSongs(false);
-          });
-      }
+    let apiEndpoint = "";
+    switch (entityType) {
+      case "artist":
+        apiEndpoint = `/artists/${entity._id}`;
+        break;
+      case "album":
+        apiEndpoint = `/albums/${entity._id}`;
+        break;
+      case "playlist":
+        apiEndpoint = `/playlists/${entity._id}`;
+        break;
+      case "mix":
+        apiEndpoint = `/mixes/${entity._id}`;
+        break;
+      case "generated-playlist":
+        apiEndpoint = `/generated-playlists/${entity._id}`;
+        break;
     }
-  }, [entityType, entity._id, entitySongs.length, isLoadingSongs, entity]);
 
-  const getSongsFromEntity = (): Song[] => {
+    if (apiEndpoint) {
+      console.log(`Loading songs for ${entityType} from ${apiEndpoint}`);
+      axiosInstance
+        .get(apiEndpoint)
+        .then((response) => {
+          console.log(`Loaded data for ${entityType}:`, response.data);
+          // Для альбомов данные приходят в формате { album: ... }
+          const songs =
+            entityType === "album"
+              ? response.data.album?.songs || []
+              : response.data.songs || [];
+          console.log(`Extracted ${songs.length} songs for ${entityType}`);
+          console.log(`First song details:`, songs[0]);
+          console.log(`First song has hlsUrl:`, !!songs[0]?.hlsUrl);
+          setEntitySongs(songs);
+        })
+        .catch((error) => {
+          console.error(`Failed to load ${entityType} songs:`, error);
+          setEntitySongs([]);
+        })
+        .finally(() => {
+          setIsLoadingSongs(false);
+        });
+    } else {
+      setIsLoadingSongs(false);
+    }
+  }, [entityType, entity._id, isLoadingSongs, entity]);
+
+  const songsToPlay = useMemo((): Song[] => {
     switch (entityType) {
       case "song":
         return songs || [entity as Song];
@@ -174,7 +192,7 @@ const UniversalPlayButton = ({
       default:
         return [];
     }
-  };
+  }, [entityType, entity, entitySongs, songs]);
 
   const getPlaybackContext = () => {
     switch (entityType) {
@@ -219,7 +237,6 @@ const UniversalPlayButton = ({
     }
   };
 
-  const songsToPlay = getSongsFromEntity();
   const playbackContext = getPlaybackContext();
 
   const isCurrentlyPlayingFromThisEntity =
