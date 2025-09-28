@@ -276,7 +276,11 @@ const UniversalPlayButton = ({
   const getButtonStyles = () => {
     if (variant === "overlay") {
       return `hidden sm:flex bg-transparent hover:bg-transparent hover:scale-105 transition-all rounded-full w-6 h-6
-        opacity-0 group-hover:opacity-100 ${className}`;
+        ${
+          isCurrentlyPlayingFromThisEntity
+            ? "opacity-100"
+            : "opacity-0 group-hover:opacity-100"
+        } ${className}`;
     }
 
     return `hidden sm:flex bg-violet-500 hover:bg-violet-400 hover:scale-105 transition-all rounded-full w-12 h-12
@@ -289,8 +293,12 @@ const UniversalPlayButton = ({
 
   const getIconStyles = () => {
     if (variant === "overlay") {
-      // Для overlay всегда показываем play, чтобы избежать дергания
-      return <Play className="size-3 text-white fill-current" />;
+      // Для overlay показываем play/pause в зависимости от состояния воспроизведения
+      return isCurrentlyPlayingFromThisEntity ? (
+        <Pause className="size-3 text-white fill-current" />
+      ) : (
+        <Play className="size-3 text-white fill-current" />
+      );
     }
 
     return isCurrentlyPlayingFromThisEntity ? (
