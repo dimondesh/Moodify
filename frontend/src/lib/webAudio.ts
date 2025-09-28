@@ -22,11 +22,11 @@ export interface EqualizerPreset {
 
 export const equalizerPresets: EqualizerPreset[] = [
   {
-    name: "Flat",
+    name: "flat",
     gains: Object.fromEntries(defaultFrequencies.map((freq) => [freq, 0])),
   },
   {
-    name: "Bass Boost",
+    name: "bassBoost",
     gains: {
       "60": 6,
       "310": 3,
@@ -37,7 +37,7 @@ export const equalizerPresets: EqualizerPreset[] = [
     },
   },
   {
-    name: "Vocal Boost",
+    name: "vocalBoost",
     gains: {
       "60": -3,
       "310": 2,
@@ -48,7 +48,7 @@ export const equalizerPresets: EqualizerPreset[] = [
     },
   },
   {
-    name: "Treble Boost",
+    name: "trebleBoost",
     gains: {
       "60": -3,
       "310": -2,
@@ -59,7 +59,7 @@ export const equalizerPresets: EqualizerPreset[] = [
     },
   },
   {
-    name: "Rock",
+    name: "rock",
     gains: {
       "60": 4,
       "310": -2,
@@ -70,7 +70,7 @@ export const equalizerPresets: EqualizerPreset[] = [
     },
   },
   {
-    name: "Pop",
+    name: "pop",
     gains: {
       "60": 2,
       "310": 3,
@@ -81,7 +81,7 @@ export const equalizerPresets: EqualizerPreset[] = [
     },
   },
   {
-    name: "Acoustic",
+    name: "acoustic",
     gains: {
       "60": 3,
       "310": 0,
@@ -92,7 +92,7 @@ export const equalizerPresets: EqualizerPreset[] = [
     },
   },
   {
-    name: "Electronic",
+    name: "electronic",
     gains: {
       "60": 5,
       "310": 0,
@@ -103,7 +103,7 @@ export const equalizerPresets: EqualizerPreset[] = [
     },
   },
   {
-    name: "Jazz",
+    name: "jazz",
     gains: {
       "60": 2,
       "310": 0,
@@ -114,7 +114,7 @@ export const equalizerPresets: EqualizerPreset[] = [
     },
   },
   {
-    name: "Classical",
+    name: "classical",
     gains: {
       "60": 0,
       "310": 0,
@@ -125,7 +125,7 @@ export const equalizerPresets: EqualizerPreset[] = [
     },
   },
   {
-    name: "Dance",
+    name: "dance",
     gains: {
       "60": 5,
       "310": 0,
@@ -136,7 +136,7 @@ export const equalizerPresets: EqualizerPreset[] = [
     },
   },
   {
-    name: "R&B",
+    name: "rnb",
     gains: {
       "60": 4,
       "310": 0,
@@ -147,7 +147,7 @@ export const equalizerPresets: EqualizerPreset[] = [
     },
   },
   {
-    name: "Lounge",
+    name: "lounge",
     gains: {
       "60": 3,
       "310": 1,
@@ -158,7 +158,7 @@ export const equalizerPresets: EqualizerPreset[] = [
     },
   },
   {
-    name: "Gaming",
+    name: "gaming",
     gains: {
       "60": 4,
       "310": 0,
@@ -169,7 +169,7 @@ export const equalizerPresets: EqualizerPreset[] = [
     },
   },
   {
-    name: "Speech",
+    name: "speech",
     gains: {
       "60": -6,
       "310": -2,
@@ -178,6 +178,10 @@ export const equalizerPresets: EqualizerPreset[] = [
       "6000": 4,
       "12000": 2,
     },
+  },
+  {
+    name: "custom",
+    gains: Object.fromEntries(defaultFrequencies.map((freq) => [freq, 0])),
   },
 ];
 
@@ -247,7 +251,7 @@ export const useAudioSettingsStore = create<AudioStore>()(
             ...state.equalizerGains,
             [frequency]: gain,
           },
-          activePresetName: "Custom",
+          activePresetName: "custom",
         }));
         webAudioService.applySettingsToGraph();
       },
@@ -278,7 +282,7 @@ export const useAudioSettingsStore = create<AudioStore>()(
         webAudioService.applySettingsToGraph();
       },
       updateCustomPreset: () => {
-        set({ activePresetName: "Custom" });
+        set({ activePresetName: "custom" });
       },
       setReverbEnabled: (enabled) => {
         set({ reverbEnabled: enabled });

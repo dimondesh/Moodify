@@ -1066,7 +1066,26 @@
     "noSongsToPlay": "У этого элемента нет песен для воспроизведения.",
     "failedToUpdateLibrary": "Не удалось обновить библиотеку.",
     "mutualFollowersRequired": "Вы должны быть взаимными подписчиками для чата",
-    "with": "с"
+    "with": "с",
+    "noFriendsToShare": "Нет друзей для обмена"
+  },
+  "equalizerPresets": {
+    "flat": "Плоский",
+    "bassBoost": "Усиление басов",
+    "vocalBoost": "Усиление вокала",
+    "trebleBoost": "Усиление высоких",
+    "rock": "Рок",
+    "pop": "Поп",
+    "acoustic": "Акустика",
+    "electronic": "Электроника",
+    "jazz": "Джаз",
+    "classical": "Классика",
+    "dance": "Танцы",
+    "rnb": "R&B",
+    "lounge": "Лаунж",
+    "gaming": "Игры",
+    "speech": "Речь",
+    "custom": "Пользовательский"
   },
   "generatedPlaylists": {
     "onRepeat": {

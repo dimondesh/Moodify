@@ -34,6 +34,7 @@ import { useUIStore } from "@/stores/useUIStore";
 import { ShareDialog } from "@/components/ui/ShareDialog";
 import SongOptionsDrawer from "../PlaylistPage/SongOptionsDrawer";
 import { getArtistNames } from "@/lib/utils";
+import { useHasFriends } from "@/hooks/useHasFriends";
 
 const formatDuration = (seconds: number): string => {
   const minutes = Math.floor(seconds / 60);
@@ -58,6 +59,7 @@ const MixDetailsPage = () => {
   const [selectedSongForMenu, setSelectedSongForMenu] = useState<Song | null>(
     null
   );
+  const { hasFriends } = useHasFriends();
 
   const [isTogglingLibrary, setIsTogglingLibrary] = useState(false);
   const { extractColor } = useDominantColor();
@@ -516,13 +518,19 @@ const MixDetailsPage = () => {
                   variant="ghost2"
                   size="icon"
                   className={`w-12 h-12 sm:w-14 sm:h-14 rounded-md p-2 transition-colors group ${
-                    !user ? "opacity-50 cursor-not-allowed" : ""
+                    !user || !hasFriends ? "opacity-50 cursor-not-allowed" : ""
                   }`}
-                  title={!user ? t("auth.loginRequired") : t("common.share")}
+                  title={
+                    !user
+                      ? t("auth.loginRequired")
+                      : !hasFriends
+                      ? t("common.noFriendsToShare")
+                      : t("common.share")
+                  }
                   onClick={() =>
                     openShareDialog({ type: "mix", id: currentMix._id })
                   }
-                  disabled={!user}
+                  disabled={!user || !hasFriends}
                 >
                   <Share className="size-8 text-white/80 group-hover:text-white transition-colors" />
                 </Button>

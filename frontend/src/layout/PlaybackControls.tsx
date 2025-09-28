@@ -43,6 +43,7 @@ import { useUIStore } from "@/stores/useUIStore";
 import { CreatePlaylistDialog } from "../pages/PlaylistPage/CreatePlaylistDialog";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../lib/firebase";
+import { useHasFriends } from "@/hooks/useHasFriends";
 
 const formatTime = (seconds: number) => {
   if (isNaN(seconds) || seconds < 0) return "0:00";
@@ -81,6 +82,7 @@ const PlaybackControls = () => {
   const navigate = useNavigate();
   const { isIosDevice } = useUIStore();
   const [user] = useAuthState(auth);
+  const { hasFriends } = useHasFriends();
 
   const {
     currentSong,
@@ -672,17 +674,23 @@ const PlaybackControls = () => {
                           <Button
                             size="icon"
                             variant="ghost"
-                            className="hover:text-white text-zinc-400"
+                            className={`hover:text-white text-zinc-400 ${
+                              !user || !hasFriends
+                                ? "opacity-50 cursor-not-allowed"
+                                : ""
+                            }`}
                             onClick={() =>
                               openShareDialog({
                                 type: "song",
                                 id: currentSong._id,
                               })
                             }
-                            disabled={!user}
+                            disabled={!user || !hasFriends}
                             title={
                               !user
                                 ? t("auth.loginRequired")
+                                : !hasFriends
+                                ? t("common.noFriendsToShare")
                                 : t("player.share")
                             }
                           >
@@ -941,12 +949,20 @@ const PlaybackControls = () => {
               <Button
                 size="icon"
                 variant="ghost"
-                className="hover:text-white hover:bg-[#2a2a2a] text-gray-400 h-8 w-8"
+                className={`hover:text-white hover:bg-[#2a2a2a] text-gray-400 h-8 w-8 ${
+                  !user || !hasFriends ? "opacity-50 cursor-not-allowed" : ""
+                }`}
                 onClick={() =>
                   openShareDialog({ type: "song", id: currentSong._id })
                 }
-                disabled={!user}
-                title={!user ? t("auth.loginRequired") : t("player.share")}
+                disabled={!user || !hasFriends}
+                title={
+                  !user
+                    ? t("auth.loginRequired")
+                    : !hasFriends
+                    ? t("common.noFriendsToShare")
+                    : t("player.share")
+                }
               >
                 <Share className="h-4 w-4" />
               </Button>

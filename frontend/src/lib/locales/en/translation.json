@@ -1070,7 +1070,26 @@
     "noSongsToPlay": "This item has no songs to play.",
     "failedToUpdateLibrary": "Failed to update library.",
     "mutualFollowersRequired": "You must be mutual followers to chat",
-    "with": "with"
+    "with": "with",
+    "noFriendsToShare": "No friends to share with"
+  },
+  "equalizerPresets": {
+    "flat": "Flat",
+    "bassBoost": "Bass Boost",
+    "vocalBoost": "Vocal Boost",
+    "trebleBoost": "Treble Boost",
+    "rock": "Rock",
+    "pop": "Pop",
+    "acoustic": "Acoustic",
+    "electronic": "Electronic",
+    "jazz": "Jazz",
+    "classical": "Classical",
+    "dance": "Dance",
+    "rnb": "R&B",
+    "lounge": "Lounge",
+    "gaming": "Gaming",
+    "speech": "Speech",
+    "custom": "Custom"
   },
   "generatedPlaylists": {
     "onRepeat": {

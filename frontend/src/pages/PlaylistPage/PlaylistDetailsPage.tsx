@@ -13,6 +13,7 @@ import { useOfflineStore } from "../../stores/useOfflineStore";
 import EqualizerTitle from "@/components/ui/equalizer-title";
 import SongOptionsDrawer from "./SongOptionsDrawer";
 import { getArtistNames, getOptimizedImageUrl } from "@/lib/utils";
+import { useHasFriends } from "@/hooks/useHasFriends";
 
 import {
   Play,
@@ -139,6 +140,7 @@ const PlaylistDetailsPage = () => {
   const [selectedSongForMenu, setSelectedSongForMenu] = useState<Song | null>(
     null
   );
+  const { hasFriends } = useHasFriends();
   const {
     songs: searchSongs,
     loading: searchLoading,
@@ -784,13 +786,21 @@ const PlaylistDetailsPage = () => {
                       <div className="flex flex-col gap-2">
                         <Button
                           variant="ghost"
-                          className="justify-start p-3 h-auto text-base"
+                          className={`justify-start p-3 h-auto text-base ${
+                            !hasFriends ? "opacity-50 cursor-not-allowed" : ""
+                          }`}
                           onClick={() => {
                             openShareDialog({
                               type: "playlist",
                               id: currentPlaylist._id,
                             });
                           }}
+                          disabled={!hasFriends}
+                          title={
+                            !hasFriends
+                              ? t("common.noFriendsToShare")
+                              : t("admin.albums.share")
+                          }
                         >
                           <Share className="mr-4 h-5 w-5" />
                           {t("admin.albums.share")}
@@ -839,12 +849,20 @@ const PlaylistDetailsPage = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-48 bg-zinc-800 text-white border-zinc-700">
                       <DropdownMenuItem
-                        className="cursor-pointer hover:bg-zinc-700"
+                        className={`cursor-pointer hover:bg-zinc-700 ${
+                          !hasFriends ? "opacity-50 cursor-not-allowed" : ""
+                        }`}
                         onSelect={() =>
                           openShareDialog({
                             type: "playlist",
                             id: currentPlaylist._id,
                           })
+                        }
+                        disabled={!hasFriends}
+                        title={
+                          !hasFriends
+                            ? t("common.noFriendsToShare")
+                            : t("admin.albums.share")
                         }
                       >
                         <Share className="mr-2 h-4 w-4" />

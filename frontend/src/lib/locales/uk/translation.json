@@ -1061,7 +1061,26 @@
     "noSongsToPlay": "У цього елемента немає пісень для відтворення.",
     "failedToUpdateLibrary": "Не вдалося оновити бібліотеку.",
     "mutualFollowersRequired": "Ви повинні бути взаємними підписниками для чату",
-    "with": "з"
+    "with": "з",
+    "noFriendsToShare": "Немає друзів для обміну"
+  },
+  "equalizerPresets": {
+    "flat": "Плоский",
+    "bassBoost": "Підсилення басів",
+    "vocalBoost": "Підсилення вокалу",
+    "trebleBoost": "Підсилення високих",
+    "rock": "Рок",
+    "pop": "Поп",
+    "acoustic": "Акустика",
+    "electronic": "Електроніка",
+    "jazz": "Джаз",
+    "classical": "Класика",
+    "dance": "Танці",
+    "rnb": "R&B",
+    "lounge": "Лаунж",
+    "gaming": "Ігри",
+    "speech": "Мова",
+    "custom": "Користувацький"
   },
   "generatedPlaylists": {
     "onRepeat": {

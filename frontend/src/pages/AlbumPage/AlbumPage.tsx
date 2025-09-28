@@ -32,6 +32,7 @@ import SongOptionsDrawer from "./SongOptionsDrawer";
 import { Song } from "@/types";
 import EqualizerTitle from "@/components/ui/equalizer-title";
 import { getOptimizedImageUrl } from "@/lib/utils";
+import { useHasFriends } from "@/hooks/useHasFriends";
 
 const formatDuration = (seconds: number) => {
   if (isNaN(seconds) || seconds < 0) return "0:00";
@@ -60,6 +61,7 @@ const AlbumPage = () => {
   const [selectedSongForMenu, setSelectedSongForMenu] = useState<Song | null>(
     null
   );
+  const { hasFriends } = useHasFriends();
 
   const { extractColor } = useDominantColor();
   const [isColorLoading, setIsColorLoading] = useState(true);
@@ -424,13 +426,19 @@ const AlbumPage = () => {
                   variant="ghost2"
                   size="icon"
                   className={`w-12 h-12 sm:w-14 sm:h-14 rounded-md p-2 transition-colors group ${
-                    !user ? "opacity-50 cursor-not-allowed" : ""
+                    !user || !hasFriends ? "opacity-50 cursor-not-allowed" : ""
                   }`}
-                  title={!user ? t("auth.loginRequired") : t("common.share")}
+                  title={
+                    !user
+                      ? t("auth.loginRequired")
+                      : !hasFriends
+                      ? t("common.noFriendsToShare")
+                      : t("common.share")
+                  }
                   onClick={() =>
                     openShareDialog({ type: "album", id: currentAlbum._id })
                   }
-                  disabled={!user}
+                  disabled={!user || !hasFriends}
                 >
                   <Share className="size-8 text-white/80 group-hover:text-white transition-colors" />
                 </Button>

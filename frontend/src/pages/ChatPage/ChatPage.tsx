@@ -24,6 +24,7 @@ import { SharedContentMessage } from "./SharedContentMessage";
 import { Check, CheckCheck } from "lucide-react";
 import { TypingIndicator } from "./TypingIndicator";
 import { useAudioSettingsStore } from "@/lib/webAudio";
+import StandardLoader from "../../components/ui/StandardLoader";
 
 const formatTime = (date: string) => {
   return new Date(date).toLocaleTimeString("en-US", {
@@ -52,6 +53,7 @@ const ChatPage = () => {
     setIsChatPageActive,
     markMessagesAsRead,
     unreadMessages,
+    isLoading,
   } = useChatStore();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -203,7 +205,11 @@ const ChatPage = () => {
                 <ChatHeader />
                 <ScrollArea className="overflow-y-auto h-[calc(100vh-340px)]">
                   <div className="p-4 space-y-4">
-                    {messages.length === 0 ? (
+                    {isLoading ? (
+                      <div className="flex justify-center items-center h-32">
+                        <StandardLoader size="md" />
+                      </div>
+                    ) : messages.length === 0 ? (
                       <div className="text-center text-gray-400 mt-8">
                         <p>
                           {t("pages.chat.startChatting")}{" "}
@@ -242,7 +248,11 @@ const ChatPage = () => {
               <ChatHeader showBackButton={true} onBack={handleBackToList} />
               <ScrollArea className="flex-1 overflow-y-auto">
                 <div className="p-4 space-y-4">
-                  {messages.length === 0 ? (
+                  {isLoading ? (
+                    <div className="flex justify-center items-center h-32">
+                      <StandardLoader size="md" />
+                    </div>
+                  ) : messages.length === 0 ? (
                     <div className="text-center text-gray-400 mt-8">
                       <p>
                         {t("pages.chat.startChatting")} {selectedUser.fullName}!

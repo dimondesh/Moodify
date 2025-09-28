@@ -16,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getArtistNames } from "@/lib/utils";
 import AddToPlaylistSheet from "./AddToPlaylistSheet";
+import { useHasFriends } from "@/hooks/useHasFriends";
 
 interface SongOptionsDrawerProps {
   song: Song | null;
@@ -32,6 +33,7 @@ const SongOptionsDrawer: React.FC<SongOptionsDrawerProps> = ({
   const navigate = useNavigate();
   const { openShareDialog } = useUIStore();
   const { isSongLiked, toggleSongLike } = useLibraryStore();
+  const { hasFriends } = useHasFriends();
   const [isAddToPlaylistOpen, setIsAddToPlaylistOpen] = useState(false);
 
   if (!song) return null;
@@ -86,8 +88,16 @@ const SongOptionsDrawer: React.FC<SongOptionsDrawerProps> = ({
             <div className="p-4 flex flex-col gap-2">
               <Button
                 variant="ghost"
-                className="justify-start p-3 h-auto"
+                className={`justify-start p-3 h-auto ${
+                  !hasFriends ? "opacity-50 cursor-not-allowed" : ""
+                }`}
                 onClick={handleShare}
+                disabled={!hasFriends}
+                title={
+                  !hasFriends
+                    ? t("common.noFriendsToShare")
+                    : t("albumPage.options.share", "Поделиться")
+                }
               >
                 <Share className="w-5 h-5 mr-4" />
                 <span className="text-base">
