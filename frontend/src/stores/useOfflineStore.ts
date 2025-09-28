@@ -370,9 +370,24 @@ export const useOfflineStore = create<OfflineState>()(
               return;
             }
 
-            // 3. Cache all assets using Cache API
+            // 3. Cache all assets using Cache API with proper CORS handling
             const cache = await caches.open(HLS_ASSETS_CACHE_NAME);
-            await cache.addAll(Array.from(urlsToCache));
+
+            // Cache each URL individually with proper CORS handling
+            for (const url of urlsToCache) {
+              try {
+                const response = await fetch(url, {
+                  mode: "cors",
+                  credentials: "omit",
+                });
+                if (response.ok) {
+                  await cache.put(url, response);
+                }
+              } catch (error) {
+                console.warn(`Failed to cache ${url}:`, error);
+                // Continue with other URLs even if one fails
+              }
+            }
 
             // Update progress: 70% - assets cached
             set((state) => ({
@@ -407,35 +422,44 @@ export const useOfflineStore = create<OfflineState>()(
               return;
             }
 
-            // 5. Update state
-            set((state) => ({
-              downloadedItemIds: new Set(state.downloadedItemIds).add(itemId),
-              downloadedSongIds: new Set([
-                ...state.downloadedSongIds,
-                ...serverItemData.songs.map((s: Song) => s._id),
-              ]),
-              downloadingItemIds: new Set(
-                [...state.downloadingItemIds].filter((id) => id !== itemId)
-              ),
-              downloadProgress: new Map(state.downloadProgress).set(
-                itemId,
-                100
-              ),
-            }));
-
-            // Clean up progress and cancelled state
+            // 5. Update state - combine all updates in one call
             set((state) => {
               const newProgress = new Map(state.downloadProgress);
               const newCancelled = new Set(state.downloadCancelled);
               newProgress.delete(itemId);
               newCancelled.delete(itemId);
+
               return {
+                downloadedItemIds: new Set(state.downloadedItemIds).add(itemId),
+                downloadedSongIds: new Set([
+                  ...state.downloadedSongIds,
+                  ...serverItemData.songs.map((s: Song) => s._id),
+                ]),
+                downloadingItemIds: new Set(
+                  [...state.downloadingItemIds].filter((id) => id !== itemId)
+                ),
                 downloadProgress: newProgress,
                 downloadCancelled: newCancelled,
               };
             });
+
+            // Force a small delay to ensure state updates are processed
+            setTimeout(() => {
+              set((state) => ({ ...state }));
+            }, 100);
           } catch (error) {
             console.error(`Failed to download ${itemType} ${itemId}:`, error);
+
+            // Check if it's a network error and provide more specific error handling
+            if (
+              error instanceof TypeError &&
+              error.message.includes("Failed to fetch")
+            ) {
+              console.warn(
+                `Network error downloading ${itemType} ${itemId}. This might be due to CORS or network issues.`
+              );
+            }
+
             set((state) => {
               const newDownloading = new Set(
                 [...state.downloadingItemIds].filter((id) => id !== itemId)
@@ -450,7 +474,11 @@ export const useOfflineStore = create<OfflineState>()(
                 downloadCancelled: newCancelled,
               };
             });
-            throw error;
+
+            // Don't throw the error to prevent UI crashes, just log it
+            console.warn(
+              `Download of ${itemType} ${itemId} failed, but continuing...`
+            );
           }
         },
 

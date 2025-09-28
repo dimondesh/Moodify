@@ -5,6 +5,7 @@ import { useOfflineStore } from "@/stores/useOfflineStore";
 import { Button } from "./button";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
+import { useEffect, useState } from "react";
 
 type ItemType = "albums" | "playlists" | "mixes" | "generated-playlists";
 
@@ -33,10 +34,26 @@ export const DownloadButton = ({
   const isDownloading = downloadingItemIds.has(itemId);
   const progress = downloadProgress.get(itemId) || 0;
 
+  // Force re-render when state changes
+  const [, setForceUpdate] = useState(0);
+
+  useEffect(() => {
+    const unsubscribe = useOfflineStore.subscribe(() => {
+      // Force re-render when relevant state changes
+      setForceUpdate((prev) => prev + 1);
+    });
+
+    return unsubscribe;
+  }, []);
+
   // Debug logging
-  if (isDownloading) {
-    console.log(`Download progress for ${itemId}:`, progress);
-  }
+  console.log(`DownloadButton ${itemId}:`, {
+    isDownloaded,
+    isDownloading,
+    progress,
+    downloadedItemIds: Array.from(downloadedItemIds),
+    downloadingItemIds: Array.from(downloadingItemIds),
+  });
 
   const status = isDownloaded
     ? "downloaded"
@@ -137,7 +154,7 @@ export const DownloadButton = ({
           width="100"
           height="100"
           fill="none"
-          stroke="currentColor"
+          stroke="black"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="2"

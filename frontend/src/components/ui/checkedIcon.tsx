@@ -13,7 +13,7 @@ const CheckedIcon = (props: React.SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <circle cx={12} cy={12} r={10} fill="#805ad5" stroke="#805ad5" />
-    <path d="m9 12 2 2 4-4 fill-black" />
+    <path d="m8 12 3 3 6-6" />
   </svg>
 );
 export default CheckedIcon;
