@@ -206,8 +206,8 @@ const GeneratedPlaylistPage = () => {
             </div>
           </div>
           <div className="items-center hidden md:flex text-xs">
-            {currentPlaylist?.createdAt
-              ? format(new Date(currentPlaylist.createdAt), "MMM dd, yyyy")
+            {currentPlaylist?.generatedOn
+              ? format(new Date(currentPlaylist.generatedOn), "MMM dd, yyyy")
               : "N/A"}
           </div>
           <div className="flex items-center text-xs sm:text-sm flex-shrink-0 justify-end md:mr-10">
