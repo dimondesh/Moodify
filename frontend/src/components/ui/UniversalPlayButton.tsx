@@ -94,6 +94,12 @@ const UniversalPlayButton = ({
 
   const getPlaybackContext = () => {
     switch (entityType) {
+      case "song":
+        return {
+          type: "song" as const,
+          entityId: entity._id,
+          entityTitle: (entity as Song).title,
+        };
       case "album":
         return {
           type: "album" as const,
@@ -159,7 +165,16 @@ const UniversalPlayButton = ({
     if (isCurrentlyPlayingFromThisEntity) {
       togglePlay();
     } else {
-      playAlbum(songsToPlay, 0, playbackContext);
+      // Для треков находим индекс конкретного трека в массиве
+      let startIndex = 0;
+      if (entityType === "song") {
+        const songIndex = songsToPlay.findIndex(
+          (song) => song._id === entity._id
+        );
+        startIndex = songIndex !== -1 ? songIndex : 0;
+      }
+
+      playAlbum(songsToPlay, startIndex, playbackContext);
     }
   };
 

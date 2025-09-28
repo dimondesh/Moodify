@@ -25,7 +25,13 @@ interface PlayerStore {
   originalDuration: number;
   seekVersion: number;
   currentPlaybackContext: {
-    type: "album" | "playlist" | "generated-playlist" | "mix" | "artist";
+    type:
+      | "song"
+      | "album"
+      | "playlist"
+      | "generated-playlist"
+      | "mix"
+      | "artist";
     entityId?: string;
     entityTitle?: string;
   } | null;
@@ -240,6 +246,7 @@ export const usePlayerStore = create<PlayerStore>()(
               currentPlaybackContext: context
                 ? {
                     type: context.type as
+                      | "song"
                       | "album"
                       | "playlist"
                       | "generated-playlist"
@@ -608,6 +615,7 @@ export const usePlayerStore = create<PlayerStore>()(
             currentPlaybackContext: context
               ? {
                   type: context.type as
+                    | "song"
                     | "album"
                     | "playlist"
                     | "generated-playlist"
