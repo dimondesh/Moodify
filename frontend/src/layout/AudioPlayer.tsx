@@ -24,6 +24,7 @@ const AudioPlayer = () => {
   const lastSongIdRef = useRef<string | null>(null);
   const listenRecordedRef = useRef(false);
   const fallbackTriggeredRef = useRef(false);
+  const lastRecordedTimeRef = useRef<number>(0);
 
   const {
     currentSong,
@@ -102,6 +103,7 @@ const AudioPlayer = () => {
     if (lastSongIdRef.current !== currentSong._id) {
       listenRecordedRef.current = false;
       fallbackTriggeredRef.current = false; // Reset fallback trigger for new song
+      lastRecordedTimeRef.current = 0; // Reset recorded time for new song
       lastSongIdRef.current = currentSong._id;
 
       if (Hls.isSupported()) {
@@ -168,30 +170,51 @@ const AudioPlayer = () => {
       currentSong &&
       currentSong._id &&
       currentTime >= (currentSong.duration || 0) / 3 &&
-      !listenRecordedRef.current &&
       !isOffline
     ) {
-      listenRecordedRef.current = true;
+      const shouldRecordListen =
+        !listenRecordedRef.current || // Первое прослушивание
+        (repeatMode === "one" && currentTime < lastRecordedTimeRef.current); // Повторное прослушивание в режиме "one"
 
-      // Подготавливаем контекст воспроизведения
-      const playbackContext = currentPlaybackContext;
+      if (shouldRecordListen) {
+        listenRecordedRef.current = true;
+        lastRecordedTimeRef.current = currentTime;
 
-      axiosInstance
-        .post(`/songs/${currentSong._id}/listen`, { playbackContext })
-        .then(() => {
-          console.log(
-            `Listen recorded for ${currentSong.title}${
-              playbackContext
-                ? ` from ${playbackContext.type}`
-                : " (no context)"
-            }`
-          );
-          useMusicStore.getState().fetchRecentlyListenedSongs();
-        })
-        .catch((e) => {
-          listenRecordedRef.current = false;
-          console.error("Failed to record listen", e);
-        });
+        // Подготавливаем контекст воспроизведения
+        const playbackContext = currentPlaybackContext;
+
+        axiosInstance
+          .post(`/songs/${currentSong._id}/listen`, { playbackContext })
+          .then(() => {
+            console.log(
+              `Listen recorded for ${currentSong.title}${
+                playbackContext
+                  ? ` from ${playbackContext.type}`
+                  : " (no context)"
+              }${
+                repeatMode === "one" &&
+                currentTime < lastRecordedTimeRef.current
+                  ? " (repeat)"
+                  : ""
+              }`
+            );
+            useMusicStore.getState().fetchRecentlyListenedSongs();
+          })
+          .catch((e) => {
+            listenRecordedRef.current = false;
+            console.error("Failed to record listen", e);
+          });
+      }
+    }
+
+    // Сброс флага прослушивания если время меньше 1/3 трека
+    if (
+      currentSong &&
+      currentTime < (currentSong.duration || 0) / 3 &&
+      listenRecordedRef.current
+    ) {
+      listenRecordedRef.current = false;
+      lastRecordedTimeRef.current = 0;
     }
   }, [
     currentTime,
@@ -200,6 +223,7 @@ const AudioPlayer = () => {
     user,
     isOffline,
     currentPlaybackContext,
+    repeatMode,
   ]);
 
   // Event Listeners для <audio>
