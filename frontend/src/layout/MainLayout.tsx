@@ -11,6 +11,7 @@ import FriendsActivity from "./FriendsActivity";
 import AudioPlayer from "./AudioPlayer";
 import PlaybackControls from "./PlaybackControls";
 import Topbar from "../components/ui/Topbar";
+import MobileHeader from "../components/ui/MobileHeader";
 import BottomNavigationBar from "./BottomNavigationBar";
 import { useEffect, useState, useRef } from "react";
 import { usePlayerStore } from "../stores/usePlayerStore";
@@ -19,11 +20,35 @@ import DynamicTitleUpdater from "@/components/DynamicTitleUpdater";
 import { useUIStore } from "../stores/useUIStore";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { cn } from "../lib/utils";
+import { useTranslation } from "react-i18next";
 
 const MainLayout = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const location = useLocation();
   const prevLocationPathname = useRef(location.pathname);
+  const { t } = useTranslation();
+
+  const getMobileHeaderTitle = (pathname: string) => {
+    const hour = new Date().getHours();
+    const getGreeting = () => {
+      if (hour < 12) return t("greetings.morning");
+      if (hour < 18) return t("greetings.afternoon");
+      return t("greetings.evening");
+    };
+
+    switch (pathname) {
+      case "/":
+        return getGreeting();
+      case "/search":
+        return t("sidebar.search");
+      case "/library":
+        return t("sidebar.library");
+      case "/chat":
+        return t("pages.chat.title");
+      default:
+        return "";
+    }
+  };
 
   const [isCompactView, setIsCompactView] = useState(false);
   const {
@@ -140,7 +165,10 @@ const MainLayout = () => {
     >
       <DynamicTitleUpdater />
       <AudioPlayer />
-      <Topbar />
+      <MobileHeader title={getMobileHeaderTitle(location.pathname)} />
+      <div className="hidden md:block">
+        <Topbar />
+      </div>
       <ResizablePanelGroup
         direction="horizontal"
         className={`flex-1 flex overflow-hidden ${contentPaddingBottom} ${

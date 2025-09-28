@@ -297,19 +297,19 @@ const LibraryPage = () => {
         <ScrollArea className="h-full rounded-md">
           <div className="relative min-h-screen p-4 sm:p-6 pb-40 sm:pb-50 lg:pb-10 ">
             <div
-              className="absolute inset-0 bg-gradient-to-b from-[#8b5cf6]/10 via-[#0f0f0f]/80 to-[#0f0f0f] pointer-events-none"
+              className="absolute inset-0 bg-[#0f0f0f] pointer-events-none"
               aria-hidden="true"
             />
             <div className="relative z-10">
               <div className="flex justify-between items-baseline">
-                <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold mt-2 mb-6 text-white">
+                <h1 className="hidden md:block text-4xl sm:text-5xl lg:text-7xl font-bold mt-2 mb-6 text-white">
                   {t("sidebar.library")}
                 </h1>
                 {user && !isOffline && (
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="hover:bg-[#2a2a2a] "
+                    className="hover:bg-[#2a2a2a] hidden md:flex"
                     onClick={openCreatePlaylistDialog}
                     title={t("sidebar.createPlaylist")}
                   >

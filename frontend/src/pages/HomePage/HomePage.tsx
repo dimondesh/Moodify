@@ -1,11 +1,11 @@
 // src/pages/HomePage/HomePage.tsx
 
 import React, {
+  useMemo,
+  useCallback,
   useEffect,
   useState,
   useRef,
-  useMemo,
-  useCallback,
 } from "react";
 import { useMusicStore } from "../../stores/useMusicStore";
 import FeaturedSection from "./FeaturedSection";
@@ -282,7 +282,7 @@ const HomePageComponent = () => {
               <HomePageSkeleton />
             ) : (
               <div className="p-4 sm:p-6">
-                <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-white">
+                <h1 className="hidden md:block text-2xl sm:text-3xl font-bold mb-6 text-white">
                   {getGreeting()}
                 </h1>
 
