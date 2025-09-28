@@ -321,7 +321,7 @@ const HomePageComponent = () => {
                     />
                   )}
 
-                  {user && (
+                  {user && recentlyListenedItems.length > 0 && (
                     <HorizontalSection
                       title={t("homepage.recentlyListened")}
                       items={recentlyListenedItems}
