@@ -4,14 +4,8 @@ import { ScrollArea } from "../../components/ui/scroll-area";
 import PlaylistDetailsSkeleton from "../../components/ui/skeletons/PlaylistDetailsSkeleton";
 import { format } from "date-fns";
 import { Button } from "../../components/ui/button";
-import {
-  Play,
-  Pause,
-  Heart,
-  PlusCircle,
-  CheckCircle2,
-  MoreHorizontal,
-} from "lucide-react";
+import { Play, Pause, Heart, PlusCircle, MoreHorizontal } from "lucide-react";
+import CheckedIcon from "../../components/ui/checkedIcon";
 import { usePlayerStore } from "../../stores/usePlayerStore";
 import { Song } from "../../types";
 import { useLibraryStore } from "../../stores/useLibraryStore";
@@ -434,7 +428,7 @@ const GeneratedPlaylistPage = () => {
                   }
                 >
                   {isInLibrary ? (
-                    <CheckCircle2 className="size-6  text-violet-400" />
+                    <CheckedIcon className="size-6 text-violet-400" />
                   ) : (
                     <PlusCircle className="size-6 text-white" />
                   )}

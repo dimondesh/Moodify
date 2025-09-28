@@ -22,7 +22,6 @@ import {
   Trash2,
   Plus,
   MoreHorizontal,
-  CheckCircle2,
   X,
   Heart,
   Lock,
@@ -31,6 +30,7 @@ import {
   Share,
   Clock,
 } from "lucide-react";
+import CheckedIcon from "../../components/ui/checkedIcon";
 import StandardLoader from "../../components/ui/StandardLoader";
 import { usePlayerStore } from "../../stores/usePlayerStore";
 import { Song, Playlist } from "../../types";
@@ -729,7 +729,7 @@ const PlaylistDetailsPage = () => {
                     }
                   >
                     {isInLibrary ? (
-                      <CheckCircle2 className="size-6 text-[#8b5cf6]" />
+                      <CheckedIcon className="size-6 text-[#8b5cf6]" />
                     ) : (
                       <PlusCircle className="size-6 text-white" />
                     )}

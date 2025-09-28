@@ -5,7 +5,6 @@ import { useMusicStore } from "../../stores/useMusicStore";
 import { ScrollArea } from "../../components/ui/scroll-area";
 import { Button } from "../../components/ui/button";
 import {
-  CheckCircle2,
   Clock,
   Pause,
   Play,
@@ -13,6 +12,7 @@ import {
   Heart,
   MoreHorizontal,
 } from "lucide-react";
+import CheckedIcon from "../../components/ui/checkedIcon";
 import { usePlayerStore } from "../../stores/usePlayerStore";
 import Equalizer from "../../components/ui/equalizer";
 import { useLibraryStore } from "../../stores/useLibraryStore";
@@ -408,9 +408,9 @@ const AlbumPage = () => {
                     }
                   >
                     {inLibrary ? (
-                      <CheckCircle2 className="size-6  text-[#8b5cf6]" />
+                      <CheckedIcon className="size-6 text-[#8b5cf6]" />
                     ) : (
-                      <PlusCircle className="size-6   text-white" />
+                      <PlusCircle className="size-6 text-white" />
                     )}
                   </Button>
                 )}

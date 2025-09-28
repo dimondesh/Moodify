@@ -10,11 +10,11 @@ import {
   Play,
   Pause,
   PlusCircle,
-  CheckCircle2,
   Heart,
   MoreHorizontal,
   Share,
 } from "lucide-react";
+import CheckedIcon from "../../components/ui/checkedIcon";
 import { usePlayerStore } from "../../stores/usePlayerStore";
 import { Song } from "../../types";
 import toast from "react-hot-toast";
@@ -501,7 +501,7 @@ const MixDetailsPage = () => {
                   }
                 >
                   {isInLibrary ? (
-                    <CheckCircle2 className="size-6 text-[#8b5cf6]" />
+                    <CheckedIcon className="size-6 text-[#8b5cf6]" />
                   ) : (
                     <PlusCircle className="size-6 text-white" />
                   )}
