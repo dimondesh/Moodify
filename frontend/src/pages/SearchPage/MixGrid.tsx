@@ -6,7 +6,6 @@ import type { Mix } from "../../types";
 import SectionGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton";
 import { useTranslation } from "react-i18next";
 import { useSearchStore } from "@/stores/useSearchStore";
-import { getArtistNames } from "@/lib/utils";
 import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
 
 type MixGridProps = {

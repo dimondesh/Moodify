@@ -38,6 +38,7 @@ import { useOfflineStore } from "../stores/useOfflineStore";
 import { useChatStore } from "../stores/useChatStore";
 import { useUIStore } from "../stores/useUIStore";
 import { getOptimizedImageUrl } from "@/lib/utils";
+import UniversalPlayButton from "../components/ui/UniversalPlayButton";
 
 const LeftSidebar = () => {
   const { t } = useTranslation();
@@ -398,19 +399,35 @@ const LeftSidebar = () => {
                   <Link
                     to={linkPath}
                     key={`${item.type}-${item._id}`}
-                    className="p-2 hover:bg-[#2a2a2a] rounded-md flex items-center gap-3 group cursor-pointer hover-scale"
+                    className="p-2 hover:bg-[#2a2a2a] rounded-md flex items-center gap-3 cursor-pointer hover-scale relative"
                   >
-                    <img
-                      src={getOptimizedImageUrl(
-                        item.imageUrl || fallbackImage,
-                        100
-                      )}
-                      alt={item.title}
-                      className={`size-10 object-cover ${imageClass} flex-shrink-0`}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = fallbackImage;
-                      }}
-                    />
+                    <div className="relative flex-shrink-0 group">
+                      <img
+                        src={getOptimizedImageUrl(
+                          item.imageUrl || fallbackImage,
+                          100
+                        )}
+                        alt={item.title}
+                        className={`size-10 object-cover ${imageClass} transition-opacity group-hover:opacity-50`}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = fallbackImage;
+                        }}
+                      />
+                      <UniversalPlayButton
+                        entity={item}
+                        entityType={
+                          item.type as
+                            | "album"
+                            | "playlist"
+                            | "generated-playlist"
+                            | "mix"
+                            | "artist"
+                        }
+                        variant="overlay"
+                        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+                        size="sm"
+                      />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate text-white text-sm">
                         {item.title}
