@@ -28,13 +28,13 @@ const UserGrid: React.FC<UserGridProps> = ({ title, users, isLoading }) => {
 
   if (isLoading) return <SectionGridSkeleton />;
 
-  const usersToShow = showAll ? users : users.slice(0, 4);
+  const usersToShow = showAll ? users : users.slice(0, 5);
 
   return (
     <div className="mb-8 w-full">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl sm:text-2xl font-bold text-white">{title}</h2>
-        {users.length > 4 && (
+        {users.length > 5 && (
           <Button
             variant="link"
             className="text-sm text-zinc-400 hover:text-white"
@@ -45,28 +45,32 @@ const UserGrid: React.FC<UserGridProps> = ({ title, users, isLoading }) => {
         )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {usersToShow.map((user) => (
           <div
             key={user._id}
-            className="bg-[#1a1a1a] p-3 rounded-md hover:bg-[#2a2a2a] transition-all group cursor-pointer hover-scale"
+            className="bg-transparent p-0 rounded-md transition-all group cursor-pointer"
             onClick={() => handleUserClick(user)}
           >
-            <div className="relative mb-3 aspect-square">
-              <Avatar className="h-full w-full shadow-lg">
-                <AvatarImage
-                  src={getOptimizedImageUrl(user.imageUrl, 300)}
-                  className="object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-                <AvatarFallback>{user.fullName?.[0]}</AvatarFallback>
-              </Avatar>
+            <div className="relative mb-2">
+              <div className="relative aspect-square shadow-lg overflow-hidden rounded-full">
+                <Avatar className="h-full w-full">
+                  <AvatarImage
+                    src={getOptimizedImageUrl(user.imageUrl, 200)}
+                    className="object-cover rounded-full transition-transform duration-300 group-hover:scale-105"
+                  />
+                  <AvatarFallback>{user.fullName?.[0]}</AvatarFallback>
+                </Avatar>
+              </div>
             </div>
-            <h3 className="font-medium mb-1 truncate text-white text-center text-sm">
-              {user.fullName}
-            </h3>
-            <p className="text-xs text-gray-400 text-center">
-              {t("sidebar.subtitle.user")}
-            </p>
+            <div className="px-1">
+              <h3 className="font-semibold text-sm truncate text-center">
+                {user.fullName}
+              </h3>
+              <p className="text-xs text-zinc-400 leading-tight text-center">
+                {t("sidebar.subtitle.user")}
+              </p>
+            </div>
           </div>
         ))}
       </div>

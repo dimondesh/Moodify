@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import UniversalPlayButton from "@/components/ui/UniversalPlayButton";
 
 interface RecentSearchesListProps {
   onItemClick?: () => void;
@@ -126,16 +127,36 @@ const RecentSearchesList: React.FC<RecentSearchesListProps> = ({
                   className="flex items-center gap-3 flex-grow cursor-pointer"
                   onClick={() => handleItemClick(item)}
                 >
-                  <Avatar
-                    className={`w-12 h-12 flex-shrink-0 ${
-                      item.itemType === "Artist" || item.itemType === "User"
-                        ? "rounded-full"
-                        : "rounded-md"
-                    }`}
-                  >
-                    <AvatarImage src={item.imageUrl} className="object-cover" />
-                    <AvatarFallback>{title[0]}</AvatarFallback>
-                  </Avatar>
+                  <div className="relative flex-shrink-0 group">
+                    <Avatar
+                      className={`w-12 h-12 ${
+                        item.itemType === "Artist" || item.itemType === "User"
+                          ? "rounded-full"
+                          : "rounded-md"
+                      }`}
+                    >
+                      <AvatarImage
+                        src={item.imageUrl}
+                        className="object-cover"
+                      />
+                      <AvatarFallback>{title[0]}</AvatarFallback>
+                    </Avatar>
+                    <UniversalPlayButton
+                      entity={item}
+                      entityType={
+                        item.itemType.toLowerCase() as
+                          | "song"
+                          | "album"
+                          | "playlist"
+                          | "mix"
+                          | "artist"
+                          | "generated-playlist"
+                      }
+                      variant="overlay"
+                      className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+                      size="sm"
+                    />
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-white truncate">{title}</p>
                     <p className="text-sm text-zinc-400 capitalize truncate">

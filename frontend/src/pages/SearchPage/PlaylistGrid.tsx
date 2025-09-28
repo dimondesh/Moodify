@@ -32,13 +32,13 @@ const PlaylistGridComponent = ({
 
   if (isLoading) return <SectionGridSkeleton />;
 
-  const playlistsToShow = showAll ? playlists : playlists.slice(0, 4);
+  const playlistsToShow = showAll ? playlists : playlists.slice(0, 5);
 
   return (
     <div className="mb-6 w-full">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-lg sm:text-xl font-bold text-white">{title}</h2>
-        {playlists.length > 4 && (
+        {playlists.length > 5 && (
           <Button
             variant="link"
             className="text-sm text-gray-400 hover:text-[#8b5cf6]"
@@ -49,26 +49,28 @@ const PlaylistGridComponent = ({
         )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {playlistsToShow.map((playlist) => (
           <div
             key={playlist._id}
-            className="bg-[#1a1a1a] p-3 rounded-md hover:bg-[#2a2a2a] transition-all cursor-pointer group hover-scale"
+            className="bg-transparent p-0 rounded-md transition-all group cursor-pointer"
             onClick={() => handlePlaylistClick(playlist)}
           >
-            <div className="relative mb-3 aspect-square rounded-md shadow-lg overflow-hidden">
-              <img
-                src={getOptimizedImageUrl(
-                  playlist.imageUrl || "/default_playlist_cover.png",
-                  300
-                )}
-                alt={playlist.title}
-                className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src =
-                    "/default_playlist_cover.png";
-                }}
-              />
+            <div className="relative mb-2">
+              <div className="relative aspect-square shadow-lg overflow-hidden rounded-md">
+                <img
+                  src={getOptimizedImageUrl(
+                    playlist.imageUrl || "/default_playlist_cover.png",
+                    200
+                  )}
+                  alt={playlist.title}
+                  className="absolute inset-0 h-full w-full object-cover rounded-md transition-transform duration-300 group-hover:scale-105"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src =
+                      "/default_playlist_cover.png";
+                  }}
+                />
+              </div>
               <UniversalPlayButton
                 entity={playlist}
                 entityType="playlist"
@@ -76,12 +78,14 @@ const PlaylistGridComponent = ({
                 size="sm"
               />
             </div>
-            <h3 className="font-medium mb-1 truncate text-white text-sm">
-              {playlist.title}
-            </h3>
-            <p className="text-xs text-gray-400 truncate">
-              {playlist.owner?.fullName || t("common.unknownArtist")}
-            </p>
+            <div className="px-1">
+              <h3 className="font-semibold text-sm truncate">
+                {playlist.title}
+              </h3>
+              <p className="text-xs text-zinc-400 leading-tight truncate">
+                {playlist.owner?.fullName || t("common.unknownArtist")}
+              </p>
+            </div>
           </div>
         ))}
       </div>

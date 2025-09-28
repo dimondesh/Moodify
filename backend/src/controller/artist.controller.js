@@ -18,6 +18,8 @@ export const getArtistById = async (req, res, next) => {
     const artist = await Artist.findById(id)
       .populate({
         path: "songs",
+        select:
+          "title artist albumId imageUrl hlsUrl duration playCount genres moods",
         populate: {
           path: "artist",
           select: "name imageUrl",

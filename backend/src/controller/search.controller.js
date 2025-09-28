@@ -24,7 +24,19 @@ export const searchSongs = async (req, res, next) => {
 
     const regex = new RegExp(q.trim(), "i");
 
-    const matchingArtists = await Artist.find({ name: regex }).limit(50).lean();
+    const matchingArtists = await Artist.find({ name: regex })
+      .populate({
+        path: "songs",
+        select:
+          "title artist albumId imageUrl hlsUrl duration playCount genres moods",
+        populate: {
+          path: "artist",
+          select: "name imageUrl",
+        },
+        options: { sort: { playCount: -1 }, limit: 5 },
+      })
+      .limit(50)
+      .lean();
     const matchingArtistIds = matchingArtists.map((artist) => artist._id);
 
     const [songsRaw, albumsRaw, playlistsRaw, usersRaw, mixesRaw] =

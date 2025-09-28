@@ -28,13 +28,13 @@ const AlbumGridComponent = ({ title, albums, isLoading }: AlbumGridProps) => {
 
   if (isLoading) return <SectionGridSkeleton />;
 
-  const albumsToShow = showAll ? albums : albums.slice(0, 4);
+  const albumsToShow = showAll ? albums : albums.slice(0, 5);
 
   return (
     <div className="mb-6 w-full">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-lg sm:text-xl font-bold text-white">{title}</h2>
-        {albums.length > 4 && (
+        {albums.length > 5 && (
           <Button
             variant="link"
             className="text-sm text-gray-400 hover:text-[#8b5cf6]"
@@ -45,27 +45,29 @@ const AlbumGridComponent = ({ title, albums, isLoading }: AlbumGridProps) => {
         )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {albumsToShow.map((album) => (
           <div
             key={album._id}
-            className="bg-[#1a1a1a] p-3 rounded-md hover:bg-[#2a2a2a] transition-all cursor-pointer group hover-scale"
+            className="bg-transparent p-0 rounded-md transition-all group cursor-pointer"
             onClick={() => handleAlbumClick(album)}
           >
-            <div className="relative mb-3 aspect-square rounded-md shadow-lg overflow-hidden">
-              <img
-                src={getOptimizedImageUrl(
-                  album.imageUrl ||
-                    "https://moodify.b-cdn.net/default-album-cover.png",
-                  300
-                )}
-                alt={album.title}
-                className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src =
-                    "https://moodify.b-cdn.net/default-album-cover.png";
-                }}
-              />
+            <div className="relative mb-2">
+              <div className="relative aspect-square shadow-lg overflow-hidden rounded-md">
+                <img
+                  src={getOptimizedImageUrl(
+                    album.imageUrl ||
+                      "https://moodify.b-cdn.net/default-album-cover.png",
+                    200
+                  )}
+                  alt={album.title}
+                  className="absolute inset-0 h-full w-full object-cover rounded-md transition-transform duration-300 group-hover:scale-105"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src =
+                      "https://moodify.b-cdn.net/default-album-cover.png";
+                  }}
+                />
+              </div>
               <UniversalPlayButton
                 entity={album}
                 entityType="album"
@@ -73,12 +75,12 @@ const AlbumGridComponent = ({ title, albums, isLoading }: AlbumGridProps) => {
                 size="sm"
               />
             </div>
-            <h3 className="font-medium mb-1 truncate text-white text-sm">
-              {album.title}
-            </h3>
-            <p className="text-xs text-gray-400 truncate">
-              {getArtistNames(album.artist)}
-            </p>
+            <div className="px-1">
+              <h3 className="font-semibold text-sm truncate">{album.title}</h3>
+              <p className="text-xs text-zinc-400 leading-tight truncate">
+                {getArtistNames(album.artist)}
+              </p>
+            </div>
           </div>
         ))}
       </div>

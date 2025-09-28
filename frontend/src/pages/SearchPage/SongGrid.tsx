@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import type { Song } from "../../types";
-import PlayButton from "../HomePage/PlayButton";
+import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
 import SectionGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton";
 import { useMusicStore } from "../../stores/useMusicStore";
 import { getArtistNames, getOptimizedImageUrl } from "../../lib/utils";
@@ -39,13 +39,13 @@ const SongGridComponent = ({ title, songs, isLoading }: SectionGridProps) => {
 
   if (isLoading) return <SectionGridSkeleton />;
 
-  const songsToShow = showAll ? songs : songs.slice(0, 4);
+  const songsToShow = showAll ? songs : songs.slice(0, 5);
 
   return (
     <div className="mb-6">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-lg sm:text-xl font-bold text-white">{title}</h2>
-        {songs.length > 4 && (
+        {songs.length > 5 && (
           <Button
             variant="link"
             className="text-sm text-gray-400 hover:text-[#8b5cf6]"
@@ -56,41 +56,45 @@ const SongGridComponent = ({ title, songs, isLoading }: SectionGridProps) => {
         )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {songsToShow.map((song) => {
           const originalIndex = songs.findIndex((s) => s._id === song._id);
           return (
             <div
               key={song._id}
-              className="bg-[#1a1a1a] p-3 rounded-md hover:bg-[#2a2a2a] transition-all group cursor-pointer hover-scale"
+              className="bg-transparent p-0 rounded-md transition-all group cursor-pointer"
               onClick={() => handleSongClick(song)}
             >
-              <div className="relative mb-3 aspect-square rounded-md shadow-lg overflow-hidden">
-                <AlbumCoverImage
-                  src={getOptimizedImageUrl(
-                    song.imageUrl || "/default-song-cover.png",
-                    300
-                  )}
-                  alt={song.title || t("common.noTitle")}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  albumId={song.albumId || undefined}
-                  fallbackSrc="/default-song-cover.png"
-                />
-                <PlayButton
-                  song={song}
+              <div className="relative mb-2">
+                <div className="relative aspect-square shadow-lg overflow-hidden rounded-md">
+                  <AlbumCoverImage
+                    src={getOptimizedImageUrl(
+                      song.imageUrl || "/default-song-cover.png",
+                      200
+                    )}
+                    alt={song.title || t("common.noTitle")}
+                    className="absolute inset-0 h-full w-full object-cover rounded-md transition-transform duration-300 group-hover:scale-105"
+                    albumId={song.albumId || undefined}
+                    fallbackSrc="/default-song-cover.png"
+                  />
+                </div>
+                <UniversalPlayButton
+                  entity={song}
+                  entityType="song"
                   songs={songs}
-                  songIndex={originalIndex}
+                  className="absolute bottom-3 right-2"
+                  size="sm"
                 />
               </div>
-              <h3 className="font-medium mb-1 truncate text-white text-sm">
-                {song.title}
-              </h3>
-              <p className="text-xs text-gray-400 truncate">
-                {getArtistNames(
-                  song.artist.map((artist) => artist._id),
-                  artists
-                )}
-              </p>
+              <div className="px-1">
+                <h3 className="font-semibold text-sm truncate">{song.title}</h3>
+                <p className="text-xs text-zinc-400 leading-tight truncate">
+                  {getArtistNames(
+                    song.artist.map((artist) => artist._id),
+                    artists
+                  )}
+                </p>
+              </div>
             </div>
           );
         })}
