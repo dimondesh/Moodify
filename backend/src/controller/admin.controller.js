@@ -32,6 +32,11 @@ import { transcodeToHls } from "../lib/ffmpeg.service.js";
 import axios from "axios";
 import { createWriteStream } from "fs";
 import { analyzeAudioFeatures } from "../lib/audioAnalysis.service.js";
+import {
+  registerActiveUpload,
+  unregisterActiveUpload,
+  unregisterAllUserUploads,
+} from "../lib/activeUploads.service.js";
 
 const uploadFile = async (file, folder) => {
   try {
@@ -70,10 +75,13 @@ const removeContentFromArtists = async (artistIds, contentId, contentType) => {
   );
 };
 
-const processAndUploadSong = async (audioFilePath) => {
+const processAndUploadSong = async (audioFilePath, userId = "system") => {
   const tempHlsDir = path.join(process.cwd(), "temp_hls", uuidv4());
 
   try {
+    // Регистрируем активную загрузку
+    registerActiveUpload(userId, tempHlsDir, "song_processing");
+
     const sourceAudioUpload = await uploadToBunny(
       { tempFilePath: audioFilePath, name: path.basename(audioFilePath) },
       "songs/source"
@@ -96,6 +104,9 @@ const processAndUploadSong = async (audioFilePath) => {
       duration,
     };
   } finally {
+    // Отменяем регистрацию активной загрузки
+    unregisterActiveUpload(userId, tempHlsDir);
+
     await fs
       .rm(tempHlsDir, { recursive: true, force: true })
       .catch((err) =>
@@ -122,7 +133,10 @@ export const createSong = async (req, res, next) => {
     } = req.body;
 
     const { hlsUrl, sourceAudioPublicId, duration } =
-      await processAndUploadSong(req.files.audioFile.tempFilePath);
+      await processAndUploadSong(
+        req.files.audioFile.tempFilePath,
+        req.user._id.toString()
+      );
 
     let imageUpload = { url: null, publicId: null };
     let finalAlbumId = albumId && albumId !== "none" ? albumId : null;
@@ -248,7 +262,10 @@ export const updateSong = async (req, res, next) => {
       }
 
       const { hlsUrl, sourceAudioPublicId, duration } =
-        await processAndUploadSong(audioFile.tempFilePath);
+        await processAndUploadSong(
+          audioFile.tempFilePath,
+          req.user._id.toString()
+        );
       song.hlsUrl = hlsUrl;
       song.sourceAudioPublicId = sourceAudioPublicId;
       song.duration = duration;
@@ -699,7 +716,11 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
   const uploadedBunnyPaths = [];
   const newlyCreatedArtistIds = [];
   const createdSongIds = [];
+  const userId = req.user._id.toString();
   let album = null;
+
+  // Регистрируем активную загрузку альбома
+  registerActiveUpload(userId, tempUnzipDir, "album_upload");
 
   try {
     const spotifyAlbumData = await getAlbumDataFromSpotify(spotifyAlbumUrl);
@@ -820,7 +841,7 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
       const filesForTrack = findTrackFiles(songName);
 
       const { hlsUrl, sourceAudioPublicId, hlsRemotePath, duration } =
-        await processAndUploadSong(filesForTrack.audioPath);
+        await processAndUploadSong(filesForTrack.audioPath, userId);
       uploadedBunnyPaths.push(sourceAudioPublicId);
       uploadedBunnyPaths.push(hlsRemotePath + "/");
 
@@ -947,6 +968,8 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
 
     next(error);
   } finally {
+    // Отменяем регистрацию активной загрузки
+    unregisterActiveUpload(userId, tempUnzipDir);
     await cleanUpTempDir(tempUnzipDir);
   }
 };

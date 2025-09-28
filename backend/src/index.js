@@ -36,6 +36,7 @@ import {
   generateFeaturedSongsForUser,
 } from "./lib/recommendation.service.js";
 import homeRoutes from "./routes/home.route.js";
+import uploadStatusRoutes from "./routes/uploadStatus.route.js";
 import { cleanAllTempDirectories } from "./lib/tempCleanup.service.js";
 
 dotenv.config();
@@ -240,6 +241,7 @@ app.use("/api/artists", artistRoutes);
 app.use("/api/mixes", mixRoutes);
 app.use("/api/generated-playlists", generatedPlaylistRoutes);
 app.use("/api/home", homeRoutes);
+app.use("/api/upload-status", uploadStatusRoutes);
 
 app.use("/api/cron", cronRoutes);
 app.use("/api/share", shareRoutes);
