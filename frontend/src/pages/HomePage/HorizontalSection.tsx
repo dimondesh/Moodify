@@ -4,7 +4,6 @@ import React, { useRef, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { ScrollArea, ScrollBar } from "../../components/ui/scroll-area";
-import PlayButton from "./PlayButton";
 import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
 import { getArtistNames, getOptimizedImageUrl } from "../../lib/utils";
 import { useMusicStore } from "../../stores/useMusicStore";
@@ -292,10 +291,6 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
       >
         <div className="flex gap-4 pb-4">
           {itemsToShow.map((item) => {
-            const songIndex =
-              item.itemType === "song"
-                ? songsOnly.findIndex((s) => s._id === item._id)
-                : -1;
             return (
               <div
                 key={`${item.itemType}-${item._id}`}
@@ -335,23 +330,15 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
                       </div>
                     )}
                   </div>
-                  {item.itemType === "song" && (
-                    <PlayButton
-                      song={item as Song}
-                      songs={songsOnly}
-                      songIndex={songIndex}
-                    />
-                  )}
-                  {item.itemType !== "song" && (
-                    <UniversalPlayButton
-                      entity={item}
-                      entityType={item.itemType}
-                      className={`absolute bottom-3 right-2 ${
-                        item.itemType === "mix" ? "z-50" : ""
-                      }`}
-                      size="sm"
-                    />
-                  )}
+                  <UniversalPlayButton
+                    entity={item}
+                    entityType={item.itemType}
+                    songs={item.itemType === "song" ? songsOnly : undefined}
+                    className={`absolute bottom-3 right-2 ${
+                      item.itemType === "mix" ? "z-50" : ""
+                    }`}
+                    size="sm"
+                  />
                 </div>
                 <div className="px-1">
                   {/* Для миксов не показываем название под обложкой, только subtitle */}

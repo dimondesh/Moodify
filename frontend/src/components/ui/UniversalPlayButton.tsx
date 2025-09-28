@@ -37,7 +37,13 @@ const UniversalPlayButton = ({
   onClick,
   className = "",
 }: UniversalPlayButtonProps) => {
-  const { currentSong, isPlaying, playAlbum, togglePlay } = usePlayerStore();
+  const {
+    currentSong,
+    isPlaying,
+    playAlbum,
+    togglePlay,
+    currentPlaybackContext,
+  } = usePlayerStore();
   const [artistSongs, setArtistSongs] = useState<Song[]>([]);
   const [isLoadingArtistSongs, setIsLoadingArtistSongs] = useState(false);
 
@@ -130,7 +136,10 @@ const UniversalPlayButton = ({
     isPlaying &&
     currentSong &&
     entitySongs.length > 0 &&
-    entitySongs.some((song) => song._id === currentSong._id);
+    entitySongs.some((song) => song._id === currentSong._id) &&
+    currentPlaybackContext &&
+    currentPlaybackContext.type === entityType &&
+    currentPlaybackContext.entityId === entity._id;
 
   const handlePlay = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     e.stopPropagation();
@@ -172,7 +181,7 @@ const UniversalPlayButton = ({
     <Button
       size={"icon"}
       onClick={handlePlay}
-      className={`hidden sm:flex bg-violet-500 hover:bg-violet-400 hover:scale-105 transition-all
+      className={`hidden sm:flex bg-violet-500 hover:bg-violet-400 hover:scale-105 transition-all rounded-full w-12 h-12
         opacity-0 translate-y-2 group-hover:translate-y-0 ${
           isCurrentlyPlayingFromThisEntity
             ? "opacity-100"
