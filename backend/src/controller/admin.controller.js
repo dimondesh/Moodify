@@ -33,9 +33,8 @@ import axios from "axios";
 import { createWriteStream } from "fs";
 import { analyzeAudioFeatures } from "../lib/audioAnalysis.service.js";
 import {
-  registerActiveUpload,
-  unregisterActiveUpload,
-  unregisterAllUserUploads,
+  setUploadInProgress,
+  clearUploadInProgress,
 } from "../lib/activeUploads.service.js";
 
 const uploadFile = async (file, folder) => {
@@ -75,13 +74,10 @@ const removeContentFromArtists = async (artistIds, contentId, contentType) => {
   );
 };
 
-const processAndUploadSong = async (audioFilePath, userId = "system") => {
+const processAndUploadSong = async (audioFilePath) => {
   const tempHlsDir = path.join(process.cwd(), "temp_hls", uuidv4());
 
   try {
-    // Регистрируем активную загрузку
-    registerActiveUpload(userId, tempHlsDir, "song_processing");
-
     const sourceAudioUpload = await uploadToBunny(
       { tempFilePath: audioFilePath, name: path.basename(audioFilePath) },
       "songs/source"
@@ -104,9 +100,6 @@ const processAndUploadSong = async (audioFilePath, userId = "system") => {
       duration,
     };
   } finally {
-    // Отменяем регистрацию активной загрузки
-    unregisterActiveUpload(userId, tempHlsDir);
-
     await fs
       .rm(tempHlsDir, { recursive: true, force: true })
       .catch((err) =>
@@ -122,6 +115,9 @@ export const createSong = async (req, res, next) => {
     return res.status(400).json({ message: "Audio file is required." });
 
   try {
+    // Устанавливаем флаг загрузки
+    setUploadInProgress();
+
     const {
       title,
       artistIds: artistIdsJsonString,
@@ -133,10 +129,7 @@ export const createSong = async (req, res, next) => {
     } = req.body;
 
     const { hlsUrl, sourceAudioPublicId, duration } =
-      await processAndUploadSong(
-        req.files.audioFile.tempFilePath,
-        req.user._id.toString()
-      );
+      await processAndUploadSong(req.files.audioFile.tempFilePath);
 
     let imageUpload = { url: null, publicId: null };
     let finalAlbumId = albumId && albumId !== "none" ? albumId : null;
@@ -206,6 +199,9 @@ export const createSong = async (req, res, next) => {
   } catch (error) {
     console.log("Error in createSong", error);
     next(error);
+  } finally {
+    // Снимаем флаг загрузки
+    clearUploadInProgress();
   }
 };
 
@@ -230,6 +226,11 @@ export const updateSong = async (req, res, next) => {
   const imageFile = req.files ? req.files.imageFile : null;
 
   try {
+    // Устанавливаем флаг загрузки если есть аудио файл
+    if (audioFile) {
+      setUploadInProgress();
+    }
+
     const song = await Song.findById(id);
     if (!song) {
       return res.status(404).json({ message: "Song not found." });
@@ -262,10 +263,7 @@ export const updateSong = async (req, res, next) => {
       }
 
       const { hlsUrl, sourceAudioPublicId, duration } =
-        await processAndUploadSong(
-          audioFile.tempFilePath,
-          req.user._id.toString()
-        );
+        await processAndUploadSong(audioFile.tempFilePath);
       song.hlsUrl = hlsUrl;
       song.sourceAudioPublicId = sourceAudioPublicId;
       song.duration = duration;
@@ -325,6 +323,11 @@ export const updateSong = async (req, res, next) => {
   } catch (error) {
     console.log("Error in updateSong", error);
     next(error);
+  } finally {
+    // Снимаем флаг загрузки если он был установлен
+    if (audioFile) {
+      clearUploadInProgress();
+    }
   }
 };
 
@@ -716,11 +719,10 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
   const uploadedBunnyPaths = [];
   const newlyCreatedArtistIds = [];
   const createdSongIds = [];
-  const userId = req.user._id.toString();
   let album = null;
 
-  // Регистрируем активную загрузку альбома
-  registerActiveUpload(userId, tempUnzipDir, "album_upload");
+  // Устанавливаем флаг загрузки
+  setUploadInProgress();
 
   try {
     const spotifyAlbumData = await getAlbumDataFromSpotify(spotifyAlbumUrl);
@@ -840,97 +842,116 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
       console.log(`[AdminController] Processing track: ${songName}`);
       const filesForTrack = findTrackFiles(songName);
 
-      const { hlsUrl, sourceAudioPublicId, hlsRemotePath, duration } =
-        await processAndUploadSong(filesForTrack.audioPath, userId);
-      uploadedBunnyPaths.push(sourceAudioPublicId);
-      uploadedBunnyPaths.push(hlsRemotePath + "/");
-
-      const songArtistIds = [];
-      for (const spotifyTrackArtist of spotifyTrack.artists || []) {
-        let artist = await Artist.findOne({ name: spotifyTrackArtist.name });
-        if (!artist) {
-          const artistDetails = await getArtistDataFromSpotify(
-            spotifyTrackArtist.id
-          );
-          const artistImageUrl =
-            artistDetails?.images?.[0]?.url || DEFAULT_ARTIST_IMAGE_URL;
-          const imageUploadResult = await uploadToBunny(
-            artistImageUrl,
-            "artists"
-          );
-          uploadedBunnyPaths.push(imageUploadResult.path);
-          artist = new Artist({
-            name: spotifyTrackArtist.name,
-            imageUrl: imageUploadResult.url,
-            imagePublicId: imageUploadResult.path,
-          });
-          await artist.save();
-          newlyCreatedArtistIds.push(artist._id);
-        }
-        songArtistIds.push(artist._id);
+      // Проверяем, что файл все еще существует
+      if (!filesForTrack || !filesForTrack.audioPath) {
+        console.error(
+          `[AdminController] Файл для трека "${songName}" не найден`
+        );
+        continue;
       }
 
-      const primaryArtistName = (await Artist.findById(songArtistIds[0])).name;
-      const { genreIds, moodIds } = await getTagsFromAI(
-        primaryArtistName,
-        songName
-      );
-
-      let lrcText = "";
-      if (filesForTrack.lrcPath) {
-        try {
-          lrcText = await fs.readFile(filesForTrack.lrcPath, "utf8");
-        } catch (readError) {
-          console.error(`Error reading LRC file for ${songName}:`, readError);
-        }
-      }
-      if (!lrcText) {
-        lrcText = await getLrcLyricsFromLrclib({
-          artistName: primaryArtistName,
-          songName,
-          albumName: album.title,
-          songDuration: duration * 1000,
-        });
-      }
-
-      const song = new Song({
-        title: songName,
-        artist: songArtistIds,
-        albumId: album._id,
-        hlsUrl,
-        sourceAudioPublicId,
-        lyrics: lrcText || "",
-        duration,
-        imageUrl: album.imageUrl,
-        imagePublicId: album.imagePublicId,
-        genres: genreIds,
-        moods: moodIds,
-      });
-
-      await song.save();
-      createdSongIds.push(song._id);
-      createdSongs.push(song);
-
-      // Попытка анализа аудио (не блокирующая)
       try {
-        const audioFeatures = await analyzeAudioFeatures(
-          filesForTrack.audioPath
-        );
-        song.audioFeatures = audioFeatures;
-        await song.save();
-        console.log(
-          `[AdminController] Аудио-характеристики сохранены для песни: ${song.title}`
-        );
-      } catch (audioAnalysisError) {
-        console.warn(
-          `[AdminController] Не удалось проанализировать аудио для песни ${song.title}:`,
-          audioAnalysisError.message
-        );
-        // Не прерываем создание песни, если анализ не удался
-      }
+        const { hlsUrl, sourceAudioPublicId, hlsRemotePath, duration } =
+          await processAndUploadSong(filesForTrack.audioPath);
+        uploadedBunnyPaths.push(sourceAudioPublicId);
+        uploadedBunnyPaths.push(hlsRemotePath + "/");
 
-      await Album.findByIdAndUpdate(album._id, { $push: { songs: song._id } });
-      await updateArtistsContent(songArtistIds, song._id, "songs");
+        const songArtistIds = [];
+        for (const spotifyTrackArtist of spotifyTrack.artists || []) {
+          let artist = await Artist.findOne({ name: spotifyTrackArtist.name });
+          if (!artist) {
+            const artistDetails = await getArtistDataFromSpotify(
+              spotifyTrackArtist.id
+            );
+            const artistImageUrl =
+              artistDetails?.images?.[0]?.url || DEFAULT_ARTIST_IMAGE_URL;
+            const imageUploadResult = await uploadToBunny(
+              artistImageUrl,
+              "artists"
+            );
+            uploadedBunnyPaths.push(imageUploadResult.path);
+            artist = new Artist({
+              name: spotifyTrackArtist.name,
+              imageUrl: imageUploadResult.url,
+              imagePublicId: imageUploadResult.path,
+            });
+            await artist.save();
+            newlyCreatedArtistIds.push(artist._id);
+          }
+          songArtistIds.push(artist._id);
+        }
+
+        const primaryArtistName = (await Artist.findById(songArtistIds[0]))
+          .name;
+        const { genreIds, moodIds } = await getTagsFromAI(
+          primaryArtistName,
+          songName
+        );
+
+        let lrcText = "";
+        if (filesForTrack.lrcPath) {
+          try {
+            lrcText = await fs.readFile(filesForTrack.lrcPath, "utf8");
+          } catch (readError) {
+            console.error(`Error reading LRC file for ${songName}:`, readError);
+          }
+        }
+        if (!lrcText) {
+          lrcText = await getLrcLyricsFromLrclib({
+            artistName: primaryArtistName,
+            songName,
+            albumName: album.title,
+            songDuration: duration * 1000,
+          });
+        }
+
+        const song = new Song({
+          title: songName,
+          artist: songArtistIds,
+          albumId: album._id,
+          hlsUrl,
+          sourceAudioPublicId,
+          lyrics: lrcText || "",
+          duration,
+          imageUrl: album.imageUrl,
+          imagePublicId: album.imagePublicId,
+          genres: genreIds,
+          moods: moodIds,
+        });
+
+        await song.save();
+        createdSongIds.push(song._id);
+        createdSongs.push(song);
+
+        // Попытка анализа аудио (не блокирующая)
+        try {
+          const audioFeatures = await analyzeAudioFeatures(
+            filesForTrack.audioPath
+          );
+          song.audioFeatures = audioFeatures;
+          await song.save();
+          console.log(
+            `[AdminController] Аудио-характеристики сохранены для песни: ${song.title}`
+          );
+        } catch (audioAnalysisError) {
+          console.warn(
+            `[AdminController] Не удалось проанализировать аудио для песни ${song.title}:`,
+            audioAnalysisError.message
+          );
+          // Не прерываем создание песни, если анализ не удался
+        }
+
+        await Album.findByIdAndUpdate(album._id, {
+          $push: { songs: song._id },
+        });
+        await updateArtistsContent(songArtistIds, song._id, "songs");
+      } catch (trackError) {
+        console.error(
+          `[AdminController] Ошибка обработки трека "${songName}":`,
+          trackError
+        );
+        // Продолжаем обработку остальных треков
+      }
     }
 
     res.status(200).json({
@@ -968,8 +989,8 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
 
     next(error);
   } finally {
-    // Отменяем регистрацию активной загрузки
-    unregisterActiveUpload(userId, tempUnzipDir);
+    // Снимаем флаг загрузки
+    clearUploadInProgress();
     await cleanUpTempDir(tempUnzipDir);
   }
 };

@@ -1,29 +1,12 @@
 // backend/src/lib/tempCleanup.service.js
 import fs from "fs";
 import path from "path";
-import {
-  isDirectoryInUse,
-  hasAnyActiveUploads,
-  cleanupStaleUploads,
-  getUploadStats,
-} from "./activeUploads.service.js";
+import { isUploadInProgress } from "./activeUploads.service.js";
 
 const cleanAllTempDirectories = () => {
-  // Сначала очищаем устаревшие записи загрузок
-  const staleCount = cleanupStaleUploads();
-  if (staleCount > 0) {
-    console.log(
-      `[TempCleanup] Удалено ${staleCount} устаревших записей загрузок`
-    );
-  }
-
-  // Проверяем, есть ли активные загрузки
-  if (hasAnyActiveUploads()) {
-    const stats = getUploadStats();
-    console.log(
-      `[TempCleanup] Пропуск очистки - обнаружены активные загрузки:`,
-      stats
-    );
+  // Проверяем, идет ли загрузка
+  if (isUploadInProgress()) {
+    console.log("[TempCleanup] Пропуск очистки - идет загрузка файлов");
     return;
   }
 
@@ -48,14 +31,6 @@ const cleanAllTempDirectories = () => {
 
         files.forEach((file) => {
           const filePath = path.join(tempDir, file);
-
-          // Проверяем, используется ли эта папка в активных загрузках
-          if (isDirectoryInUse(filePath)) {
-            console.log(
-              `[TempCleanup] Пропускаем папку ${filePath} - используется в активной загрузке`
-            );
-            return;
-          }
 
           fs.stat(filePath, (err, stats) => {
             if (err) return;
