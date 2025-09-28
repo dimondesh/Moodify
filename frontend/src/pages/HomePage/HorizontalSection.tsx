@@ -222,8 +222,25 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
       }
       case "generated-playlist":
         return `${t("sidebar.subtitle.playlist")} • Moodify`;
-      case "mix":
-        return t("sidebar.subtitle.dailyMix");
+      case "mix": {
+        const mix = item as Mix;
+        if (!mix.songs || mix.songs.length === 0) {
+          return t("sidebar.subtitle.dailyMix");
+        }
+
+        const allArtists = mix.songs.flatMap((song) => song.artist);
+        const uniqueArtists = allArtists.filter(
+          (artist, index, self) =>
+            index === self.findIndex((a) => a._id === artist._id)
+        );
+        const firstTwoUniqueArtists = uniqueArtists.slice(0, 2);
+        const artistNames = getArtistNames(firstTwoUniqueArtists, allArtists);
+
+        if (uniqueArtists.length > 2) {
+          return `${artistNames} ${t("common.andMore")}`;
+        }
+        return artistNames;
+      }
       case "artist":
         return t("sidebar.subtitle.artist");
       default:
@@ -308,6 +325,14 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
                         className="absolute inset-0 h-full w-full object-cover rounded-md transition-transform duration-300 group-hover:scale-105"
                       />
                     )}
+                    {/* Для миксов добавляем затемнение с названием */}
+                    {item.itemType === "mix" && (
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-2 pt-6 z-10">
+                        <h3 className="text-white text-sm font-bold drop-shadow-lg break-words">
+                          {getDisplayTitle(item)}
+                        </h3>
+                      </div>
+                    )}
                   </div>
                   {item.itemType === "song" && (
                     <PlayButton
@@ -318,10 +343,23 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
                   )}
                 </div>
                 <div className="px-1">
-                  <h3 className="font-semibold text-sm truncate">
-                    {getDisplayTitle(item)}
-                  </h3>
-                  <p className="text-xs text-zinc-400 truncate">
+                  {/* Для миксов не показываем название под обложкой, только subtitle */}
+                  {item.itemType !== "mix" && (
+                    <h3 className="font-semibold text-sm truncate">
+                      {getDisplayTitle(item)}
+                    </h3>
+                  )}
+                  <p
+                    className="text-xs text-zinc-400 leading-tight"
+                    style={{
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                      wordWrap: "break-word",
+                      wordBreak: "break-word",
+                    }}
+                  >
                     {getSubtitle(item)}
                   </p>
                 </div>

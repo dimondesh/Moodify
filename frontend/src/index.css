@@ -213,6 +213,17 @@
   }
 }
 
+@layer utilities {
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-wrap: break-word;
+    word-break: break-word;
+  }
+}
+
 body {
   background-color: #0f0f0f;
 }

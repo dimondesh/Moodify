@@ -821,7 +821,8 @@
       "loading": "Loading...",
       "saveChanges": "Save Changes",
       "currentFile": "Current:",
-      "chooseFile": "Choose File"
+      "chooseFile": "Choose File",
+      "andMore": "and more"
     }
   },
   "pages": {
@@ -1046,6 +1047,7 @@
     "mixes": "Mixes",
     "share": "Share",
     "custom": "Custom",
+    "andMore": "and more",
     "preview": "Preview",
     "itemCover": "Item cover",
     "google": "Google",

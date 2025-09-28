@@ -153,7 +153,25 @@ export const SharedContentMessage: React.FC<SharedContentMessageProps> = ({
     if (entityType === "album") return getArtistNames((entity as Album).artist);
     if (entityType === "playlist")
       return `by ${(entity as Playlist).owner.fullName}`;
-    if (entityType === "mix") return t("sidebar.subtitle.dailyMix");
+    if (entityType === "mix") {
+      const mix = entity as Mix;
+      if (!mix.songs || mix.songs.length === 0) {
+        return t("sidebar.subtitle.dailyMix");
+      }
+
+      const allArtists = mix.songs.flatMap((song) => song.artist);
+      const uniqueArtists = allArtists.filter(
+        (artist, index, self) =>
+          index === self.findIndex((a) => a._id === artist._id)
+      );
+      const firstTwoUniqueArtists = uniqueArtists.slice(0, 2);
+      const artistNames = getArtistNames(firstTwoUniqueArtists);
+
+      if (uniqueArtists.length > 2) {
+        return `${artistNames} ${t("common.andMore")}`;
+      }
+      return artistNames;
+    }
     return entityType;
   };
 

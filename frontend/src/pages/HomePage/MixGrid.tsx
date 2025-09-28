@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import SectionGridSkeleton from "./SectionGridSkeleton";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
+import { getArtistNames } from "@/lib/utils";
 
 interface MixGridProps {
   title: string;
@@ -37,6 +38,25 @@ const MixGrid = ({ title, mixes, isLoading }: MixGridProps) => {
     navigate(`/mixes/${mix._id}`);
   };
 
+  const getFirstTwoArtists = (mix: Mix): string => {
+    if (!mix.songs || mix.songs.length === 0) {
+      return t("sidebar.subtitle.dailyMix");
+    }
+
+    const allArtists = mix.songs.flatMap((song) => song.artist);
+    const uniqueArtists = allArtists.filter(
+      (artist, index, self) =>
+        index === self.findIndex((a) => a._id === artist._id)
+    );
+    const firstTwoUniqueArtists = uniqueArtists.slice(0, 2);
+    const artistNames = getArtistNames(firstTwoUniqueArtists);
+
+    if (uniqueArtists.length > 2) {
+      return `${artistNames} ${t("common.andMore")}`;
+    }
+    return artistNames;
+  };
+
   return (
     <div className="mb-8">
       <div className="flex items-center justify-between mb-4">
@@ -63,10 +83,27 @@ const MixGrid = ({ title, mixes, isLoading }: MixGridProps) => {
               alt={t(mix.name)}
               className="w-full h-full object-cover aspect-square transition-transform duration-300 group-hover:scale-105"
             />
-            <div className="absolute inset-0 flex items-start justify-start p-3 bg-gradient-to-t from-black/80 via-black/20 to-transparent">
+            {/* Затемнение снизу с названием в левой нижней части */}
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 pt-8 z-10">
               <h3 className="text-white text-lg font-bold drop-shadow-lg break-words">
                 {t(mix.name)}
               </h3>
+            </div>
+            {/* Информация под обложкой */}
+            <div className="p-3">
+              <p
+                className="text-xs text-gray-400 leading-tight"
+                style={{
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                  wordWrap: "break-word",
+                  wordBreak: "break-word",
+                }}
+              >
+                {getFirstTwoArtists(mix)}
+              </p>
             </div>
           </div>
         ))}

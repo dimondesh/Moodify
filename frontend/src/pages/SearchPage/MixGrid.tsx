@@ -6,6 +6,7 @@ import type { Mix } from "../../types";
 import SectionGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton";
 import { useTranslation } from "react-i18next";
 import { useSearchStore } from "@/stores/useSearchStore";
+import { getArtistNames } from "@/lib/utils";
 
 type MixGridProps = {
   title: string;
@@ -22,6 +23,25 @@ const MixGrid = ({ title, mixes, isLoading }: MixGridProps) => {
   const handleMixClick = (mix: Mix) => {
     addRecentSearch(mix._id, "Mix");
     navigate(`/mixes/${mix._id}`);
+  };
+
+  const getFirstTwoArtists = (mix: Mix): string => {
+    if (!mix.songs || mix.songs.length === 0) {
+      return t("sidebar.subtitle.dailyMix");
+    }
+
+    const allArtists = mix.songs.flatMap((song) => song.artist);
+    const uniqueArtists = allArtists.filter(
+      (artist, index, self) =>
+        index === self.findIndex((a) => a._id === artist._id)
+    );
+    const firstTwoUniqueArtists = uniqueArtists.slice(0, 2);
+    const artistNames = getArtistNames(firstTwoUniqueArtists);
+
+    if (uniqueArtists.length > 2) {
+      return `${artistNames} ${t("common.andMore")}`;
+    }
+    return artistNames;
   };
 
   if (isLoading) return <SectionGridSkeleton />;
@@ -47,10 +67,10 @@ const MixGrid = ({ title, mixes, isLoading }: MixGridProps) => {
         {mixesToShow.map((mix) => (
           <div
             key={mix._id}
-            className="bg-[#1a1a1a] p-3 rounded-md hover:bg-[#2a2a2a] transition-all cursor-pointer group hover-scale"
+            className="bg-[#1a1a1a] rounded-md hover:bg-[#2a2a2a] transition-all cursor-pointer group hover-scale overflow-hidden"
             onClick={() => handleMixClick(mix)}
           >
-            <div className="relative mb-3 aspect-square rounded-md shadow-lg overflow-hidden">
+            <div className="relative aspect-square rounded-md shadow-lg overflow-hidden">
               <img
                 src={mix.imageUrl || "https://moodify.b-cdn.net/artist.jpeg"}
                 alt={mix.name}
@@ -60,13 +80,29 @@ const MixGrid = ({ title, mixes, isLoading }: MixGridProps) => {
                     "https://moodify.b-cdn.net/artist.jpeg";
                 }}
               />
+              {/* Затемнение снизу с названием в левой нижней части */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 pt-8 z-10">
+                <h3 className="text-white text-lg font-bold drop-shadow-lg break-words">
+                  {t(mix.name)}
+                </h3>
+              </div>
             </div>
-            <h3 className="font-medium mb-1 truncate text-white text-sm">
-              {t(mix.name)}
-            </h3>
-            <p className="text-xs text-gray-400 truncate">
-              {t("sidebar.subtitle.dailyMix")}
-            </p>
+            {/* Информация под обложкой */}
+            <div className="p-3">
+              <p
+                className="text-xs text-gray-400 leading-tight"
+                style={{
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                  wordWrap: "break-word",
+                  wordBreak: "break-word",
+                }}
+              >
+                {getFirstTwoArtists(mix)}
+              </p>
+            </div>
           </div>
         ))}
       </div>

@@ -812,7 +812,8 @@
       "loading": "Завантаження...",
       "saveChanges": "Зберегти зміни",
       "currentFile": "Поточний:",
-      "chooseFile": "Оберіть файл"
+      "chooseFile": "Оберіть файл",
+      "andMore": "та інші"
     }
   },
   "pages": {
@@ -1037,6 +1038,7 @@
     "mixes": "Мікси",
     "share": "Поділитися",
     "custom": "Користувацький",
+    "andMore": "та інші",
     "preview": "Попередній перегляд",
     "itemCover": "Обкладинка елемента",
     "google": "Google",
