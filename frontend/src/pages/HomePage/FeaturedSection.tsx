@@ -2,7 +2,7 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMusicStore } from "../../stores/useMusicStore";
-import PlayButton from "./PlayButton";
+import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
 import { JSX } from "react";
 import { Song } from "@/types";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
@@ -175,7 +175,13 @@ const FeaturedSectionComponent = ({
               </p>
             </div>
             {!isMobile && (
-              <PlayButton song={song} songs={songsArray} songIndex={index} />
+              <UniversalPlayButton
+                entity={song}
+                entityType="song"
+                songs={songsArray}
+                className="absolute bottom-3 right-2"
+                size="sm"
+              />
             )}
           </Component>
         );
