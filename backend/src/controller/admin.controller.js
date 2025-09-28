@@ -29,6 +29,9 @@ import { Genre } from "../models/genre.model.js";
 import { Mood } from "../models/mood.model.js";
 import { v4 as uuidv4 } from "uuid";
 import { transcodeToHls } from "../lib/ffmpeg.service.js";
+import axios from "axios";
+import { createWriteStream } from "fs";
+import { analyzeAudioFeatures } from "../lib/audioAnalysis.service.js";
 
 const uploadFile = async (file, folder) => {
   try {
@@ -167,6 +170,24 @@ export const createSong = async (req, res, next) => {
     await Album.findByIdAndUpdate(finalAlbumId, { $push: { songs: song._id } });
     await updateArtistsContent(artistIds, song._id, "songs");
 
+    // Попытка анализа аудио (не блокирующая)
+    try {
+      const audioFeatures = await analyzeAudioFeatures(
+        req.files.audioFile.tempFilePath
+      );
+      song.audioFeatures = audioFeatures;
+      await song.save();
+      console.log(
+        `[AdminController] Аудио-характеристики сохранены для песни: ${song.title}`
+      );
+    } catch (audioAnalysisError) {
+      console.warn(
+        `[AdminController] Не удалось проанализировать аудио для песни ${song.title}:`,
+        audioAnalysisError.message
+      );
+      // Не прерываем создание песни, если анализ не удался
+    }
+
     res.status(201).json(song);
   } catch (error) {
     console.log("Error in createSong", error);
@@ -231,6 +252,24 @@ export const updateSong = async (req, res, next) => {
       song.hlsUrl = hlsUrl;
       song.sourceAudioPublicId = sourceAudioPublicId;
       song.duration = duration;
+
+      // Попытка анализа нового аудио (не блокирующая)
+      try {
+        const audioFeatures = await analyzeAudioFeatures(
+          audioFile.tempFilePath
+        );
+        song.audioFeatures = audioFeatures;
+        await song.save();
+        console.log(
+          `[AdminController] Аудио-характеристики обновлены для песни: ${song.title}`
+        );
+      } catch (audioAnalysisError) {
+        console.warn(
+          `[AdminController] Не удалось проанализировать новое аудио для песни ${song.title}:`,
+          audioAnalysisError.message
+        );
+        // Не прерываем обновление песни, если анализ не удался
+      }
     }
 
     if (imageFile) {
@@ -819,6 +858,24 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
       createdSongIds.push(song._id);
       createdSongs.push(song);
 
+      // Попытка анализа аудио (не блокирующая)
+      try {
+        const audioFeatures = await analyzeAudioFeatures(
+          filesForTrack.audioPath
+        );
+        song.audioFeatures = audioFeatures;
+        await song.save();
+        console.log(
+          `[AdminController] Аудио-характеристики сохранены для песни: ${song.title}`
+        );
+      } catch (audioAnalysisError) {
+        console.warn(
+          `[AdminController] Не удалось проанализировать аудио для песни ${song.title}:`,
+          audioAnalysisError.message
+        );
+        // Не прерываем создание песни, если анализ не удался
+      }
+
       await Album.findByIdAndUpdate(album._id, { $push: { songs: song._id } });
       await updateArtistsContent(songArtistIds, song._id, "songs");
     }
@@ -976,6 +1033,109 @@ export const getPaginatedArtists = async (req, res, next) => {
     });
   } catch (error) {
     console.error("Error in getPaginatedArtists:", error);
+    next(error);
+  }
+};
+
+export const analyzeSongAudio = async (req, res, next) => {
+  try {
+    if (!req.user || !req.user.isAdmin) {
+      return res.status(403).json({ message: "Access denied." });
+    }
+
+    const { songId } = req.params;
+
+    if (!songId) {
+      return res.status(400).json({ message: "Song ID is required." });
+    }
+
+    const song = await Song.findById(songId);
+    if (!song) {
+      return res.status(404).json({ message: "Song not found." });
+    }
+
+    // Проверяем, есть ли уже аудио-характеристики
+    if (song.audioFeatures && song.audioFeatures.bpm !== null) {
+      return res.status(200).json({
+        message: "Audio features already analyzed for this song.",
+        audioFeatures: song.audioFeatures,
+      });
+    }
+
+    // Получаем аудио файл из Bunny CDN
+    const audioUrl = song.hlsUrl.replace("/master.m3u8", "");
+    const audioFilePath = path.join(
+      process.cwd(),
+      "temp",
+      `temp_audio_${songId}.mp3`
+    );
+
+    try {
+      // Скачиваем аудио файл
+      const response = await axios.get(audioUrl, { responseType: "stream" });
+      const writer = createWriteStream(audioFilePath);
+      response.data.pipe(writer);
+
+      await new Promise((resolve, reject) => {
+        writer.on("finish", resolve);
+        writer.on("error", reject);
+      });
+
+      // Анализируем аудио
+      const audioFeatures = await analyzeAudioFeatures(audioFilePath);
+      song.audioFeatures = audioFeatures;
+      await song.save();
+
+      // Удаляем временный файл
+      await fs
+        .unlink(audioFilePath)
+        .catch((err) => console.error("Error deleting temp audio file:", err));
+
+      res.status(200).json({
+        message: "Audio analysis completed successfully.",
+        audioFeatures: song.audioFeatures,
+      });
+    } catch (downloadError) {
+      console.error("Error downloading audio file:", downloadError);
+      return res.status(500).json({
+        message: "Failed to download audio file for analysis.",
+      });
+    } finally {
+      // Удаляем временный файл в любом случае
+      await fs
+        .unlink(audioFilePath)
+        .catch((err) => console.error("Error deleting temp audio file:", err));
+    }
+  } catch (error) {
+    console.error("Error in analyzeSongAudio:", error);
+    next(error);
+  }
+};
+
+export const getSongAudioFeatures = async (req, res, next) => {
+  try {
+    if (!req.user || !req.user.isAdmin) {
+      return res.status(403).json({ message: "Access denied." });
+    }
+
+    const { songId } = req.params;
+
+    if (!songId) {
+      return res.status(400).json({ message: "Song ID is required." });
+    }
+
+    const song = await Song.findById(songId).select("title audioFeatures");
+    if (!song) {
+      return res.status(404).json({ message: "Song not found." });
+    }
+
+    res.status(200).json({
+      songId: song._id,
+      title: song.title,
+      audioFeatures: song.audioFeatures || null,
+    });
+  } catch (error) {
+    console.error("Error in getSongAudioFeatures:", error);
     next(error);
   }
 };

@@ -14,7 +14,6 @@ import fileUpload from "express-fileupload";
 import path from "path";
 import cors from "cors";
 import cron from "node-cron";
-import fs from "fs";
 import { initializeSocket, io } from "./lib/socket.js";
 import libraryRoutes from "./routes/library.route.js";
 import artistRoutes from "./routes/artist.route.js";
@@ -37,6 +36,7 @@ import {
   generateFeaturedSongsForUser,
 } from "./lib/recommendation.service.js";
 import homeRoutes from "./routes/home.route.js";
+import { cleanAllTempDirectories } from "./lib/tempCleanup.service.js";
 
 dotenv.config();
 
@@ -80,8 +80,6 @@ app.use(
     limits: { fileSize: 800 * 1024 * 1024 },
   })
 );
-
-const tempDir = path.join(process.cwd(), "temp");
 
 cron.schedule(
   "*/5 * * * *", // Каждые 6 часов
@@ -175,18 +173,8 @@ cron.schedule(
   }
 );
 cron.schedule("*/10 * * * *", () => {
-  if (fs.existsSync(tempDir)) {
-    fs.readdir(tempDir, (err, files) => {
-      if (err) {
-        console.log("error", err);
-        return;
-      }
-
-      for (const file of files) {
-        fs.unlink(path.join(tempDir, file), (err) => {});
-      }
-    });
-  }
+  console.log("[CronJob] Запуск очистки временных директорий...");
+  cleanAllTempDirectories();
 });
 
 cron.schedule(

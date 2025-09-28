@@ -15,6 +15,8 @@ import {
   getPaginatedSongs,
   getPaginatedAlbums,
   getPaginatedArtists,
+  analyzeSongAudio,
+  getSongAudioFeatures,
 } from "../controller/admin.controller.js";
 import { protectRoute } from "../middleware/auth.middleware.js";
 
@@ -41,5 +43,9 @@ router.get("/moods", getMoods);
 router.get("/songs/paginated", getPaginatedSongs);
 router.get("/albums/paginated", getPaginatedAlbums);
 router.get("/artists/paginated", getPaginatedArtists);
+
+// Audio analysis routes
+router.post("/songs/:songId/analyze", analyzeSongAudio);
+router.get("/songs/:songId/audio-features", getSongAudioFeatures);
 
 export default router;
