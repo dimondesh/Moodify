@@ -1067,7 +1067,12 @@
     "failedToUpdateLibrary": "Не удалось обновить библиотеку.",
     "mutualFollowersRequired": "Вы должны быть взаимными подписчиками для чата",
     "with": "с",
-    "noFriendsToShare": "Нет друзей для обмена"
+    "noFriendsToShare": "Нет друзей для обмена",
+    "all": "Все",
+    "playlists": "Плейлисты",
+    "albums": "Альбомы",
+    "artists": "Артисты",
+    "downloaded": "Скачанные"
   },
   "equalizerPresets": {
     "flat": "Плоский",

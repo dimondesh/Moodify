@@ -39,6 +39,7 @@ import { useChatStore } from "../stores/useChatStore";
 import { useUIStore } from "../stores/useUIStore";
 import { getOptimizedImageUrl } from "@/lib/utils";
 import UniversalPlayButton from "../components/ui/UniversalPlayButton";
+import EntityTypeFilter from "../components/ui/EntityTypeFilter";
 
 const LeftSidebar = () => {
   const { t } = useTranslation();
@@ -69,6 +70,8 @@ const LeftSidebar = () => {
     isCreatePlaylistDialogOpen,
     openCreatePlaylistDialog,
     closeAllDialogs,
+    entityTypeFilter,
+    setEntityTypeFilter,
   } = useUIStore();
 
   const { artists } = useMusicStore();
@@ -222,6 +225,28 @@ const LeftSidebar = () => {
     isDownloaded,
   ]);
 
+  const filteredLibraryItems = useMemo(() => {
+    if (!entityTypeFilter) {
+      return libraryItems;
+    }
+
+    switch (entityTypeFilter) {
+      case "playlists":
+        return libraryItems.filter(
+          (item) =>
+            item.type === "playlist" || item.type === "generated-playlist"
+        );
+      case "albums":
+        return libraryItems.filter((item) => item.type === "album");
+      case "artists":
+        return libraryItems.filter((item) => item.type === "artist");
+      case "downloaded":
+        return libraryItems.filter((item) => isDownloaded(item._id));
+      default:
+        return libraryItems;
+    }
+  }, [libraryItems, entityTypeFilter, isDownloaded]);
+
   return (
     <div className="h-full flex flex-col bg-[#0f0f0f]">
       <div className="p-4">
@@ -326,16 +351,29 @@ const LeftSidebar = () => {
           )}
         </div>
 
+        {user && (
+          <div className="mb-3">
+            <EntityTypeFilter
+              currentFilter={entityTypeFilter}
+              onFilterChange={(filter) => setEntityTypeFilter(filter as any)}
+              hasDownloaded={libraryItems.some((item) =>
+                isDownloaded(item._id)
+              )}
+              className="w-full"
+            />
+          </div>
+        )}
+
         {isLoading ? (
           <PlaylistSkeleton />
         ) : !user ? (
           <LoginPrompt className="flex-1" />
-        ) : libraryItems.length === 0 ? (
+        ) : filteredLibraryItems.length === 0 ? (
           <p className="text-zinc-400 px-2">{t("sidebar.emptyLibrary")}</p>
         ) : (
           <ScrollArea className="flex-1 h-full pb-7">
             <div className="space-y-2">
-              {libraryItems.map((item) => {
+              {filteredLibraryItems.map((item) => {
                 let linkPath: string = "#";
                 let subtitle: string = "";
                 let fallbackImage: string =

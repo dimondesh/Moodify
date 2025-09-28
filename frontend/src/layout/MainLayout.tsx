@@ -154,7 +154,7 @@ const MainLayout = () => {
               id="left-sidebar-panel"
               order={1}
               defaultSize={15}
-              minSize={12}
+              minSize={15}
               maxSize={25}
               className="hidden lg:block"
             >

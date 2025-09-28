@@ -32,6 +32,7 @@ import { Download } from "lucide-react";
 import { useOfflineStore } from "../../stores/useOfflineStore";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "../../stores/useUIStore";
+import EntityTypeFilter from "../../components/ui/EntityTypeFilter";
 
 const LibraryPage = () => {
   const { t } = useTranslation();
@@ -54,8 +55,8 @@ const LibraryPage = () => {
     isCreatePlaylistDialogOpen,
     openCreatePlaylistDialog,
     closeAllDialogs,
-    libraryFilter,
-    setLibraryFilter,
+    entityTypeFilter,
+    setEntityTypeFilter,
   } = useUIStore();
 
   const { artists } = useMusicStore();
@@ -69,12 +70,12 @@ const LibraryPage = () => {
 
   useEffect(() => {
     if (isOffline) {
-      setLibraryFilter("downloaded");
+      setEntityTypeFilter("downloaded");
     }
-  }, [isOffline, setLibraryFilter]);
+  }, [isOffline, setEntityTypeFilter]);
 
   useEffect(() => {
-    if (libraryFilter === "downloaded") {
+    if (entityTypeFilter === "downloaded") {
       const loadDownloaded = async () => {
         const items = await fetchAllDownloaded();
         const downloadedLibraryItemsMap = new Map<string, LibraryItem>();
@@ -131,7 +132,7 @@ const LibraryPage = () => {
       };
       loadDownloaded();
     }
-  }, [libraryFilter, fetchAllDownloaded, t]);
+  }, [entityTypeFilter, fetchAllDownloaded, t]);
 
   const getArtistNames = (artistsInput: (string | Artist)[] | undefined) => {
     if (!artistsInput || artistsInput.length === 0)
@@ -247,14 +248,28 @@ const LibraryPage = () => {
   ]);
 
   const filteredLibraryItems = useMemo(() => {
-    if (libraryFilter === "downloaded") {
-      return downloadedItems;
+    if (!entityTypeFilter) {
+      return libraryItems;
     }
-    return libraryItems;
-  }, [libraryItems, libraryFilter, downloadedItems]);
 
-  if (isLoading && libraryFilter !== "downloaded")
-    return <LibraryGridSkeleton />;
+    switch (entityTypeFilter) {
+      case "playlists":
+        return libraryItems.filter(
+          (item) =>
+            item.type === "playlist" || item.type === "generated-playlist"
+        );
+      case "albums":
+        return libraryItems.filter((item) => item.type === "album");
+      case "artists":
+        return libraryItems.filter((item) => item.type === "artist");
+      case "downloaded":
+        return downloadedItems;
+      default:
+        return libraryItems;
+    }
+  }, [libraryItems, downloadedItems, entityTypeFilter]);
+
+  if (isLoading && !entityTypeFilter) return <LibraryGridSkeleton />;
 
   if (errorMessage && !isOffline) {
     return (
@@ -303,37 +318,21 @@ const LibraryPage = () => {
                 )}
               </div>
 
-              <div className="flex items-center gap-2 mb-6">
-                {!isOffline && (
-                  <Button
-                    onClick={() => setLibraryFilter("all")}
-                    className={cn(
-                      "rounded-full h-8 px-4 text-xs font-semibold",
-                      libraryFilter === "all"
-                        ? "bg-white text-black hover:bg-white/90"
-                        : "bg-[#2a2a2a] text-white hover:bg-[#3a3a3a]"
-                    )}
-                  >
-                    All
-                  </Button>
-                )}
-                <Button
-                  onClick={() => setLibraryFilter("downloaded")}
-                  className={cn(
-                    "rounded-full h-8 px-4 text-xs font-semibold",
-                    libraryFilter === "downloaded"
-                      ? "bg-white text-black hover:bg-white/90"
-                      : "bg-[#2a2a2a] text-white hover:bg-[#3a3a3a]"
-                  )}
-                >
-                  Downloaded
-                </Button>
+              <div className="mb-6">
+                <EntityTypeFilter
+                  currentFilter={entityTypeFilter}
+                  onFilterChange={(filter) =>
+                    setEntityTypeFilter(filter as any)
+                  }
+                  hasDownloaded={downloadedItems.length > 0}
+                  className="w-full"
+                />
               </div>
 
               <div className="flex flex-col gap-2">
                 {filteredLibraryItems.length === 0 ? (
                   <p className="text-gray-400 px-2">
-                    {libraryFilter === "downloaded"
+                    {entityTypeFilter === "downloaded"
                       ? "You have no downloaded content yet."
                       : t("sidebar.emptyLibrary")}
                   </p>

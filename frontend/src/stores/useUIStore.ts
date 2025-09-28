@@ -22,6 +22,7 @@ interface SongRemovalInfo {
 }
 
 type LibraryFilter = "all" | "downloaded";
+type EntityTypeFilter = "playlists" | "albums" | "artists" | "downloaded";
 
 interface UIStore {
   isCreatePlaylistDialogOpen: boolean;
@@ -35,6 +36,7 @@ interface UIStore {
   isHomePageLoading: boolean;
   isSecondaryHomePageLoading: boolean;
   libraryFilter: LibraryFilter;
+  entityTypeFilter: EntityTypeFilter | null;
   isIosDevice: boolean; // <-- НОВЫЙ ФЛАГ
   isFriendsActivityOpen: boolean;
 
@@ -42,6 +44,7 @@ interface UIStore {
   setIsHomePageLoading: (isLoading: boolean) => void;
   setIsSecondaryHomePageLoading: (isLoading: boolean) => void;
   setLibraryFilter: (filter: LibraryFilter) => void;
+  setEntityTypeFilter: (filter: EntityTypeFilter | null) => void;
   setIsFriendsActivityOpen: (isOpen: boolean) => void;
 
   openCreatePlaylistDialog: () => void;
@@ -71,6 +74,7 @@ export const useUIStore = create<UIStore>()(
       isHomePageLoading: true,
       isSecondaryHomePageLoading: true,
       libraryFilter: "all",
+      entityTypeFilter: null,
       isIosDevice: false, // <-- ЗНАЧЕНИЕ ПО УМОЛЧАНИЮ
       isFriendsActivityOpen: true,
 
@@ -81,6 +85,7 @@ export const useUIStore = create<UIStore>()(
         set({ isSecondaryHomePageLoading: isLoading }),
 
       setLibraryFilter: (filter) => set({ libraryFilter: filter }),
+      setEntityTypeFilter: (filter) => set({ entityTypeFilter: filter }),
       setIsFriendsActivityOpen: (isOpen) =>
         set({ isFriendsActivityOpen: isOpen }),
 
@@ -158,6 +163,7 @@ export const useUIStore = create<UIStore>()(
       partialize: (state) => ({
         isFriendsActivityOpen: state.isFriendsActivityOpen,
         libraryFilter: state.libraryFilter,
+        entityTypeFilter: state.entityTypeFilter,
         isIosDevice: state.isIosDevice,
       }),
     }

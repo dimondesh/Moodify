@@ -1071,7 +1071,12 @@
     "failedToUpdateLibrary": "Failed to update library.",
     "mutualFollowersRequired": "You must be mutual followers to chat",
     "with": "with",
-    "noFriendsToShare": "No friends to share with"
+    "noFriendsToShare": "No friends to share with",
+    "all": "All",
+    "playlists": "Playlists",
+    "albums": "Albums",
+    "artists": "Artists",
+    "downloaded": "Downloaded"
   },
   "equalizerPresets": {
     "flat": "Flat",
