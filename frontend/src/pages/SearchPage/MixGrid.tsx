@@ -7,6 +7,7 @@ import SectionGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton"
 import { useTranslation } from "react-i18next";
 import { useSearchStore } from "@/stores/useSearchStore";
 import { getArtistNames } from "@/lib/utils";
+import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
 
 type MixGridProps = {
   title: string;
@@ -23,25 +24,6 @@ const MixGrid = ({ title, mixes, isLoading }: MixGridProps) => {
   const handleMixClick = (mix: Mix) => {
     addRecentSearch(mix._id, "Mix");
     navigate(`/mixes/${mix._id}`);
-  };
-
-  const getFirstTwoArtists = (mix: Mix): string => {
-    if (!mix.songs || mix.songs.length === 0) {
-      return t("sidebar.subtitle.dailyMix");
-    }
-
-    const allArtists = mix.songs.flatMap((song) => song.artist);
-    const uniqueArtists = allArtists.filter(
-      (artist, index, self) =>
-        index === self.findIndex((a) => a._id === artist._id)
-    );
-    const firstTwoUniqueArtists = uniqueArtists.slice(0, 2);
-    const artistNames = getArtistNames(firstTwoUniqueArtists);
-
-    if (uniqueArtists.length > 2) {
-      return `${artistNames} ${t("common.andMore")}`;
-    }
-    return artistNames;
   };
 
   if (isLoading) return <SectionGridSkeleton />;
@@ -86,22 +68,12 @@ const MixGrid = ({ title, mixes, isLoading }: MixGridProps) => {
                   {t(mix.name)}
                 </h3>
               </div>
-            </div>
-            {/* Информация под обложкой */}
-            <div className="p-3">
-              <p
-                className="text-xs text-gray-400 leading-tight"
-                style={{
-                  display: "-webkit-box",
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                  wordWrap: "break-word",
-                  wordBreak: "break-word",
-                }}
-              >
-                {getFirstTwoArtists(mix)}
-              </p>
+              <UniversalPlayButton
+                entity={mix}
+                entityType="mix"
+                className="absolute bottom-3 right-2 z-50"
+                size="sm"
+              />
             </div>
           </div>
         ))}

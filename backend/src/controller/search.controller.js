@@ -41,6 +41,12 @@ export const searchSongs = async (req, res, next) => {
           $or: [{ title: regex }, { artist: { $in: matchingArtistIds } }],
         })
           .populate("artist", "name imageUrl")
+          .populate({
+            path: "songs",
+            select:
+              "title duration imageUrl artist albumId hlsUrl playCount genres moods",
+            populate: { path: "artist", select: "name imageUrl" },
+          })
           .limit(50)
           .lean(),
 
@@ -49,6 +55,12 @@ export const searchSongs = async (req, res, next) => {
           $or: [{ title: regex }, { description: regex }],
         })
           .populate("owner", "fullName")
+          .populate({
+            path: "songs",
+            select:
+              "title duration imageUrl artist albumId hlsUrl playCount genres moods",
+            populate: { path: "artist", select: "name imageUrl" },
+          })
           .limit(50)
           .lean(),
 
@@ -57,8 +69,17 @@ export const searchSongs = async (req, res, next) => {
           .select("fullName imageUrl")
           .lean(),
 
-        Mix.find({ searchableNames: regex }).limit(50).lean(),
+        Mix.find({ searchableNames: regex })
+          .populate({
+            path: "songs",
+            select:
+              "title duration imageUrl artist albumId hlsUrl playCount genres moods",
+            populate: { path: "artist", select: "name imageUrl" },
+          })
+          .limit(50)
+          .lean(),
       ]);
+
     const songs = songsRaw.map((song) => ({
       ...song,
       albumId: song.albumId ? song.albumId._id.toString() : null,
@@ -70,6 +91,21 @@ export const searchSongs = async (req, res, next) => {
     const albums = albumsRaw.map((album) => ({
       ...album,
       _id: album._id.toString(),
+      songs: album.songs
+        ? album.songs.map((song) => ({
+            ...song,
+            _id: song._id.toString(),
+            albumId: song.albumId ? song.albumId.toString() : null,
+            artist: song.artist
+              ? song.artist.map((a) => ({
+                  ...a,
+                  _id: a._id.toString(),
+                }))
+              : [],
+            genres: song.genres ? song.genres.map((g) => g.toString()) : [],
+            moods: song.moods ? song.moods.map((m) => m.toString()) : [],
+          }))
+        : [],
     }));
 
     const playlists = playlistsRaw.map((playlist) => ({
@@ -81,7 +117,21 @@ export const searchSongs = async (req, res, next) => {
             fullName: playlist.owner.fullName,
           }
         : null,
-      songs: playlist.songs ? playlist.songs.map((s) => s.toString()) : [],
+      songs: playlist.songs
+        ? playlist.songs.map((song) => ({
+            ...song,
+            _id: song._id.toString(),
+            albumId: song.albumId ? song.albumId.toString() : null,
+            artist: song.artist
+              ? song.artist.map((a) => ({
+                  ...a,
+                  _id: a._id.toString(),
+                }))
+              : [],
+            genres: song.genres ? song.genres.map((g) => g.toString()) : [],
+            moods: song.moods ? song.moods.map((m) => m.toString()) : [],
+          }))
+        : [],
     }));
 
     const artists = matchingArtists.map((artist) => ({
@@ -99,6 +149,21 @@ export const searchSongs = async (req, res, next) => {
     const mixes = mixesRaw.map((mix) => ({
       ...mix,
       _id: mix._id.toString(),
+      songs: mix.songs
+        ? mix.songs.map((song) => ({
+            ...song,
+            _id: song._id.toString(),
+            albumId: song.albumId ? song.albumId.toString() : null,
+            artist: song.artist
+              ? song.artist.map((a) => ({
+                  ...a,
+                  _id: a._id.toString(),
+                }))
+              : [],
+            genres: song.genres ? song.genres.map((g) => g.toString()) : [],
+            moods: song.moods ? song.moods.map((m) => m.toString()) : [],
+          }))
+        : [],
     }));
 
     return res.json({ songs, albums, playlists, artists, users, mixes });

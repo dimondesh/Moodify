@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { ScrollArea, ScrollBar } from "../../components/ui/scroll-area";
 import PlayButton from "./PlayButton";
+import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
 import { getArtistNames, getOptimizedImageUrl } from "../../lib/utils";
 import { useMusicStore } from "../../stores/useMusicStore";
 import type {
@@ -339,6 +340,16 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
                       song={item as Song}
                       songs={songsOnly}
                       songIndex={songIndex}
+                    />
+                  )}
+                  {item.itemType !== "song" && (
+                    <UniversalPlayButton
+                      entity={item}
+                      entityType={item.itemType}
+                      className={`absolute bottom-3 right-2 ${
+                        item.itemType === "mix" ? "z-50" : ""
+                      }`}
+                      size="sm"
                     />
                   )}
                 </div>

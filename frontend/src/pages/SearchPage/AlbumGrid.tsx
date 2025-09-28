@@ -7,6 +7,7 @@ import SectionGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton"
 import { useSearchStore } from "@/stores/useSearchStore";
 import { useTranslation } from "react-i18next";
 import { getArtistNames, getOptimizedImageUrl } from "@/lib/utils";
+import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
 
 type AlbumGridProps = {
   title: string;
@@ -64,6 +65,12 @@ const AlbumGridComponent = ({ title, albums, isLoading }: AlbumGridProps) => {
                   (e.target as HTMLImageElement).src =
                     "https://moodify.b-cdn.net/default-album-cover.png";
                 }}
+              />
+              <UniversalPlayButton
+                entity={album}
+                entityType="album"
+                className="absolute bottom-3 right-2"
+                size="sm"
               />
             </div>
             <h3 className="font-medium mb-1 truncate text-white text-sm">

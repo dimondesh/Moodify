@@ -780,7 +780,7 @@ const PlaybackControls = () => {
                       {currentSong.title}
                     </button>
                     <div className="text-xs text-gray-400 truncate">
-                      {currentSong.artist.map((artist, index) => (
+                      {currentSong.artist?.map((artist, index) => (
                         <span key={artist._id}>
                           <button
                             onClick={() => handleArtistClick(artist._id)}
@@ -788,7 +788,8 @@ const PlaybackControls = () => {
                           >
                             {artist.name}
                           </button>
-                          {index < currentSong.artist.length - 1 && ", "}
+                          {index < (currentSong.artist?.length || 0) - 1 &&
+                            ", "}
                         </span>
                       ))}
                     </div>

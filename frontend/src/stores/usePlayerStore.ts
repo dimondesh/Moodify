@@ -172,6 +172,7 @@ export const usePlayerStore = create<PlayerStore>()(
           context?: { type: string; entityId?: string; entityTitle?: string }
         ) => {
           if (songs.length === 0) {
+            console.log("No songs, stopping playback");
             silentAudioService.pause();
             set({
               currentSong: null,
@@ -181,6 +182,16 @@ export const usePlayerStore = create<PlayerStore>()(
               shuffleHistory: [],
               shufflePointer: -1,
             });
+            return;
+          }
+
+          // Проверяем, что у первой песни есть hlsUrl
+          if (!songs[0]?.hlsUrl) {
+            console.error(
+              "First song has no hlsUrl, cannot start playback:",
+              songs[0]
+            );
+            toast.error("Cannot start playback: missing audio file");
             return;
           }
 
@@ -252,6 +263,13 @@ export const usePlayerStore = create<PlayerStore>()(
               currentTime: 0,
               duration: 0,
             });
+            return;
+          }
+
+          // Проверяем, что у песни есть hlsUrl
+          if (!song.hlsUrl) {
+            console.error("Song has no hlsUrl, cannot start playback:", song);
+            toast.error("Cannot start playback: missing audio file");
             return;
           }
 

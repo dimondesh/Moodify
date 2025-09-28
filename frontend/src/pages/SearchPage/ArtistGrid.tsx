@@ -7,6 +7,7 @@ import SectionGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton"
 import { useSearchStore } from "../../stores/useSearchStore";
 import { useTranslation } from "react-i18next";
 import { getOptimizedImageUrl } from "@/lib/utils";
+import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
 
 type ArtistGridProps = {
   title: string;
@@ -67,6 +68,12 @@ const ArtistGridComponent: React.FC<ArtistGridProps> = ({
                   (e.target as HTMLImageElement).src =
                     "/default_artist_cover.png";
                 }}
+              />
+              <UniversalPlayButton
+                entity={artist}
+                entityType="artist"
+                className="absolute bottom-3 right-2"
+                size="sm"
               />
             </div>
             <h3 className="font-medium mb-1 truncate text-white text-center text-sm">

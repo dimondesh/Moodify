@@ -9,6 +9,7 @@ import SectionGridSkeleton from "@/components/ui/skeletons/PlaylistSkeleton";
 import { useTranslation } from "react-i18next";
 import { getOptimizedImageUrl, getArtistNames } from "@/lib/utils";
 import { Artist } from "@/types";
+import UniversalPlayButton from "@/components/ui/UniversalPlayButton";
 
 interface ListItem {
   _id: string;
@@ -139,6 +140,12 @@ const DisplayListPage = () => {
                     </AvatarFallback>
                   </Avatar>
                 )}
+                <UniversalPlayButton
+                  entity={item as any}
+                  entityType={item.type as any}
+                  className="absolute bottom-3 right-2"
+                  size="sm"
+                />
               </div>
               <h3 className="font-semibold truncate text-white text-sm">
                 {item.name || item.title}

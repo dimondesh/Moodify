@@ -3,6 +3,7 @@ import { Button } from "../../components/ui/button";
 import SectionGridSkeleton from "./SectionGridSkeleton";
 import { Playlist } from "@/types";
 import { useTranslation } from "react-i18next";
+import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
 
 type PlaylistSectionGridProps = {
   title: string;
@@ -63,6 +64,12 @@ const PlaylistSectionGrid = ({
                   }}
                 />
               </div>
+              <UniversalPlayButton
+                entity={playlist}
+                entityType="playlist"
+                className="absolute bottom-3 right-2"
+                size="sm"
+              />
             </div>
             <h3 className="font-medium mb-2 truncate">{playlist.title}</h3>
             <p className="text-sm text-zinc-400 truncate">

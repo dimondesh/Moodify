@@ -370,17 +370,35 @@ export const getListenHistory = async (
                 entityData = await Album.findById(entityId)
                   .select("title imageUrl type artist")
                   .populate("artist", "name")
+                  .populate({
+                    path: "songs",
+                    select:
+                      "title duration imageUrl artist albumId hlsUrl playCount genres moods",
+                    populate: { path: "artist", select: "name imageUrl" },
+                  })
                   .lean();
                 break;
               case "playlist":
                 entityData = await Playlist.findById(entityId)
                   .select("title imageUrl owner")
                   .populate("owner", "fullName")
+                  .populate({
+                    path: "songs",
+                    select:
+                      "title duration imageUrl artist albumId hlsUrl playCount genres moods",
+                    populate: { path: "artist", select: "name imageUrl" },
+                  })
                   .lean();
                 break;
               case "mix":
                 entityData = await Mix.findById(entityId)
                   .select("name imageUrl type")
+                  .populate({
+                    path: "songs",
+                    select:
+                      "title duration imageUrl artist albumId hlsUrl playCount genres moods",
+                    populate: { path: "artist", select: "name imageUrl" },
+                  })
                   .lean();
                 if (entityData) {
                   // Для миксов сохраняем name как есть, так как фронтенд использует t(item.name)
@@ -390,6 +408,12 @@ export const getListenHistory = async (
               case "generated-playlist":
                 entityData = await GeneratedPlaylist.findById(entityId)
                   .select("nameKey imageUrl")
+                  .populate({
+                    path: "songs",
+                    select:
+                      "title duration imageUrl artist albumId hlsUrl playCount genres moods",
+                    populate: { path: "artist", select: "name imageUrl" },
+                  })
                   .lean();
                 if (entityData) {
                   entityData.title = entityData.nameKey;
@@ -398,6 +422,13 @@ export const getListenHistory = async (
               case "artist":
                 entityData = await Artist.findById(entityId)
                   .select("name imageUrl")
+                  .populate({
+                    path: "songs",
+                    select:
+                      "title duration imageUrl artist albumId hlsUrl playCount genres moods",
+                    populate: { path: "artist", select: "name imageUrl" },
+                    options: { sort: { playCount: -1 }, limit: 5 },
+                  })
                   .lean();
                 if (entityData) {
                   entityData.title = entityData.name;
@@ -408,6 +439,7 @@ export const getListenHistory = async (
             if (entityData) {
               entity.title = entityData.title || entityTitle;
               entity.imageUrl = entityData.imageUrl; // Актуальная обложка
+              entity.songs = entityData.songs || []; // Добавляем песни
 
               // Добавляем дополнительные поля для правильного отображения подзаголовков
               if (type === "album") {
