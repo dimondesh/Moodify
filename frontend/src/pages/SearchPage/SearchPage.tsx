@@ -115,14 +115,14 @@ const SearchPage = () => {
               <div className="mb-6">
                 <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
                   <PopoverTrigger asChild>
-                    <div onClick={handleTriggerClick}>
+                    <div onClick={handleTriggerClick} className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
                       <input
                         type="text"
                         placeholder={t("topbar.searchPlaceholder")}
                         value={query}
                         onChange={handleChange}
-                        className="w-full bg-[#2a2a2a] rounded-full py-2 pl-10 pr-4 text-base text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#8b5cf6] transition duration-150 ease-in-out cursor-pointer"
+                        className="w-full bg-[#2a2a2a] rounded-full py-2 pl-10 pr-4 text-base text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#8b5cf6] transition duration-150 ease-in-out"
                         spellCheck={false}
                         autoComplete="off"
                       />

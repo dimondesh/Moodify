@@ -324,7 +324,7 @@ const LibraryPage = () => {
                   onFilterChange={(filter) =>
                     setEntityTypeFilter(filter as any)
                   }
-                  hasDownloaded={downloadedItems.length > 0}
+                  hasDownloaded={!!user}
                   className="w-full"
                 />
               </div>
