@@ -321,9 +321,23 @@ export const deleteSong = async (req, res, next) => {
 
     if (!song) return res.status(404).json({ message: "Song not found." });
 
-    if (song.instrumentalPublicId)
-      await deleteFromBunny(song.instrumentalPublicId);
-    if (song.vocalsPublicId) await deleteFromBunny(song.vocalsPublicId);
+    // Удаляем HLS файлы из Bunny CDN
+    if (song.hlsUrl) {
+      const hlsPath = getPathFromUrl(song.hlsUrl);
+      if (hlsPath) {
+        // Удаляем master.m3u8 файл
+        await deleteFromBunny(hlsPath);
+
+        // Удаляем директорию HLS (включая все .ts сегменты)
+        const hlsDir = hlsPath.replace("/master.m3u8", "");
+        await deleteFromBunny(hlsDir + "/");
+      }
+    }
+
+    // Удаляем исходный аудио файл
+    if (song.sourceAudioPublicId) {
+      await deleteFromBunny(song.sourceAudioPublicId);
+    }
 
     if (song.albumId) {
       const album = await Album.findById(song.albumId);
@@ -450,10 +464,12 @@ export const updateAlbum = async (req, res, next) => {
     }
 
     if (imageFile) {
-      if (album.imageUrl) {
-        await deleteFromBunny(extractPublicId(album.imageUrl));
+      if (album.imagePublicId) {
+        await deleteFromBunny(album.imagePublicId);
       }
-      album.imageUrl = (await uploadToBunny(imageFile, "albums")).secure_url;
+      const imageUpload = await uploadToBunny(imageFile, "albums");
+      album.imageUrl = imageUpload.url;
+      album.imagePublicId = imageUpload.path;
     }
 
     album.title = title || album.title;
@@ -479,20 +495,37 @@ export const deleteAlbum = async (req, res, next) => {
 
     if (!album) return res.status(404).json({ message: "Album not found." });
 
-    if (album.imagePublicId)
-      await deleteFromBunny(album.imagePublicId, "image");
+    // Удаляем обложку альбома
+    if (album.imagePublicId) await deleteFromBunny(album.imagePublicId);
 
+    // Получаем все треки альбома и удаляем их файлы
     const songsInAlbum = await Song.find({ albumId: id });
     for (const song of songsInAlbum) {
-      if (song.instrumentalPublicId)
-        await deleteFromBunny(song.instrumentalPublicId, "video");
-      if (song.vocalsPublicId)
-        await deleteFromBunny(song.vocalsPublicId, "video");
+      // Удаляем HLS файлы из Bunny CDN
+      if (song.hlsUrl) {
+        const hlsPath = getPathFromUrl(song.hlsUrl);
+        if (hlsPath) {
+          // Удаляем master.m3u8 файл
+          await deleteFromBunny(hlsPath);
+
+          // Удаляем директорию HLS (включая все .ts сегменты)
+          const hlsDir = hlsPath.replace("/master.m3u8", "");
+          await deleteFromBunny(hlsDir + "/");
+        }
+      }
+
+      // Удаляем исходный аудио файл
+      if (song.sourceAudioPublicId) {
+        await deleteFromBunny(song.sourceAudioPublicId);
+      }
+
+      // Удаляем обложку трека (если не совпадает с альбомом)
       if (song.imagePublicId && song.imagePublicId !== album.imagePublicId) {
-        await deleteFromBunny(song.imagePublicId, "image");
+        await deleteFromBunny(song.imagePublicId);
       }
     }
 
+    // Удаляем все треки из базы данных
     await Song.deleteMany({ albumId: id });
     await removeContentFromArtists(album.artist, album._id, "albums");
     await Album.findByIdAndDelete(id);
@@ -554,22 +587,19 @@ export const updateArtist = async (req, res, next) => {
     if (!artist) return res.status(404).json({ message: "Artist not found." });
 
     if (imageFile) {
-      if (artist.imagePublicId)
-        await deleteFromBunny(artist.imagePublicId, "image");
+      if (artist.imagePublicId) await deleteFromBunny(artist.imagePublicId);
       const imageUpload = await uploadToBunny(imageFile, "artists");
       artist.imageUrl = imageUpload.url;
-      artist.imagePublicId = imageUpload.publicId;
+      artist.imagePublicId = imageUpload.path;
     }
 
     if (bannerFile) {
-      if (artist.bannerPublicId)
-        await deleteFromBunny(artist.bannerPublicId, "image");
+      if (artist.bannerPublicId) await deleteFromBunny(artist.bannerPublicId);
       const bannerUpload = await uploadToBunny(bannerFile, "artists/banners");
       artist.bannerUrl = bannerUpload.url;
-      artist.bannerPublicId = bannerUpload.publicId;
+      artist.bannerPublicId = bannerUpload.path;
     } else if (bannerUrl === "") {
-      if (artist.bannerPublicId)
-        await deleteFromBunny(artist.bannerPublicId, "image");
+      if (artist.bannerPublicId) await deleteFromBunny(artist.bannerPublicId);
       artist.bannerUrl = null;
       artist.bannerPublicId = null;
     }
@@ -594,6 +624,7 @@ export const deleteArtist = async (req, res, next) => {
 
     const mockRes = { status: () => mockRes, json: () => {} };
 
+    // Удаляем все сольные альбомы артиста (включая все треки и их файлы)
     const soloAlbums = await Album.find({
       artist: id,
       "artist.1": { $exists: false },
@@ -606,6 +637,7 @@ export const deleteArtist = async (req, res, next) => {
       );
     }
 
+    // Удаляем все сольные треки артиста (включая все файлы)
     const soloSongs = await Song.find({
       artist: id,
       "artist.1": { $exists: false },
@@ -618,13 +650,13 @@ export const deleteArtist = async (req, res, next) => {
       );
     }
 
+    // Удаляем артиста из совместных альбомов и треков
     await Album.updateMany({ artist: id }, { $pull: { artist: id } });
     await Song.updateMany({ artist: id }, { $pull: { artist: id } });
 
-    if (artist.imagePublicId)
-      await deleteFromBunny(artist.imagePublicId, "image");
-    if (artist.bannerPublicId)
-      await deleteFromBunny(artist.bannerPublicId, "image");
+    // Удаляем изображения артиста
+    if (artist.imagePublicId) await deleteFromBunny(artist.imagePublicId);
+    if (artist.bannerPublicId) await deleteFromBunny(artist.bannerPublicId);
 
     await Artist.findByIdAndDelete(id);
     res.status(200).json({

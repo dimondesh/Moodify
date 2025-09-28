@@ -17,6 +17,10 @@ const playlistSchema = new mongoose.Schema(
       type: String,
       default: "https://moodify.b-cdn.net/default-album-cover.png",
     },
+    imagePublicId: {
+      type: String,
+      default: null,
+    },
     likes: {
       type: Number,
       default: 0,

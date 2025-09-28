@@ -4,7 +4,7 @@ import { Song } from "../models/song.model.js";
 import { Library } from "../models/library.model.js";
 import { Genre } from "../models/genre.model.js";
 import { Mood } from "../models/mood.model.js";
-import { uploadToBunny } from "../lib/bunny.service.js";
+import { uploadToBunny, deleteFromBunny } from "../lib/bunny.service.js";
 import { v4 as uuidv4 } from "uuid";
 import path from "path";
 import { getMadeForYouSongs, getTrendingSongs } from "./song.controller.js";
@@ -246,6 +246,11 @@ export const deletePlaylist = async (req, res, next) => {
       return res.status(403).json({
         message: "Access denied. You are not the owner of this playlist.",
       });
+    }
+
+    // Удаляем обложку плейлиста из Bunny CDN
+    if (playlist.imagePublicId) {
+      await deleteFromBunny(playlist.imagePublicId);
     }
 
     await Playlist.findByIdAndDelete(playlistId);
