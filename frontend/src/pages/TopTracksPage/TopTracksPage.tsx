@@ -66,12 +66,6 @@ const TopTracksPage = () => {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const formatListenCount = (count: number) => {
-    if (count === 1) return t("pages.profile.listen");
-    if (count >= 2 && count <= 4) return t("pages.profile.listens");
-    return t("pages.profile.listensMany");
-  };
-
   if (isLoading) {
     return (
       <div className="p-4 sm:p-6 bg-zinc-900 min-h-screen text-white">
@@ -80,15 +74,15 @@ const TopTracksPage = () => {
           {[...Array(10)].map((_, index) => (
             <div
               key={index}
-              className="flex items-center gap-4 p-2 rounded-md animate-pulse"
+              className="flex items-center gap-3 sm:gap-4 p-2 rounded-md animate-pulse"
             >
-              <div className="w-4 h-4 bg-zinc-800 rounded"></div>
-              <div className="w-12 h-12 bg-zinc-800 rounded-md"></div>
+              <div className="w-4 h-4 bg-zinc-800 rounded flex-shrink-0"></div>
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-zinc-800 rounded-md flex-shrink-0"></div>
               <div className="flex-1">
-                <div className="h-4 bg-zinc-800 rounded mb-2 w-3/4"></div>
-                <div className="h-3 bg-zinc-800 rounded w-1/2"></div>
+                <div className="h-3 sm:h-4 bg-zinc-800 rounded mb-2 w-3/4"></div>
+                <div className="h-2 sm:h-3 bg-zinc-800 rounded w-1/2"></div>
               </div>
-              <div className="w-12 h-4 bg-zinc-800 rounded"></div>
+              <div className="w-8 h-8 sm:w-8 sm:h-8 bg-zinc-800 rounded-full flex-shrink-0"></div>
             </div>
           ))}
         </div>
@@ -136,20 +130,22 @@ const TopTracksPage = () => {
               return (
                 <div
                   key={`${track._id}-${index}`}
-                  className="flex items-center gap-4 p-2 rounded-md hover:bg-zinc-800/50 cursor-pointer group"
+                  className="flex items-center gap-3 sm:gap-4 p-2 rounded-md hover:bg-zinc-800/50 cursor-pointer group"
                   onClick={() => handlePlaySpecificSong(track, index)}
                 >
-                  <div className="flex items-center justify-center w-4 text-zinc-400">
+                  <div className="flex items-center justify-center w-4 text-zinc-400 flex-shrink-0">
                     {isCurrentSong && isPlaying ? (
                       <Equalizer />
                     ) : (
-                      <span className="group-hover:hidden">{index + 1}</span>
+                      <span className="group-hover:hidden text-sm sm:text-base">
+                        {index + 1}
+                      </span>
                     )}
                     {!isCurrentSong && (
-                      <Play className="h-4 w-4 hidden group-hover:block" />
+                      <Play className="h-3 w-3 sm:h-4 sm:w-4 hidden group-hover:block" />
                     )}
                   </div>
-                  <div className="w-12 h-12 flex-shrink-0">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0">
                     <img
                       src={getOptimizedImageUrl(
                         track.imageUrl || "/default-song-cover.png",
@@ -160,30 +156,28 @@ const TopTracksPage = () => {
                     />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-white truncate">
+                    <h3 className="font-semibold text-white truncate text-sm sm:text-base">
                       {track.title}
                     </h3>
-                    <p className="text-sm text-zinc-400 truncate">
+                    <p className="text-xs sm:text-sm text-zinc-400 truncate">
                       {Array.isArray(track.artist) && track.artist.length > 0
                         ? track.artist[0]?.name || t("common.unknownArtist")
                         : t("common.unknownArtist")}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-zinc-400">
-                    <span>
-                      {track.listenCount} {formatListenCount(track.listenCount)}
+                    <span className="hidden sm:block">
+                      {formatTime(track.duration)}
                     </span>
-                    <span>•</span>
-                    <span>{formatTime(track.duration)}</span>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleSongLike(track._id);
                       }}
-                      className="p-1 hover:bg-zinc-700 rounded-full transition-colors"
+                      className="p-2 sm:p-1 hover:bg-zinc-700 rounded-full transition-colors"
                     >
                       <Heart
-                        className={`h-4 w-4 ${
+                        className={`h-4 w-4 sm:h-4 sm:w-4 ${
                           isLiked
                             ? "text-violet-600 fill-violet-600"
                             : "text-zinc-400"
