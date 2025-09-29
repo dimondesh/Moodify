@@ -67,11 +67,30 @@ const RecentlyListenedArtists: React.FC<RecentlyListenedArtistsProps> = ({
     return (
       <div className="px-6 py-8">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-white">
+          <h2 className="text-xl sm:text-2xl font-bold text-white">
             {t("pages.profile.recentlyListenedArtists")}
           </h2>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        {/* Мобильная версия скелетона - список */}
+        <div className="flex flex-col gap-2 sm:hidden">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div
+              key={index}
+              className="flex items-center gap-4 p-2 rounded-md animate-pulse"
+            >
+              <div className="w-4 h-4 bg-[#2a2a2a] rounded"></div>
+              <div className="w-12 h-12 bg-[#2a2a2a] rounded-full"></div>
+              <div className="flex-1">
+                <div className="h-4 bg-[#2a2a2a] rounded mb-2 w-3/4"></div>
+                <div className="h-3 bg-[#2a2a2a] rounded w-1/2"></div>
+              </div>
+              <div className="w-8 h-8 bg-[#2a2a2a] rounded-full"></div>
+            </div>
+          ))}
+        </div>
+
+        {/* Десктопная версия скелетона - сетка */}
+        <div className="hidden sm:grid sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
           {Array.from({ length: 6 }).map((_, index) => (
             <div key={index} className="space-y-3">
               <div className="aspect-square bg-[#2a2a2a] rounded-lg animate-pulse"></div>
@@ -104,7 +123,7 @@ const RecentlyListenedArtists: React.FC<RecentlyListenedArtistsProps> = ({
     return (
       <div className="px-6 py-8">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-white">
+          <h2 className="text-xl sm:text-2xl font-bold text-white">
             {t("pages.profile.recentlyListenedArtists")}
           </h2>
         </div>
@@ -121,7 +140,7 @@ const RecentlyListenedArtists: React.FC<RecentlyListenedArtistsProps> = ({
 
   return (
     <div className="mt-12">
-      <h2 className="text-2xl font-bold mb-4">
+      <h2 className="text-xl sm:text-2xl font-bold mb-4">
         {t("pages.profile.recentlyListenedArtists")}
       </h2>
       {isMyProfile && showRecentlyListenedArtists === false && (
@@ -129,7 +148,52 @@ const RecentlyListenedArtists: React.FC<RecentlyListenedArtistsProps> = ({
           {t("pages.profile.visibleOnlyToYou")}
         </p>
       )}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+      {/* Мобильная версия - список */}
+      <div className="flex flex-col gap-2 sm:hidden">
+        {artists.slice(0, 4).map((artist, index) => (
+          <Link
+            to={`/artists/${artist._id}`}
+            key={artist._id}
+            className="flex items-center gap-4 p-2 rounded-md hover:bg-zinc-800/50 cursor-pointer group"
+          >
+            <div className="flex items-center justify-center w-4 text-zinc-400">
+              <span className="group-hover:hidden">{index + 1}</span>
+            </div>
+            <div className="w-12 h-12 flex-shrink-0">
+              <div className="relative aspect-square shadow-lg overflow-hidden rounded-full">
+                <img
+                  src={
+                    artist.imageUrl ||
+                    "https://moodify.b-cdn.net/default-album-cover.png"
+                  }
+                  alt={artist.name}
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src =
+                      "https://moodify.b-cdn.net/default-album-cover.png";
+                  }}
+                />
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-white truncate">
+                {artist.name}
+              </h3>
+              <p className="text-sm text-zinc-400 truncate">
+                {t("pages.profile.artist")}
+              </p>
+            </div>
+            <UniversalPlayButton
+              entity={artist}
+              entityType="artist"
+              size="sm"
+            />
+          </Link>
+        ))}
+      </div>
+
+      {/* Десктопная версия - сетка */}
+      <div className="hidden sm:grid sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
         {artists.map((artist) => (
           <Link
             to={`/artists/${artist._id}`}

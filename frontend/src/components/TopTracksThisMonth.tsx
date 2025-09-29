@@ -68,12 +68,6 @@ const TopTracksThisMonth: React.FC<TopTracksThisMonthProps> = ({
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const formatListenCount = (count: number) => {
-    if (count === 1) return t("pages.profile.listen");
-    if (count >= 2 && count <= 4) return t("pages.profile.listens");
-    return t("pages.profile.listensMany");
-  };
-
   const handleShowAllTracks = () => {
     navigate(`/users/${userId}/top-tracks`);
   };
@@ -194,10 +188,6 @@ const TopTracksThisMonth: React.FC<TopTracksThisMonthProps> = ({
                 </p>
               </div>
               <div className="flex items-center gap-2 text-sm text-zinc-400">
-                <span>
-                  {track.listenCount} {formatListenCount(track.listenCount)}
-                </span>
-                <span>•</span>
                 <span>{formatTime(track.duration)}</span>
                 <button
                   onClick={(e) => {

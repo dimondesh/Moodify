@@ -170,7 +170,7 @@ const ProfilePage = () => {
         <meta name="description" content={metaDescription} />
       </Helmet>
       <ScrollArea className="h-full">
-        <div className="relative min-h-screen pb-10 bg-[#0f0f0f]">
+        <div className="relative min-h-screen pb-40 lg:pb-0 bg-[#0f0f0f]">
           <div className="absolute inset-0 pointer-events-none h-[40vh]">
             {backgrounds
               .slice(0, 2)
