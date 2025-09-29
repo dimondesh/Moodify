@@ -9,6 +9,8 @@
     "loginPromptTitle": "Войдите, чтобы увидеть медиатеку",
     "loginPromptDescription": "Войдите в аккаунт, чтобы управлять своей музыкальной коллекцией",
     "emptyLibrary": "В вашей медиатеке пока ничего нет.",
+    "searchLibrary": "Поиск в медиатеке",
+    "noSearchResults": "Ничего не найдено",
     "subtitle": {
       "Album": "Альбом",
       "Single": "Сингл",

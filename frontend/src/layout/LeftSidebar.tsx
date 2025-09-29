@@ -9,13 +9,15 @@ import {
   Search,
   Plus,
   LibraryIcon,
+  Grid3X3,
+  List,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "../lib/utils";
 import { Button, buttonVariants } from "../components/ui/button";
 import { ScrollArea } from "../components/ui/scroll-area";
 import PlaylistSkeleton from "../components/ui/skeletons/PlaylistSkeleton";
-import { useMemo, useEffect, useRef } from "react";
+import { useMemo, useEffect, useRef, useCallback } from "react";
 import { useLibraryStore } from "../stores/useLibraryStore";
 import { usePlaylistStore } from "../stores/usePlaylistStore";
 import { useAuthState } from "react-firebase-hooks/auth";
@@ -72,6 +74,12 @@ const LeftSidebar = () => {
     closeAllDialogs,
     entityTypeFilter,
     setEntityTypeFilter,
+    librarySearchQuery,
+    setLibrarySearchQuery,
+    leftSidebarViewMode,
+    setLeftSidebarViewMode,
+    isLeftSidebarSearchOpen,
+    setIsLeftSidebarSearchOpen,
   } = useUIStore();
 
   const { artists } = useMusicStore();
@@ -95,24 +103,27 @@ const LeftSidebar = () => {
     playlistsFetchedRef.current = false;
   }, [user]);
 
-  const getArtistNames = (artistsData: string[] | Artist[] | undefined) => {
-    if (!artistsData || artistsData.length === 0)
-      return t("common.unknownArtist");
+  const getArtistNames = useCallback(
+    (artistsData: string[] | Artist[] | undefined) => {
+      if (!artistsData || artistsData.length === 0)
+        return t("common.unknownArtist");
 
-    const names = artistsData
-      .map((item) => {
-        if (typeof item === "string") {
-          const artist = artists.find((a) => a._id === item);
-          return artist ? artist.name : null;
-        } else if (item && typeof item === "object" && "name" in item) {
-          return (item as Artist).name;
-        }
-        return null;
-      })
-      .filter(Boolean);
+      const names = artistsData
+        .map((item) => {
+          if (typeof item === "string") {
+            const artist = artists.find((a) => a._id === item);
+            return artist ? artist.name : null;
+          } else if (item && typeof item === "object" && "name" in item) {
+            return (item as Artist).name;
+          }
+          return null;
+        })
+        .filter(Boolean);
 
-    return names.join(", ") || t("common.unknownArtist");
-  };
+      return names.join(", ") || t("common.unknownArtist");
+    },
+    [artists, t]
+  );
 
   const isLoading =
     (isLoadingLibrary || isLoadingPlaylists || loadingUser) && !isOffline;
@@ -226,26 +237,52 @@ const LeftSidebar = () => {
   ]);
 
   const filteredLibraryItems = useMemo(() => {
-    if (!entityTypeFilter) {
-      return libraryItems;
+    let filtered = libraryItems;
+
+    // Apply entity type filter first
+    if (entityTypeFilter) {
+      switch (entityTypeFilter) {
+        case "playlists":
+          filtered = filtered.filter(
+            (item) =>
+              item.type === "playlist" || item.type === "generated-playlist"
+          );
+          break;
+        case "albums":
+          filtered = filtered.filter((item) => item.type === "album");
+          break;
+        case "artists":
+          filtered = filtered.filter((item) => item.type === "artist");
+          break;
+        case "downloaded":
+          filtered = filtered.filter((item) => isDownloaded(item._id));
+          break;
+        default:
+          break;
+      }
     }
 
-    switch (entityTypeFilter) {
-      case "playlists":
-        return libraryItems.filter(
-          (item) =>
-            item.type === "playlist" || item.type === "generated-playlist"
-        );
-      case "albums":
-        return libraryItems.filter((item) => item.type === "album");
-      case "artists":
-        return libraryItems.filter((item) => item.type === "artist");
-      case "downloaded":
-        return libraryItems.filter((item) => isDownloaded(item._id));
-      default:
-        return libraryItems;
+    // Apply search query filter to already filtered items
+    if (librarySearchQuery.trim()) {
+      const query = librarySearchQuery.toLowerCase().trim();
+      filtered = filtered.filter((item) => {
+        const title = item.title.toLowerCase();
+        const subtitle = getArtistNames(
+          item.type === "album" ? (item as AlbumItem).artist : undefined
+        ).toLowerCase();
+
+        return title.includes(query) || subtitle.includes(query);
+      });
     }
-  }, [libraryItems, entityTypeFilter, isDownloaded]);
+
+    return filtered;
+  }, [
+    libraryItems,
+    entityTypeFilter,
+    librarySearchQuery,
+    isDownloaded,
+    getArtistNames,
+  ]);
 
   return (
     <div className="h-full flex flex-col bg-[#0f0f0f]">
@@ -364,125 +401,320 @@ const LeftSidebar = () => {
           </div>
         )}
 
+        {user && (
+          <div className="mb-3 space-y-2">
+            {/* Search and toggle controls */}
+            <div className="flex items-center gap-2">
+              {/* Search button and input container */}
+              <div className="flex-1">
+                <div
+                  className="relative"
+                  onClick={() =>
+                    setIsLeftSidebarSearchOpen(!isLeftSidebarSearchOpen)
+                  }
+                >
+                  {/* Search button - always visible and clickable */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      setIsLeftSidebarSearchOpen(!isLeftSidebarSearchOpen)
+                    }
+                    className={cn(
+                      "text-gray-400 hover:text-white hover:bg-[#2a2a2a] mt-0.5 h-8 w-8 p-0 transition-all duration-300 ease-in-out z-20",
+                      isLeftSidebarSearchOpen
+                        ? "opacity-0 pointer-events-none"
+                        : "opacity-100"
+                    )}
+                  >
+                    <Search className="w-4 h-4" />
+                  </Button>
+
+                  {/* Search input - appears in place of button */}
+                  <div
+                    className={cn(
+                      "absolute top-0 left-0 transition-all duration-300 ease-in-out overflow-hidden z-10",
+                      isLeftSidebarSearchOpen
+                        ? "w-full opacity-100"
+                        : "w-8 opacity-0"
+                    )}
+                  >
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder={t("sidebar.searchLibrary")}
+                      value={librarySearchQuery}
+                      onChange={(e) => setLibrarySearchQuery(e.target.value)}
+                      onBlur={() => setIsLeftSidebarSearchOpen(false)}
+                      className="w-full bg-[#2a2a2a] rounded-md py-2 pl-10 pr-4 text-sm text-white placeholder:text-gray-400 focus:outline-none transition duration-150 ease-in-out cursor-pointer"
+                      spellCheck={false}
+                      autoComplete="off"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Single toggle button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  setLeftSidebarViewMode(
+                    leftSidebarViewMode === "list" ? "grid" : "list"
+                  )
+                }
+                className="text-gray-400 hover:text-white hover:bg-[#2a2a2a] h-8 w-8 p-0 flex-shrink-0"
+              >
+                {leftSidebarViewMode === "list" ? (
+                  <Grid3X3 className="w-4 h-4" />
+                ) : (
+                  <List className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+
         {isLoading ? (
           <PlaylistSkeleton />
         ) : !user ? (
           <LoginPrompt className="flex-1" />
         ) : filteredLibraryItems.length === 0 ? (
-          <p className="text-zinc-400 px-2">{t("sidebar.emptyLibrary")}</p>
+          <p className="text-zinc-400 px-2">
+            {librarySearchQuery.trim()
+              ? t("sidebar.noSearchResults")
+              : t("sidebar.emptyLibrary")}
+          </p>
         ) : (
           <ScrollArea className="flex-1 h-full pb-7">
-            <div className="space-y-2">
-              {filteredLibraryItems.map((item) => {
-                let linkPath: string = "#";
-                let subtitle: string = "";
-                let fallbackImage: string =
-                  "https://moodify.b-cdn.net/default-album-cover.png";
-                let imageClass = "rounded-md";
+            {leftSidebarViewMode === "list" ? (
+              <div className="space-y-2">
+                {filteredLibraryItems.map((item) => {
+                  let linkPath: string = "#";
+                  let subtitle: string = "";
+                  let fallbackImage: string =
+                    "https://moodify.b-cdn.net/default-album-cover.png";
+                  let imageClass = "rounded-md";
 
-                switch (item.type) {
-                  case "album": {
-                    const albumItem = item as AlbumItem;
-                    linkPath = `/albums/${albumItem._id}`;
-                    subtitle = `${
-                      t(`pages.album.${albumItem.albumType}`) ||
-                      t("sidebar.subtitle.album")
-                    } • ${getArtistNames(albumItem.artist)}`;
-                    break;
+                  switch (item.type) {
+                    case "album": {
+                      const albumItem = item as AlbumItem;
+                      linkPath = `/albums/${albumItem._id}`;
+                      subtitle = `${
+                        t(`pages.album.${albumItem.albumType}`) ||
+                        t("sidebar.subtitle.album")
+                      } • ${getArtistNames(albumItem.artist)}`;
+                      break;
+                    }
+                    case "playlist": {
+                      const playlistItem = item as PlaylistItem;
+                      linkPath = `/playlists/${playlistItem._id}`;
+                      subtitle = `${t("sidebar.subtitle.playlist")} • ${
+                        playlistItem.owner?.fullName ||
+                        t("common.unknownArtist")
+                      }`;
+                      break;
+                    }
+                    case "generated-playlist": {
+                      linkPath = `/generated-playlists/${item._id}`;
+                      subtitle = t("sidebar.subtitle.playlist");
+                      break;
+                    }
+                    case "liked-songs": {
+                      const likedItem = item as LikedSongsItem;
+                      linkPath = "/liked-songs";
+                      subtitle = `${t("sidebar.subtitle.playlist")} • ${
+                        likedItem.songsCount
+                      } ${
+                        likedItem.songsCount !== 1
+                          ? t("sidebar.subtitle.songs")
+                          : t("sidebar.subtitle.song")
+                      }`;
+                      fallbackImage = "/liked.png";
+                      break;
+                    }
+                    case "artist": {
+                      const artistItem = item as FollowedArtistItem;
+                      linkPath = `/artists/${artistItem._id}`;
+                      subtitle = t("sidebar.subtitle.artist");
+                      imageClass = "rounded-full";
+                      break;
+                    }
+                    case "mix": {
+                      const mixItem = item as MixItem;
+                      linkPath = `/mixes/${mixItem._id}`;
+                      subtitle = t("sidebar.subtitle.dailyMix");
+                      break;
+                    }
+                    default:
+                      break;
                   }
-                  case "playlist": {
-                    const playlistItem = item as PlaylistItem;
-                    linkPath = `/playlists/${playlistItem._id}`;
-                    subtitle = `${t("sidebar.subtitle.playlist")} • ${
-                      playlistItem.owner?.fullName || t("common.unknownArtist")
-                    }`;
-                    break;
-                  }
-                  case "generated-playlist": {
-                    linkPath = `/generated-playlists/${item._id}`;
-                    subtitle = t("sidebar.subtitle.playlist");
-                    break;
-                  }
-                  case "liked-songs": {
-                    const likedItem = item as LikedSongsItem;
-                    linkPath = "/liked-songs";
-                    subtitle = `${t("sidebar.subtitle.playlist")} • ${
-                      likedItem.songsCount
-                    } ${
-                      likedItem.songsCount !== 1
-                        ? t("sidebar.subtitle.songs")
-                        : t("sidebar.subtitle.song")
-                    }`;
-                    fallbackImage = "/liked.png";
-                    break;
-                  }
-                  case "artist": {
-                    const artistItem = item as FollowedArtistItem;
-                    linkPath = `/artists/${artistItem._id}`;
-                    subtitle = t("sidebar.subtitle.artist");
-                    imageClass = "rounded-full";
-                    break;
-                  }
-                  case "mix": {
-                    const mixItem = item as MixItem;
-                    linkPath = `/mixes/${mixItem._id}`;
-                    subtitle = t("sidebar.subtitle.dailyMix");
-                    break;
-                  }
-                  default:
-                    break;
-                }
 
-                return (
-                  <Link
-                    to={linkPath}
-                    key={`${item.type}-${item._id}`}
-                    className="p-2 hover:bg-[#2a2a2a] rounded-md flex items-center gap-3 cursor-pointer hover-scale relative"
-                  >
-                    <div className="relative flex-shrink-0 group">
-                      <img
-                        src={getOptimizedImageUrl(
-                          item.imageUrl || fallbackImage,
-                          100
-                        )}
-                        alt={item.title}
-                        className={`size-10 object-cover ${imageClass} transition-opacity group-hover:opacity-50`}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = fallbackImage;
-                        }}
-                      />
-                      <UniversalPlayButton
-                        entity={item}
-                        entityType={
-                          item.type as
-                            | "album"
-                            | "playlist"
-                            | "generated-playlist"
-                            | "mix"
-                            | "artist"
-                        }
-                        variant="overlay"
-                        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-                        size="sm"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate text-white text-sm">
-                        {item.title}
-                      </p>
-                      <div className="flex items-center gap-1.5">
-                        {isDownloaded(item._id) && (
-                          <Download className="size-3 text-[#8b5cf6] flex-shrink-0" />
-                        )}
-                        <p className="text-xs text-gray-400 truncate">
-                          {subtitle}
-                        </p>
+                  return (
+                    <Link
+                      to={linkPath}
+                      key={`${item.type}-${item._id}`}
+                      className="p-2 hover:bg-[#2a2a2a] rounded-md flex items-center gap-3 cursor-pointer hover-scale relative"
+                    >
+                      <div className="relative flex-shrink-0 group">
+                        <img
+                          src={getOptimizedImageUrl(
+                            item.imageUrl || fallbackImage,
+                            100
+                          )}
+                          alt={item.title}
+                          className={`size-10 object-cover ${imageClass} transition-opacity group-hover:opacity-50`}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = fallbackImage;
+                          }}
+                        />
+                        <UniversalPlayButton
+                          entity={item}
+                          entityType={
+                            item.type as
+                              | "album"
+                              | "playlist"
+                              | "generated-playlist"
+                              | "mix"
+                              | "artist"
+                          }
+                          variant="overlay"
+                          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+                          size="sm"
+                        />
                       </div>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate text-white text-sm">
+                          {item.title}
+                        </p>
+                        <div className="flex items-center gap-1.5">
+                          {isDownloaded(item._id) && (
+                            <Download className="size-3 text-[#8b5cf6] flex-shrink-0" />
+                          )}
+                          <p className="text-xs text-gray-400 truncate">
+                            {subtitle}
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-1">
+                {filteredLibraryItems.map((item) => {
+                  let linkPath: string = "#";
+                  let subtitle: string = "";
+                  let fallbackImage: string =
+                    "https://moodify.b-cdn.net/default-album-cover.png";
+                  let imageClass = "rounded-md";
+
+                  switch (item.type) {
+                    case "album": {
+                      const albumItem = item as AlbumItem;
+                      linkPath = `/albums/${albumItem._id}`;
+                      subtitle = `${
+                        t(`pages.album.${albumItem.albumType}`) ||
+                        t("sidebar.subtitle.album")
+                      } • ${getArtistNames(albumItem.artist)}`;
+                      break;
+                    }
+                    case "playlist": {
+                      const playlistItem = item as PlaylistItem;
+                      linkPath = `/playlists/${playlistItem._id}`;
+                      subtitle = `${t("sidebar.subtitle.playlist")} • ${
+                        playlistItem.owner?.fullName ||
+                        t("common.unknownArtist")
+                      }`;
+                      break;
+                    }
+                    case "generated-playlist": {
+                      linkPath = `/generated-playlists/${item._id}`;
+                      subtitle = t("sidebar.subtitle.playlist");
+                      break;
+                    }
+                    case "liked-songs": {
+                      const likedItem = item as LikedSongsItem;
+                      linkPath = "/liked-songs";
+                      subtitle = `${t("sidebar.subtitle.playlist")} • ${
+                        likedItem.songsCount
+                      } ${
+                        likedItem.songsCount !== 1
+                          ? t("sidebar.subtitle.songs")
+                          : t("sidebar.subtitle.song")
+                      }`;
+                      fallbackImage = "/liked.png";
+                      break;
+                    }
+                    case "artist": {
+                      const artistItem = item as FollowedArtistItem;
+                      linkPath = `/artists/${artistItem._id}`;
+                      subtitle = t("sidebar.subtitle.artist");
+                      imageClass = "rounded-full";
+                      break;
+                    }
+                    case "mix": {
+                      const mixItem = item as MixItem;
+                      linkPath = `/mixes/${mixItem._id}`;
+                      subtitle = t("sidebar.subtitle.dailyMix");
+                      break;
+                    }
+                    default:
+                      break;
+                  }
+
+                  return (
+                    <Link
+                      to={linkPath}
+                      key={`${item.type}-${item._id}`}
+                      className="p-1 hover:bg-[#2a2a2a] rounded-md flex flex-col items-center text-center cursor-pointer hover-scale relative"
+                    >
+                      <div className="relative flex-shrink-0 group mb-0.5">
+                        <img
+                          src={getOptimizedImageUrl(
+                            item.imageUrl || fallbackImage,
+                            100
+                          )}
+                          alt={item.title}
+                          className={`size-16 object-cover ${imageClass} transition-opacity group-hover:opacity-50`}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = fallbackImage;
+                          }}
+                        />
+                        <UniversalPlayButton
+                          entity={item}
+                          entityType={
+                            item.type as
+                              | "album"
+                              | "playlist"
+                              | "generated-playlist"
+                              | "mix"
+                              | "artist"
+                          }
+                          variant="overlay"
+                          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+                          size="sm"
+                        />
+                      </div>
+                      <div className="w-full">
+                        <p className="font-medium truncate text-white text-xs mb-0">
+                          {item.title}
+                        </p>
+                        <div className="flex items-center gap-0.5 justify-center">
+                          {isDownloaded(item._id) && (
+                            <Download className="size-2 text-[#8b5cf6] flex-shrink-0" />
+                          )}
+                          <p className="text-xs text-gray-400 truncate">
+                            {subtitle}
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
           </ScrollArea>
         )}
       </div>

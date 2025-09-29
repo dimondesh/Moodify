@@ -9,6 +9,8 @@
     "loginPromptTitle": "Login to see your Library",
     "loginPromptDescription": "Sign in to manage your music collection",
     "emptyLibrary": "No items in your library.",
+    "searchLibrary": "Search in your library",
+    "noSearchResults": "No results found",
     "subtitle": {
       "Album": "Album",
       "Single": "Single",

@@ -23,6 +23,7 @@ interface SongRemovalInfo {
 
 type LibraryFilter = "all" | "downloaded";
 type EntityTypeFilter = "playlists" | "albums" | "artists" | "downloaded";
+type LibraryViewMode = "list" | "grid";
 
 interface UIStore {
   isCreatePlaylistDialogOpen: boolean;
@@ -39,6 +40,11 @@ interface UIStore {
   entityTypeFilter: EntityTypeFilter | null;
   isIosDevice: boolean; // <-- НОВЫЙ ФЛАГ
   isFriendsActivityOpen: boolean;
+  librarySearchQuery: string;
+  leftSidebarViewMode: LibraryViewMode;
+  libraryPageViewMode: LibraryViewMode;
+  isLeftSidebarSearchOpen: boolean;
+  isLibraryPageSearchOpen: boolean;
 
   setIsIosDevice: (isIos: boolean) => void; // <-- НОВАЯ ФУНКЦИЯ
   setIsHomePageLoading: (isLoading: boolean) => void;
@@ -46,6 +52,11 @@ interface UIStore {
   setLibraryFilter: (filter: LibraryFilter) => void;
   setEntityTypeFilter: (filter: EntityTypeFilter | null) => void;
   setIsFriendsActivityOpen: (isOpen: boolean) => void;
+  setLibrarySearchQuery: (query: string) => void;
+  setLeftSidebarViewMode: (mode: LibraryViewMode) => void;
+  setLibraryPageViewMode: (mode: LibraryViewMode) => void;
+  setIsLeftSidebarSearchOpen: (isOpen: boolean) => void;
+  setIsLibraryPageSearchOpen: (isOpen: boolean) => void;
 
   openCreatePlaylistDialog: () => void;
   openEditPlaylistDialog: (playlist: Playlist) => void;
@@ -77,6 +88,11 @@ export const useUIStore = create<UIStore>()(
       entityTypeFilter: null,
       isIosDevice: false, // <-- ЗНАЧЕНИЕ ПО УМОЛЧАНИЮ
       isFriendsActivityOpen: true,
+      librarySearchQuery: "",
+      leftSidebarViewMode: "list",
+      libraryPageViewMode: "grid",
+      isLeftSidebarSearchOpen: false,
+      isLibraryPageSearchOpen: false,
 
       setIsIosDevice: (isIos: boolean) => set({ isIosDevice: isIos }), // <-- РЕАЛИЗАЦИЯ
       setIsHomePageLoading: (isLoading) =>
@@ -88,6 +104,13 @@ export const useUIStore = create<UIStore>()(
       setEntityTypeFilter: (filter) => set({ entityTypeFilter: filter }),
       setIsFriendsActivityOpen: (isOpen) =>
         set({ isFriendsActivityOpen: isOpen }),
+      setLibrarySearchQuery: (query) => set({ librarySearchQuery: query }),
+      setLeftSidebarViewMode: (mode) => set({ leftSidebarViewMode: mode }),
+      setLibraryPageViewMode: (mode) => set({ libraryPageViewMode: mode }),
+      setIsLeftSidebarSearchOpen: (isOpen) =>
+        set({ isLeftSidebarSearchOpen: isOpen }),
+      setIsLibraryPageSearchOpen: (isOpen) =>
+        set({ isLibraryPageSearchOpen: isOpen }),
 
       openCreatePlaylistDialog: () => set({ isCreatePlaylistDialogOpen: true }),
       openEditPlaylistDialog: (playlist) => set({ editingPlaylist: playlist }),
@@ -165,6 +188,8 @@ export const useUIStore = create<UIStore>()(
         libraryFilter: state.libraryFilter,
         entityTypeFilter: state.entityTypeFilter,
         isIosDevice: state.isIosDevice,
+        leftSidebarViewMode: state.leftSidebarViewMode,
+        libraryPageViewMode: state.libraryPageViewMode,
       }),
     }
   )

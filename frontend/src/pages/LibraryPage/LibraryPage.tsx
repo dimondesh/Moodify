@@ -1,7 +1,7 @@
 // frontend/src/pages/LibraryPage/LibraryPage.tsx
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { ScrollArea } from "../../components/ui/scroll-area";
 import { useLibraryStore } from "../../stores/useLibraryStore";
@@ -25,7 +25,7 @@ import { Button } from "@/components/ui/button";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../../lib/firebase";
 import { CreatePlaylistDialog } from "../PlaylistPage/CreatePlaylistDialog";
-import { Plus } from "lucide-react";
+import { Plus, Grid3X3, List, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import { Download } from "lucide-react";
@@ -57,6 +57,12 @@ const LibraryPage = () => {
     closeAllDialogs,
     entityTypeFilter,
     setEntityTypeFilter,
+    librarySearchQuery,
+    setLibrarySearchQuery,
+    libraryPageViewMode,
+    setLibraryPageViewMode,
+    isLibraryPageSearchOpen,
+    setIsLibraryPageSearchOpen,
   } = useUIStore();
 
   const { artists } = useMusicStore();
@@ -134,21 +140,26 @@ const LibraryPage = () => {
     }
   }, [entityTypeFilter, fetchAllDownloaded, t]);
 
-  const getArtistNames = (artistsInput: (string | Artist)[] | undefined) => {
-    if (!artistsInput || artistsInput.length === 0)
-      return t("common.unknownArtist");
-    const names = artistsInput
-      .map((artistOrId) => {
-        if (typeof artistOrId === "string") {
-          const foundArtist = artists.find((a: Artist) => a._id === artistOrId);
-          return foundArtist ? foundArtist.name : null;
-        } else {
-          return artistOrId.name;
-        }
-      })
-      .filter(Boolean);
-    return names.join(", ") || t("common.unknownArtist");
-  };
+  const getArtistNames = useCallback(
+    (artistsInput: (string | Artist)[] | undefined) => {
+      if (!artistsInput || artistsInput.length === 0)
+        return t("common.unknownArtist");
+      const names = artistsInput
+        .map((artistOrId) => {
+          if (typeof artistOrId === "string") {
+            const foundArtist = artists.find(
+              (a: Artist) => a._id === artistOrId
+            );
+            return foundArtist ? foundArtist.name : null;
+          } else {
+            return artistOrId.name;
+          }
+        })
+        .filter(Boolean);
+      return names.join(", ") || t("common.unknownArtist");
+    },
+    [artists, t]
+  );
 
   const isLoading = (isLoadingLibrary || isLoadingPlaylists) && !isOffline;
   const combinedError: string | null =
@@ -248,26 +259,52 @@ const LibraryPage = () => {
   ]);
 
   const filteredLibraryItems = useMemo(() => {
-    if (!entityTypeFilter) {
-      return libraryItems;
+    let filtered = libraryItems;
+
+    // Apply entity type filter first
+    if (entityTypeFilter) {
+      switch (entityTypeFilter) {
+        case "playlists":
+          filtered = filtered.filter(
+            (item) =>
+              item.type === "playlist" || item.type === "generated-playlist"
+          );
+          break;
+        case "albums":
+          filtered = filtered.filter((item) => item.type === "album");
+          break;
+        case "artists":
+          filtered = filtered.filter((item) => item.type === "artist");
+          break;
+        case "downloaded":
+          filtered = downloadedItems;
+          break;
+        default:
+          break;
+      }
     }
 
-    switch (entityTypeFilter) {
-      case "playlists":
-        return libraryItems.filter(
-          (item) =>
-            item.type === "playlist" || item.type === "generated-playlist"
-        );
-      case "albums":
-        return libraryItems.filter((item) => item.type === "album");
-      case "artists":
-        return libraryItems.filter((item) => item.type === "artist");
-      case "downloaded":
-        return downloadedItems;
-      default:
-        return libraryItems;
+    // Apply search query filter to already filtered items
+    if (librarySearchQuery.trim()) {
+      const query = librarySearchQuery.toLowerCase().trim();
+      filtered = filtered.filter((item) => {
+        const title = item.title.toLowerCase();
+        const subtitle = getArtistNames(
+          item.type === "album" ? (item as AlbumItem).artist : undefined
+        ).toLowerCase();
+
+        return title.includes(query) || subtitle.includes(query);
+      });
     }
-  }, [libraryItems, downloadedItems, entityTypeFilter]);
+
+    return filtered;
+  }, [
+    libraryItems,
+    downloadedItems,
+    entityTypeFilter,
+    librarySearchQuery,
+    getArtistNames,
+  ]);
 
   if (isLoading && !entityTypeFilter) return <LibraryGridSkeleton />;
 
@@ -329,14 +366,86 @@ const LibraryPage = () => {
                 />
               </div>
 
+              <div className="mb-6 space-y-4">
+                {/* Search and toggle controls */}
+                <div className="flex items-center gap-4">
+                  {/* Search button and input container */}
+                  <div className="flex-1">
+                    <div className="relative">
+                      {/* Search button - always visible and clickable */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          setIsLibraryPageSearchOpen(!isLibraryPageSearchOpen)
+                        }
+                        className={cn(
+                          "text-gray-400 hover:text-white hover:bg-[#2a2a2a] h-10 w-10 p-0 transition-all duration-300 ease-in-out z-20",
+                          isLibraryPageSearchOpen
+                            ? "opacity-0 pointer-events-none"
+                            : "opacity-100"
+                        )}
+                      >
+                        <Search className="w-5 h-5" />
+                      </Button>
+
+                      {/* Search input - appears in place of button */}
+                      <div
+                        className={cn(
+                          "absolute top-0 left-0 transition-all duration-300 ease-in-out overflow-hidden z-10",
+                          isLibraryPageSearchOpen
+                            ? "w-full opacity-100"
+                            : "w-10 opacity-0"
+                        )}
+                      >
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
+                        <input
+                          type="text"
+                          placeholder={t("sidebar.searchLibrary")}
+                          value={librarySearchQuery}
+                          onChange={(e) =>
+                            setLibrarySearchQuery(e.target.value)
+                          }
+                          onBlur={() => setIsLibraryPageSearchOpen(false)}
+                          className="w-full bg-[#2a2a2a] rounded-md py-3 pl-12 pr-4 text-base text-white placeholder:text-gray-400 focus:outline-none transition duration-150 ease-in-out"
+                          spellCheck={false}
+                          autoComplete="off"
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Single toggle button */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      setLibraryPageViewMode(
+                        libraryPageViewMode === "grid" ? "list" : "grid"
+                      )
+                    }
+                    className="text-gray-400 hover:text-white hover:bg-[#2a2a2a] h-10 w-10 p-0 flex-shrink-0"
+                  >
+                    {libraryPageViewMode === "grid" ? (
+                      <List className="w-5 h-5" />
+                    ) : (
+                      <Grid3X3 className="w-5 h-5" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
               <div className="flex flex-col gap-2">
                 {filteredLibraryItems.length === 0 ? (
                   <p className="text-gray-400 px-2">
-                    {entityTypeFilter === "downloaded"
+                    {librarySearchQuery.trim()
+                      ? t("sidebar.noSearchResults")
+                      : entityTypeFilter === "downloaded"
                       ? "You have no downloaded content yet."
                       : t("sidebar.emptyLibrary")}
                   </p>
-                ) : (
+                ) : libraryPageViewMode === "grid" ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
                     {filteredLibraryItems.map((item) => {
                       let linkPath: string = "#";
@@ -436,6 +545,101 @@ const LibraryPage = () => {
                                 <Download className="size-3 text-[#8b5cf6] flex-shrink-0" />
                               )}
                               <p className="text-xs text-gray-400 truncate">
+                                {subtitle}
+                              </p>
+                            </div>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {filteredLibraryItems.map((item) => {
+                      let linkPath: string = "#";
+                      let subtitle: string = "";
+                      let fallbackImage: string =
+                        "https://moodify.b-cdn.net/default-album-cover.png";
+                      let imageClass = "rounded-md";
+
+                      switch (item.type) {
+                        case "album": {
+                          const albumItem = item as AlbumItem;
+                          linkPath = `/albums/${albumItem._id}`;
+                          subtitle = `${
+                            t(`pages.album.${albumItem.albumType}`) ||
+                            t("sidebar.subtitle.album")
+                          } • ${getArtistNames(albumItem.artist)}`;
+                          break;
+                        }
+                        case "playlist": {
+                          const playlistItem = item as PlaylistItem;
+                          linkPath = `/playlists/${playlistItem._id}`;
+                          subtitle = `${t("sidebar.subtitle.playlist")} • ${
+                            playlistItem.owner?.fullName ||
+                            t("common.unknownArtist")
+                          }`;
+                          break;
+                        }
+                        case "generated-playlist": {
+                          linkPath = `/generated-playlists/${item._id}`;
+                          subtitle = t("sidebar.subtitle.playlist");
+                          break;
+                        }
+                        case "liked-songs": {
+                          const likedItem = item as LikedSongsItem;
+                          linkPath = "/liked-songs";
+                          subtitle = `${t("sidebar.subtitle.playlist")} • ${
+                            likedItem.songsCount
+                          } ${
+                            likedItem.songsCount !== 1
+                              ? t("sidebar.subtitle.songs")
+                              : t("sidebar.subtitle.song")
+                          }`;
+                          fallbackImage = "/liked.png";
+                          break;
+                        }
+                        case "artist": {
+                          const artistItem = item as FollowedArtistItem;
+                          linkPath = `/artists/${artistItem._id}`;
+                          subtitle = t("sidebar.subtitle.artist");
+                          imageClass = "rounded-full";
+                          break;
+                        }
+                        case "mix": {
+                          const mixItem = item as MixItem;
+                          linkPath = `/mixes/${mixItem._id}`;
+                          subtitle = t("sidebar.subtitle.dailyMix");
+                          break;
+                        }
+                      }
+
+                      return (
+                        <Link
+                          key={`${item.type}-${item._id}`}
+                          to={linkPath}
+                          className="bg-transparent p-3 rounded-md hover:bg-[#2a2a2a]/50 transition-all group cursor-pointer flex items-center gap-4 hover-scale"
+                        >
+                          <div className="relative flex-shrink-0">
+                            <img
+                              src={item.imageUrl || fallbackImage}
+                              alt={item.title}
+                              className={`size-16 object-cover ${imageClass} transition-opacity group-hover:opacity-50`}
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src =
+                                  fallbackImage;
+                              }}
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-lg truncate text-white mb-1">
+                              {item.title}
+                            </h3>
+                            <div className="flex items-center gap-2">
+                              {isDownloaded(item._id) && (
+                                <Download className="size-4 text-[#8b5cf6] flex-shrink-0" />
+                              )}
+                              <p className="text-sm text-gray-400 truncate">
                                 {subtitle}
                               </p>
                             </div>
