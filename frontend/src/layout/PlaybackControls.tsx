@@ -788,7 +788,7 @@ const PlaybackControls = () => {
                       {currentSong.title}
                     </button>
                     <div className="text-xs text-gray-400 truncate">
-                      {Array.isArray(currentSong.artist)
+                      {currentSong.artist && currentSong.artist.length > 0
                         ? currentSong.artist.map((artist, index) => (
                             <span key={artist._id}>
                               <button
@@ -800,18 +800,7 @@ const PlaybackControls = () => {
                               {index < currentSong.artist.length - 1 && ", "}
                             </span>
                           ))
-                        : currentSong.artist && (
-                            <span>
-                              <button
-                                onClick={() =>
-                                  handleArtistClick(currentSong.artist._id)
-                                }
-                                className="hover:text-[#8b5cf6] focus:outline-none focus:text-[#8b5cf6]"
-                              >
-                                {currentSong.artist.name}
-                              </button>
-                            </span>
-                          )}
+                        : "Unknown Artist"}
                     </div>
                   </div>
                   <AddToPlaylistControl song={currentSong} disabled={!user} />
