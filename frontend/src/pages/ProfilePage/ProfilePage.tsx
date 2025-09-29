@@ -20,6 +20,7 @@ import PlaylistRow from "./PlaylistRow";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import { useUIStore } from "../../stores/useUIStore";
+import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
 
 interface ListItem {
   _id: string;
@@ -324,23 +325,33 @@ const ProfilePage = () => {
                     <Link
                       to={`/playlists/${playlist._id}`}
                       key={playlist._id}
-                      className="bg-[#1a1a1a] p-4 rounded-md hover:bg-[#2a2a2a] transition-all group hover-scale"
+                      className="bg-transparent p-0 rounded-md transition-all group cursor-pointer"
                     >
-                      <div className="aspect-square relative mb-2 overflow-hidden rounded-md">
-                        <img
-                          src={playlist.imageUrl || "/liked.png"}
-                          alt={playlist.title}
-                          className="w-full h-full object-cover rounded-md transition-all group-hover:scale-105"
+                      <div className="relative mb-2">
+                        <div className="relative aspect-square shadow-lg overflow-hidden rounded-md">
+                          <img
+                            src={playlist.imageUrl || "/liked.png"}
+                            alt={playlist.title}
+                            className="absolute inset-0 h-full w-full object-cover rounded-md transition-transform duration-300 group-hover:scale-105"
+                          />
+                        </div>
+                        <UniversalPlayButton
+                          entity={playlist}
+                          entityType="playlist"
+                          className="absolute bottom-3 right-2"
+                          size="sm"
                         />
                       </div>
-                      <h3 className="font-semibold truncate">
-                        {playlist.title}
-                      </h3>
-                      {playlist.owner && (
-                        <p className="text-xs text-zinc-400 truncate">
-                          {t("pages.profile.by")} {playlist.owner.fullName}
-                        </p>
-                      )}
+                      <div className="px-1">
+                        <h3 className="font-semibold text-sm truncate">
+                          {playlist.title}
+                        </h3>
+                        {playlist.owner && (
+                          <p className="text-xs text-zinc-400 leading-tight truncate">
+                            {t("pages.profile.by")} {playlist.owner.fullName}
+                          </p>
+                        )}
+                      </div>
                     </Link>
                   ))}
                 </div>

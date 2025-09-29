@@ -96,7 +96,7 @@ const HomePageComponent = () => {
       fetchRecentlyListenedSongs();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, recentlyListenedEntities.length, isRecentlyListenedLoading]); // fetchRecentlyListenedSongs стабильна из store
+  }, [user]); // fetchRecentlyListenedSongs стабильна из store
 
   useEffect(() => {
     if (

@@ -3,6 +3,8 @@
 import { Link } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useTranslation } from "react-i18next";
+import UniversalPlayButton from "@/components/ui/UniversalPlayButton";
+import type { Song, Artist } from "@/types";
 
 interface Item {
   _id: string;
@@ -10,6 +12,7 @@ interface Item {
   imageUrl: string;
   type: "user" | "artist" | "playlist";
   subtitle?: string;
+  songs?: Song[];
 }
 
 interface ProfileSectionProps {
@@ -52,38 +55,55 @@ const ProfileSection = ({ title, items, apiEndpoint }: ProfileSectionProps) => {
           </Link>
         )}
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-x-4 gap-y-6">
-        {displayedItems.map((item) => (
-          <Link
-            to={getLink(item)}
-            key={item._id}
-            className="flex flex-col text-center group bg-zinc-800/40 rounded-md p-2 hover:bg-zinc-700/40 transition-colors"
-          >
-            {item.type === "playlist" ? (
-              <div className="aspect-square w-full mb-2 group hover:bg-zinc-800">
-                <img
-                  src={item.imageUrl}
-                  alt={item.name}
-                  className="w-auto h-auto object-cover rounded-md transition-transform group-hover:scale-105"
-                />
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        {displayedItems.map((item) => {
+          return (
+            <Link
+              to={getLink(item)}
+              key={item._id}
+              className="bg-transparent p-0 rounded-md transition-all group cursor-pointer"
+            >
+              <div className="relative mb-2">
+                {item.type === "playlist" ? (
+                  <div className="relative aspect-square shadow-lg overflow-hidden rounded-md">
+                    <img
+                      src={item.imageUrl}
+                      alt={item.name}
+                      className="absolute inset-0 h-full w-full object-cover rounded-md transition-transform duration-300 group-hover:scale-105"
+                    />
+                  </div>
+                ) : (
+                  <div className="relative aspect-square shadow-lg overflow-hidden rounded-full">
+                    <Avatar className="h-full w-full">
+                      <AvatarImage
+                        src={item.imageUrl}
+                        className="object-cover rounded-full transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <AvatarFallback>{item.name?.[0] || "?"}</AvatarFallback>
+                    </Avatar>
+                  </div>
+                )}
+                {/* Добавляем кнопку воспроизведения только для артистов */}
+                {item.type === "artist" && (
+                  <UniversalPlayButton
+                    entity={item as unknown as Artist}
+                    entityType="artist"
+                    className="absolute bottom-3 right-2"
+                    size="sm"
+                  />
+                )}
               </div>
-            ) : (
-              <Avatar className="w-auto h-auto object-cover aspect-square mb-2 transition-transform group-hover:scale-105">
-                <AvatarImage
-                  src={item.imageUrl}
-                  className="w-auto h-auto object-cover group-hover:scale-105 transition-all duration-300"
-                />
-                <AvatarFallback>{item.name?.[0] || "?"}</AvatarFallback>
-              </Avatar>
-            )}
-            <div className="px-2">
-              <p className="text-sm font-semibold truncate">{item.name}</p>
-              <p className="text-xs text-zinc-400 capitalize truncate">
-                {item.subtitle || t(`sidebar.subtitle.${item.type}`)}
-              </p>
-            </div>
-          </Link>
-        ))}
+              <div className="px-1">
+                <p className="font-semibold text-sm truncate text-center">
+                  {item.name}
+                </p>
+                <p className="text-xs text-zinc-400 leading-tight truncate text-center">
+                  {item.subtitle || t(`sidebar.subtitle.${item.type}`)}
+                </p>
+              </div>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );

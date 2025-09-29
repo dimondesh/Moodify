@@ -182,16 +182,20 @@ const UniversalPlayButton = ({
           : loadedSongs;
       case "artist":
         // Проверяем, это LibraryItem или обычный Artist
-        if ("type" in entity && entity.type === "artist") {
+        if (
+          "type" in entity &&
+          entity.type === "artist" &&
+          !("songs" in entity)
+        ) {
+          // Это LibraryItem без песен, нужно загружать
           return loadedSongs.length > 0 ? loadedSongs.slice(0, 5) : [];
         }
-        return loadedSongs.length > 0
-          ? loadedSongs.slice(0, 5)
-          : (entity as Artist).songs?.slice(0, 5) || [];
+        // Для артистов из ProfileSection песни уже приходят в entity.songs
+        return (entity as Artist).songs?.slice(0, 5) || [];
       default:
         return [];
     }
-  }, [entityType, entity, loadedSongs, songs]);
+  }, [entityType, loadedSongs, songs, entity]);
 
   const getPlaybackContext = () => {
     switch (entityType) {

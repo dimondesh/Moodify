@@ -66,12 +66,23 @@ export const getUserProfile = async (req, res, next) => {
       .populate({
         path: "playlists",
         match: { isPublic: true },
-        populate: {
-          path: "owner",
-          model: "User",
-          select: "fullName",
-        },
-        select: "title imageUrl isPublic owner",
+        populate: [
+          {
+            path: "owner",
+            model: "User",
+            select: "fullName",
+          },
+          {
+            path: "songs",
+            select:
+              "title artist albumId imageUrl hlsUrl duration playCount genres moods",
+            populate: {
+              path: "artist",
+              select: "name imageUrl",
+            },
+          },
+        ],
+        select: "title imageUrl isPublic owner songs",
       })
       .select("-email -firebaseUid");
 
@@ -327,6 +338,16 @@ export const getFollowing = async (req, res, next) => {
         path: "followedArtists.artistId",
         model: "Artist",
         select: "name imageUrl",
+        populate: {
+          path: "songs",
+          select:
+            "title artist albumId imageUrl hlsUrl duration playCount genres moods",
+          populate: {
+            path: "artist",
+            select: "name imageUrl",
+          },
+          options: { sort: { playCount: -1 }, limit: 5 },
+        },
       })
       .select("followedArtists");
 
@@ -349,6 +370,7 @@ export const getFollowing = async (req, res, next) => {
           name: a.artistId.name,
           imageUrl: a.artistId.imageUrl,
           type: "artist",
+          songs: a.artistId.songs || [],
         })) || [];
 
     const combinedFollowing = [...followingUsers, ...followedArtists];
@@ -621,7 +643,18 @@ export const getNewReleases = async (
     }).populate({
       path: "items",
       model: "Album",
-      populate: { path: "artist", model: "Artist", select: "name" },
+      populate: [
+        { path: "artist", model: "Artist", select: "name imageUrl" },
+        {
+          path: "songs",
+          select:
+            "title artist albumId imageUrl hlsUrl duration playCount genres moods",
+          populate: {
+            path: "artist",
+            select: "name imageUrl",
+          },
+        },
+      ],
     });
 
     const result = recommendations ? recommendations.items : [];
@@ -648,7 +681,18 @@ export const getPlaylistRecommendations = async (
     }).populate({
       path: "items",
       model: "Playlist",
-      populate: { path: "owner", model: "User", select: "fullName" },
+      populate: [
+        { path: "owner", model: "User", select: "fullName" },
+        {
+          path: "songs",
+          select:
+            "title artist albumId imageUrl hlsUrl duration playCount genres moods",
+          populate: {
+            path: "artist",
+            select: "name imageUrl",
+          },
+        },
+      ],
     });
 
     const result = recommendations ? recommendations.items : [];
