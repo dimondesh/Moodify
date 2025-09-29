@@ -22,6 +22,7 @@ import {
   getNewReleases,
   getPlaylistRecommendations,
   getRecentlyListenedArtists,
+  debugRecentlyListenedArtists,
   updateRecentlyListenedArtistsPrivacy,
   getTopTracksThisMonth,
   getAllTopTracksThisMonth,
@@ -59,6 +60,11 @@ router.get(
   "/:userId/recently-listened-artists",
   protectRoute,
   getRecentlyListenedArtists
+);
+router.get(
+  "/:userId/debug-recently-listened-artists",
+  protectRoute,
+  debugRecentlyListenedArtists
 );
 router.get(
   "/:userId/top-tracks-this-month",

@@ -98,24 +98,8 @@ export const usePlayerStore = create<PlayerStore>()(
         }
       };
 
-      const enrichSongWithLyricsIfNeeded = async (song: Song) => {
-        if (song.lyrics || useOfflineStore.getState().isOffline) {
-          return;
-        }
-
-        try {
-          const response = await axiosInstance.get(`/songs/${song._id}`);
-          const lyrics = response.data.song?.lyrics;
-
-          if (lyrics && get().currentSong?._id === song._id) {
-            set((state) => ({
-              currentSong: { ...state.currentSong!, lyrics },
-            }));
-          }
-        } catch (error) {
-          console.warn(`Could not fetch lyrics for song ${song._id}`, error);
-        }
-      };
+      // Lyrics уже должны быть в объекте песни
+      // Не делаем дополнительный запрос, чтобы избежать 404 ошибок
 
       return {
         currentSong: null,
@@ -253,7 +237,6 @@ export const usePlayerStore = create<PlayerStore>()(
             }
 
             enrichSongWithAlbumTitleIfNeeded(songToPlay);
-            enrichSongWithLyricsIfNeeded(songToPlay);
 
             return {
               queue: songs,
@@ -328,7 +311,6 @@ export const usePlayerStore = create<PlayerStore>()(
             }
 
             enrichSongWithAlbumTitleIfNeeded(song);
-            enrichSongWithLyricsIfNeeded(song);
 
             return {
               currentSong: song,
@@ -499,7 +481,6 @@ export const usePlayerStore = create<PlayerStore>()(
           });
 
           enrichSongWithAlbumTitleIfNeeded(nextSong);
-          enrichSongWithLyricsIfNeeded(nextSong);
         },
 
         playPrevious: () => {
@@ -589,7 +570,6 @@ export const usePlayerStore = create<PlayerStore>()(
           });
 
           enrichSongWithAlbumTitleIfNeeded(prevSong);
-          enrichSongWithLyricsIfNeeded(prevSong);
         },
 
         setRepeatMode: (mode) => set({ repeatMode: mode }),

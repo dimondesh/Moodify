@@ -159,7 +159,10 @@ const PlaybackControls = () => {
 
       navigator.mediaSession.metadata = new MediaMetadata({
         title: currentSong.title,
-        artist: getArtistNames(currentSong.artist, []),
+        artist: getArtistNames(
+          Array.isArray(currentSong.artist) ? currentSong.artist : [],
+          []
+        ),
         album: currentSong.albumTitle || "",
         artwork: [
           {
@@ -375,12 +378,14 @@ const PlaybackControls = () => {
                     {currentSong.title}
                   </div>
                   <div className="text-xs text-zinc-400 truncate">
-                    {currentSong.artist.map((artist, index) => (
-                      <span key={artist._id}>
-                        {artist.name}
-                        {index < currentSong.artist.length - 1 && ", "}
-                      </span>
-                    ))}
+                    {Array.isArray(currentSong.artist)
+                      ? currentSong.artist.map((artist, index) => (
+                          <span key={artist._id}>
+                            {artist.name}
+                            {index < currentSong.artist.length - 1 && ", "}
+                          </span>
+                        ))
+                      : "Unknown Artist"}
                   </div>
                 </div>
               </div>
@@ -441,7 +446,12 @@ const PlaybackControls = () => {
                 <div className=" w-full mx-auto p-4  overflow-auto  hide-scrollbar">
                   <Drawer.Title className="sr-only">
                     {currentSong?.title || t("player.nowPlaying")} -{" "}
-                    {getArtistNames(currentSong.artist, [])}
+                    {getArtistNames(
+                      Array.isArray(currentSong.artist)
+                        ? currentSong.artist
+                        : [],
+                      []
+                    )}
                   </Drawer.Title>
                   <div className="flex justify-between items-center mb-4 flex-shrink-0">
                     <Button
@@ -494,20 +504,23 @@ const PlaybackControls = () => {
                             {currentSong?.title || t("player.noSong")}
                           </button>
                           <p className="text-zinc-400 text-base truncate">
-                            {currentSong.artist.map((artist, index) => (
-                              <span key={artist._id}>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleArtistClick(artist._id);
-                                  }}
-                                  className="hover:underline focus:outline-none focus:underline"
-                                >
-                                  {artist.name}
-                                </button>
-                                {index < currentSong.artist.length - 1 && ", "}
-                              </span>
-                            ))}
+                            {Array.isArray(currentSong.artist)
+                              ? currentSong.artist.map((artist, index) => (
+                                  <span key={artist._id}>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleArtistClick(artist._id);
+                                      }}
+                                      className="hover:underline focus:outline-none focus:underline"
+                                    >
+                                      {artist.name}
+                                    </button>
+                                    {index < currentSong.artist.length - 1 &&
+                                      ", "}
+                                  </span>
+                                ))
+                              : "Unknown Artist"}
                           </p>
                         </div>
                         {currentSong && (

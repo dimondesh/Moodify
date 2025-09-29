@@ -14,6 +14,7 @@ import {
 import path from "path";
 import { UserRecommendation } from "../models/userRecommendation.model.js";
 import { ListenHistory } from "../models/listenHistory.model.js";
+import { Song } from "../models/song.model.js";
 import { optimizeAndUploadImage } from "../lib/image.service.js";
 
 export const getAllUsers = async (req, res, next) => {
@@ -587,79 +588,82 @@ export const getFavoriteArtists = async (
   try {
     const userId = req.user.id;
 
-    const favoriteArtists = await ListenHistory.aggregate([
-      { $match: { user: new mongoose.Types.ObjectId(userId) } },
-      { $sort: { listenedAt: -1 } },
-      { $limit: 200 },
-      {
-        $lookup: {
-          from: "songs",
-          localField: "song",
-          foreignField: "_id",
-          as: "songDetails",
+    // Используем простой подход как в getRecentlyListenedArtists
+    const listenHistory = await ListenHistory.find({
+      user: new mongoose.Types.ObjectId(userId),
+    })
+      .sort({ listenedAt: -1 })
+      .populate({
+        path: "song",
+        populate: {
+          path: "artist",
+          model: "Artist",
+          select: "name imageUrl bio bannerUrl createdAt updatedAt",
         },
-      },
-      { $unwind: "$songDetails" },
-      { $unwind: "$songDetails.artist" },
-      { $group: { _id: "$songDetails.artist", listenCount: { $sum: 1 } } },
-      { $sort: { listenCount: -1 } },
-      { $limit: 10 },
-      {
-        $lookup: {
-          from: "artists",
-          localField: "_id",
-          foreignField: "_id",
-          as: "artistDetails",
-        },
-      },
-      { $unwind: "$artistDetails" },
-      {
-        $lookup: {
-          from: "songs",
-          localField: "artistDetails._id",
-          foreignField: "artist",
-          as: "songs",
-          pipeline: [
-            {
-              $lookup: {
-                from: "artists",
-                localField: "artist",
-                foreignField: "_id",
-                as: "artist",
-                pipeline: [{ $project: { name: 1, imageUrl: 1 } }],
-              },
-            },
-            { $unwind: "$artist" },
-            {
-              $project: {
-                title: 1,
-                artist: 1,
-                albumId: 1,
-                imageUrl: 1,
-                hlsUrl: 1,
-                duration: 1,
-                playCount: 1,
-                genres: 1,
-                moods: 1,
-                lyrics: 1,
-              },
-            },
-            { $sort: { playCount: -1 } },
-            { $limit: 5 },
-          ],
-        },
-      },
-      {
-        $replaceRoot: {
-          newRoot: {
-            _id: "$artistDetails._id",
-            name: "$artistDetails.name",
-            imageUrl: "$artistDetails.imageUrl",
-            songs: "$songs",
-          },
-        },
-      },
-    ]);
+      })
+      .lean();
+
+    if (!listenHistory || listenHistory.length === 0) {
+      if (returnInternal) return [];
+      return res.status(200).json([]);
+    }
+
+    // Группируем по артистам и считаем прослушивания
+    const artistMap = new Map();
+
+    for (const record of listenHistory) {
+      if (
+        !record.song ||
+        !record.song.artist ||
+        record.song.artist.length === 0
+      ) {
+        continue;
+      }
+
+      // Берем первого артиста из массива
+      const artist = record.song.artist[0];
+      if (!artist || !artist._id) continue;
+
+      const artistId = artist._id.toString();
+
+      if (!artistMap.has(artistId)) {
+        artistMap.set(artistId, {
+          _id: artist._id,
+          name: artist.name,
+          imageUrl: artist.imageUrl,
+          bio: artist.bio || "",
+          bannerUrl: artist.bannerUrl || null,
+          createdAt: artist.createdAt,
+          updatedAt: artist.updatedAt,
+          listenCount: 0,
+        });
+      }
+
+      const artistData = artistMap.get(artistId);
+      artistData.listenCount += 1;
+    }
+
+    // Конвертируем Map в массив и сортируем по количеству прослушиваний
+    const favoriteArtists = Array.from(artistMap.values())
+      .sort((a, b) => b.listenCount - a.listenCount)
+      .slice(0, 10);
+
+    // Получаем песни для каждого артиста
+    for (const artist of favoriteArtists) {
+      const songs = await Song.find({ artist: artist._id })
+        .select(
+          "title duration imageUrl artist albumId hlsUrl playCount genres moods lyrics"
+        )
+        .populate({
+          path: "artist",
+          select: "name imageUrl",
+        })
+        .sort({ playCount: -1 })
+        .limit(5)
+        .lean();
+
+      artist.songs = songs;
+    }
 
     if (returnInternal) {
       return favoriteArtists;
@@ -777,7 +781,129 @@ export const getRecentlyListenedArtists = async (req, res, next) => {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const recentlyListenedArtists = await ListenHistory.aggregate([
+    // Используем простой подход как в getListenHistory
+    const listenHistory = await ListenHistory.find({
+      user: new mongoose.Types.ObjectId(userId),
+      listenedAt: { $gte: thirtyDaysAgo },
+    })
+      .sort({ listenedAt: -1 })
+      .populate({
+        path: "song",
+        populate: {
+          path: "artist",
+          model: "Artist",
+          select: "name imageUrl bio bannerUrl createdAt updatedAt",
+        },
+      })
+      .lean();
+
+    if (!listenHistory || listenHistory.length === 0) {
+      return res.status(200).json({ artists: [] });
+    }
+
+    // Группируем по артистам и считаем прослушивания
+    const artistMap = new Map();
+
+    for (const record of listenHistory) {
+      if (
+        !record.song ||
+        !record.song.artist ||
+        record.song.artist.length === 0
+      ) {
+        continue;
+      }
+
+      // Берем первого артиста из массива
+      const artist = record.song.artist[0];
+      if (!artist || !artist._id) continue;
+
+      const artistId = artist._id.toString();
+
+      if (!artistMap.has(artistId)) {
+        artistMap.set(artistId, {
+          _id: artist._id,
+          name: artist.name,
+          imageUrl: artist.imageUrl,
+          bio: artist.bio || "",
+          bannerUrl: artist.bannerUrl || null,
+          createdAt: artist.createdAt,
+          updatedAt: artist.updatedAt,
+          listenCount: 0,
+          lastListened: record.listenedAt,
+          songs: [],
+        });
+      }
+
+      const artistData = artistMap.get(artistId);
+      artistData.listenCount += 1;
+
+      if (record.listenedAt > artistData.lastListened) {
+        artistData.lastListened = record.listenedAt;
+      }
+    }
+
+    // Конвертируем Map в массив и сортируем по последнему прослушиванию
+    const recentlyListenedArtists = Array.from(artistMap.values())
+      .sort((a, b) => new Date(b.lastListened) - new Date(a.lastListened))
+      .slice(0, 12);
+
+    // Получаем песни для каждого артиста
+    for (const artist of recentlyListenedArtists) {
+      const songs = await Song.find({ artist: artist._id })
+        .select(
+          "title duration imageUrl artist albumId hlsUrl playCount genres moods lyrics"
+        )
+        .populate({
+          path: "artist",
+          select: "name imageUrl",
+        })
+        .sort({ playCount: -1 })
+        .limit(5)
+        .lean();
+
+      artist.songs = songs;
+    }
+
+    res.status(200).json({ artists: recentlyListenedArtists });
+  } catch (error) {
+    console.error("Error in getRecentlyListenedArtists:", error);
+    next(error);
+  }
+};
+
+export const debugRecentlyListenedArtists = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    // Проверяем, есть ли вообще записи в ListenHistory для этого пользователя
+    const totalHistory = await ListenHistory.countDocuments({
+      user: new mongoose.Types.ObjectId(userId),
+    });
+
+    const recentHistory = await ListenHistory.countDocuments({
+      user: new mongoose.Types.ObjectId(userId),
+      listenedAt: { $gte: thirtyDaysAgo },
+    });
+
+    // Получаем несколько последних записей
+    const recentRecords = await ListenHistory.find({
+      user: new mongoose.Types.ObjectId(userId),
+      listenedAt: { $gte: thirtyDaysAgo },
+    })
+      .populate({
+        path: "song",
+        populate: {
+          path: "artist",
+          select: "name imageUrl",
+        },
+      })
+      .limit(5)
+      .lean();
+
+    // Тестируем упрощенную агрегацию
+    const simpleAggregation = await ListenHistory.aggregate([
       {
         $match: {
           user: new mongoose.Types.ObjectId(userId),
@@ -785,7 +911,7 @@ export const getRecentlyListenedArtists = async (req, res, next) => {
         },
       },
       { $sort: { listenedAt: -1 } },
-      { $limit: 100 },
+      { $limit: 10 },
       {
         $lookup: {
           from: "songs",
@@ -795,78 +921,50 @@ export const getRecentlyListenedArtists = async (req, res, next) => {
         },
       },
       { $unwind: "$songDetails" },
-      { $unwind: "$songDetails.artist" },
+      {
+        $lookup: {
+          from: "artists",
+          localField: "songDetails.artist",
+          foreignField: "_id",
+          as: "artists",
+        },
+      },
+      {
+        $addFields: {
+          artist: { $arrayElemAt: ["$artists", 0] },
+        },
+      },
       {
         $group: {
-          _id: "$songDetails.artist",
+          _id: "$artist._id",
+          name: { $first: "$artist.name" },
+          imageUrl: { $first: "$artist.imageUrl" },
           listenCount: { $sum: 1 },
           lastListened: { $max: "$listenedAt" },
         },
       },
+      { $match: { _id: { $ne: null } } },
       { $sort: { lastListened: -1 } },
-      { $limit: 12 },
-      {
-        $lookup: {
-          from: "artists",
-          localField: "_id",
-          foreignField: "_id",
-          as: "artistDetails",
-        },
-      },
-      { $unwind: "$artistDetails" },
-      {
-        $lookup: {
-          from: "songs",
-          localField: "artistDetails._id",
-          foreignField: "artist",
-          as: "songs",
-          pipeline: [
-            {
-              $lookup: {
-                from: "artists",
-                localField: "artist",
-                foreignField: "_id",
-                as: "artist",
-                pipeline: [{ $project: { name: 1, imageUrl: 1 } }],
-              },
-            },
-            { $unwind: "$artist" },
-            {
-              $project: {
-                title: 1,
-                artist: 1,
-                albumId: 1,
-                imageUrl: 1,
-                hlsUrl: 1,
-                duration: 1,
-                playCount: 1,
-                genres: 1,
-                moods: 1,
-                lyrics: 1,
-              },
-            },
-            { $sort: { playCount: -1 } },
-            { $limit: 5 },
-          ],
-        },
-      },
-      {
-        $replaceRoot: {
-          newRoot: {
-            _id: "$artistDetails._id",
-            name: "$artistDetails.name",
-            imageUrl: "$artistDetails.imageUrl",
-            listenCount: "$listenCount",
-            lastListened: "$lastListened",
-            songs: "$songs",
-          },
-        },
-      },
+      { $limit: 5 },
     ]);
 
-    res.status(200).json({ artists: recentlyListenedArtists });
+    res.status(200).json({
+      userId,
+      thirtyDaysAgo,
+      totalHistory,
+      recentHistory,
+      recentRecords: recentRecords.map((record) => ({
+        songId: record.song?._id,
+        songTitle: record.song?.title,
+        artists: record.song?.artist,
+        artistsCount: record.song?.artist?.length || 0,
+        listenedAt: record.listenedAt,
+      })),
+      simpleAggregation,
+      simpleAggregationCount: simpleAggregation.length,
+    });
   } catch (error) {
-    console.error("Error in getRecentlyListenedArtists:", error);
+    console.error("Error in debugRecentlyListenedArtists:", error);
     next(error);
   }
 };
@@ -942,10 +1040,14 @@ export const getTopTracksThisMonth = async (req, res, next) => {
           from: "artists",
           localField: "songDetails.artist",
           foreignField: "_id",
-          as: "artist",
+          as: "artists",
         },
       },
-      { $unwind: "$artist" },
+      {
+        $addFields: {
+          artist: "$artists",
+        },
+      },
       {
         $lookup: {
           from: "albums",
@@ -955,6 +1057,17 @@ export const getTopTracksThisMonth = async (req, res, next) => {
         },
       },
       { $unwind: { path: "$album", preserveNullAndEmptyArrays: true } },
+      {
+        $addFields: {
+          artistName: {
+            $cond: {
+              if: { $gt: [{ $size: "$artist" }, 0] },
+              then: { $arrayElemAt: ["$artist.name", 0] },
+              else: "Unknown Artist",
+            },
+          },
+        },
+      },
       {
         $replaceRoot: {
           newRoot: {
@@ -969,15 +1082,11 @@ export const getTopTracksThisMonth = async (req, res, next) => {
             lyrics: "$songDetails.lyrics",
             listenCount: "$listenCount",
             lastListened: "$lastListened",
-            artist: {
-              _id: "$artist._id",
-              name: "$artist.name",
-              imageUrl: "$artist.imageUrl",
-            },
+            artist: "$artist",
             album: {
-              _id: "$album._id",
-              title: "$album.title",
-              imageUrl: "$album.imageUrl",
+              _id: "$album._id" || null,
+              title: "$album.title" || "Unknown Album",
+              imageUrl: "$album.imageUrl" || null,
             },
           },
         },
@@ -1035,10 +1144,14 @@ export const getAllTopTracksThisMonth = async (req, res, next) => {
           from: "artists",
           localField: "songDetails.artist",
           foreignField: "_id",
-          as: "artist",
+          as: "artists",
         },
       },
-      { $unwind: "$artist" },
+      {
+        $addFields: {
+          artist: "$artists",
+        },
+      },
       {
         $lookup: {
           from: "albums",
@@ -1049,6 +1162,17 @@ export const getAllTopTracksThisMonth = async (req, res, next) => {
       },
       { $unwind: { path: "$album", preserveNullAndEmptyArrays: true } },
       { $limit: 30 },
+      {
+        $addFields: {
+          artistName: {
+            $cond: {
+              if: { $gt: [{ $size: "$artist" }, 0] },
+              then: { $arrayElemAt: ["$artist.name", 0] },
+              else: "Unknown Artist",
+            },
+          },
+        },
+      },
       {
         $replaceRoot: {
           newRoot: {
@@ -1063,15 +1187,11 @@ export const getAllTopTracksThisMonth = async (req, res, next) => {
             lyrics: "$songDetails.lyrics",
             listenCount: "$listenCount",
             lastListened: "$lastListened",
-            artist: {
-              _id: "$artist._id",
-              name: "$artist.name",
-              imageUrl: "$artist.imageUrl",
-            },
+            artist: "$artist",
             album: {
-              _id: "$album._id",
-              title: "$album.title",
-              imageUrl: "$album.imageUrl",
+              _id: "$album._id" || null,
+              title: "$album.title" || "Unknown Album",
+              imageUrl: "$album.imageUrl" || null,
             },
           },
         },

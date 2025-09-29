@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useEffect, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Play, Pause, Heart } from "lucide-react";
+import { Play, Heart } from "lucide-react";
 import { usePlayerStore } from "../../stores/usePlayerStore";
 import { useLibraryStore } from "../../stores/useLibraryStore";
-import { useAuthStore } from "../../stores/useAuthStore";
 import { axiosInstance } from "../../lib/axios";
 import Equalizer from "../../components/ui/equalizer";
 import { getOptimizedImageUrl } from "../../lib/utils";
@@ -26,7 +26,6 @@ const TopTracksPage = () => {
   const [error, setError] = useState<string | null>(null);
   const { currentSong, isPlaying, playAlbum, togglePlay } = usePlayerStore();
   const { isSongLiked, toggleSongLike } = useLibraryStore();
-  const { user } = useAuthStore();
 
   const pageTitle =
     location.state?.title || t("pages.profile.topTracksThisMonth");
@@ -165,7 +164,9 @@ const TopTracksPage = () => {
                       {track.title}
                     </h3>
                     <p className="text-sm text-zinc-400 truncate">
-                      {track.artist.name}
+                      {Array.isArray(track.artist) && track.artist.length > 0
+                        ? track.artist[0].name
+                        : t("common.unknownArtist")}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-zinc-400">

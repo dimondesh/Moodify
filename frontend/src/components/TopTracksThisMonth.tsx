@@ -1,10 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { Play, Pause, Heart } from "lucide-react";
+import { Play, Heart } from "lucide-react";
 import { usePlayerStore } from "../stores/usePlayerStore";
 import { useLibraryStore } from "../stores/useLibraryStore";
-import { useAuthStore } from "../stores/useAuthStore";
 import { axiosInstance } from "../lib/axios";
 import Equalizer from "./ui/equalizer";
 import { getOptimizedImageUrl } from "../lib/utils";
@@ -29,10 +29,8 @@ const TopTracksThisMonth: React.FC<TopTracksThisMonthProps> = ({
   const [tracks, setTracks] = useState<TopTrack[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { currentSong, isPlaying, playAlbum, setCurrentSong, togglePlay } =
-    usePlayerStore();
+  const { currentSong, isPlaying, playAlbum, togglePlay } = usePlayerStore();
   const { isSongLiked, toggleSongLike } = useLibraryStore();
-  const { user } = useAuthStore();
 
   useEffect(() => {
     const fetchTopTracks = async () => {
@@ -190,7 +188,9 @@ const TopTracksThisMonth: React.FC<TopTracksThisMonthProps> = ({
                   {track.title}
                 </h3>
                 <p className="text-sm text-zinc-400 truncate">
-                  {track.artist.name}
+                  {Array.isArray(track.artist) && track.artist.length > 0
+                    ? track.artist[0].name
+                    : t("common.unknownArtist")}
                 </p>
               </div>
               <div className="flex items-center gap-2 text-sm text-zinc-400">

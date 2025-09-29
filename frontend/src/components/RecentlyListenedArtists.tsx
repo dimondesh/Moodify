@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // frontend/src/components/RecentlyListenedArtists.tsx
 
 import React, { useEffect, useState } from "react";
@@ -27,6 +28,7 @@ const RecentlyListenedArtists: React.FC<RecentlyListenedArtistsProps> = ({
   const { t } = useTranslation();
   const [artists, setArtists] = useState<RecentlyListenedArtist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showSkeleton, setShowSkeleton] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -34,9 +36,17 @@ const RecentlyListenedArtists: React.FC<RecentlyListenedArtistsProps> = ({
       try {
         setIsLoading(true);
         setError(null);
+
+        // Показываем скелетон через 200ms, если загрузка еще идет
+        const skeletonTimer = setTimeout(() => {
+          setShowSkeleton(true);
+        }, 200);
+
         const response = await axiosInstance.get(
           `/users/${userId}/recently-listened-artists`
         );
+
+        clearTimeout(skeletonTimer);
         setArtists(response.data.artists);
       } catch (err: any) {
         if (err.response?.status === 403) {
@@ -46,14 +56,34 @@ const RecentlyListenedArtists: React.FC<RecentlyListenedArtistsProps> = ({
         }
       } finally {
         setIsLoading(false);
+        setShowSkeleton(false);
       }
     };
 
     fetchRecentlyListenedArtists();
   }, [userId]);
 
-  if (isLoading) {
-    return null;
+  if (isLoading && showSkeleton) {
+    return (
+      <div className="px-6 py-8">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-white">
+            {t("pages.profile.recentlyListenedArtists")}
+          </h2>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div key={index} className="space-y-3">
+              <div className="aspect-square bg-[#2a2a2a] rounded-lg animate-pulse"></div>
+              <div className="space-y-2">
+                <div className="h-4 bg-[#2a2a2a] rounded animate-pulse"></div>
+                <div className="h-3 bg-[#2a2a2a] rounded w-2/3 animate-pulse"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (error) {
@@ -71,7 +101,22 @@ const RecentlyListenedArtists: React.FC<RecentlyListenedArtistsProps> = ({
   }
 
   if (artists.length === 0) {
-    return null;
+    return (
+      <div className="px-6 py-8">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-white">
+            {t("pages.profile.recentlyListenedArtists")}
+          </h2>
+        </div>
+        <div className="text-center py-8">
+          <p className="text-gray-400">
+            {isMyProfile
+              ? t("pages.profile.noRecentlyListenedArtists")
+              : t("pages.profile.noRecentlyListenedArtistsPublic")}
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (

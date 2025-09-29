@@ -50,18 +50,8 @@ const AudioPlayer = () => {
         return;
       }
 
-      try {
-        const response = await axiosInstance.get(`/songs/${song._id}`);
-        const lyrics = response.data.song?.lyrics;
-
-        if (lyrics && usePlayerStore.getState().currentSong?._id === song._id) {
-          usePlayerStore.setState((state) => ({
-            currentSong: { ...state.currentSong!, lyrics },
-          }));
-        }
-      } catch (error) {
-        console.warn(`Could not fetch lyrics for song ${song._id}`, error);
-      }
+      // Lyrics уже должны быть в объекте песни
+      // Не делаем дополнительный запрос, чтобы избежать 404 ошибок
     },
     [isOffline]
   );
