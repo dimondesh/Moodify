@@ -189,7 +189,7 @@ const TopTracksThisMonth: React.FC<TopTracksThisMonthProps> = ({
                 </h3>
                 <p className="text-sm text-zinc-400 truncate">
                   {Array.isArray(track.artist) && track.artist.length > 0
-                    ? track.artist[0].name
+                    ? track.artist[0]?.name || t("common.unknownArtist")
                     : t("common.unknownArtist")}
                 </p>
               </div>

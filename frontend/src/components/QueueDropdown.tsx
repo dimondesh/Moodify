@@ -11,7 +11,7 @@ import {
 import { ScrollArea } from "./ui/scroll-area";
 import { useTranslation } from "react-i18next";
 import { getArtistNames } from "@/lib/utils";
-import { X, GripVertical, Play } from "lucide-react";
+import { X, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Song } from "../types";
 import {
@@ -24,7 +24,6 @@ import {
   DragEndEvent,
 } from "@dnd-kit/core";
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -46,7 +45,6 @@ interface SortableQueueItemProps {
 
 const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
   song,
-  index,
   isCurrent,
   onRemove,
   onPlay,
@@ -135,7 +133,6 @@ export const QueueDropdown: React.FC<QueueDropdownProps> = ({ children }) => {
   const {
     queue,
     currentIndex,
-    currentSong,
     isShuffle,
     repeatMode,
     removeFromQueue,
@@ -193,7 +190,7 @@ export const QueueDropdown: React.FC<QueueDropdownProps> = ({ children }) => {
       if (oldDisplayIndex !== -1 && newDisplayIndex !== -1) {
         // В режиме shuffle нужно обновлять shuffle history, а не queue
         if (isShuffle) {
-          const { shuffleHistory, shufflePointer } = usePlayerStore.getState();
+          const { shuffleHistory } = usePlayerStore.getState();
 
           // Находим позиции в shuffle history
           const oldSong = displaySongs[oldDisplayIndex];
