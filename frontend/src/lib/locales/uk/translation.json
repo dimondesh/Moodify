@@ -58,6 +58,11 @@
     "addToPlaylist": "Додати до плейлиста",
     "saveToLibrary": "Зберегти до Медіатеки",
     "share": "Поділитися",
+    "queue": {
+      "title": "Черга",
+      "empty": "Черга порожня",
+      "clear": "Очистити"
+    },
     "done": "Готово"
   },
   "friendsActivity": {

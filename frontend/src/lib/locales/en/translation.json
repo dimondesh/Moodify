@@ -59,6 +59,11 @@
     "addToPlaylist": "Add to playlist",
     "saveToLibrary": "Save to Your Library",
     "share": "Share",
+    "queue": {
+      "title": "Queue",
+      "empty": "Queue is empty",
+      "clear": "Clear"
+    },
     "done": "Done"
   },
   "friendsActivity": {

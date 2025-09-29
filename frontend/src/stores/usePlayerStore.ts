@@ -58,6 +58,12 @@ interface PlayerStore {
   setPlaybackContext: (
     context: { type: string; entityId?: string; entityTitle?: string } | null
   ) => void;
+  removeFromQueue: (songId: string) => void;
+  moveSongInQueue: (fromIndex: number, toIndex: number) => void;
+  clearQueue: () => void;
+  addToQueue: (song: Song) => void;
+  addSongsToQueue: (songs: Song[]) => void;
+  getNextSongsInShuffle: (count?: number) => Song[];
 }
 
 const shuffleQueue = (length: number) => {
@@ -629,6 +635,275 @@ export const usePlayerStore = create<PlayerStore>()(
                 }
               : null,
           });
+        },
+
+        removeFromQueue: (songId: string) => {
+          set((state) => {
+            console.log("removeFromQueue called with songId:", songId);
+            console.log(
+              "Current queue before removal:",
+              state.queue.map((s) => s._id)
+            );
+
+            // Проверяем, что песня существует в очереди
+            const songIndex = state.queue.findIndex(
+              (song) => song._id === songId
+            );
+            if (songIndex === -1) {
+              console.warn(`Song with id ${songId} not found in queue`);
+              return state;
+            }
+
+            const newQueue = state.queue.filter((song) => song._id !== songId);
+
+            let newCurrentIndex = state.currentIndex;
+            let newShuffleHistory = [...state.shuffleHistory];
+            let newShufflePointer = state.shufflePointer;
+
+            // Если удаляемая песня была текущей
+            if (songIndex === state.currentIndex) {
+              if (newQueue.length === 0) {
+                // Если очередь пуста, останавливаем воспроизведение
+                silentAudioService.pause();
+                return {
+                  queue: [],
+                  currentSong: null,
+                  currentIndex: -1,
+                  isPlaying: false,
+                  shuffleHistory: [],
+                  shufflePointer: -1,
+                };
+              } else {
+                // Переходим к следующей песне
+                if (state.isShuffle) {
+                  if (newShufflePointer < newShuffleHistory.length - 1) {
+                    newShufflePointer++;
+                  } else {
+                    newShufflePointer = 0;
+                  }
+                  newCurrentIndex = newShuffleHistory[newShufflePointer];
+                } else {
+                  newCurrentIndex = Math.min(
+                    newCurrentIndex,
+                    newQueue.length - 1
+                  );
+                }
+              }
+            } else if (songIndex < state.currentIndex) {
+              // Если удаляемая песня была до текущей, корректируем индекс
+              newCurrentIndex = state.currentIndex - 1;
+            }
+
+            // Обновляем shuffle history
+            if (state.isShuffle) {
+              const removedIndex = newShuffleHistory.indexOf(songIndex);
+              if (removedIndex !== -1) {
+                newShuffleHistory.splice(removedIndex, 1);
+                // Корректируем индексы в shuffle history
+                newShuffleHistory = newShuffleHistory.map((idx) =>
+                  idx > songIndex ? idx - 1 : idx
+                );
+                if (removedIndex < newShufflePointer) {
+                  newShufflePointer--;
+                }
+              }
+            }
+
+            return {
+              queue: newQueue,
+              currentIndex: newCurrentIndex,
+              currentSong:
+                newQueue.length > 0 ? newQueue[newCurrentIndex] : null,
+              shuffleHistory: newShuffleHistory,
+              shufflePointer: newShufflePointer,
+            };
+          });
+        },
+
+        moveSongInQueue: (fromIndex: number, toIndex: number) => {
+          set((state) => {
+            console.log("moveSongInQueue called with:", { fromIndex, toIndex });
+            console.log("Current queue length:", state.queue.length);
+            console.log(
+              "Current queue:",
+              state.queue.map((s) => s._id)
+            );
+
+            if (
+              fromIndex < 0 ||
+              fromIndex >= state.queue.length ||
+              toIndex < 0 ||
+              toIndex >= state.queue.length
+            ) {
+              console.warn("Invalid indices for moveSongInQueue:", {
+                fromIndex,
+                toIndex,
+                queueLength: state.queue.length,
+              });
+              return state;
+            }
+
+            const newQueue = [...state.queue];
+            const [movedSong] = newQueue.splice(fromIndex, 1);
+            newQueue.splice(toIndex, 0, movedSong);
+
+            console.log(
+              "New queue after move:",
+              newQueue.map((s) => s._id)
+            );
+
+            let newCurrentIndex = state.currentIndex;
+            let newShuffleHistory = [...state.shuffleHistory];
+            const newShufflePointer = state.shufflePointer;
+
+            // Корректируем currentIndex
+            if (state.currentIndex === fromIndex) {
+              newCurrentIndex = toIndex;
+            } else if (
+              fromIndex < state.currentIndex &&
+              toIndex >= state.currentIndex
+            ) {
+              newCurrentIndex = state.currentIndex - 1;
+            } else if (
+              fromIndex > state.currentIndex &&
+              toIndex <= state.currentIndex
+            ) {
+              newCurrentIndex = state.currentIndex + 1;
+            }
+
+            // Обновляем shuffle history
+            if (state.isShuffle) {
+              const fromShuffleIndex = newShuffleHistory.indexOf(fromIndex);
+              if (fromShuffleIndex !== -1) {
+                newShuffleHistory[fromShuffleIndex] = toIndex;
+                // Корректируем остальные индексы
+                newShuffleHistory = newShuffleHistory.map((idx) => {
+                  if (fromIndex < toIndex) {
+                    if (idx > fromIndex && idx <= toIndex) return idx - 1;
+                  } else {
+                    if (idx >= toIndex && idx < fromIndex) return idx + 1;
+                  }
+                  return idx;
+                });
+              }
+            }
+
+            return {
+              queue: newQueue,
+              currentIndex: newCurrentIndex,
+              shuffleHistory: newShuffleHistory,
+              shufflePointer: newShufflePointer,
+            };
+          });
+        },
+
+        clearQueue: () => {
+          silentAudioService.pause();
+          set({
+            queue: [],
+            currentSong: null,
+            currentIndex: -1,
+            isPlaying: false,
+            shuffleHistory: [],
+            shufflePointer: -1,
+          });
+        },
+
+        addToQueue: (song: Song) => {
+          set((state) => ({
+            queue: [...state.queue, song],
+          }));
+        },
+
+        addSongsToQueue: (songs: Song[]) => {
+          set((state) => ({
+            queue: [...state.queue, ...songs],
+          }));
+        },
+
+        getNextSongsInShuffle: (count = 10) => {
+          const state = get();
+          if (state.queue.length === 0) return [];
+
+          const {
+            isShuffle,
+            repeatMode,
+            currentIndex,
+            queue,
+            shuffleHistory,
+            shufflePointer,
+          } = state;
+
+          // Если режим повтора "one", возвращаем только текущий трек
+          if (repeatMode === "one") {
+            return [queue[currentIndex]].filter(Boolean);
+          }
+
+          if (!isShuffle) {
+            // В обычном режиме
+            if (repeatMode === "all") {
+              // При repeat all показываем треки циклически
+              const nextSongs: Song[] = [];
+              for (let i = 0; i < count; i++) {
+                const index = (currentIndex + 1 + i) % queue.length;
+                nextSongs.push(queue[index]);
+              }
+              return nextSongs;
+            } else {
+              // При repeat off показываем только оставшиеся треки
+              return queue.slice(currentIndex + 1, currentIndex + 1 + count);
+            }
+          }
+
+          // В режиме shuffle
+          const nextSongs: Song[] = [];
+          const usedSongIds = new Set<string>();
+
+          if (repeatMode === "all") {
+            // При repeat all показываем треки циклически в shuffle порядке
+            let currentPointer = shufflePointer;
+            let attempts = 0;
+            const maxAttempts = shuffleHistory.length * 2; // Предотвращаем бесконечный цикл
+
+            while (nextSongs.length < count && attempts < maxAttempts) {
+              currentPointer = (currentPointer + 1) % shuffleHistory.length;
+              const songIndex = shuffleHistory[currentPointer];
+
+              if (songIndex < queue.length) {
+                const song = queue[songIndex];
+                if (!usedSongIds.has(song._id)) {
+                  nextSongs.push(song);
+                  usedSongIds.add(song._id);
+                }
+              }
+              attempts++;
+            }
+          } else {
+            // При repeat off показываем только оставшиеся треки в shuffle порядке
+            let currentPointer = shufflePointer;
+            let attempts = 0;
+            const maxAttempts = shuffleHistory.length;
+
+            while (
+              nextSongs.length < count &&
+              nextSongs.length < queue.length - 1 &&
+              attempts < maxAttempts
+            ) {
+              currentPointer = (currentPointer + 1) % shuffleHistory.length;
+              const songIndex = shuffleHistory[currentPointer];
+
+              if (songIndex < queue.length) {
+                const song = queue[songIndex];
+                if (!usedSongIds.has(song._id)) {
+                  nextSongs.push(song);
+                  usedSongIds.add(song._id);
+                }
+              }
+              attempts++;
+            }
+          }
+
+          return nextSongs;
         },
       };
     },

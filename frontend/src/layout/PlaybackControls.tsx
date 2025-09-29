@@ -28,6 +28,7 @@ import {
   ChevronDown,
   Mic2,
   Waves,
+  List,
 } from "lucide-react";
 import { Slider } from "../components/ui/slider";
 import {
@@ -44,6 +45,8 @@ import { CreatePlaylistDialog } from "../pages/PlaylistPage/CreatePlaylistDialog
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../lib/firebase";
 import { useHasFriends } from "@/hooks/useHasFriends";
+import { QueueDropdown } from "../components/QueueDropdown";
+import { QueueDrawer } from "../components/QueueDrawer";
 
 const formatTime = (seconds: number) => {
   if (isNaN(seconds) || seconds < 0) return "0:00";
@@ -136,6 +139,7 @@ const PlaybackControls = () => {
 
   const [isCompactView, setIsCompactView] = useState(false);
   const [lyrics, setLyrics] = useState<LyricLine[]>([]);
+  const [isQueueDrawerOpen, setIsQueueDrawerOpen] = useState(false);
 
   const { extractColor } = useDominantColor();
   const [bgColors, setBgColors] = useState(["#18181b", "#18181b"]);
@@ -524,7 +528,7 @@ const PlaybackControls = () => {
                           </p>
                         </div>
                         {currentSong && (
-                          <div className="flex-shrink-0 ml-2">
+                          <div className="flex-shrink-0 ml-2 flex items-center gap-2">
                             <AddToPlaylistControl
                               song={currentSong}
                               iconClassName="size-5"
@@ -616,6 +620,31 @@ const PlaybackControls = () => {
 
                       <div className="flex items-center justify-between w-full pb-4 px-2">
                         <div className="flex items-center justify-start gap-2">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className={`hover:text-white text-zinc-400 ${
+                              !user || !hasFriends
+                                ? "opacity-50 cursor-not-allowed"
+                                : ""
+                            }`}
+                            onClick={() =>
+                              openShareDialog({
+                                type: "song",
+                                id: currentSong._id,
+                              })
+                            }
+                            disabled={!user || !hasFriends}
+                            title={
+                              !user
+                                ? t("auth.loginRequired")
+                                : !hasFriends
+                                ? t("common.noFriendsToShare")
+                                : t("player.share")
+                            }
+                          >
+                            <Share className="h-5 w-5" />
+                          </Button>
                           {!isIosDevice && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -687,27 +716,11 @@ const PlaybackControls = () => {
                           <Button
                             size="icon"
                             variant="ghost"
-                            className={`hover:text-white text-zinc-400 ${
-                              !user || !hasFriends
-                                ? "opacity-50 cursor-not-allowed"
-                                : ""
-                            }`}
-                            onClick={() =>
-                              openShareDialog({
-                                type: "song",
-                                id: currentSong._id,
-                              })
-                            }
-                            disabled={!user || !hasFriends}
-                            title={
-                              !user
-                                ? t("auth.loginRequired")
-                                : !hasFriends
-                                ? t("common.noFriendsToShare")
-                                : t("player.share")
-                            }
+                            className="text-zinc-400 hover:text-white h-8 w-8"
+                            onClick={() => setIsQueueDrawerOpen(true)}
+                            title={t("player.queue.title")}
                           >
-                            <Share className="h-5 w-5" />
+                            <List className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
@@ -981,6 +994,16 @@ const PlaybackControls = () => {
                 <Share className="h-4 w-4" />
               </Button>
               <div className="flex items-center gap-3">
+                <QueueDropdown>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="hover:text-white hover:bg-[#2a2a2a] text-gray-400 h-8 w-8"
+                    title={t("player.queue.title")}
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
+                </QueueDropdown>
                 <Button
                   size="icon"
                   variant="ghost"
@@ -1019,6 +1042,10 @@ const PlaybackControls = () => {
       <CreatePlaylistDialog
         isOpen={isCreatePlaylistDialogOpen}
         onClose={closeAllDialogs}
+      />
+      <QueueDrawer
+        isOpen={isQueueDrawerOpen}
+        onOpenChange={setIsQueueDrawerOpen}
       />
     </>
   );

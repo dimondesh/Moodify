@@ -58,6 +58,11 @@
     "addToPlaylist": "Добавить в плейлист",
     "saveToLibrary": "Сохранить в Медиатеку",
     "share": "Поделиться",
+    "queue": {
+      "title": "Очередь",
+      "empty": "Очередь пуста",
+      "clear": "Очистить"
+    },
     "done": "Готово"
   },
   "friendsActivity": {
