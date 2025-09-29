@@ -440,7 +440,7 @@ export const getListenHistory = async (
                   .populate({
                     path: "songs",
                     select:
-                      "title duration imageUrl artist albumId hlsUrl playCount genres moods",
+                      "title duration imageUrl artist albumId hlsUrl playCount genres moods lyrics",
                     populate: { path: "artist", select: "name imageUrl" },
                     options: { sort: { playCount: -1 }, limit: 5 },
                   })
