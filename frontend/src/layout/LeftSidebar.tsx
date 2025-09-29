@@ -464,7 +464,7 @@ const LeftSidebar = () => {
                     leftSidebarViewMode === "list" ? "grid" : "list"
                   )
                 }
-                className="text-gray-400 hover:text-white hover:bg-[#2a2a2a] h-8 w-8 p-0 flex-shrink-0"
+                className="text-gray-400 hover:text-white mt-0.5 hover:bg-[#2a2a2a] h-8 w-8 p-0 flex-shrink-0"
               >
                 {leftSidebarViewMode === "list" ? (
                   <Grid3X3 className="w-4 h-4" />
