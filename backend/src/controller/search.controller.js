@@ -28,7 +28,7 @@ export const searchSongs = async (req, res, next) => {
       .populate({
         path: "songs",
         select:
-          "title artist albumId imageUrl hlsUrl duration playCount genres moods",
+          "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics",
         populate: {
           path: "artist",
           select: "name imageUrl",
@@ -44,6 +44,9 @@ export const searchSongs = async (req, res, next) => {
         Song.find({
           $or: [{ title: regex }, { artist: { $in: matchingArtistIds } }],
         })
+          .select(
+            "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics"
+          )
           .populate("artist", "name imageUrl")
           .populate("albumId", "title imageUrl")
           .limit(50)
@@ -56,7 +59,7 @@ export const searchSongs = async (req, res, next) => {
           .populate({
             path: "songs",
             select:
-              "title duration imageUrl artist albumId hlsUrl playCount genres moods",
+              "title duration imageUrl artist albumId hlsUrl playCount genres moods lyrics",
             populate: { path: "artist", select: "name imageUrl" },
           })
           .limit(50)
@@ -70,7 +73,7 @@ export const searchSongs = async (req, res, next) => {
           .populate({
             path: "songs",
             select:
-              "title duration imageUrl artist albumId hlsUrl playCount genres moods",
+              "title duration imageUrl artist albumId hlsUrl playCount genres moods lyrics",
             populate: { path: "artist", select: "name imageUrl" },
           })
           .limit(50)
@@ -85,7 +88,7 @@ export const searchSongs = async (req, res, next) => {
           .populate({
             path: "songs",
             select:
-              "title duration imageUrl artist albumId hlsUrl playCount genres moods",
+              "title duration imageUrl artist albumId hlsUrl playCount genres moods lyrics",
             populate: { path: "artist", select: "name imageUrl" },
           })
           .limit(50)

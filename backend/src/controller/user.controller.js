@@ -75,7 +75,7 @@ export const getUserProfile = async (req, res, next) => {
           {
             path: "songs",
             select:
-              "title artist albumId imageUrl hlsUrl duration playCount genres moods",
+              "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics",
             populate: {
               path: "artist",
               select: "name imageUrl",
@@ -341,7 +341,7 @@ export const getFollowing = async (req, res, next) => {
         populate: {
           path: "songs",
           select:
-            "title artist albumId imageUrl hlsUrl duration playCount genres moods",
+            "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics",
           populate: {
             path: "artist",
             select: "name imageUrl",
@@ -641,6 +641,7 @@ export const getFavoriteArtists = async (
                 playCount: 1,
                 genres: 1,
                 moods: 1,
+                lyrics: 1,
               },
             },
             { $sort: { playCount: -1 } },
@@ -689,7 +690,7 @@ export const getNewReleases = async (
         {
           path: "songs",
           select:
-            "title artist albumId imageUrl hlsUrl duration playCount genres moods",
+            "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics",
           populate: {
             path: "artist",
             select: "name imageUrl",
@@ -727,7 +728,7 @@ export const getPlaylistRecommendations = async (
         {
           path: "songs",
           select:
-            "title artist albumId imageUrl hlsUrl duration playCount genres moods",
+            "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics",
           populate: {
             path: "artist",
             select: "name imageUrl",

@@ -1,6 +1,6 @@
 // src/layout/AudioPlayer.tsx
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import Hls from "hls.js";
 import { usePlayerStore } from "../stores/usePlayerStore";
 import { webAudioService, useAudioSettingsStore } from "../lib/webAudio";
@@ -8,6 +8,7 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { axiosInstance } from "@/lib/axios";
 import { useMusicStore } from "@/stores/useMusicStore";
 import { useOfflineStore } from "@/stores/useOfflineStore";
+import type { Song } from "../types";
 
 interface CustomWindow extends Window {
   webkitAudioContext?: typeof AudioContext;
@@ -42,6 +43,28 @@ const AudioPlayer = () => {
   const { playbackRateEnabled, playbackRate } = useAudioSettingsStore();
   const { isOffline } = useOfflineStore();
   const { user } = useAuthStore();
+
+  const enrichSongWithLyricsIfNeeded = useCallback(
+    async (song: Song) => {
+      if (song.lyrics || isOffline) {
+        return;
+      }
+
+      try {
+        const response = await axiosInstance.get(`/songs/${song._id}`);
+        const lyrics = response.data.song?.lyrics;
+
+        if (lyrics && usePlayerStore.getState().currentSong?._id === song._id) {
+          usePlayerStore.setState((state) => ({
+            currentSong: { ...state.currentSong!, lyrics },
+          }));
+        }
+      } catch (error) {
+        console.warn(`Could not fetch lyrics for song ${song._id}`, error);
+      }
+    },
+    [isOffline]
+  );
 
   // Инициализация Web Audio API
   useEffect(() => {
@@ -106,6 +129,9 @@ const AudioPlayer = () => {
       lastRecordedTimeRef.current = 0; // Reset recorded time for new song
       lastSongIdRef.current = currentSong._id;
 
+      // Загружаем lyrics для новой песни
+      enrichSongWithLyricsIfNeeded(currentSong);
+
       if (Hls.isSupported()) {
         if (hlsRef.current) {
           hlsRef.current.destroy();
@@ -136,7 +162,7 @@ const AudioPlayer = () => {
     } else {
       audioEl.pause();
     }
-  }, [currentSong, isPlaying]);
+  }, [currentSong, isPlaying, enrichSongWithLyricsIfNeeded]);
 
   // Управление перемоткой
   useEffect(() => {

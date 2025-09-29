@@ -19,7 +19,7 @@ export const getArtistById = async (req, res, next) => {
       .populate({
         path: "songs",
         select:
-          "title artist albumId imageUrl hlsUrl duration playCount genres moods",
+          "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics",
         populate: {
           path: "artist",
           select: "name imageUrl",

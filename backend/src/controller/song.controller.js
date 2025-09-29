@@ -13,6 +13,9 @@ import axios from "axios";
 export const getAllSongs = async (req, res, next) => {
   try {
     const songs = await Song.find()
+      .select(
+        "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics"
+      )
       .populate("artist", "name imageUrl")
       .populate("genres")
       .populate("moods")
@@ -41,6 +44,8 @@ export const getQuickPicks = async (
       }).populate({
         path: "items",
         model: "Song",
+        select:
+          "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics",
         populate: {
           path: "artist",
           model: "Artist",
@@ -105,11 +110,18 @@ export const getTrendingSongs = async (
       finalSongs = await Song.find()
         .sort({ playCount: -1 })
         .limit(limit)
+        .select(
+          "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics"
+        )
         .populate("artist", "name imageUrl");
     } else {
       const unorderedSongs = await Song.find({
         _id: { $in: orderedSongIds },
-      }).populate("artist", "name imageUrl");
+      })
+        .select(
+          "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics"
+        )
+        .populate("artist", "name imageUrl");
 
       const songMap = new Map(
         unorderedSongs.map((song) => [song._id.toString(), song])
@@ -217,6 +229,9 @@ export const getMadeForYouSongs = async (
       ],
     })
       .limit(50)
+      .select(
+        "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics"
+      )
       .populate("artist", "name imageUrl");
 
     const shuffledRecommendations = recommendations
@@ -373,7 +388,7 @@ export const getListenHistory = async (
                   .populate({
                     path: "songs",
                     select:
-                      "title duration imageUrl artist albumId hlsUrl playCount genres moods",
+                      "title duration imageUrl artist albumId hlsUrl playCount genres moods lyrics",
                     populate: { path: "artist", select: "name imageUrl" },
                   })
                   .lean();
@@ -385,7 +400,7 @@ export const getListenHistory = async (
                   .populate({
                     path: "songs",
                     select:
-                      "title duration imageUrl artist albumId hlsUrl playCount genres moods",
+                      "title duration imageUrl artist albumId hlsUrl playCount genres moods lyrics",
                     populate: { path: "artist", select: "name imageUrl" },
                   })
                   .lean();
@@ -396,7 +411,7 @@ export const getListenHistory = async (
                   .populate({
                     path: "songs",
                     select:
-                      "title duration imageUrl artist albumId hlsUrl playCount genres moods",
+                      "title duration imageUrl artist albumId hlsUrl playCount genres moods lyrics",
                     populate: { path: "artist", select: "name imageUrl" },
                   })
                   .lean();
@@ -411,7 +426,7 @@ export const getListenHistory = async (
                   .populate({
                     path: "songs",
                     select:
-                      "title duration imageUrl artist albumId hlsUrl playCount genres moods",
+                      "title duration imageUrl artist albumId hlsUrl playCount genres moods lyrics",
                     populate: { path: "artist", select: "name imageUrl" },
                   })
                   .lean();

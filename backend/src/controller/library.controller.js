@@ -644,7 +644,13 @@ export const getLibrarySummary = async (req, res, next) => {
       mongoose
         .model("Mix")
         .find({ _id: { $in: mixIds } })
-        .select("name imageUrl sourceName type generatedOn")
+        .populate({
+          path: "songs",
+          select:
+            "title duration imageUrl artist albumId hlsUrl playCount genres moods lyrics",
+          populate: { path: "artist", select: "name imageUrl" },
+        })
+        .select("name imageUrl sourceName type generatedOn songs")
         .lean(),
       mongoose
         .model("GeneratedPlaylist")

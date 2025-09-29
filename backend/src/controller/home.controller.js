@@ -198,6 +198,40 @@ async function getOptimizedLibrarySummary(userId) {
     },
     {
       $lookup: {
+        from: "songs",
+        localField: "mixDetails.songs",
+        foreignField: "_id",
+        as: "mixSongs",
+        pipeline: [
+          {
+            $lookup: {
+              from: "artists",
+              localField: "artist",
+              foreignField: "_id",
+              as: "artist",
+              pipeline: [{ $project: { name: 1, imageUrl: 1 } }],
+            },
+          },
+          { $unwind: "$artist" },
+          {
+            $project: {
+              title: 1,
+              artist: 1,
+              albumId: 1,
+              imageUrl: 1,
+              hlsUrl: 1,
+              duration: 1,
+              playCount: 1,
+              genres: 1,
+              moods: 1,
+              lyrics: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $lookup: {
         from: "generatedplaylists",
         localField: "savedGeneratedPlaylists.playlistId",
         foreignField: "_id",
@@ -413,6 +447,13 @@ async function getOptimizedLibrarySummary(userId) {
                         },
                       },
                       in: "$$libItem.addedAt",
+                    },
+                  },
+                  songs: {
+                    $filter: {
+                      input: "$mixSongs",
+                      as: "song",
+                      cond: { $in: ["$$song._id", "$$mix.songs"] },
                     },
                   },
                 },

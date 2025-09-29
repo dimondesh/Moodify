@@ -13,7 +13,7 @@ export const getMyGeneratedPlaylists = async (
     const playlists = await GeneratedPlaylist.find({ user: userId }).populate({
       path: "songs",
       select:
-        "title artist albumId imageUrl hlsUrl duration playCount genres moods",
+        "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics",
       populate: { path: "artist", model: "Artist", select: "name imageUrl" },
     });
 
@@ -32,7 +32,7 @@ export const getGeneratedPlaylistById = async (req, res, next) => {
     const playlist = await GeneratedPlaylist.findById(req.params.id).populate({
       path: "songs",
       select:
-        "title artist albumId imageUrl hlsUrl duration playCount genres moods",
+        "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics",
       populate: { path: "artist", model: "Artist", select: "name imageUrl" },
     });
 

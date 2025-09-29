@@ -10,10 +10,12 @@ export const getSharedEntity = async (req, res, next) => {
     let entity;
     const songPopulateOptions = {
       path: "songs",
+      select:
+        "title duration imageUrl artist albumId hlsUrl playCount genres moods lyrics",
       populate: {
         path: "artist",
         model: "Artist",
-        select: "name",
+        select: "name imageUrl",
       },
     };
 

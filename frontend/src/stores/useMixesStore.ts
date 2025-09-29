@@ -31,6 +31,7 @@ interface MixesStore {
   fetchMixById: (id: string) => Promise<void>;
   fetchDailyMixes: () => Promise<void>;
   toggleMixInLibrary: (mixId: string) => Promise<void>;
+  clearMixesCache: () => void;
 }
 
 const CACHE_DURATION = 60 * 60 * 1000;
@@ -125,5 +126,9 @@ export const useMixesStore = create<MixesStore>((set, get) => ({
         isLoading: false,
       });
     }
+  },
+  clearMixesCache: () => {
+    set({ cachedMixes: new Map() });
+    console.log("Mixes cache cleared.");
   },
 }));

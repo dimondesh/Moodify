@@ -160,7 +160,7 @@ export const getDailyMixes = async (req, res, next, returnInternal = false) => {
     const populatedMixes = await Mix.populate(mixes, {
       path: "songs",
       select:
-        "title duration imageUrl artist albumId hlsUrl playCount genres moods",
+        "title duration imageUrl artist albumId hlsUrl playCount genres moods lyrics",
       populate: { path: "artist", select: "name imageUrl" },
     });
 
@@ -184,7 +184,7 @@ export const getMixById = async (req, res, next) => {
     const mix = await Mix.findById(req.params.id).populate({
       path: "songs",
       select:
-        "title duration imageUrl artist albumId hlsUrl playCount genres moods",
+        "title duration imageUrl artist albumId hlsUrl playCount genres moods lyrics",
       populate: { path: "artist", model: "Artist", select: "name imageUrl" },
     });
 
