@@ -390,6 +390,11 @@ export const getPublicPlaylists = async (req, res, next) => {
         path: "playlists",
         match: { isPublic: true },
         select: "title imageUrl owner",
+        populate: {
+          path: "owner",
+          model: "User",
+          select: "fullName",
+        },
       })
       .select("playlists");
 

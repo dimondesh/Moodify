@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SectionGridSkeleton from "@/components/ui/skeletons/PlaylistSkeleton";
 import { useTranslation } from "react-i18next";
 import { getOptimizedImageUrl, getArtistNames } from "@/lib/utils";
-import { Artist } from "@/types";
+import { Artist, User } from "@/types";
 import UniversalPlayButton from "@/components/ui/UniversalPlayButton";
 
 interface ListItem {
@@ -19,7 +19,7 @@ interface ListItem {
   type: "user" | "artist" | "playlist" | "album";
   itemType?: "user" | "artist" | "playlist" | "album";
   artist?: Artist[];
-  owner?: { fullName: string };
+  owner?: User;
   albumType?: string;
 }
 
@@ -99,7 +99,7 @@ const DisplayListPage = () => {
     if (item.type === "album" && item.artist) {
       return `${typeName} • ${getArtistNames(item.artist)}`;
     }
-    if (item.type === "playlist" && item.owner) {
+    if (item.type === "playlist") {
       return t("sidebar.subtitle.byUser", {
         name: item.owner?.fullName || t("common.unknownArtist"),
       });
@@ -113,32 +113,36 @@ const DisplayListPage = () => {
     <ScrollArea className="h-full w-full rounded-md pr-4">
       <div className="p-4 sm:p-6">
         <h2 className="text-2xl sm:text-3xl font-bold mb-6">{title}</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
           {items?.map((item) => (
             <Link
               to={getLink(item)}
               key={item._id}
-              className="p-3 rounded-md bg-[#1a1a1a] hover:bg-[#2a2a2a] transition-all group cursor-pointer hover-scale"
+              className="bg-transparent p-0 rounded-md transition-all group cursor-pointer"
             >
-              <div className="relative mb-3 aspect-square object-cover shadow-lg overflow-hidden rounded-md">
+              <div className="relative mb-2">
                 {item.type === "playlist" || item.type === "album" ? (
-                  <img
-                    src={
-                      getOptimizedImageUrl(item.imageUrl, 300) || "/liked.png"
-                    }
-                    alt={item.title || t("common.itemCover")}
-                    className="absolute inset-0 h-full w-full object-cover rounded-md transition-transform duration-300 group-hover:scale-105"
-                  />
-                ) : (
-                  <Avatar className="absolute inset-0 h-full w-full rounded-full">
-                    <AvatarImage
-                      src={getOptimizedImageUrl(item.imageUrl, 300)}
-                      className="object-cover h-auto w-auto transition-transform duration-300 group-hover:scale-105"
+                  <div className="relative aspect-square shadow-lg overflow-hidden rounded-md">
+                    <img
+                      src={
+                        getOptimizedImageUrl(item.imageUrl, 300) || "/liked.png"
+                      }
+                      alt={item.title || t("common.itemCover")}
+                      className="absolute inset-0 h-full w-full object-cover rounded-md transition-transform duration-300 group-hover:scale-105"
                     />
-                    <AvatarFallback>
-                      {(item.name || item.title)?.[0]}
-                    </AvatarFallback>
-                  </Avatar>
+                  </div>
+                ) : (
+                  <div className="relative aspect-square shadow-lg overflow-hidden rounded-full">
+                    <Avatar className="h-full w-full">
+                      <AvatarImage
+                        src={getOptimizedImageUrl(item.imageUrl, 300)}
+                        className="object-cover rounded-full transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <AvatarFallback>
+                        {(item.name || item.title)?.[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
                 )}
                 <UniversalPlayButton
                   entity={item as any}
@@ -147,12 +151,14 @@ const DisplayListPage = () => {
                   size="sm"
                 />
               </div>
-              <h3 className="font-semibold truncate text-white text-sm">
-                {item.name || item.title}
-              </h3>
-              <p className="text-xs text-gray-400 truncate">
-                {getSubtitle(item)}
-              </p>
+              <div className="px-1">
+                <h3 className="font-semibold text-sm truncate">
+                  {item.name || item.title}
+                </h3>
+                <p className="text-xs text-zinc-400 leading-tight truncate">
+                  {getSubtitle(item)}
+                </p>
+              </div>
             </Link>
           ))}
         </div>
