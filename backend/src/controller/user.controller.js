@@ -609,11 +609,47 @@ export const getFavoriteArtists = async (
       },
       { $unwind: "$artistDetails" },
       {
+        $lookup: {
+          from: "songs",
+          localField: "artistDetails._id",
+          foreignField: "artist",
+          as: "songs",
+          pipeline: [
+            {
+              $lookup: {
+                from: "artists",
+                localField: "artist",
+                foreignField: "_id",
+                as: "artist",
+                pipeline: [{ $project: { name: 1, imageUrl: 1 } }],
+              },
+            },
+            { $unwind: "$artist" },
+            {
+              $project: {
+                title: 1,
+                artist: 1,
+                albumId: 1,
+                imageUrl: 1,
+                hlsUrl: 1,
+                duration: 1,
+                playCount: 1,
+                genres: 1,
+                moods: 1,
+              },
+            },
+            { $sort: { playCount: -1 } },
+            { $limit: 5 },
+          ],
+        },
+      },
+      {
         $replaceRoot: {
           newRoot: {
             _id: "$artistDetails._id",
             name: "$artistDetails.name",
             imageUrl: "$artistDetails.imageUrl",
+            songs: "$songs",
           },
         },
       },

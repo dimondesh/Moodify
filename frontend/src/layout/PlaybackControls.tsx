@@ -788,18 +788,30 @@ const PlaybackControls = () => {
                       {currentSong.title}
                     </button>
                     <div className="text-xs text-gray-400 truncate">
-                      {currentSong.artist?.map((artist, index) => (
-                        <span key={artist._id}>
-                          <button
-                            onClick={() => handleArtistClick(artist._id)}
-                            className="hover:text-[#8b5cf6] focus:outline-none focus:text-[#8b5cf6]"
-                          >
-                            {artist.name}
-                          </button>
-                          {index < (currentSong.artist?.length || 0) - 1 &&
-                            ", "}
-                        </span>
-                      ))}
+                      {Array.isArray(currentSong.artist)
+                        ? currentSong.artist.map((artist, index) => (
+                            <span key={artist._id}>
+                              <button
+                                onClick={() => handleArtistClick(artist._id)}
+                                className="hover:text-[#8b5cf6] focus:outline-none focus:text-[#8b5cf6]"
+                              >
+                                {artist.name}
+                              </button>
+                              {index < currentSong.artist.length - 1 && ", "}
+                            </span>
+                          ))
+                        : currentSong.artist && (
+                            <span>
+                              <button
+                                onClick={() =>
+                                  handleArtistClick(currentSong.artist._id)
+                                }
+                                className="hover:text-[#8b5cf6] focus:outline-none focus:text-[#8b5cf6]"
+                              >
+                                {currentSong.artist.name}
+                              </button>
+                            </span>
+                          )}
                     </div>
                   </div>
                   <AddToPlaylistControl song={currentSong} disabled={!user} />

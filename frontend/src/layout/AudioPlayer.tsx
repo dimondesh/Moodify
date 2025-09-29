@@ -183,12 +183,29 @@ const AudioPlayer = () => {
         // Подготавливаем контекст воспроизведения
         const playbackContext = currentPlaybackContext;
 
+        // Валидируем контекст воспроизведения
+        const validContextTypes = [
+          "album",
+          "playlist",
+          "generated-playlist",
+          "mix",
+          "artist",
+        ];
+
+        const isValidContext =
+          playbackContext &&
+          playbackContext.type &&
+          validContextTypes.includes(playbackContext.type);
+
+        // Отправляем запрос с контекстом только если он валидный
+        const requestData = isValidContext ? { playbackContext } : {};
+
         axiosInstance
-          .post(`/songs/${currentSong._id}/listen`, { playbackContext })
+          .post(`/songs/${currentSong._id}/listen`, requestData)
           .then(() => {
             console.log(
               `Listen recorded for ${currentSong.title}${
-                playbackContext
+                isValidContext
                   ? ` from ${playbackContext.type}`
                   : " (no context)"
               }${
