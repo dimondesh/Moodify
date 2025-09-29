@@ -126,20 +126,71 @@ const HomePageComponent = () => {
     isHomePageLoading,
   ]);
 
+  // Кэш для цветов, чтобы избежать повторных вычислений
+  const colorCacheRef = useRef<Map<string, string>>(new Map());
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const handleSongHover = useCallback(
     (song: Song) => {
       if (isMobile) return;
-      extractColor(song.imageUrl).then((color) => {
-        changeBackgroundColor(color || "#18181b");
-      });
+
+      // Очищаем предыдущий таймаут
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+
+      // Дебаунсинг - ждем 100мс перед изменением цвета
+      hoverTimeoutRef.current = setTimeout(() => {
+        const imageUrl = song.imageUrl;
+        if (!imageUrl) {
+          changeBackgroundColor("#18181b");
+          return;
+        }
+
+        // Проверяем кэш
+        const cachedColor = colorCacheRef.current.get(imageUrl);
+        if (cachedColor) {
+          changeBackgroundColor(cachedColor);
+          return;
+        }
+
+        // Извлекаем цвет только если его нет в кэше
+        extractColor(imageUrl).then((color) => {
+          const finalColor = color || "#18181b";
+          // Сохраняем в кэш
+          colorCacheRef.current.set(imageUrl, finalColor);
+          // Ограничиваем размер кэша
+          if (colorCacheRef.current.size > 50) {
+            const firstKey = colorCacheRef.current.keys().next().value;
+            if (firstKey) {
+              colorCacheRef.current.delete(firstKey);
+            }
+          }
+          changeBackgroundColor(finalColor);
+        });
+      }, 100);
     },
     [extractColor, changeBackgroundColor, isMobile]
   );
 
   const handleSongLeave = useCallback(() => {
     if (isMobile) return;
+    // Очищаем таймаут при уходе мыши
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
     changeBackgroundColor(defaultColorRef.current);
   }, [changeBackgroundColor, isMobile]);
+
+  // Очистка таймаута при размонтировании
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const getGreeting = () => {
     const hour = new Date().getHours();

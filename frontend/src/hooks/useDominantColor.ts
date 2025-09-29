@@ -7,11 +7,20 @@ import { useOfflineStore } from "@/stores/useOfflineStore";
 
 const fac = new FastAverageColor();
 
+// Глобальный кэш для цветов
+const colorCache = new Map<string, string>();
+const MAX_CACHE_SIZE = 100;
+
 export const useDominantColor = () => {
   const extractColor = useCallback(
     async (imageUrl: string | null | undefined): Promise<string> => {
       if (!imageUrl) {
         return "#18181b";
+      }
+
+      // Проверяем кэш
+      if (colorCache.has(imageUrl)) {
+        return colorCache.get(imageUrl)!;
       }
 
       if (useOfflineStore.getState().isOffline) {
@@ -43,7 +52,20 @@ export const useDominantColor = () => {
             }
           );
           const color = await fac.getColorAsync(imageElement);
-          return color.hex;
+          const hexColor = color.hex;
+
+          // Сохраняем в кэш
+          colorCache.set(imageUrl, hexColor);
+
+          // Ограничиваем размер кэша
+          if (colorCache.size > MAX_CACHE_SIZE) {
+            const firstKey = colorCache.keys().next().value;
+            if (firstKey) {
+              colorCache.delete(firstKey);
+            }
+          }
+
+          return hexColor;
         } finally {
           URL.revokeObjectURL(objectUrl);
         }

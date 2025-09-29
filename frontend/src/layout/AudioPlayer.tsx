@@ -159,7 +159,7 @@ const AudioPlayer = () => {
 
       audioRef.current.playbackRate = currentRate;
     }
-  }, [masterVolume, playbackRate, playbackRateEnabled, currentSong]); // Добавил currentSong
+  }, [masterVolume, playbackRate, playbackRateEnabled]); // Убрал currentSong - не нужен здесь
 
   // Запись прослушивания
   useEffect(() => {
@@ -248,7 +248,16 @@ const AudioPlayer = () => {
     const audio = audioRef.current;
     if (!audio) return;
 
+    let lastUpdateTime = 0;
+    const UPDATE_INTERVAL = 500; // Обновляем не чаще чем раз в 100мс
+
     const handleTimeUpdate = () => {
+      const now = Date.now();
+      if (now - lastUpdateTime < UPDATE_INTERVAL) {
+        return; // Пропускаем обновление если прошло меньше 100мс
+      }
+      lastUpdateTime = now;
+
       setCurrentTime(audio.currentTime, true);
 
       // Fallback: Check if we're very close to the end and the ended event didn't fire

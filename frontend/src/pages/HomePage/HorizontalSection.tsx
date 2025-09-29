@@ -1,6 +1,12 @@
 // frontend/src/pages/HomePage/HorizontalSection.tsx
 
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, {
+  useRef,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { ScrollArea, ScrollBar } from "../../components/ui/scroll-area";
@@ -52,6 +58,57 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
+
+  // Функция для проверки валидности элемента
+  const isValidItem = useCallback((item: DisplayItem): boolean => {
+    if (!item || !item._id || !item.itemType) return false;
+
+    switch (item.itemType) {
+      case "song":
+      case "album":
+      case "playlist":
+        return !!(item as Song | Album | Playlist).title;
+      case "artist":
+        return (
+          !!(item as Artist).name ||
+          !!(item as Artist & { title?: string }).title
+        );
+      case "mix":
+        return (
+          !!(item as Mix).name || !!(item as Mix & { title?: string }).title
+        );
+      case "generated-playlist":
+        return (
+          !!(item as GeneratedPlaylist).nameKey ||
+          !!(item as GeneratedPlaylist & { title?: string }).title
+        );
+      default:
+        return false;
+    }
+  }, []);
+
+  // Мемоизируем фильтрацию и обработку элементов
+  const validItems = useMemo(
+    () => items.filter(isValidItem),
+    [items, isValidItem]
+  );
+
+  const itemsToShow = useMemo(
+    () => validItems.slice(0, limit),
+    [validItems, limit]
+  );
+  const canShowAll = useMemo(
+    () => onShowAll && items.length > limit,
+    [onShowAll, items.length, limit]
+  );
+
+  const songsOnly = useMemo(
+    () =>
+      validItems.filter(
+        (item): item is Song & { itemType: "song" } => item.itemType === "song"
+      ),
+    [validItems]
+  );
 
   const checkScrollability = useCallback(() => {
     const element = scrollContainerRef.current?.querySelector<HTMLDivElement>(
@@ -114,47 +171,9 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
     return null;
   }
 
-  // Функция для проверки валидности элемента
-  const isValidItem = (item: DisplayItem): boolean => {
-    if (!item || !item._id || !item.itemType) return false;
-
-    switch (item.itemType) {
-      case "song":
-      case "album":
-      case "playlist":
-        return !!(item as Song | Album | Playlist).title;
-      case "artist":
-        return (
-          !!(item as Artist).name ||
-          !!(item as Artist & { title?: string }).title
-        );
-      case "mix":
-        return (
-          !!(item as Mix).name || !!(item as Mix & { title?: string }).title
-        );
-      case "generated-playlist":
-        return (
-          !!(item as GeneratedPlaylist).nameKey ||
-          !!(item as GeneratedPlaylist & { title?: string }).title
-        );
-      default:
-        return false;
-    }
-  };
-
-  // Фильтруем элементы с валидными данными
-  const validItems = items.filter(isValidItem);
-
   if (validItems.length === 0) {
     return null;
   }
-
-  const itemsToShow = validItems.slice(0, limit);
-  const canShowAll = onShowAll && items.length > limit;
-
-  const songsOnly = validItems.filter(
-    (item): item is Song & { itemType: "song" } => item.itemType === "song"
-  );
 
   const handleItemClick = (item: DisplayItem) => {
     switch (item.itemType) {
