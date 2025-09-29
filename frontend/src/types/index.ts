@@ -131,6 +131,7 @@ export interface User {
   followingUsersCount?: number;
   followingArtistsCount?: number;
   publicPlaylistsCount?: number;
+  showRecentlyListenedArtists?: boolean;
 }
 
 export interface SearchState {

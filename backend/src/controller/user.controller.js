@@ -746,3 +746,153 @@ export const getPlaylistRecommendations = async (
     next(error);
   }
 };
+
+export const getRecentlyListenedArtists = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const currentUserId = req.user?.id;
+
+    // Проверяем, что пользователь существует и настройки приватности
+    const user = await User.findById(userId).select(
+      "showRecentlyListenedArtists"
+    );
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Приводим currentUserId к строке для корректного сравнения
+    const currentUserIdString = currentUserId.toString();
+
+    // Если это не профиль текущего пользователя, проверяем настройки приватности
+    if (
+      currentUserIdString !== userId &&
+      user.showRecentlyListenedArtists === false
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Recently listened artists are private" });
+    }
+
+    // Получаем недавно прослушанных артистов за последние 30 дней
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const recentlyListenedArtists = await ListenHistory.aggregate([
+      {
+        $match: {
+          user: new mongoose.Types.ObjectId(userId),
+          listenedAt: { $gte: thirtyDaysAgo },
+        },
+      },
+      { $sort: { listenedAt: -1 } },
+      { $limit: 100 },
+      {
+        $lookup: {
+          from: "songs",
+          localField: "song",
+          foreignField: "_id",
+          as: "songDetails",
+        },
+      },
+      { $unwind: "$songDetails" },
+      { $unwind: "$songDetails.artist" },
+      {
+        $group: {
+          _id: "$songDetails.artist",
+          listenCount: { $sum: 1 },
+          lastListened: { $max: "$listenedAt" },
+        },
+      },
+      { $sort: { lastListened: -1 } },
+      { $limit: 12 },
+      {
+        $lookup: {
+          from: "artists",
+          localField: "_id",
+          foreignField: "_id",
+          as: "artistDetails",
+        },
+      },
+      { $unwind: "$artistDetails" },
+      {
+        $lookup: {
+          from: "songs",
+          localField: "artistDetails._id",
+          foreignField: "artist",
+          as: "songs",
+          pipeline: [
+            {
+              $lookup: {
+                from: "artists",
+                localField: "artist",
+                foreignField: "_id",
+                as: "artist",
+                pipeline: [{ $project: { name: 1, imageUrl: 1 } }],
+              },
+            },
+            { $unwind: "$artist" },
+            {
+              $project: {
+                title: 1,
+                artist: 1,
+                albumId: 1,
+                imageUrl: 1,
+                hlsUrl: 1,
+                duration: 1,
+                playCount: 1,
+                genres: 1,
+                moods: 1,
+                lyrics: 1,
+              },
+            },
+            { $sort: { playCount: -1 } },
+            { $limit: 5 },
+          ],
+        },
+      },
+      {
+        $replaceRoot: {
+          newRoot: {
+            _id: "$artistDetails._id",
+            name: "$artistDetails.name",
+            imageUrl: "$artistDetails.imageUrl",
+            listenCount: "$listenCount",
+            lastListened: "$lastListened",
+            songs: "$songs",
+          },
+        },
+      },
+    ]);
+
+    res.status(200).json({ artists: recentlyListenedArtists });
+  } catch (error) {
+    console.error("Error in getRecentlyListenedArtists:", error);
+    next(error);
+  }
+};
+
+export const updateRecentlyListenedArtistsPrivacy = async (req, res, next) => {
+  try {
+    const { showRecentlyListenedArtists } = req.body;
+    const userId = req.user.id;
+
+    if (typeof showRecentlyListenedArtists !== "boolean") {
+      return res
+        .status(400)
+        .json({ message: "Invalid showRecentlyListenedArtists value" });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { showRecentlyListenedArtists },
+      { new: true }
+    ).select("showRecentlyListenedArtists");
+
+    res.status(200).json({
+      message: "Recently listened artists privacy updated",
+      showRecentlyListenedArtists: updatedUser.showRecentlyListenedArtists,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

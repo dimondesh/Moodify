@@ -39,6 +39,10 @@ const userSchema = new mongoose.Schema(
         ref: "Artist",
       },
     ],
+    showRecentlyListenedArtists: {
+      type: Boolean,
+      default: true,
+    },
   },
   { timestamps: true }
 );

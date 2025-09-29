@@ -599,7 +599,9 @@
     "privacy": {
       "title": "Приватність",
       "anonymousMode": "Анонімний режим",
-      "anonymousModeDesc": "Коли увімкнено, ваша історія прослуховувань не зберігатиметься, а ваша активність не буде видна друзям."
+      "anonymousModeDesc": "Коли увімкнено, ваша історія прослуховувань не зберігатиметься, а ваша активність не буде видна друзям.",
+      "showRecentlyListenedArtists": "Показувати нещодавно прослушаних виконавців",
+      "showRecentlyListenedArtistsDesc": "Дозволити іншим користувачам бачити розділ з нещодавно прослушаними виконавцями у вашому профілі."
     },
     "audioTitle": "Налаштування аудіо",
     "equalizer": "Еквалайзер",
@@ -643,6 +645,8 @@
     "anonymousEnabled": "Анонімний режим увімкнено",
     "anonymousDisabled": "Анонімний режим вимкнено",
     "privacyUpdateFailed": "Не вдалося оновити налаштування приватності",
+    "recentlyListenedArtistsEnabled": "Нещодавно прослушані виконавці тепер видимі іншим користувачам",
+    "recentlyListenedArtistsDisabled": "Нещодавно прослушані виконавці приховані від інших користувачів",
     "syncingLibrary": "Синхронізація медіатеки...",
     "updatingItem": "Оновлення \"{{itemTitle}}\"...",
     "syncSuccess": "Медіатеку успішно синхронізовано!",
@@ -963,7 +967,14 @@
       "followingSection": "Підписки",
       "playlistsSection": "Публічні плейлисти",
       "showAll": "Показати всі",
-      "by": "від"
+      "by": "від",
+      "recentlyListenedArtists": "Нещодавно прослухані виконавці",
+      "recentlyListenedArtistsPrivate": "Цей розділ прихований користувачем",
+      "recentlyListenedArtistsError": "Не вдалося завантажити нещодавно прослушаних виконавців",
+      "noRecentlyListenedArtists": "У вас поки немає нещодавно прослушаних виконавців",
+      "noRecentlyListenedArtistsPublic": "У користувача поки немає нещодавно прослушаних виконавців",
+      "visibleOnlyToYou": "Видимі тільки тобі",
+      "artist": "Виконавець"
     },
     "editProfileDialog": {
       "title": "Редагувати профіль",

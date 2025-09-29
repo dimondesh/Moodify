@@ -15,6 +15,7 @@ interface AuthUser {
   isAdmin?: boolean;
   language?: string;
   isAnonymous?: boolean;
+  showRecentlyListenedArtists?: boolean;
 }
 
 interface UpdateProfileData {
@@ -44,6 +45,9 @@ interface AuthStore {
   updateUserProfile: (data: UpdateProfileData) => Promise<void>;
   updateUserLanguage: (language: string) => Promise<void>;
   updateUserPrivacy: (isAnonymous: boolean) => Promise<void>;
+  updateRecentlyListenedArtistsPrivacy: (
+    showRecentlyListenedArtists: boolean
+  ) => Promise<void>;
 }
 
 const getAuthHeaders = async () => {
@@ -159,6 +163,30 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
+      updateRecentlyListenedArtistsPrivacy: async (
+        showRecentlyListenedArtists: boolean
+      ) => {
+        set({ isLoading: true });
+        try {
+          await axiosInstance.put("/users/recently-listened-artists-privacy", {
+            showRecentlyListenedArtists,
+          });
+          set((state) => ({
+            user: state.user
+              ? { ...state.user, showRecentlyListenedArtists }
+              : null,
+            isLoading: false,
+          }));
+        } catch (error) {
+          console.error(
+            "Failed to update recently listened artists privacy:",
+            error
+          );
+          set({ isLoading: false });
+          throw error;
+        }
+      },
+
       syncUser: async (userData: FirebaseUserDataForSync) => {
         set({ isLoading: true, error: null });
         try {
@@ -197,6 +225,8 @@ export const useAuthStore = create<AuthStore>()(
             imageUrl: syncedUserFromBackend.imageUrl || null,
             language: syncedUserFromBackend.language,
             isAnonymous: syncedUserFromBackend.isAnonymous,
+            showRecentlyListenedArtists:
+              syncedUserFromBackend.showRecentlyListenedArtists,
             isAdmin: syncedUserFromBackend.isAdmin,
           };
 

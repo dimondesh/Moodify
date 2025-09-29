@@ -599,7 +599,9 @@
     "privacy": {
       "title": "Приватность",
       "anonymousMode": "Анонимный режим",
-      "anonymousModeDesc": "Когда включено, ваша история прослушиваний не будет сохраняться, а ваша активность не будет видна друзьям."
+      "anonymousModeDesc": "Когда включено, ваша история прослушиваний не будет сохраняться, а ваша активность не будет видна друзьям.",
+      "showRecentlyListenedArtists": "Показывать недавно прослушанных исполнителей",
+      "showRecentlyListenedArtistsDesc": "Разрешить другим пользователям видеть секцию с недавно прослушанными исполнителями на вашем профиле."
     },
     "audioTitle": "Настройки аудио",
     "equalizer": "Эквалайзер",
@@ -642,6 +644,8 @@
   "toasts": {
     "anonymousEnabled": "Анонимный режим включен",
     "anonymousDisabled": "Анонимный режим выключен",
+    "recentlyListenedArtistsEnabled": "Недавно прослушанные исполнители теперь видны другим пользователям",
+    "recentlyListenedArtistsDisabled": "Недавно прослушанные исполнители скрыты от других пользователей",
     "privacyUpdateFailed": "Не удалось обновить настройки приватности",
     "syncingLibrary": "Синхронизация медиатеки...",
     "updatingItem": "Обновление \"{{itemTitle}}\"...",
@@ -968,7 +972,14 @@
       "followingSection": "Подписки",
       "playlistsSection": "Публичные плейлисты",
       "showAll": "Показать все",
-      "by": "от"
+      "by": "от",
+      "recentlyListenedArtists": "Недавно прослушанные исполнители",
+      "recentlyListenedArtistsPrivate": "Эта секция скрыта пользователем",
+      "recentlyListenedArtistsError": "Не удалось загрузить недавно прослушанных исполнителей",
+      "noRecentlyListenedArtists": "У вас пока нет недавно прослушанных исполнителей",
+      "noRecentlyListenedArtistsPublic": "У пользователя пока нет недавно прослушанных исполнителей",
+        "visibleOnlyToYou": "Видны только тебе",
+      "artist": "Исполнитель"
     },
     "editProfileDialog": {
       "title": "Редактировать профиль",

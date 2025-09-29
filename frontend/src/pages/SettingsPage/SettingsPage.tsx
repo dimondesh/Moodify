@@ -61,8 +61,14 @@ const SettingsPage: React.FC = () => {
   const { isIosDevice } = useUIStore(); // <-- Получаем флаг iOS
 
   const { t, i18n } = useTranslation();
-  const { user, updateUserLanguage, updateUserPrivacy } = useAuthStore();
+  const {
+    user,
+    updateUserLanguage,
+    updateUserPrivacy,
+    updateRecentlyListenedArtistsPrivacy,
+  } = useAuthStore();
   const isAnonymous = user?.isAnonymous ?? false;
+  const showRecentlyListenedArtists = user?.showRecentlyListenedArtists ?? true;
 
   const frequencies = defaultFrequencies;
 
@@ -84,6 +90,19 @@ const SettingsPage: React.FC = () => {
       await updateUserPrivacy(checked);
       toast.success(
         checked ? t("toasts.anonymousEnabled") : t("toasts.anonymousDisabled")
+      );
+    } catch {
+      toast.error(t("toasts.privacyUpdateFailed"));
+    }
+  };
+
+  const handleRecentlyListenedArtistsToggle = async (checked: boolean) => {
+    try {
+      await updateRecentlyListenedArtistsPrivacy(checked);
+      toast.success(
+        checked
+          ? t("toasts.recentlyListenedArtistsEnabled")
+          : t("toasts.recentlyListenedArtistsDisabled")
       );
     } catch {
       toast.error(t("toasts.privacyUpdateFailed"));
@@ -231,6 +250,25 @@ const SettingsPage: React.FC = () => {
                     className="data-[state=checked]:bg-violet-600"
                   />
                 </div>
+              </div>
+              <div className="border-b border-zinc-700 pb-8">
+                <div className="flex items-center justify-between">
+                  <Label
+                    htmlFor="recently-listened-artists-toggle"
+                    className="text-xl font-semibold"
+                  >
+                    {t("settings.privacy.showRecentlyListenedArtists")}
+                  </Label>
+                  <Switch
+                    id="recently-listened-artists-toggle"
+                    checked={showRecentlyListenedArtists}
+                    onCheckedChange={handleRecentlyListenedArtistsToggle}
+                    className="data-[state=checked]:bg-violet-600"
+                  />
+                </div>
+                <p className="text-gray-400 text-sm mt-2">
+                  {t("settings.privacy.showRecentlyListenedArtistsDesc")}
+                </p>
               </div>
             </Card>
             <h1 className="text-3xl font-bold text-white mb-6">

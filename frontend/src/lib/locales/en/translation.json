@@ -600,7 +600,9 @@
     "privacy": {
       "title": "Privacy",
       "anonymousMode": "Anonymous Mode",
-      "anonymousModeDesc": "When enabled, your listening history won't be saved and your activity won't be visible to friends."
+      "anonymousModeDesc": "When enabled, your listening history won't be saved and your activity won't be visible to friends.",
+      "showRecentlyListenedArtists": "Show Recently Listened Artists",
+      "showRecentlyListenedArtistsDesc": "Allow other users to see the recently listened artists section on your profile."
     },
     "audioTitle": "Audio Settings",
     "equalizer": "Equalizer",
@@ -643,6 +645,8 @@
     "anonymousEnabled": "Anonymous mode enabled",
     "anonymousDisabled": "Anonymous mode disabled",
     "privacyUpdateFailed": "Failed to update privacy settings",
+    "recentlyListenedArtistsEnabled": "Recently listened artists are now visible to other users",
+    "recentlyListenedArtistsDisabled": "Recently listened artists are hidden from other users",
     "syncingLibrary": "Syncing your library...",
     "updatingItem": "Updating \"{{itemTitle}}\"...",
     "syncSuccess": "Library synced successfully!",
@@ -972,7 +976,14 @@
       "followingSection": "Following",
       "playlistsSection": "Public Playlists",
       "showAll": "Show all",
-      "by": "by"
+      "by": "by",
+      "recentlyListenedArtists": "Recently Listened Artists",
+      "recentlyListenedArtistsPrivate": "This section is hidden by the user",
+      "recentlyListenedArtistsError": "Failed to load recently listened artists",
+      "noRecentlyListenedArtists": "You don't have any recently listened artists yet",
+      "noRecentlyListenedArtistsPublic": "User doesn't have any recently listened artists yet",
+      "visibleOnlyToYou": "Visible only to you",
+      "artist": "Artist"
     },
     "editProfileDialog": {
       "title": "Edit Profile",

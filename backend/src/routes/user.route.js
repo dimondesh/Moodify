@@ -21,6 +21,8 @@ import {
   getFavoriteArtists,
   getNewReleases,
   getPlaylistRecommendations,
+  getRecentlyListenedArtists,
+  updateRecentlyListenedArtistsPrivacy,
 } from "../controller/user.controller.js";
 
 const router = Router();
@@ -51,9 +53,19 @@ router.post("/:userId/follow", protectRoute, followUser);
 router.get("/:userId/followers", protectRoute, getFollowers);
 router.get("/:userId/following", protectRoute, getFollowing);
 router.get("/:userId/playlists", protectRoute, getPublicPlaylists);
+router.get(
+  "/:userId/recently-listened-artists",
+  protectRoute,
+  getRecentlyListenedArtists
+);
 
 router.put("/me", protectRoute, updateUserProfile);
 router.get("/", protectRoute, getAllUsers);
 router.put("/language", protectRoute, updateUserLanguage);
 router.put("/privacy", protectRoute, updateUserPrivacy);
+router.put(
+  "/recently-listened-artists-privacy",
+  protectRoute,
+  updateRecentlyListenedArtistsPrivacy
+);
 export default router;

@@ -21,6 +21,7 @@ import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import { useUIStore } from "../../stores/useUIStore";
 import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
+import RecentlyListenedArtists from "../../components/RecentlyListenedArtists";
 
 interface ListItem {
   _id: string;
@@ -296,6 +297,17 @@ const ProfilePage = () => {
               </div>
             )}
 
+            {/* Показываем секцию только если это профиль владельца или секция не скрыта */}
+            {userId && (
+              <RecentlyListenedArtists
+                userId={userId}
+                isMyProfile={isMyProfile}
+                showRecentlyListenedArtists={
+                  profileData?.showRecentlyListenedArtists
+                }
+              />
+            )}
+
             <div className="hidden sm:block mt-12 space-y-12">
               <ProfileSection
                 title={t("pages.profile.followersSection")}
@@ -307,6 +319,7 @@ const ProfilePage = () => {
                 items={following}
                 apiEndpoint={`/users/${userId}/following`}
               />
+
               {profileData.playlists && profileData.playlists.length > 0 && (
                 <div className="mt-12">
                   <div className="flex justify-between items-center mb-4">
