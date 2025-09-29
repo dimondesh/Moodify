@@ -22,6 +22,7 @@ import { Helmet } from "react-helmet-async";
 import { useUIStore } from "../../stores/useUIStore";
 import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
 import RecentlyListenedArtists from "../../components/RecentlyListenedArtists";
+import TopTracksThisMonth from "../../components/TopTracksThisMonth";
 
 interface ListItem {
   _id: string;
@@ -306,6 +307,11 @@ const ProfilePage = () => {
                   profileData?.showRecentlyListenedArtists
                 }
               />
+            )}
+
+            {/* Топ треки этого месяца - только для владельца профиля */}
+            {userId && (
+              <TopTracksThisMonth userId={userId} isMyProfile={isMyProfile} />
             )}
 
             <div className="hidden sm:block mt-12 space-y-12">

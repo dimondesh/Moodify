@@ -23,6 +23,8 @@ import {
   getPlaylistRecommendations,
   getRecentlyListenedArtists,
   updateRecentlyListenedArtistsPrivacy,
+  getTopTracksThisMonth,
+  getAllTopTracksThisMonth,
 } from "../controller/user.controller.js";
 
 const router = Router();
@@ -57,6 +59,16 @@ router.get(
   "/:userId/recently-listened-artists",
   protectRoute,
   getRecentlyListenedArtists
+);
+router.get(
+  "/:userId/top-tracks-this-month",
+  protectRoute,
+  getTopTracksThisMonth
+);
+router.get(
+  "/:userId/all-top-tracks-this-month",
+  protectRoute,
+  getAllTopTracksThisMonth
 );
 
 router.put("/me", protectRoute, updateUserProfile);

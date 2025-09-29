@@ -896,3 +896,191 @@ export const updateRecentlyListenedArtistsPrivacy = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getTopTracksThisMonth = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const currentUserId = req.user?.id;
+
+    // Проверяем, что пользователь запрашивает свои собственные данные
+    if (currentUserId.toString() !== userId) {
+      return res.status(403).json({
+        message: "Access denied. You can only view your own top tracks.",
+      });
+    }
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const topTracks = await ListenHistory.aggregate([
+      {
+        $match: {
+          user: new mongoose.Types.ObjectId(userId),
+          listenedAt: { $gte: thirtyDaysAgo },
+        },
+      },
+      {
+        $group: {
+          _id: "$song",
+          listenCount: { $sum: 1 },
+          lastListened: { $max: "$listenedAt" },
+        },
+      },
+      { $sort: { listenCount: -1, lastListened: -1 } },
+      { $limit: 4 },
+      {
+        $lookup: {
+          from: "songs",
+          localField: "_id",
+          foreignField: "_id",
+          as: "songDetails",
+        },
+      },
+      { $unwind: "$songDetails" },
+      {
+        $lookup: {
+          from: "artists",
+          localField: "songDetails.artist",
+          foreignField: "_id",
+          as: "artist",
+        },
+      },
+      { $unwind: "$artist" },
+      {
+        $lookup: {
+          from: "albums",
+          localField: "songDetails.albumId",
+          foreignField: "_id",
+          as: "album",
+        },
+      },
+      { $unwind: { path: "$album", preserveNullAndEmptyArrays: true } },
+      {
+        $replaceRoot: {
+          newRoot: {
+            _id: "$songDetails._id",
+            title: "$songDetails.title",
+            imageUrl: "$songDetails.imageUrl",
+            hlsUrl: "$songDetails.hlsUrl",
+            duration: "$songDetails.duration",
+            playCount: "$songDetails.playCount",
+            genres: "$songDetails.genres",
+            moods: "$songDetails.moods",
+            lyrics: "$songDetails.lyrics",
+            listenCount: "$listenCount",
+            lastListened: "$lastListened",
+            artist: {
+              _id: "$artist._id",
+              name: "$artist.name",
+              imageUrl: "$artist.imageUrl",
+            },
+            album: {
+              _id: "$album._id",
+              title: "$album.title",
+              imageUrl: "$album.imageUrl",
+            },
+          },
+        },
+      },
+    ]);
+
+    res.status(200).json({ tracks: topTracks });
+  } catch (error) {
+    console.error("Error in getTopTracksThisMonth:", error);
+    next(error);
+  }
+};
+
+export const getAllTopTracksThisMonth = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const currentUserId = req.user?.id;
+
+    // Проверяем, что пользователь запрашивает свои собственные данные
+    if (currentUserId.toString() !== userId) {
+      return res.status(403).json({
+        message: "Access denied. You can only view your own top tracks.",
+      });
+    }
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const topTracks = await ListenHistory.aggregate([
+      {
+        $match: {
+          user: new mongoose.Types.ObjectId(userId),
+          listenedAt: { $gte: thirtyDaysAgo },
+        },
+      },
+      {
+        $group: {
+          _id: "$song",
+          listenCount: { $sum: 1 },
+          lastListened: { $max: "$listenedAt" },
+        },
+      },
+      { $sort: { listenCount: -1, lastListened: -1 } },
+      {
+        $lookup: {
+          from: "songs",
+          localField: "_id",
+          foreignField: "_id",
+          as: "songDetails",
+        },
+      },
+      { $unwind: "$songDetails" },
+      {
+        $lookup: {
+          from: "artists",
+          localField: "songDetails.artist",
+          foreignField: "_id",
+          as: "artist",
+        },
+      },
+      { $unwind: "$artist" },
+      {
+        $lookup: {
+          from: "albums",
+          localField: "songDetails.albumId",
+          foreignField: "_id",
+          as: "album",
+        },
+      },
+      { $unwind: { path: "$album", preserveNullAndEmptyArrays: true } },
+      { $limit: 30 },
+      {
+        $replaceRoot: {
+          newRoot: {
+            _id: "$songDetails._id",
+            title: "$songDetails.title",
+            imageUrl: "$songDetails.imageUrl",
+            hlsUrl: "$songDetails.hlsUrl",
+            duration: "$songDetails.duration",
+            playCount: "$songDetails.playCount",
+            genres: "$songDetails.genres",
+            moods: "$songDetails.moods",
+            lyrics: "$songDetails.lyrics",
+            listenCount: "$listenCount",
+            lastListened: "$lastListened",
+            artist: {
+              _id: "$artist._id",
+              name: "$artist.name",
+              imageUrl: "$artist.imageUrl",
+            },
+            album: {
+              _id: "$album._id",
+              title: "$album.title",
+              imageUrl: "$album.imageUrl",
+            },
+          },
+        },
+      },
+    ]);
+
+    res.status(200).json({ tracks: topTracks });
+  } catch (error) {
+    console.error("Error in getAllTopTracksThisMonth:", error);
+    next(error);
+  }
+};

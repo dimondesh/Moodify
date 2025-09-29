@@ -983,7 +983,13 @@
       "noRecentlyListenedArtists": "You don't have any recently listened artists yet",
       "noRecentlyListenedArtistsPublic": "User doesn't have any recently listened artists yet",
       "visibleOnlyToYou": "Visible only to you",
-      "artist": "Artist"
+      "artist": "Artist",
+      "topTracksThisMonth": "Top Tracks This Month",
+      "topTracksError": "Failed to load top tracks",
+      "noTopTracksThisMonth": "You don't have any listened tracks this month yet",
+      "listen": "listen",
+      "listens": "listens",
+      "listensMany": "listens"
     },
     "editProfileDialog": {
       "title": "Edit Profile",

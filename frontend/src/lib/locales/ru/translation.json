@@ -978,8 +978,14 @@
       "recentlyListenedArtistsError": "Не удалось загрузить недавно прослушанных исполнителей",
       "noRecentlyListenedArtists": "У вас пока нет недавно прослушанных исполнителей",
       "noRecentlyListenedArtistsPublic": "У пользователя пока нет недавно прослушанных исполнителей",
-        "visibleOnlyToYou": "Видны только тебе",
-      "artist": "Исполнитель"
+      "visibleOnlyToYou": "Видны только тебе",
+      "artist": "Исполнитель",
+      "topTracksThisMonth": "Топ треки этого месяца",
+      "topTracksError": "Не удалось загрузить топ треки",
+      "noTopTracksThisMonth": "У вас пока нет прослушанных треков за этот месяц",
+      "listen": "прослушивание",
+      "listens": "прослушивания",
+      "listensMany": "прослушиваний"
     },
     "editProfileDialog": {
       "title": "Редактировать профиль",

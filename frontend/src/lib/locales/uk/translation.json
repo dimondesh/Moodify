@@ -974,7 +974,13 @@
       "noRecentlyListenedArtists": "У вас поки немає нещодавно прослушаних виконавців",
       "noRecentlyListenedArtistsPublic": "У користувача поки немає нещодавно прослушаних виконавців",
       "visibleOnlyToYou": "Видимі тільки тобі",
-      "artist": "Виконавець"
+      "artist": "Виконавець",
+      "topTracksThisMonth": "Топ треки цього місяця",
+      "topTracksError": "Не вдалося завантажити топ треки",
+      "noTopTracksThisMonth": "У вас поки немає прослушаних треків за цей місяць",
+      "listen": "прослуховування",
+      "listens": "прослуховування",
+      "listensMany": "прослуховувань"
     },
     "editProfileDialog": {
       "title": "Редагувати профіль",

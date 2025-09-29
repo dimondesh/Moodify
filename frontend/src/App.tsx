@@ -22,6 +22,7 @@ import DisplayListPage from "./pages/DisplayListPage/DisplayListPage";
 import MixDetailsPage from "./pages/MixDetailsPage/MixDetailsPage";
 import AllMixesPage from "./pages/AllMixesPage/AllMixesPage";
 import GeneratedPlaylistPage from "./pages/GeneratedPlaylistPage/GeneratedPlaylistPage";
+import TopTracksPage from "./pages/TopTracksPage/TopTracksPage";
 
 import MainLayout from "./layout/MainLayout";
 import OfflinePage from "./pages/OfflinePage/OfflinePage";
@@ -188,6 +189,10 @@ function App() {
             <Route
               path="/generated-playlists/:id"
               element={<GeneratedPlaylistPage />}
+            />
+            <Route
+              path="/users/:userId/top-tracks"
+              element={<TopTracksPage />}
             />
           </Route>
         </Routes>

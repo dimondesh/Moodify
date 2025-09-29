@@ -53,21 +53,7 @@ const RecentlyListenedArtists: React.FC<RecentlyListenedArtistsProps> = ({
   }, [userId]);
 
   if (isLoading) {
-    return (
-      <div className="mt-12">
-        <h2 className="text-2xl font-bold mb-4">
-          {t("pages.profile.recentlyListenedArtists")}
-        </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-          {[...Array(6)].map((_, index) => (
-            <div
-              key={index}
-              className="bg-zinc-800 rounded-md aspect-square animate-pulse"
-            />
-          ))}
-        </div>
-      </div>
-    );
+    return null;
   }
 
   if (error) {
@@ -76,47 +62,16 @@ const RecentlyListenedArtists: React.FC<RecentlyListenedArtistsProps> = ({
       return null;
     }
 
-    return (
-      <div className="mt-12">
-        <h2 className="text-2xl font-bold mb-4">
-          {t("pages.profile.recentlyListenedArtists")}
-        </h2>
-        {error === "recentlyListenedArtists.private" && isMyProfile && (
-          <p className="text-xs text-gray-400 mb-4">
-            {t("pages.profile.visibleOnlyToYou")}
-          </p>
-        )}
-        <div className="text-center py-8">
-          <p className="text-gray-400">
-            {error === "recentlyListenedArtists.private"
-              ? t("pages.profile.recentlyListenedArtistsPrivate")
-              : t("pages.profile.recentlyListenedArtistsError")}
-          </p>
-        </div>
-      </div>
-    );
+    // Если это профиль владельца, но секция скрыта - не показываем ничего
+    if (error === "recentlyListenedArtists.private" && isMyProfile) {
+      return null;
+    }
+
+    return null;
   }
 
   if (artists.length === 0) {
-    return (
-      <div className="mt-12">
-        <h2 className="text-2xl font-bold mb-4">
-          {t("pages.profile.recentlyListenedArtists")}
-        </h2>
-        {isMyProfile && showRecentlyListenedArtists === false && (
-          <p className="text-xs text-gray-400 mb-4">
-            {t("pages.profile.visibleOnlyToYou")}
-          </p>
-        )}
-        <div className="text-center py-8">
-          <p className="text-gray-400">
-            {isMyProfile
-              ? t("pages.profile.noRecentlyListenedArtists")
-              : t("pages.profile.noRecentlyListenedArtistsPublic")}
-          </p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (
