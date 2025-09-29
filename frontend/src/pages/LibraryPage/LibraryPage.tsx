@@ -1,7 +1,7 @@
 // frontend/src/pages/LibraryPage/LibraryPage.tsx
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { ScrollArea } from "../../components/ui/scroll-area";
 import { useLibraryStore } from "../../stores/useLibraryStore";
@@ -73,6 +73,7 @@ const LibraryPage = () => {
   const isOffline = useOfflineStore((s) => s.isOffline);
 
   const [downloadedItems, setDownloadedItems] = useState<LibraryItem[]>([]);
+  const librarySearchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOffline) {
@@ -139,6 +140,17 @@ const LibraryPage = () => {
       loadDownloaded();
     }
   }, [entityTypeFilter, fetchAllDownloaded, t]);
+
+  // Автофокус на строку поиска когда она открывается
+  useEffect(() => {
+    if (isLibraryPageSearchOpen && librarySearchInputRef.current) {
+      // Небольшая задержка для корректного отображения элемента
+      const timer = setTimeout(() => {
+        librarySearchInputRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isLibraryPageSearchOpen]);
 
   const getArtistNames = useCallback(
     (artistsInput: (string | Artist)[] | undefined) => {
@@ -405,6 +417,7 @@ const LibraryPage = () => {
                       >
                         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
                         <input
+                          ref={librarySearchInputRef}
                           type="text"
                           placeholder={t("sidebar.searchLibrary")}
                           value={librarySearchQuery}
@@ -415,7 +428,6 @@ const LibraryPage = () => {
                           className="w-full bg-[#2a2a2a] rounded-md py-3 pl-12 pr-4 text-base text-white placeholder:text-gray-400 focus:outline-none transition duration-150 ease-in-out"
                           spellCheck={false}
                           autoComplete="off"
-                          autoFocus
                         />
                       </div>
                     </div>
