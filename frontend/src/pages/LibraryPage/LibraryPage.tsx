@@ -371,7 +371,12 @@ const LibraryPage = () => {
                 <div className="flex items-center gap-4">
                   {/* Search button and input container */}
                   <div className="flex-1">
-                    <div className="relative">
+                    <div
+                      className="relative"
+                      onClick={() =>
+                        setIsLibraryPageSearchOpen(!isLibraryPageSearchOpen)
+                      }
+                    >
                       {/* Search button - always visible and clickable */}
                       <Button
                         variant="ghost"
@@ -380,13 +385,13 @@ const LibraryPage = () => {
                           setIsLibraryPageSearchOpen(!isLibraryPageSearchOpen)
                         }
                         className={cn(
-                          "text-gray-400 hover:text-white hover:bg-[#2a2a2a] h-10 w-10 p-0 transition-all duration-300 ease-in-out z-20",
+                          "text-gray-400 hover:text-white hover:bg-[#2a2a2a] h-12 w-12 p-0 transition-all duration-300 ease-in-out z-20",
                           isLibraryPageSearchOpen
                             ? "opacity-0 pointer-events-none"
                             : "opacity-100"
                         )}
                       >
-                        <Search className="w-5 h-5" />
+                        <Search className="size-5" />
                       </Button>
 
                       {/* Search input - appears in place of button */}
@@ -395,10 +400,10 @@ const LibraryPage = () => {
                           "absolute top-0 left-0 transition-all duration-300 ease-in-out overflow-hidden z-10",
                           isLibraryPageSearchOpen
                             ? "w-full opacity-100"
-                            : "w-10 opacity-0"
+                            : "w-12 opacity-0"
                         )}
                       >
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
                         <input
                           type="text"
                           placeholder={t("sidebar.searchLibrary")}
@@ -425,7 +430,7 @@ const LibraryPage = () => {
                         libraryPageViewMode === "grid" ? "list" : "grid"
                       )
                     }
-                    className="text-gray-400 hover:text-white hover:bg-[#2a2a2a] h-10 w-10 p-0 flex-shrink-0"
+                    className="text-gray-400 hover:text-white hover:bg-[#2a2a2a] h-12 w-12 p-0 flex-shrink-0"
                   >
                     {libraryPageViewMode === "grid" ? (
                       <List className="w-5 h-5" />
