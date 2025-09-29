@@ -270,29 +270,31 @@ const ProfilePage = () => {
               )}
             </div>
 
-            <div className="mt-8 sm:hidden">
-              <h2 className="text-xl font-bold mb-2">
-                {t("pages.profile.playlists")}
-              </h2>
-              <div className="flex flex-col gap-2">
-                {profileData.playlists
-                  ?.slice(0, 5)
-                  .map((playlist: Playlist) => (
-                    <PlaylistRow key={playlist._id} playlist={playlist} />
-                  ))}
-              </div>
-              {profileData.playlists && profileData.playlists.length > 5 && (
-                <div className="text-center mt-4">
-                  <Button
-                    onClick={handleShowAllPlaylists}
-                    variant="outline"
-                    className="rounded-full"
-                  >
-                    {t("pages.profile.showAllPlaylists")}
-                  </Button>
+            {profileData.playlists && profileData.playlists.length > 0 && (
+              <div className="mt-8 sm:hidden">
+                <h2 className="text-xl font-bold mb-2">
+                  {t("pages.profile.playlists")}
+                </h2>
+                <div className="flex flex-col gap-2">
+                  {profileData.playlists
+                    .slice(0, 5)
+                    .map((playlist: Playlist) => (
+                      <PlaylistRow key={playlist._id} playlist={playlist} />
+                    ))}
                 </div>
-              )}
-            </div>
+                {profileData.playlists.length > 5 && (
+                  <div className="text-center mt-4">
+                    <Button
+                      onClick={handleShowAllPlaylists}
+                      variant="outline"
+                      className="rounded-full"
+                    >
+                      {t("pages.profile.showAllPlaylists")}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="hidden sm:block mt-12 space-y-12">
               <ProfileSection
@@ -305,57 +307,56 @@ const ProfilePage = () => {
                 items={following}
                 apiEndpoint={`/users/${userId}/following`}
               />
-              <div className="mt-12">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-2xl font-bold">
-                    {t("pages.profile.playlistsSection")}
-                  </h2>
-                  {profileData.playlists &&
-                    profileData.playlists.length > 0 && (
-                      <button
-                        onClick={handleShowAllPlaylists}
-                        className="text-sm font-bold text-zinc-400 hover:underline"
-                      >
-                        {t("pages.profile.showAll")}
-                      </button>
-                    )}
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                  {profileData.playlists?.map((playlist: Playlist) => (
-                    <Link
-                      to={`/playlists/${playlist._id}`}
-                      key={playlist._id}
-                      className="bg-transparent p-0 rounded-md transition-all group cursor-pointer"
+              {profileData.playlists && profileData.playlists.length > 0 && (
+                <div className="mt-12">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-2xl font-bold">
+                      {t("pages.profile.playlistsSection")}
+                    </h2>
+                    <button
+                      onClick={handleShowAllPlaylists}
+                      className="text-sm font-bold text-zinc-400 hover:underline"
                     >
-                      <div className="relative mb-2">
-                        <div className="relative aspect-square shadow-lg overflow-hidden rounded-md">
-                          <img
-                            src={playlist.imageUrl || "/liked.png"}
-                            alt={playlist.title}
-                            className="absolute inset-0 h-full w-full object-cover rounded-md transition-transform duration-300 group-hover:scale-105"
+                      {t("pages.profile.showAll")}
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                    {profileData.playlists.map((playlist: Playlist) => (
+                      <Link
+                        to={`/playlists/${playlist._id}`}
+                        key={playlist._id}
+                        className="bg-transparent p-0 rounded-md transition-all group cursor-pointer"
+                      >
+                        <div className="relative mb-2">
+                          <div className="relative aspect-square shadow-lg overflow-hidden rounded-md">
+                            <img
+                              src={playlist.imageUrl || "/liked.png"}
+                              alt={playlist.title}
+                              className="absolute inset-0 h-full w-full object-cover rounded-md transition-transform duration-300 group-hover:scale-105"
+                            />
+                          </div>
+                          <UniversalPlayButton
+                            entity={playlist}
+                            entityType="playlist"
+                            className="absolute bottom-3 right-2"
+                            size="sm"
                           />
                         </div>
-                        <UniversalPlayButton
-                          entity={playlist}
-                          entityType="playlist"
-                          className="absolute bottom-3 right-2"
-                          size="sm"
-                        />
-                      </div>
-                      <div className="px-1">
-                        <h3 className="font-semibold text-sm truncate">
-                          {playlist.title}
-                        </h3>
-                        {playlist.owner && (
-                          <p className="text-xs text-zinc-400 leading-tight truncate">
-                            {t("pages.profile.by")} {playlist.owner.fullName}
-                          </p>
-                        )}
-                      </div>
-                    </Link>
-                  ))}
+                        <div className="px-1">
+                          <h3 className="font-semibold text-sm truncate">
+                            {playlist.title}
+                          </h3>
+                          {playlist.owner && (
+                            <p className="text-xs text-zinc-400 leading-tight truncate">
+                              {t("pages.profile.by")} {playlist.owner.fullName}
+                            </p>
+                          )}
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

@@ -71,28 +71,36 @@ const MixGrid = ({ title, mixes, isLoading }: MixGridProps) => {
           </Button>
         )}
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {mixesToShow.map((mix) => (
           <div
             key={mix._id}
             onClick={() => handleNavigateToMix(mix)}
-            className="group relative cursor-pointer overflow-hidden rounded-md bg-[#1a1a1a] hover:bg-[#2a2a2a] transition-all hover-scale"
+            className="bg-transparent p-0 rounded-md transition-all group cursor-pointer"
           >
-            <img
-              src={mix.imageUrl || "https://moodify.b-cdn.net/artist.jpeg"}
-              alt={t(mix.name)}
-              className="w-full h-full object-cover aspect-square transition-transform duration-300 group-hover:scale-105"
-            />
-            {/* Затемнение снизу с названием в левой нижней части */}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 pt-8 z-10">
-              <h3 className="text-white text-lg font-bold drop-shadow-lg break-words">
-                {t(mix.name)}
-              </h3>
+            <div className="relative mb-2">
+              <div className="relative aspect-square shadow-lg overflow-hidden rounded-md">
+                <img
+                  src={mix.imageUrl || "https://moodify.b-cdn.net/artist.jpeg"}
+                  alt={t(mix.name)}
+                  className="absolute inset-0 h-full w-full object-cover rounded-md transition-transform duration-300 group-hover:scale-105"
+                />
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-2 pt-6 z-10">
+                  <h3 className="text-white text-sm font-bold drop-shadow-lg break-words">
+                    {t(mix.name)}
+                  </h3>
+                </div>
+              </div>
+              <UniversalPlayButton
+                entity={mix}
+                entityType="mix"
+                className="absolute bottom-3 right-2 z-50"
+                size="sm"
+              />
             </div>
-            {/* Информация под обложкой */}
-            <div className="p-3">
+            <div className="px-1">
               <p
-                className="text-xs text-gray-400 leading-tight"
+                className="text-xs text-zinc-400 leading-tight"
                 style={{
                   display: "-webkit-box",
                   WebkitLineClamp: 2,
