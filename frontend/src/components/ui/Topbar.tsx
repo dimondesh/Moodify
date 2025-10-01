@@ -9,6 +9,9 @@ import {
   Settings,
   UserIcon,
   Users,
+  HomeIcon,
+  Compass,
+  MessageCircle,
 } from "lucide-react";
 import { useAuthStore } from "../../stores/useAuthStore";
 import { cn } from "../../lib/utils";
@@ -38,6 +41,7 @@ import MoodifyLogo from "../MoodifyLogo";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import { useSearchStore } from "../../stores/useSearchStore";
+import { useChatStore } from "../../stores/useChatStore";
 import RecentSearchesList from "@/pages/SearchPage/RecentSearchesList";
 
 const Topbar = () => {
@@ -58,6 +62,11 @@ const Topbar = () => {
 
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const { fetchRecentSearches } = useSearchStore();
+  const { unreadMessages } = useChatStore();
+  const totalUnread = Array.from(unreadMessages.values()).reduce(
+    (acc, count) => acc + count,
+    0
+  );
 
   const [user, setUser] = useState<null | {
     displayName: string | null;
@@ -85,7 +94,7 @@ const Topbar = () => {
         setIsSearchVisible(false);
       }
     }
-  }, [location.pathname]);
+  }, [location.pathname, isSearchVisible]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -185,6 +194,23 @@ const Topbar = () => {
           </div>
         </div>
       </div>
+      {!isSearchVisible && (
+        <div className="hidden md:block mr-2">
+          <Link
+            to="/"
+            className={cn(
+              buttonVariants({
+                variant: "ghost",
+                size: "sm",
+                className:
+                  "text-gray-300 hover:text-white hover:bg-[#2a2a2a] h-8 rounded-full",
+              })
+            )}
+          >
+            <HomeIcon className="w-4 h-4" />
+          </Link>
+        </div>
+      )}
       <div
         className={`relative w-full max-w-lg ${
           isSearchVisible ? "block" : "hidden md:block"
@@ -192,17 +218,24 @@ const Topbar = () => {
       >
         <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
           <PopoverTrigger asChild>
-            <div onClick={handleTriggerClick}>
+            <div onClick={handleTriggerClick} className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
               <input
                 type="text"
                 placeholder={t("topbar.searchPlaceholder")}
                 value={query}
                 onChange={handleChange}
-                className="w-full bg-[#2a2a2a] rounded-full py-2 pl-10 pr-4 text-sm text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#8b5cf6] transition duration-150 ease-in-out cursor-pointer"
+                className="w-full bg-[#2a2a2a] rounded-full py-2 pl-10 pr-12 text-sm text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#8b5cf6] transition duration-150 ease-in-out cursor-pointer"
                 spellCheck={false}
                 autoComplete="off"
               />
+              <Link
+                to="/search"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                title={t("sidebar.search")}
+              >
+                <Compass className="w-4 h-4" />
+              </Link>
             </div>
           </PopoverTrigger>
           <PopoverContent
@@ -270,6 +303,26 @@ const Topbar = () => {
             >
               <Users className="w-4 h-4" />
             </Button>
+          )}
+          {user && (
+            <Link
+              to="/chat"
+              className={cn(
+                buttonVariants({
+                  variant: "ghost",
+                  size: "icon",
+                  className: "hover:bg-[#2a2a2a] h-8 w-8 relative",
+                })
+              )}
+              title={t("sidebar.messages")}
+            >
+              <MessageCircle className="w-4 h-4" />
+              {totalUnread > 0 && (
+                <span className="absolute -top-1 -right-1 bg-[#8b5cf6] text-white text-xs rounded-full h-4 px-1.5 flex items-center justify-center font-semibold min-w-[16px]">
+                  {totalUnread > 99 ? "99+" : totalUnread}
+                </span>
+              )}
+            </Link>
           )}
           {user ? (
             isMobile ? (

@@ -2,19 +2,16 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
-  Heart,
-  HomeIcon,
   Library,
-  MessageCircle,
-  Search,
   Plus,
   LibraryIcon,
   Grid3X3,
   List,
+  Search,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "../lib/utils";
-import { Button, buttonVariants } from "../components/ui/button";
+import { Button } from "../components/ui/button";
 import { ScrollArea } from "../components/ui/scroll-area";
 import PlaylistSkeleton from "../components/ui/skeletons/PlaylistSkeleton";
 import { useMemo, useEffect, useRef, useCallback } from "react";
@@ -37,7 +34,6 @@ import { useMusicStore } from "../stores/useMusicStore";
 import { useTranslation } from "react-i18next";
 import { Download } from "lucide-react";
 import { useOfflineStore } from "../stores/useOfflineStore";
-import { useChatStore } from "../stores/useChatStore";
 import { useUIStore } from "../stores/useUIStore";
 import { getOptimizedImageUrl } from "@/lib/utils";
 import UniversalPlayButton from "../components/ui/UniversalPlayButton";
@@ -52,6 +48,7 @@ const LeftSidebar = () => {
     followedArtists,
     isLoading: isLoadingLibrary,
     generatedPlaylists,
+    likedSongs,
   } = useLibraryStore();
 
   const {
@@ -59,11 +56,6 @@ const LeftSidebar = () => {
     isLoading: isLoadingPlaylists,
     fetchMyPlaylists,
   } = usePlaylistStore();
-  const { unreadMessages } = useChatStore();
-  const totalUnread = Array.from(unreadMessages.values()).reduce(
-    (acc, count) => acc + count,
-    0
-  );
 
   const [user, loadingUser] = useAuthState(auth);
   const { isOffline } = useOfflineStore();
@@ -233,6 +225,20 @@ const LeftSidebar = () => {
       }
     });
 
+    // Add liked songs as a library item
+    if (likedSongs && likedSongs.length > 0) {
+      libraryItemsMap.set("liked-songs", {
+        _id: "liked-songs",
+        type: "liked-songs",
+        title: t("sidebar.likedSongs"),
+        imageUrl: "/liked.png",
+        createdAt: new Date(
+          likedSongs[0]?.addedAt || likedSongs[0]?.likedAt || Date.now()
+        ),
+        songsCount: likedSongs.length,
+      } as LikedSongsItem);
+    }
+
     return Array.from(libraryItemsMap.values()).sort(
       (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
     );
@@ -243,6 +249,7 @@ const LeftSidebar = () => {
     generatedPlaylists,
     savedMixes,
     followedArtists,
+    likedSongs,
     t,
     isOffline,
     isDownloaded,
@@ -257,7 +264,9 @@ const LeftSidebar = () => {
         case "playlists":
           filtered = filtered.filter(
             (item) =>
-              item.type === "playlist" || item.type === "generated-playlist"
+              item.type === "playlist" ||
+              item.type === "generated-playlist" ||
+              item.type === "liked-songs"
           );
           break;
         case "albums":
@@ -298,108 +307,24 @@ const LeftSidebar = () => {
 
   return (
     <div className="h-full flex flex-col bg-[#0f0f0f]">
-      <div className="p-4">
-        <div className="space-y-1">
-          <Link
-            to="/"
-            className={cn(
-              buttonVariants({
-                variant: "ghost",
-                className:
-                  "w-full justify-start text-gray-300 hover:text-white hover:bg-[#2a2a2a] h-8 px-0",
-              })
-            )}
-          >
-            <div className="flex items-center px-2 w-full">
-              <HomeIcon className="mr-3 size-4" />
-              <span className="text-sm font-medium">{t("sidebar.home")}</span>
-            </div>
-          </Link>
-
-          <Link
-            to="/search"
-            className={cn(
-              buttonVariants({
-                variant: "ghost",
-                className:
-                  "w-full justify-start text-gray-300 hover:text-white hover:bg-[#2a2a2a] h-8 px-0",
-              })
-            )}
-          >
-            <div className="flex items-center px-2 w-full">
-              <Search className="mr-3 size-4" />
-              <span className="text-sm font-medium">{t("sidebar.search")}</span>
-            </div>
-          </Link>
-
-          {user && (
-            <Link
-              to="/chat"
-              className={cn(
-                buttonVariants({
-                  variant: "ghost",
-                  className:
-                    "w-full justify-start text-gray-300 hover:text-white hover:bg-[#2a2a2a] h-8 px-0 relative",
-                })
-              )}
-            >
-              <div className="flex items-center px-2 w-full">
-                <MessageCircle className="mr-3 size-4" />
-                <span className="text-sm font-medium">
-                  {t("sidebar.messages")}
-                </span>
-              </div>
-              {totalUnread > 0 && (
-                <span className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#8b5cf6] text-white text-xs rounded-full h-4 px-1.5 flex items-center justify-center font-semibold">
-                  {totalUnread > 99 ? "99+" : totalUnread}
-                </span>
-              )}
-            </Link>
-          )}
-
-          {user && (
-            <Link
-              to="/liked-songs"
-              className={cn(
-                buttonVariants({
-                  variant: "ghost",
-                  className:
-                    "w-full justify-start text-gray-300 hover:text-white hover:bg-[#2a2a2a] h-8 px-0",
-                })
-              )}
-            >
-              <div className="flex items-center px-2 w-full">
-                <Heart className="mr-3 size-4" />
-                <span className="text-sm font-medium">
-                  {t("sidebar.likedSongs")}
-                </span>
-              </div>
-            </Link>
-          )}
+      <div className="p-4 flex justify-between items-center border-b border-[#2a2a2a]">
+        <div className="flex items-center text-gray-300">
+          <Library className="size-4 mr-3" />
+          <span className="text-sm font-semibold">{t("sidebar.library")}</span>
         </div>
+        {user && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hover:bg-[#2a2a2a] h-6 w-6"
+            onClick={openCreatePlaylistDialog}
+            title={t("sidebar.createPlaylist")}
+          >
+            <Plus className="size-4" />
+          </Button>
+        )}
       </div>
-
-      <div className="flex-1 overflow-hidden flex flex-col px-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center text-gray-300 px-2">
-            <Library className="size-4 mr-3" />
-            <span className="text-sm font-semibold">
-              {t("sidebar.library")}
-            </span>
-          </div>
-          {user && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hover:bg-[#2a2a2a] h-6 w-6"
-              onClick={openCreatePlaylistDialog}
-              title={t("sidebar.createPlaylist")}
-            >
-              <Plus className="size-4" />
-            </Button>
-          )}
-        </div>
-
+      <div className="flex-1 overflow-hidden flex flex-col px-4 mt-4">
         {user && (
           <div className="mb-3">
             <EntityTypeFilter

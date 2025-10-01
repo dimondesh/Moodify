@@ -165,6 +165,7 @@ export const toggleSongLikeInLibrary = async (req, res, next) => {
     );
 
     let isLikedStatus;
+    const currentTime = new Date();
 
     if (exists) {
       library.likedSongs = library.likedSongs.filter(
@@ -174,10 +175,16 @@ export const toggleSongLikeInLibrary = async (req, res, next) => {
     } else {
       library.likedSongs.push({
         songId: new mongoose.Types.ObjectId(songId),
-        addedAt: new Date(),
+        addedAt: currentTime,
       });
       isLikedStatus = true;
     }
+
+    // Update addedAt for all remaining liked songs to current time
+    // This ensures the liked songs collection is always sorted by the latest activity
+    library.likedSongs.forEach((song) => {
+      song.addedAt = currentTime;
+    });
 
     await library.save();
 
@@ -669,9 +676,25 @@ export const getLibrarySummary = async (req, res, next) => {
       }));
     };
 
+    // Special handling for liked songs to ensure proper sorting
+    const addAddedAtAndSort = (items, libraryField) => {
+      const lookup = new Map(
+        libraryField.map((i) => [i[Object.keys(i)[0]].toString(), i.addedAt])
+      );
+      return items
+        .map((item) => ({
+          ...item,
+          addedAt: lookup.get(item._id.toString()),
+        }))
+        .sort(
+          (a, b) =>
+            new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime()
+        );
+    };
+
     res.json({
       albums: addAddedAt(albums, library.albums),
-      likedSongs: addAddedAt(likedSongs, library.likedSongs),
+      likedSongs: addAddedAtAndSort(likedSongs, library.likedSongs),
       playlists: addAddedAt(playlists, library.playlists),
       followedArtists: addAddedAt(followedArtists, library.followedArtists),
       savedMixes: addAddedAt(savedMixes, library.savedMixes),

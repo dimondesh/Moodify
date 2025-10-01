@@ -251,7 +251,9 @@ const LibraryPage = () => {
         type: "liked-songs",
         title: t("sidebar.likedSongs"),
         imageUrl: "/liked.png",
-        createdAt: new Date(likedSongs[0]?.likedAt || Date.now()),
+        createdAt: new Date(
+          likedSongs[0]?.addedAt || likedSongs[0]?.likedAt || Date.now()
+        ),
         songsCount: likedSongs.length,
       });
     }

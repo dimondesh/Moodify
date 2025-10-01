@@ -48,6 +48,7 @@ export interface Song {
   updatedAt: string;
   albumTitle?: string;
   likedAt?: string;
+  addedAt?: string;
   lyrics?: string;
 }
 
