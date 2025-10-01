@@ -324,7 +324,7 @@ const LeftSidebar = () => {
           </Button>
         )}
       </div>
-      <div className="flex-1 overflow-hidden flex flex-col px-4 mt-4">
+      <div className="flex-1 overflow-hidden flex flex-col px-1 mt-4">
         {user && (
           <div className="mb-3">
             <EntityTypeFilter
@@ -555,7 +555,7 @@ const LeftSidebar = () => {
                 })}
               </div>
             ) : (
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-1">
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,1fr))] gap-1">
                 {filteredLibraryItems.map((item) => {
                   let linkPath: string = "#";
                   let subtitle: string = "";
@@ -621,7 +621,7 @@ const LeftSidebar = () => {
                     <Link
                       to={linkPath}
                       key={`${item.type}-${item._id}`}
-                      className="p-1 hover:bg-[#2a2a2a] rounded-md flex flex-col items-center text-center cursor-pointer hover-scale relative"
+                      className="px-0 py-1 hover:bg-[#2a2a2a] rounded-md flex flex-col items-center text-center cursor-pointer hover-scale relative flex-shrink-0"
                     >
                       <div className="relative flex-shrink-0 group mb-0.5">
                         <img
@@ -630,7 +630,7 @@ const LeftSidebar = () => {
                             100
                           )}
                           alt={item.title}
-                          className={`size-16 object-cover ${imageClass} transition-opacity group-hover:opacity-50`}
+                          className={`w-full h-20 object-cover ${imageClass} transition-opacity group-hover:opacity-50`}
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = fallbackImage;
                           }}
