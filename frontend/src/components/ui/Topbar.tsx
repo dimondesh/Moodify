@@ -9,9 +9,13 @@ import {
   Settings,
   UserIcon,
   Users,
+  UsersIcon,
   HomeIcon,
+  Home,
   Compass,
+  CompassIcon,
   MessageCircle,
+  MessageCircleIcon,
 } from "lucide-react";
 import { useAuthStore } from "../../stores/useAuthStore";
 import { cn } from "../../lib/utils";
@@ -194,23 +198,29 @@ const Topbar = () => {
           </div>
         </div>
       </div>
-      {!isSearchVisible && (
-        <div className="hidden md:block mr-2">
-          <Link
-            to="/"
-            className={cn(
-              buttonVariants({
-                variant: "ghost",
-                size: "sm",
-                className:
-                  "text-gray-300 hover:text-white hover:bg-[#2a2a2a] h-8 rounded-full",
-              })
-            )}
-          >
+      <div className="hidden md:block mr-2">
+        <Link
+          to="/"
+          className={cn(
+            buttonVariants({
+              variant: "ghost",
+              size: "sm",
+              className: cn(
+                "h-8 rounded-full transition-colors hover:bg-[#2a2a2a]",
+                location.pathname === "/"
+                  ? "text-white"
+                  : "text-gray-300 hover:text-white"
+              ),
+            })
+          )}
+        >
+          {location.pathname === "/" ? (
+            <Home className="w-4 h-4 text-[#8b5cf6]" />
+          ) : (
             <HomeIcon className="w-4 h-4" />
-          </Link>
-        </div>
-      )}
+          )}
+        </Link>
+      </div>
       <div
         className={`relative w-full max-w-lg ${
           isSearchVisible ? "block" : "hidden md:block"
@@ -231,10 +241,19 @@ const Topbar = () => {
               />
               <Link
                 to="/search"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                className={cn(
+                  "absolute right-3 top-1/2 -translate-y-1/2 hover:text-white transition-colors",
+                  location.pathname === "/search"
+                    ? "text-[#8b5cf6]"
+                    : "text-gray-400"
+                )}
                 title={t("sidebar.search")}
               >
-                <Compass className="w-4 h-4" />
+                {location.pathname === "/search" ? (
+                  <CompassIcon className="w-4 h-4" />
+                ) : (
+                  <Compass className="w-4 h-4" />
+                )}
               </Link>
             </div>
           </PopoverTrigger>
@@ -301,7 +320,11 @@ const Topbar = () => {
               onClick={() => setIsFriendsActivityOpen(!isFriendsActivityOpen)}
               title={t("topbar.friendsActivity")}
             >
-              <Users className="w-4 h-4" />
+              {isFriendsActivityOpen ? (
+                <UsersIcon className="w-4 h-4" />
+              ) : (
+                <Users className="w-4 h-4" />
+              )}
             </Button>
           )}
           {user && (
@@ -311,12 +334,21 @@ const Topbar = () => {
                 buttonVariants({
                   variant: "ghost",
                   size: "icon",
-                  className: "hover:bg-[#2a2a2a] h-8 w-8 relative",
+                  className: cn(
+                    "hover:bg-[#2a2a2a] h-8 w-8 relative",
+                    location.pathname === "/chat"
+                      ? "text-[#8b5cf6]"
+                      : "text-gray-400"
+                  ),
                 })
               )}
               title={t("sidebar.messages")}
             >
-              <MessageCircle className="w-4 h-4" />
+              {location.pathname === "/chat" ? (
+                <MessageCircleIcon className="w-4 h-4" />
+              ) : (
+                <MessageCircle className="w-4 h-4" />
+              )}
               {totalUnread > 0 && (
                 <span className="absolute -top-1 -right-1 bg-[#8b5cf6] text-white text-xs rounded-full h-4 px-1.5 flex items-center justify-center font-semibold min-w-[16px]">
                   {totalUnread > 99 ? "99+" : totalUnread}
