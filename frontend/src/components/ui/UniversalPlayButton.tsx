@@ -20,7 +20,8 @@ type EntityType =
   | "playlist"
   | "mix"
   | "artist"
-  | "generated-playlist";
+  | "generated-playlist"
+  | "liked-songs";
 
 type UniversalPlayButtonProps = {
   entity:
@@ -71,6 +72,7 @@ const UniversalPlayButton = ({
       "playlist",
       "mix",
       "generated-playlist",
+      "liked-songs",
     ].includes(entityType);
 
     if (!needsSongs || isLoadingSongs) {
@@ -118,6 +120,9 @@ const UniversalPlayButton = ({
       case "generated-playlist":
         apiEndpoint = `/generated-playlists/${entity._id}`;
         break;
+      case "liked-songs":
+        apiEndpoint = `/library/liked-songs`;
+        break;
     }
 
     if (apiEndpoint) {
@@ -125,9 +130,12 @@ const UniversalPlayButton = ({
         .get(apiEndpoint)
         .then((response) => {
           // Для альбомов данные приходят в формате { album: ... }
+          // Для liked-songs данные приходят в формате { songs: ... }
           const songs =
             entityType === "album"
               ? response.data.album?.songs || []
+              : entityType === "liked-songs"
+              ? response.data.songs || []
               : response.data.songs || [];
           setLoadedSongs(songs);
           loadedEntitiesRef.current.add(entityKey);
@@ -180,6 +188,9 @@ const UniversalPlayButton = ({
         return (entity as GeneratedPlaylist).songs?.length > 0
           ? (entity as GeneratedPlaylist).songs
           : loadedSongs;
+      case "liked-songs":
+        // Для liked-songs всегда используем загруженные песни
+        return loadedSongs;
       case "artist":
         // Проверяем, это LibraryItem или обычный Artist
         if (
@@ -228,6 +239,12 @@ const UniversalPlayButton = ({
           type: "generated-playlist" as const,
           entityId: entity._id,
           entityTitle: (entity as GeneratedPlaylist).nameKey,
+        };
+      case "liked-songs":
+        return {
+          type: "liked-songs" as const,
+          entityId: entity._id,
+          entityTitle: (entity as LibraryItem).title,
         };
       case "artist":
         return {
