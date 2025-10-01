@@ -506,6 +506,21 @@ const LeftSidebar = () => {
                             (e.target as HTMLImageElement).src = fallbackImage;
                           }}
                         />
+                        <div
+                          className="absolute inset-0 cursor-pointer"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            // Находим UniversalPlayButton и вызываем его onClick
+                            const playButton =
+                              e.currentTarget.parentElement?.querySelector(
+                                "button"
+                              );
+                            if (playButton) {
+                              playButton.click();
+                            }
+                          }}
+                        />
                         <UniversalPlayButton
                           entity={item}
                           entityType={
@@ -618,6 +633,21 @@ const LeftSidebar = () => {
                           className={`size-16 object-cover ${imageClass} transition-opacity group-hover:opacity-50`}
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = fallbackImage;
+                          }}
+                        />
+                        <div
+                          className="absolute inset-0 cursor-pointer"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            // Находим UniversalPlayButton и вызываем его onClick
+                            const playButton =
+                              e.currentTarget.parentElement?.querySelector(
+                                "button"
+                              );
+                            if (playButton) {
+                              playButton.click();
+                            }
                           }}
                         />
                         <UniversalPlayButton
