@@ -50,20 +50,21 @@ const HomePageComponent = () => {
   const { initializeQueue, currentSong } = usePlayerStore();
   const { extractColor } = useDominantColor();
 
-  const [backgrounds, setBackgrounds] = useState([
-    { key: 0, color: "#18181b" },
-  ]);
-  const backgroundKeyRef = useRef(0);
+  const [currentBgColor, setCurrentBgColor] = useState("#18181b");
   const defaultColorRef = useRef("#18181b");
 
   const changeBackgroundColor = useCallback(
     (color: string) => {
       if (isMobile) return;
-      backgroundKeyRef.current += 1;
-      const newKey = backgroundKeyRef.current;
-      setBackgrounds((prev) => [{ key: newKey, color }, ...prev.slice(0, 1)]);
+
+      // Проверяем, не тот ли же цвет уже активен
+      if (currentBgColor === color) {
+        return;
+      }
+
+      setCurrentBgColor(color);
     },
-    [isMobile]
+    [isMobile, currentBgColor]
   );
 
   useEffect(() => {
@@ -71,7 +72,7 @@ const HomePageComponent = () => {
       extractColor(featuredSongs[0].imageUrl).then((color) => {
         const newDefaultColor = color || "#18181b";
         defaultColorRef.current = newDefaultColor;
-        if (backgrounds.length === 1 && backgrounds[0].color === "#18181b") {
+        if (currentBgColor === "#18181b") {
           changeBackgroundColor(newDefaultColor);
         }
       });
@@ -79,7 +80,7 @@ const HomePageComponent = () => {
   }, [
     featuredSongs,
     extractColor,
-    backgrounds,
+    currentBgColor,
     isHomePageLoading,
     changeBackgroundColor,
     isMobile,
@@ -139,7 +140,7 @@ const HomePageComponent = () => {
         clearTimeout(hoverTimeoutRef.current);
       }
 
-      // Дебаунсинг - ждем 100мс перед изменением цвета
+      // Небольшая задержка для предотвращения лишних запросов
       hoverTimeoutRef.current = setTimeout(() => {
         const imageUrl = song.imageUrl;
         if (!imageUrl) {
@@ -168,7 +169,7 @@ const HomePageComponent = () => {
           }
           changeBackgroundColor(finalColor);
         });
-      }, 100);
+      }, 50);
     },
     [extractColor, changeBackgroundColor, isMobile]
   );
@@ -180,7 +181,11 @@ const HomePageComponent = () => {
       clearTimeout(hoverTimeoutRef.current);
       hoverTimeoutRef.current = null;
     }
-    changeBackgroundColor(defaultColorRef.current);
+
+    // Плавный возврат к дефолтному цвету с задержкой
+    hoverTimeoutRef.current = setTimeout(() => {
+      changeBackgroundColor(defaultColorRef.current);
+    }, 250);
   }, [changeBackgroundColor, isMobile]);
 
   // Очистка таймаута при размонтировании
@@ -311,21 +316,21 @@ const HomePageComponent = () => {
       <main className="overflow-y-auto h-full bg-[#0f0f0f] hide-scrollbar pb-30 lg:pb-0">
         <div className="relative min-h-screen">
           <div className="absolute hidden lg:block inset-0 h-[50vh] w-full pointer-events-none z-0">
-            {backgrounds
-              .slice(0, 2)
-              .reverse()
-              .map((bg, index) => (
-                <div
-                  key={bg.key}
-                  className={`absolute inset-0 ${
-                    index === 1 ? "animate-fade-in" : ""
-                  }`}
-                  aria-hidden="true"
-                  style={{
-                    background: `linear-gradient(to bottom, ${bg.color}15, transparent 70%)`,
-                  }}
-                />
-              ))}
+            <div
+              className="absolute inset-0"
+              aria-hidden="true"
+              style={{
+                backgroundColor: currentBgColor,
+                opacity: 0.35,
+                maskImage:
+                  "linear-gradient(to bottom, black 0%, transparent 70%)",
+                WebkitMaskImage:
+                  "linear-gradient(to bottom, black 0%, transparent 70%)",
+                transition:
+                  "background-color 800ms cubic-bezier(0.4, 0.0, 0.2, 1), opacity 800ms cubic-bezier(0.4, 0.0, 0.2, 1)",
+                willChange: "background-color, opacity",
+              }}
+            />
           </div>
 
           <div className="relative z-10">
