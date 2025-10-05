@@ -31,6 +31,7 @@ interface PlayerStore {
       | "playlist"
       | "generated-playlist"
       | "mix"
+      | "personal-mix"
       | "artist";
     entityId?: string;
     entityTitle?: string;

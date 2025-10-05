@@ -16,10 +16,12 @@ import {
   LikedSongsItem,
   FollowedArtistItem,
   MixItem,
+  PersonalMixItem,
   GeneratedPlaylistItem,
   Album,
   Playlist,
   Mix,
+  PersonalMix,
 } from "../../types";
 import { Button } from "@/components/ui/button";
 import { useAuthState } from "react-firebase-hooks/auth";
@@ -42,6 +44,7 @@ const LibraryPage = () => {
     playlists,
     followedArtists,
     savedMixes,
+    savedPersonalMixes,
     isLoading: isLoadingLibrary,
     error: libraryError,
     generatedPlaylists,
@@ -88,40 +91,51 @@ const LibraryPage = () => {
         const downloadedLibraryItemsMap = new Map<string, LibraryItem>();
 
         items.forEach((item) => {
-          if ("songsData" in item && "title" in item) {
-            const isGenerated = (item as any).isGenerated;
-            if (isGenerated) {
-              downloadedLibraryItemsMap.set(item._id, {
-                _id: item._id,
-                type: "generated-playlist",
-                title: t((item as any).nameKey, (item as any).title),
-                imageUrl: item.imageUrl,
-                createdAt: new Date(
-                  (item as any).addedAt || (item as any).generatedOn
-                ),
-                sourceName: "Moodify",
-              } as GeneratedPlaylistItem);
-            } else if ((item as any).owner) {
-              downloadedLibraryItemsMap.set(item._id, {
-                _id: item._id,
-                type: "playlist",
-                title: (item as Playlist).title,
-                imageUrl: (item as Playlist).imageUrl,
-                createdAt: new Date((item as Playlist).updatedAt),
-                owner: (item as Playlist).owner,
-              } as PlaylistItem);
-            } else if ((item as any).artist) {
-              downloadedLibraryItemsMap.set(item._id, {
-                _id: item._id,
-                type: "album",
-                title: (item as Album).title,
-                imageUrl: (item as Album).imageUrl,
-                createdAt: new Date((item as Album).updatedAt),
-                artist: (item as Album).artist,
-                albumType: (item as Album).type,
-              } as AlbumItem);
-            }
-          } else if ("sourceName" in item) {
+          // Определяем тип элемента по его свойствам
+          if ((item as any).isGenerated) {
+            // Генерированный плейлист
+            downloadedLibraryItemsMap.set(item._id, {
+              _id: item._id,
+              type: "generated-playlist",
+              title: t((item as any).nameKey, (item as any).title),
+              imageUrl: item.imageUrl,
+              createdAt: new Date(
+                (item as any).addedAt || (item as any).generatedOn
+              ),
+              sourceName: "Moodify",
+            } as GeneratedPlaylistItem);
+          } else if ((item as any).owner) {
+            // Обычный плейлист
+            downloadedLibraryItemsMap.set(item._id, {
+              _id: item._id,
+              type: "playlist",
+              title: (item as Playlist).title,
+              imageUrl: (item as Playlist).imageUrl,
+              createdAt: new Date((item as Playlist).updatedAt),
+              owner: (item as Playlist).owner,
+            } as PlaylistItem);
+          } else if ((item as any).artist) {
+            // Альбом
+            downloadedLibraryItemsMap.set(item._id, {
+              _id: item._id,
+              type: "album",
+              title: (item as Album).title,
+              imageUrl: (item as Album).imageUrl,
+              createdAt: new Date((item as Album).updatedAt),
+              artist: (item as Album).artist,
+              albumType: (item as Album).type,
+            } as AlbumItem);
+          } else if ((item as any).user) {
+            // Персональный микс
+            downloadedLibraryItemsMap.set(item._id, {
+              _id: item._id,
+              type: "personal-mix",
+              title: (item as PersonalMix).name,
+              imageUrl: (item as PersonalMix).imageUrl,
+              createdAt: new Date((item as PersonalMix).generatedOn),
+            } as PersonalMixItem);
+          } else if ((item as any).sourceName) {
+            // Обычный микс
             downloadedLibraryItemsMap.set(item._id, {
               _id: item._id,
               type: "mix",
@@ -232,6 +246,16 @@ const LibraryPage = () => {
         createdAt: new Date(mix.addedAt ?? new Date()),
         sourceName: mix.sourceName,
       } as MixItem)
+    );
+
+    (savedPersonalMixes || []).forEach((personalMix) =>
+      libraryItemsMap.set(personalMix._id, {
+        _id: personalMix._id,
+        type: "personal-mix",
+        title: personalMix.name,
+        imageUrl: personalMix.imageUrl,
+        createdAt: new Date((personalMix as any).addedAt ?? new Date()),
+      } as PersonalMixItem)
     );
 
     (followedArtists || []).forEach((artist) =>
@@ -524,6 +548,15 @@ const LibraryPage = () => {
                             "https://moodify.b-cdn.net/default-album-cover.png";
                           break;
                         }
+                        case "personal-mix": {
+                          const personalMixItem = item as PersonalMixItem;
+                          linkPath = `/personal-mixes/${personalMixItem._id}`;
+                          subtitle = "Personal Mix";
+                          coverImageUrl =
+                            item.imageUrl ||
+                            "https://moodify.b-cdn.net/default-album-cover.png";
+                          break;
+                        }
                       }
 
                       return (
@@ -629,6 +662,12 @@ const LibraryPage = () => {
                           const mixItem = item as MixItem;
                           linkPath = `/mixes/${mixItem._id}`;
                           subtitle = t("sidebar.subtitle.dailyMix");
+                          break;
+                        }
+                        case "personal-mix": {
+                          const personalMixItem = item as PersonalMixItem;
+                          linkPath = `/personal-mixes/${personalMixItem._id}`;
+                          subtitle = "Personal Mix";
                           break;
                         }
                       }

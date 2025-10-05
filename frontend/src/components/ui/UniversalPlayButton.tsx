@@ -11,6 +11,7 @@ import type {
   Mix,
   Artist,
   GeneratedPlaylist,
+  PersonalMix,
   LibraryItem,
 } from "@/types";
 
@@ -21,6 +22,7 @@ type EntityType =
   | "mix"
   | "artist"
   | "generated-playlist"
+  | "personal-mix"
   | "liked-songs";
 
 type UniversalPlayButtonProps = {
@@ -31,6 +33,7 @@ type UniversalPlayButtonProps = {
     | Mix
     | Artist
     | GeneratedPlaylist
+    | PersonalMix
     | LibraryItem;
   entityType: EntityType;
   songs?: Song[];
@@ -61,7 +64,10 @@ const UniversalPlayButton = ({
 
   // Извлекаем песни из entity для проверки
   const entitySongs = useMemo(() => {
-    return (entity as Album | Playlist | Mix | GeneratedPlaylist).songs || [];
+    return (
+      (entity as Album | Playlist | Mix | GeneratedPlaylist | PersonalMix)
+        .songs || []
+    );
   }, [entity]);
 
   // Загружаем песни для сущности при монтировании компонента
@@ -72,6 +78,7 @@ const UniversalPlayButton = ({
       "playlist",
       "mix",
       "generated-playlist",
+      "personal-mix",
       "liked-songs",
     ].includes(entityType);
 
@@ -119,6 +126,9 @@ const UniversalPlayButton = ({
         break;
       case "generated-playlist":
         apiEndpoint = `/generated-playlists/${entity._id}`;
+        break;
+      case "personal-mix":
+        apiEndpoint = `/personal-mixes/${entity._id}`;
         break;
       case "liked-songs":
         apiEndpoint = `/library/liked-songs`;
@@ -188,6 +198,10 @@ const UniversalPlayButton = ({
         return (entity as GeneratedPlaylist).songs?.length > 0
           ? (entity as GeneratedPlaylist).songs
           : loadedSongs;
+      case "personal-mix":
+        return (entity as PersonalMix).songs?.length > 0
+          ? (entity as PersonalMix).songs
+          : loadedSongs;
       case "liked-songs":
         // Для liked-songs всегда используем загруженные песни
         return loadedSongs;
@@ -239,6 +253,12 @@ const UniversalPlayButton = ({
           type: "generated-playlist" as const,
           entityId: entity._id,
           entityTitle: (entity as GeneratedPlaylist).nameKey,
+        };
+      case "personal-mix":
+        return {
+          type: "personal-mix" as const,
+          entityId: entity._id,
+          entityTitle: (entity as PersonalMix).name,
         };
       case "liked-songs":
         return {

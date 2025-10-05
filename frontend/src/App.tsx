@@ -20,6 +20,7 @@ import ArtistPage from "./pages/ArtistPage/ArtistPage";
 import ProfilePage from "./pages/ProfilePage/ProfilePage";
 import DisplayListPage from "./pages/DisplayListPage/DisplayListPage";
 import MixDetailsPage from "./pages/MixDetailsPage/MixDetailsPage";
+import PersonalMixPage from "./pages/PersonalMixPage/PersonalMixPage";
 import AllMixesPage from "./pages/AllMixesPage/AllMixesPage";
 import GeneratedPlaylistPage from "./pages/GeneratedPlaylistPage/GeneratedPlaylistPage";
 import TopTracksPage from "./pages/TopTracksPage/TopTracksPage";
@@ -135,6 +136,7 @@ function App() {
       "/albums/",
       "/playlists/",
       "/mixes/",
+      "/personal-mixes/",
       "/generated-playlists/",
     ];
 
@@ -184,6 +186,7 @@ function App() {
             <Route path="/users/:userId" element={<ProfilePage />} />
             <Route path="/list" element={<DisplayListPage />} />
             <Route path="/mixes/:mixId" element={<MixDetailsPage />} />
+            <Route path="/personal-mixes/:id" element={<PersonalMixPage />} />
             <Route path="/all-mixes/:category" element={<AllMixesPage />} />
             <Route path="/offline" element={<OfflinePage />} />
             <Route

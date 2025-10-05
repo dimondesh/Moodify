@@ -8,6 +8,7 @@ import { useLibraryStore } from "./useLibraryStore";
 import { usePlaylistStore } from "./usePlaylistStore";
 import { useMixesStore } from "./useMixesStore";
 import { useGeneratedPlaylistStore } from "./useGeneratedPlaylistStore";
+import { usePersonalMixStore } from "./usePersonalMixStore";
 import { axiosInstance } from "../lib/axios";
 import toast from "react-hot-toast";
 
@@ -156,6 +157,7 @@ export const useUIStore = create<UIStore>()(
             playlists: data.library.playlists || [],
             followedArtists: data.library.followedArtists || [],
             savedMixes: data.library.savedMixes || [],
+            savedPersonalMixes: data.library.savedPersonalMixes || [],
             generatedPlaylists: data.library.generatedPlaylists || [],
             isLoading: false,
           });
@@ -172,6 +174,10 @@ export const useUIStore = create<UIStore>()(
 
           useGeneratedPlaylistStore.setState({
             allGeneratedPlaylists: data.allGeneratedPlaylists || [],
+          });
+
+          usePersonalMixStore.setState({
+            personalMixes: data.personalMixes || [],
           });
         } catch (error) {
           console.error("Failed to fetch initial app data", error);

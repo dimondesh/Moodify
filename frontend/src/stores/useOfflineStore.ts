@@ -20,7 +20,12 @@ import { useAuthStore } from "./useAuthStore";
 import { useMusicStore } from "./useMusicStore";
 import i18n from "@/lib/i18n";
 
-type ItemType = "albums" | "playlists" | "mixes" | "generated-playlists";
+type ItemType =
+  | "albums"
+  | "playlists"
+  | "mixes"
+  | "personal-mixes"
+  | "generated-playlists";
 const HLS_ASSETS_CACHE_NAME = "moodify-hls-assets-cache";
 
 // Helper function to calculate the size of a single item
@@ -113,6 +118,7 @@ interface OfflineState {
     getDownloadedContentSize: () => Promise<{ usage: number; quota: number }>;
     clearAllDownloads: () => Promise<void>;
     fetchAllDownloaded: () => Promise<(Album | Playlist | Mix)[]>;
+    updateDownloadedPersonalMix: (personalMixId: string) => Promise<void>;
   };
 }
 
@@ -141,7 +147,7 @@ export const useOfflineStore = create<OfflineState>()(
           const [albums, playlists, mixes, songs] = await Promise.all([
             getAllUserAlbums(userId),
             getAllUserPlaylists(userId),
-            getAllUserMixes(userId),
+            getAllUserMixes(userId), // Включает как обычные миксы, так и персональные
             getAllUserSongs(userId),
           ]);
 
@@ -276,15 +282,48 @@ export const useOfflineStore = create<OfflineState>()(
             toast.error(i18n.t("toasts.syncError"), { id: "sync-toast" });
           }
         },
-        fetchAllDownloaded: async () => {
+        updateDownloadedPersonalMix: async (personalMixId: string) => {
           const userId = useAuthStore.getState().user?.id;
-          if (!userId) return [];
-          const [albums, playlists, mixes] = await Promise.all([
-            getAllUserAlbums(userId),
-            getAllUserPlaylists(userId),
-            getAllUserMixes(userId),
-          ]);
-          return [...albums, ...playlists, ...mixes];
+          if (!userId) return;
+
+          const { isDownloaded } = get().actions;
+          if (!isDownloaded(personalMixId)) return;
+
+          try {
+            console.log(
+              `[Offline] Updating downloaded personal mix ${personalMixId}`
+            );
+
+            // Загружаем обновленные данные с сервера
+            const response = await axiosInstance.get(
+              `/personal-mixes/${personalMixId}`
+            );
+            const updatedData = response.data;
+
+            if (!updatedData || !updatedData.songs) {
+              throw new Error(i18n.t("errors.invalidServerData"));
+            }
+
+            // Обновляем данные в IndexedDB
+            const itemToUpdate = {
+              ...updatedData,
+              songsData: updatedData.songs,
+              userId,
+            };
+
+            await saveUserItem("mixes", itemToUpdate);
+
+            console.log(
+              `[Offline] Personal mix ${personalMixId} updated successfully`
+            );
+            toast.success(i18n.t("toasts.personalMixUpdated"));
+          } catch (error) {
+            console.error(
+              `[Offline] Failed to update personal mix ${personalMixId}:`,
+              error
+            );
+            toast.error(i18n.t("toasts.updateError"));
+          }
         },
 
         downloadItem: async (itemId, itemType) => {
@@ -314,6 +353,9 @@ export const useOfflineStore = create<OfflineState>()(
             if (itemType === "generated-playlists") {
               endpoint = `/generated-playlists/${itemId}`;
               storeName = "playlists";
+            } else if (itemType === "personal-mixes") {
+              endpoint = `/personal-mixes/${itemId}`;
+              storeName = "mixes";
             } else {
               endpoint = `/${itemType}/${itemId}`;
               storeName = itemType;
@@ -488,7 +530,11 @@ export const useOfflineStore = create<OfflineState>()(
 
           try {
             const storeName: "albums" | "playlists" | "mixes" =
-              itemType === "generated-playlists" ? "playlists" : itemType;
+              itemType === "generated-playlists"
+                ? "playlists"
+                : itemType === "personal-mixes"
+                ? "mixes"
+                : itemType;
 
             const itemToDelete = await getUserItem(storeName, itemId, userId);
             if (!itemToDelete) return;

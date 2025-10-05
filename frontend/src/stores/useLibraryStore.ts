@@ -8,6 +8,7 @@ import type {
   Artist,
   Mix,
   GeneratedPlaylist,
+  PersonalMix,
 } from "../types";
 import { useOfflineStore } from "./useOfflineStore";
 import {
@@ -26,6 +27,7 @@ interface LibraryStore {
   playlists: LibraryPlaylist[];
   followedArtists: Artist[];
   savedMixes: Mix[];
+  savedPersonalMixes: PersonalMix[];
   generatedPlaylists: GeneratedPlaylist[];
 
   isLoading: boolean;
@@ -42,12 +44,14 @@ interface LibraryStore {
   togglePlaylist: (playlistId: string) => Promise<void>;
   toggleArtistFollow: (artistId: string) => Promise<void>;
   toggleMixInLibrary: (mixId: string) => Promise<void>;
+  togglePersonalMixInLibrary: (personalMixId: string) => Promise<void>;
   isAlbumInLibrary: (albumId: string) => boolean;
   isPlaylistInLibrary: (playlistId: string) => boolean;
 
   isSongLiked: (songId: string) => boolean;
   isArtistFollowed: (artistId: string) => boolean;
   isMixSaved: (mixId: string) => boolean;
+  isPersonalMixSaved: (personalMixId: string) => boolean;
 }
 
 export const useLibraryStore = create<LibraryStore>((set, get) => ({
@@ -56,6 +60,7 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
   playlists: [],
   followedArtists: [],
   savedMixes: [],
+  savedPersonalMixes: [],
   generatedPlaylists: [],
   isLoading: false,
   error: null,
@@ -113,6 +118,7 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
         playlists: data.playlists || [],
         followedArtists: data.followedArtists || [],
         savedMixes: data.savedMixes || [],
+        savedPersonalMixes: data.savedPersonalMixes || [],
         generatedPlaylists: data.generatedPlaylists || [],
         isLoading: false,
       });
@@ -270,6 +276,19 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
     }
   },
 
+  togglePersonalMixInLibrary: async (personalMixId: string) => {
+    if (useOfflineStore.getState().isOffline) return;
+    try {
+      await axiosInstance.post("/library/personal-mixes/toggle", {
+        personalMixId,
+      });
+      await get().fetchLibrary();
+    } catch (err) {
+      console.error("Toggle personal mix in library error", err);
+      set({ error: i18n.t("errors.toggleMixError") });
+    }
+  },
+
   isAlbumInLibrary: (albumId: string) =>
     get().albums.some((album) => album._id === albumId),
   isPlaylistInLibrary: (playlistId: string) =>
@@ -280,4 +299,6 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
     get().followedArtists.some((artist) => artist._id === artistId),
   isMixSaved: (mixId: string) =>
     get().savedMixes.some((mix) => mix._id === mixId),
+  isPersonalMixSaved: (personalMixId: string) =>
+    get().savedPersonalMixes.some((mix) => mix._id === personalMixId),
 }));

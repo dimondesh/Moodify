@@ -20,6 +20,7 @@ import type {
   Mix,
   Artist,
   GeneratedPlaylist,
+  PersonalMix,
 } from "../../types";
 import HorizontalSectionSkeleton from "./HorizontalSectionSkeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -33,7 +34,8 @@ type DisplayItem =
   | (Playlist & { itemType: "playlist" })
   | (Mix & { itemType: "mix" })
   | (Artist & { itemType: "artist" })
-  | (GeneratedPlaylist & { itemType: "generated-playlist" });
+  | (GeneratedPlaylist & { itemType: "generated-playlist" })
+  | (PersonalMix & { itemType: "personal-mix" });
 
 interface HorizontalSectionProps {
   title: string;
@@ -81,6 +83,11 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
         return (
           !!(item as GeneratedPlaylist).nameKey ||
           !!(item as GeneratedPlaylist & { title?: string }).title
+        );
+      case "personal-mix":
+        return (
+          !!(item as PersonalMix).name ||
+          !!(item as PersonalMix & { title?: string }).title
         );
       default:
         return false;
@@ -192,6 +199,9 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
       case "mix":
         navigate(`/mixes/${item._id}`);
         break;
+      case "personal-mix":
+        navigate(`/personal-mixes/${item._id}`);
+        break;
       case "artist":
         navigate(`/artists/${item._id}`);
         break;
@@ -217,6 +227,12 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
         (item as GeneratedPlaylist).nameKey ||
         (item as GeneratedPlaylist & { title?: string }).title;
       return nameKey ? t(nameKey) : "Unknown Playlist";
+    }
+    if (item.itemType === "personal-mix") {
+      const personalMixName =
+        (item as PersonalMix).name ||
+        (item as PersonalMix & { title?: string }).title;
+      return personalMixName || "Unknown Mix";
     }
     return item.title || "Unknown Title";
   };
@@ -248,6 +264,25 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
         }
 
         const allArtists = mix.songs.flatMap((song) => song.artist);
+        const uniqueArtists = allArtists.filter(
+          (artist, index, self) =>
+            index === self.findIndex((a) => a._id === artist._id)
+        );
+        const firstTwoUniqueArtists = uniqueArtists.slice(0, 2);
+        const artistNames = getArtistNames(firstTwoUniqueArtists, allArtists);
+
+        if (uniqueArtists.length > 2) {
+          return `${artistNames} ${t("common.andMore")}`;
+        }
+        return artistNames;
+      }
+      case "personal-mix": {
+        const personalMix = item as PersonalMix;
+        if (!personalMix.songs || personalMix.songs.length === 0) {
+          return t("sidebar.subtitle.dailyMix");
+        }
+
+        const allArtists = personalMix.songs.flatMap((song) => song.artist);
         const uniqueArtists = allArtists.filter(
           (artist, index, self) =>
             index === self.findIndex((a) => a._id === artist._id)
@@ -341,7 +376,8 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
                       />
                     )}
                     {/* Для миксов добавляем затемнение с названием */}
-                    {item.itemType === "mix" && (
+                    {(item.itemType === "mix" ||
+                      item.itemType === "personal-mix") && (
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-2 pt-6 z-10">
                         <h3 className="text-white text-sm font-bold drop-shadow-lg break-words">
                           {getDisplayTitle(item)}
@@ -354,18 +390,22 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
                     entityType={item.itemType}
                     songs={item.itemType === "song" ? songsOnly : undefined}
                     className={`absolute bottom-3 right-2 ${
-                      item.itemType === "mix" ? "z-50" : ""
+                      item.itemType === "mix" ||
+                      item.itemType === "personal-mix"
+                        ? "z-50"
+                        : ""
                     }`}
                     size="sm"
                   />
                 </div>
                 <div className="px-1">
                   {/* Для миксов не показываем название под обложкой, только subtitle */}
-                  {item.itemType !== "mix" && (
-                    <h3 className="font-semibold text-sm truncate">
-                      {getDisplayTitle(item)}
-                    </h3>
-                  )}
+                  {item.itemType !== "mix" &&
+                    item.itemType !== "personal-mix" && (
+                      <h3 className="font-semibold text-sm truncate">
+                        {getDisplayTitle(item)}
+                      </h3>
+                    )}
                   <p
                     className="text-xs text-zinc-400 leading-tight"
                     style={{

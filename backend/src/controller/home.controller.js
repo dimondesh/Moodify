@@ -16,6 +16,7 @@ import {
   getPlaylistRecommendations,
 } from "./user.controller.js";
 import { getMyGeneratedPlaylists } from "./generatedPlaylist.controller.js";
+import { getPersonalMixes } from "./personalMix.controller.js";
 import { Library } from "../models/library.model.js";
 
 const HOME_SECTION_LIMIT = 12;
@@ -101,6 +102,8 @@ export const getBootstrapData = async (req, res, next) => {
 
       getDailyMixes(req, res, next, true, HOME_SECTION_LIMIT),
 
+      getPersonalMixes(req, res, next, true),
+
       getPublicPlaylists(req, res, next, true, HOME_SECTION_LIMIT),
 
       getMyGeneratedPlaylists(req, res, next, true, HOME_SECTION_LIMIT),
@@ -118,6 +121,7 @@ export const getBootstrapData = async (req, res, next) => {
       featuredSongs,
       trendingAlbums,
       mixesData,
+      personalMixes,
       publicPlaylists,
       allGeneratedPlaylists,
       madeForYouSongs,
@@ -133,6 +137,7 @@ export const getBootstrapData = async (req, res, next) => {
       trendingAlbums,
       genreMixes: mixesData.genreMixes,
       moodMixes: mixesData.moodMixes,
+      personalMixes,
       publicPlaylists,
       allGeneratedPlaylists,
       madeForYouSongs,
@@ -198,10 +203,52 @@ async function getOptimizedLibrarySummary(userId) {
     },
     {
       $lookup: {
+        from: "personalmixes",
+        localField: "savedPersonalMixes.personalMixId",
+        foreignField: "_id",
+        as: "personalMixDetails",
+      },
+    },
+    {
+      $lookup: {
         from: "songs",
         localField: "mixDetails.songs",
         foreignField: "_id",
         as: "mixSongs",
+        pipeline: [
+          {
+            $lookup: {
+              from: "artists",
+              localField: "artist",
+              foreignField: "_id",
+              as: "artist",
+              pipeline: [{ $project: { name: 1, imageUrl: 1 } }],
+            },
+          },
+          { $unwind: "$artist" },
+          {
+            $project: {
+              title: 1,
+              artist: 1,
+              albumId: 1,
+              imageUrl: 1,
+              hlsUrl: 1,
+              duration: 1,
+              playCount: 1,
+              genres: 1,
+              moods: 1,
+              lyrics: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $lookup: {
+        from: "songs",
+        localField: "personalMixDetails.songs",
+        foreignField: "_id",
+        as: "personalMixSongs",
         pipeline: [
           {
             $lookup: {
@@ -461,6 +508,50 @@ async function getOptimizedLibrarySummary(userId) {
             },
           },
         },
+        savedPersonalMixes: {
+          $map: {
+            input: "$personalMixDetails",
+            as: "personalMix",
+            in: {
+              $mergeObjects: [
+                "$$personalMix",
+                {
+                  addedAt: {
+                    $let: {
+                      vars: {
+                        libItem: {
+                          $arrayElemAt: [
+                            {
+                              $filter: {
+                                input: "$savedPersonalMixes",
+                                as: "spm",
+                                cond: {
+                                  $eq: [
+                                    "$$spm.personalMixId",
+                                    "$$personalMix._id",
+                                  ],
+                                },
+                              },
+                            },
+                            0,
+                          ],
+                        },
+                      },
+                      in: "$$libItem.addedAt",
+                    },
+                  },
+                  songs: {
+                    $filter: {
+                      input: "$personalMixSongs",
+                      as: "song",
+                      cond: { $in: ["$$song._id", "$$personalMix.songs"] },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        },
         generatedPlaylists: {
           $map: {
             input: "$genPlaylistDetails",
@@ -504,6 +595,7 @@ async function getOptimizedLibrarySummary(userId) {
       playlists: [],
       followedArtists: [],
       savedMixes: [],
+      savedPersonalMixes: [],
       generatedPlaylists: [],
     };
   }

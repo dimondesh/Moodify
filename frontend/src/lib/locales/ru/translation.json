@@ -676,7 +676,9 @@
     "downloading": "Загрузка \"{{itemTitle}}\"...",
     "downloadSuccess": "\"{{itemTitle}}\" теперь доступно оффлайн.",
     "downloadError": "Ошибка загрузки: {{error}}",
-    "downloadCancelled": "Загрузка \"{{itemTitle}}\" отменена"
+    "downloadCancelled": "Загрузка \"{{itemTitle}}\" отменена",
+    "personalMixUpdated": "Персональный микс успешно обновлен",
+    "updateError": "Не удалось обновить элемент"
   },
   "errors": {
     "somethingWentWrong": "Что-то пошло не так",

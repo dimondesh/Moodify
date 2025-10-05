@@ -21,8 +21,10 @@ import mixRoutes from "./routes/mix.route.js";
 import cronRoutes from "./routes/cron.route.js";
 import shareRoutes from "./routes/share.route.js";
 import generatedPlaylistRoutes from "./routes/generatedPlaylist.route.js";
+import personalMixRoutes from "./routes/personalMix.route.js";
 import imageRoutes from "./routes/image.route.js";
 import { updateDailyMixes } from "./controller/mix.controller.js";
+import { generatePersonalMixes } from "./controller/personalMix.controller.js";
 import { ListenHistory } from "./models/listenHistory.model.js";
 import {
   generateOnRepeatPlaylistForUser,
@@ -172,6 +174,32 @@ cron.schedule(
     timezone: "Europe/Kyiv",
   }
 );
+cron.schedule(
+  "*/2 * * * *",
+  async () => {
+    console.log('CRON JOB: Starting "Personal Mixes" generation...');
+    try {
+      const eligibleUsers = await ListenHistory.aggregate([
+        { $group: { _id: "$user", count: { $sum: 1 } } },
+        { $match: { count: { $gte: 10 } } },
+      ]);
+
+      for (const user of eligibleUsers) {
+        await generatePersonalMixes(user._id);
+      }
+      console.log(
+        `CRON JOB: "Personal Mixes" generation finished for ${eligibleUsers.length} users.`
+      );
+    } catch (error) {
+      console.error('CRON JOB: Error in "Personal Mixes" generation:', error);
+    }
+  },
+  {
+    scheduled: true,
+    timezone: "Europe/Kyiv",
+  }
+);
+
 cron.schedule("*/10 * * * *", () => {
   console.log("[CronJob] Запуск очистки временных директорий...");
   cleanAllTempDirectories();
@@ -239,6 +267,7 @@ app.use("/api/playlists", playlistRoutes);
 app.use("/api/artists", artistRoutes);
 app.use("/api/mixes", mixRoutes);
 app.use("/api/generated-playlists", generatedPlaylistRoutes);
+app.use("/api/personal-mixes", personalMixRoutes);
 app.use("/api/home", homeRoutes);
 
 app.use("/api/cron", cronRoutes);

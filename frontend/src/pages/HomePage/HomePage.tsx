@@ -18,6 +18,7 @@ import { Helmet } from "react-helmet-async";
 import { useDominantColor } from "@/hooks/useDominantColor";
 import { Song } from "@/types";
 import { useGeneratedPlaylistStore } from "../../stores/useGeneratedPlaylistStore";
+import { usePersonalMixStore } from "../../stores/usePersonalMixStore";
 import HorizontalSection from "./HorizontalSection";
 import { useNavigate } from "react-router-dom";
 import { useUIStore } from "../../stores/useUIStore";
@@ -45,6 +46,7 @@ const HomePageComponent = () => {
   const { user } = useAuthStore();
   const { publicPlaylists, recommendedPlaylists } = usePlaylistStore();
   const { allGeneratedPlaylists } = useGeneratedPlaylistStore();
+  const { personalMixes } = usePersonalMixStore();
 
   const { isHomePageLoading, isSecondaryHomePageLoading } = useUIStore();
   const { initializeQueue, currentSong } = usePlayerStore();
@@ -265,12 +267,32 @@ const HomePageComponent = () => {
     [allGeneratedPlaylists]
   );
 
+  const personalMixesItems = useMemo(
+    () =>
+      personalMixes.map((mix) => ({
+        ...mix,
+        itemType: "personal-mix" as const,
+      })),
+    [personalMixes]
+  );
+
+  // Комбинируем персональные миксы и генеративные плейлисты для секции Made For You
+  const madeForYouItems = useMemo(() => {
+    const items = [
+      ...personalMixesItems,
+      ...generatedPlaylistsItems.filter(
+        (pl) => pl.type === "ON_REPEAT" || pl.type === "DISCOVER_WEEKLY"
+      ),
+    ];
+    return items;
+  }, [personalMixesItems, generatedPlaylistsItems]);
+
   const handleShowAllMadeForYou = useCallback(
     () =>
-      navigate("/all-songs/made-for-you", {
-        state: { songs: madeForYouSongs, title: t("homepage.madeForYou") },
+      navigate("/all-items/made-for-you", {
+        state: { items: madeForYouItems, title: t("homepage.madeForYou") },
       }),
-    [navigate, madeForYouSongs, t]
+    [navigate, madeForYouItems, t]
   );
   const handleShowAllRecentlyListened = useCallback(
     () =>
@@ -369,7 +391,7 @@ const HomePageComponent = () => {
                   {user && (
                     <HorizontalSection
                       title={t("homepage.madeForYou")}
-                      items={madeForYouSongsItems}
+                      items={madeForYouItems}
                       isLoading={isSecondaryHomePageLoading}
                       limit={12}
                       t={t}
@@ -426,14 +448,6 @@ const HomePageComponent = () => {
                       limit={12}
                     />
                   )}
-
-                  <HorizontalSection
-                    title={t("homepage.generatedForYou")}
-                    items={generatedPlaylistsItems}
-                    t={t}
-                    isLoading={isSecondaryHomePageLoading}
-                    limit={12}
-                  />
 
                   <HorizontalSection
                     title={t("homepage.publicPlaylists")}

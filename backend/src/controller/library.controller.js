@@ -463,6 +463,51 @@ export const toggleMixInLibrary = async (req, res, next) => {
   }
 };
 
+export const togglePersonalMixInLibrary = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { personalMixId } = req.body;
+
+    if (!personalMixId || !mongoose.Types.ObjectId.isValid(personalMixId)) {
+      return res
+        .status(400)
+        .json({ message: "Valid Personal Mix ID is required" });
+    }
+
+    const library = await Library.findOneAndUpdate(
+      { userId },
+      {},
+      { upsert: true, new: true }
+    );
+
+    if (!library.savedPersonalMixes) library.savedPersonalMixes = [];
+
+    const exists = library.savedPersonalMixes.some(
+      (m) => m.personalMixId?.toString() === personalMixId
+    );
+    let isSaved;
+
+    if (exists) {
+      library.savedPersonalMixes = library.savedPersonalMixes.filter(
+        (m) => m.personalMixId?.toString() !== personalMixId
+      );
+      isSaved = false;
+    } else {
+      library.savedPersonalMixes.push({
+        personalMixId: new mongoose.Types.ObjectId(personalMixId),
+        addedAt: new Date(),
+      });
+      isSaved = true;
+    }
+
+    await library.save();
+    res.json({ success: true, isSaved });
+  } catch (err) {
+    console.error("❌ togglePersonalMixInLibrary error:", err);
+    next(err);
+  }
+};
+
 export const getSavedMixes = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -603,6 +648,7 @@ export const getLibrarySummary = async (req, res, next) => {
         playlists: [],
         followedArtists: [],
         savedMixes: [],
+        savedPersonalMixes: [],
         generatedPlaylists: [],
       });
     }
@@ -612,6 +658,8 @@ export const getLibrarySummary = async (req, res, next) => {
     const playlistIds = library.playlists?.map((p) => p.playlistId) || [];
     const artistIds = library.followedArtists?.map((a) => a.artistId) || [];
     const mixIds = library.savedMixes?.map((m) => m.mixId) || [];
+    const personalMixIds =
+      library.savedPersonalMixes?.map((m) => m.personalMixId) || [];
     const genPlaylistIds =
       library.savedGeneratedPlaylists?.map((p) => p.playlistId) || [];
 
@@ -621,6 +669,7 @@ export const getLibrarySummary = async (req, res, next) => {
       playlists,
       followedArtists,
       savedMixes,
+      savedPersonalMixes,
       generatedPlaylists,
     ] = await Promise.all([
       mongoose
@@ -658,6 +707,17 @@ export const getLibrarySummary = async (req, res, next) => {
           populate: { path: "artist", select: "name imageUrl" },
         })
         .select("name imageUrl sourceName type generatedOn songs")
+        .lean(),
+      mongoose
+        .model("PersonalMix")
+        .find({ _id: { $in: personalMixIds } })
+        .populate({
+          path: "songs",
+          select:
+            "title duration imageUrl artist albumId hlsUrl playCount genres moods lyrics",
+          populate: { path: "artist", select: "name imageUrl" },
+        })
+        .select("name imageUrl generatedOn songs")
         .lean(),
       mongoose
         .model("GeneratedPlaylist")
@@ -698,6 +758,10 @@ export const getLibrarySummary = async (req, res, next) => {
       playlists: addAddedAt(playlists, library.playlists),
       followedArtists: addAddedAt(followedArtists, library.followedArtists),
       savedMixes: addAddedAt(savedMixes, library.savedMixes),
+      savedPersonalMixes: addAddedAt(
+        savedPersonalMixes,
+        library.savedPersonalMixes
+      ),
       generatedPlaylists: addAddedAt(
         generatedPlaylists,
         library.savedGeneratedPlaylists

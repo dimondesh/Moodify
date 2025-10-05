@@ -676,7 +676,9 @@
     "downloading": "Завантаження \"{{itemTitle}}\"...",
     "downloadSuccess": "\"{{itemTitle}}\" тепер доступно офлайн.",
     "downloadError": "Помилка завантаження: {{error}}",
-    "downloadCancelled": "Завантаження \"{{itemTitle}}\" скасовано"
+    "downloadCancelled": "Завантаження \"{{itemTitle}}\" скасовано",
+    "personalMixUpdated": "Персональний мікс успішно оновлено",
+    "updateError": "Не вдалося оновити елемент"
   },
   "errors": {
     "userNotAvailableOffline": "Користувач недоступний для офлайн-медіатеки.",

@@ -34,6 +34,19 @@ const librarySchema = new mongoose.Schema(
         },
       },
     ],
+    savedPersonalMixes: [
+      {
+        personalMixId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "PersonalMix",
+          required: true,
+        },
+        addedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
     albums: [
       {
         albumId: {

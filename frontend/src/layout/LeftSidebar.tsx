@@ -28,6 +28,7 @@ import {
   LikedSongsItem,
   FollowedArtistItem,
   MixItem,
+  PersonalMixItem,
   GeneratedPlaylistItem,
 } from "../types";
 import { useMusicStore } from "../stores/useMusicStore";
@@ -45,6 +46,7 @@ const LeftSidebar = () => {
     albums,
     playlists,
     savedMixes,
+    savedPersonalMixes,
     followedArtists,
     isLoading: isLoadingLibrary,
     generatedPlaylists,
@@ -138,7 +140,13 @@ const LeftSidebar = () => {
     // Helper function to check if item should be included based on offline state
     const shouldIncludeItem = (
       itemId: string,
-      itemType: "album" | "playlist" | "generated-playlist" | "mix" | "artist"
+      itemType:
+        | "album"
+        | "playlist"
+        | "generated-playlist"
+        | "mix"
+        | "personal-mix"
+        | "artist"
     ) => {
       if (!isOffline) return true; // Include all items when online
 
@@ -209,6 +217,18 @@ const LeftSidebar = () => {
           createdAt: new Date(mix.addedAt ?? new Date()),
           sourceName: mix.sourceName,
         } as MixItem);
+      }
+    });
+
+    (savedPersonalMixes || []).forEach((personalMix) => {
+      if (shouldIncludeItem(personalMix._id, "personal-mix")) {
+        libraryItemsMap.set(personalMix._id, {
+          _id: personalMix._id,
+          type: "personal-mix",
+          title: personalMix.name,
+          imageUrl: personalMix.imageUrl,
+          createdAt: new Date((personalMix as any).addedAt ?? new Date()),
+        } as PersonalMixItem);
       }
     });
 
@@ -484,6 +504,12 @@ const LeftSidebar = () => {
                       subtitle = t("sidebar.subtitle.dailyMix");
                       break;
                     }
+                    case "personal-mix": {
+                      const personalMixItem = item as PersonalMixItem;
+                      linkPath = `/personal-mixes/${personalMixItem._id}`;
+                      subtitle = "Personal Mix";
+                      break;
+                    }
                     default:
                       break;
                   }
@@ -529,6 +555,7 @@ const LeftSidebar = () => {
                               | "playlist"
                               | "generated-playlist"
                               | "mix"
+                              | "personal-mix"
                               | "artist"
                               | "liked-songs"
                           }
@@ -613,6 +640,12 @@ const LeftSidebar = () => {
                       subtitle = t("sidebar.subtitle.dailyMix");
                       break;
                     }
+                    case "personal-mix": {
+                      const personalMixItem = item as PersonalMixItem;
+                      linkPath = `/personal-mixes/${personalMixItem._id}`;
+                      subtitle = "Personal Mix";
+                      break;
+                    }
                     default:
                       break;
                   }
@@ -658,6 +691,7 @@ const LeftSidebar = () => {
                               | "playlist"
                               | "generated-playlist"
                               | "mix"
+                              | "personal-mix"
                               | "artist"
                               | "liked-songs"
                           }

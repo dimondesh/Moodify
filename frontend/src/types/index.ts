@@ -15,6 +15,17 @@ export interface Genre {
   _id: string;
   name: string;
 }
+export interface PersonalMix {
+  _id: string;
+  user: string;
+  name: string;
+  songs: Song[];
+  imageUrl: string;
+  generatedOn: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Mix {
   _id: string;
   name: string;
@@ -197,6 +208,9 @@ export interface MixItem extends BaseLibraryItem {
   type: "mix";
   sourceName: string;
 }
+export interface PersonalMixItem extends BaseLibraryItem {
+  type: "personal-mix";
+}
 export interface FollowedArtistItem extends BaseLibraryItem {
   type: "artist";
   artistId: string;
@@ -213,6 +227,7 @@ export type LibraryItem =
   | PlaylistItem
   | FollowedArtistItem
   | MixItem
+  | PersonalMixItem
   | GeneratedPlaylistItem;
 export interface LibraryPlaylist extends Playlist {
   addedAt?: string;

@@ -676,7 +676,9 @@
     "downloading": "Downloading \"{{itemTitle}}\"...",
     "downloadSuccess": "\"{{itemTitle}}\" is now available offline.",
     "downloadError": "Failed to download: {{error}}",
-    "downloadCancelled": "Download of \"{{itemTitle}}\" cancelled"
+    "downloadCancelled": "Download of \"{{itemTitle}}\" cancelled",
+    "personalMixUpdated": "Personal mix updated successfully",
+    "updateError": "Failed to update item"
   },
   "errors": {
     "somethingWentWrong": "Something went wrong",
