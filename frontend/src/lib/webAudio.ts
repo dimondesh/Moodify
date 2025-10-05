@@ -649,11 +649,47 @@ class WebAudioService {
     switch (mode) {
       case "loud":
         this.compressorNode.threshold.setValueAtTime(
+          -12,
+          this.audioContext.currentTime
+        );
+        this.compressorNode.ratio.setValueAtTime(
+          3,
+          this.audioContext.currentTime
+        );
+        this.compressorNode.attack.setValueAtTime(
+          0.01,
+          this.audioContext.currentTime
+        );
+        this.compressorNode.release.setValueAtTime(
+          0.2,
+          this.audioContext.currentTime
+        );
+        break;
+      case "normal":
+        this.compressorNode.threshold.setValueAtTime(
           -18,
           this.audioContext.currentTime
         );
         this.compressorNode.ratio.setValueAtTime(
-          8,
+          2.5,
+          this.audioContext.currentTime
+        );
+        this.compressorNode.attack.setValueAtTime(
+          0.008,
+          this.audioContext.currentTime
+        );
+        this.compressorNode.release.setValueAtTime(
+          0.3,
+          this.audioContext.currentTime
+        );
+        break;
+      case "quiet":
+        this.compressorNode.threshold.setValueAtTime(
+          -24,
+          this.audioContext.currentTime
+        );
+        this.compressorNode.ratio.setValueAtTime(
+          2,
           this.audioContext.currentTime
         );
         this.compressorNode.attack.setValueAtTime(
@@ -661,43 +697,7 @@ class WebAudioService {
           this.audioContext.currentTime
         );
         this.compressorNode.release.setValueAtTime(
-          0.15,
-          this.audioContext.currentTime
-        );
-        break;
-      case "normal":
-        this.compressorNode.threshold.setValueAtTime(
-          -24,
-          this.audioContext.currentTime
-        );
-        this.compressorNode.ratio.setValueAtTime(
-          12,
-          this.audioContext.currentTime
-        );
-        this.compressorNode.attack.setValueAtTime(
-          0.003,
-          this.audioContext.currentTime
-        );
-        this.compressorNode.release.setValueAtTime(
-          0.25,
-          this.audioContext.currentTime
-        );
-        break;
-      case "quiet":
-        this.compressorNode.threshold.setValueAtTime(
-          -30,
-          this.audioContext.currentTime
-        );
-        this.compressorNode.ratio.setValueAtTime(
-          16,
-          this.audioContext.currentTime
-        );
-        this.compressorNode.attack.setValueAtTime(
-          0.001,
-          this.audioContext.currentTime
-        );
-        this.compressorNode.release.setValueAtTime(
-          0.35,
+          0.4,
           this.audioContext.currentTime
         );
         break;

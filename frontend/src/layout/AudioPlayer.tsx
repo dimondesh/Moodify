@@ -175,7 +175,7 @@ const AudioPlayer = () => {
 
       audioRef.current.playbackRate = currentRate;
     }
-  }, [masterVolume, playbackRate, playbackRateEnabled]); // Убрал currentSong - не нужен здесь
+  }, [masterVolume, playbackRate, playbackRateEnabled, currentSong]); // Добавил currentSong для применения скорости к новой песне
 
   // Запись прослушивания
   useEffect(() => {
