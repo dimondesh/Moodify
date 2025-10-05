@@ -227,11 +227,6 @@ const HomePageComponent = () => {
       })),
     [favoriteArtists]
   );
-  const madeForYouSongsItems = useMemo(
-    () =>
-      madeForYouSongs.map((song) => ({ ...song, itemType: "song" as const })),
-    [madeForYouSongs]
-  );
   const trendingAlbumsItems = useMemo(
     () =>
       trendingAlbums.map((album) => ({ ...album, itemType: "album" as const })),

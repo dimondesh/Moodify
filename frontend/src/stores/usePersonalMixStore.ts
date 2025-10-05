@@ -12,7 +12,7 @@ interface PersonalMixStore {
   clearPersonalMixes: () => void;
 }
 
-export const usePersonalMixStore = create<PersonalMixStore>((set, get) => ({
+export const usePersonalMixStore = create<PersonalMixStore>((set) => ({
   personalMixes: [],
   isLoading: false,
   error: null,

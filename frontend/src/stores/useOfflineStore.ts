@@ -282,6 +282,18 @@ export const useOfflineStore = create<OfflineState>()(
             toast.error(i18n.t("toasts.syncError"), { id: "sync-toast" });
           }
         },
+
+        fetchAllDownloaded: async () => {
+          const userId = useAuthStore.getState().user?.id;
+          if (!userId) return [];
+          const [albums, playlists, mixes] = await Promise.all([
+            getAllUserAlbums(userId),
+            getAllUserPlaylists(userId),
+            getAllUserMixes(userId),
+          ]);
+          return [...albums, ...playlists, ...mixes];
+        },
+
         updateDownloadedPersonalMix: async (personalMixId: string) => {
           const userId = useAuthStore.getState().user?.id;
           if (!userId) return;

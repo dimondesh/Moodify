@@ -127,12 +127,13 @@ const LibraryPage = () => {
             } as AlbumItem);
           } else if ((item as any).user) {
             // Персональный микс
+            const personalMix = item as any;
             downloadedLibraryItemsMap.set(item._id, {
               _id: item._id,
               type: "personal-mix",
-              title: (item as PersonalMix).name,
-              imageUrl: (item as PersonalMix).imageUrl,
-              createdAt: new Date((item as PersonalMix).generatedOn),
+              title: personalMix.name,
+              imageUrl: personalMix.imageUrl,
+              createdAt: new Date(personalMix.generatedOn),
             } as PersonalMixItem);
           } else if ((item as any).sourceName) {
             // Обычный микс
