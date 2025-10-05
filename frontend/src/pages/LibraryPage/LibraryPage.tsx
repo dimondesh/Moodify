@@ -21,7 +21,6 @@ import {
   Album,
   Playlist,
   Mix,
-  PersonalMix,
 } from "../../types";
 import { Button } from "@/components/ui/button";
 import { useAuthState } from "react-firebase-hooks/auth";
