@@ -1,37 +1,55 @@
-// src/App.tsx
+// src/App.tsx - Оптимизированная версия
 
 import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, lazy, Suspense } from "react";
 import { useAuthStore } from "./stores/useAuthStore";
 import { useOfflineStore } from "./stores/useOfflineStore";
 import { Helmet } from "react-helmet-async";
 import { useUIStore } from "./stores/useUIStore";
-import { useLibraryStore } from "./stores/useLibraryStore";
-import { usePlaylistStore } from "./stores/usePlaylistStore";
 import ErrorBoundary from "./components/ErrorBoundary";
-import HomePage from "./pages/HomePage/HomePage";
-import AlbumPage from "./pages/AlbumPage/AlbumPage";
-import NotFoundPage from "./pages/NotFoundPage/NotFoundPage";
-import AuthPage from "./pages/AuthPage/AuthPage";
-import AllSongsPage from "./pages/AllSongs/AllSongsPage";
-import PlaylistDetailsPage from "./pages/PlaylistPage/PlaylistDetailsPage";
-import ArtistPage from "./pages/ArtistPage/ArtistPage";
-import ProfilePage from "./pages/ProfilePage/ProfilePage";
-import DisplayListPage from "./pages/DisplayListPage/DisplayListPage";
-import MixDetailsPage from "./pages/MixDetailsPage/MixDetailsPage";
-import PersonalMixPage from "./pages/PersonalMixPage/PersonalMixPage";
-import AllMixesPage from "./pages/AllMixesPage/AllMixesPage";
-import GeneratedPlaylistPage from "./pages/GeneratedPlaylistPage/GeneratedPlaylistPage";
-import TopTracksPage from "./pages/TopTracksPage/TopTracksPage";
+import StandardLoader from "./components/ui/StandardLoader";
 
+// Eager load критичные компоненты
+import HomePage from "./pages/HomePage/HomePage";
 import MainLayout from "./layout/MainLayout";
-import OfflinePage from "./pages/OfflinePage/OfflinePage";
-import LibraryPage from "./pages/LibraryPage/LibraryPage";
-import SettingsPage from "./pages/SettingsPage/SettingsPage";
-import SearchPage from "./pages/SearchPage/SearchPage";
-import LikedSongs from "./pages/LikedSongs/LikedSongs";
-import ChatPage from "./pages/ChatPage/ChatPage";
+import AuthPage from "./pages/AuthPage/AuthPage";
+
+// Lazy load остальные страницы
+const AlbumPage = lazy(() => import("./pages/AlbumPage/AlbumPage"));
+const NotFoundPage = lazy(() => import("./pages/NotFoundPage/NotFoundPage"));
+const AllSongsPage = lazy(() => import("./pages/AllSongs/AllSongsPage"));
+const PlaylistDetailsPage = lazy(
+  () => import("./pages/PlaylistPage/PlaylistDetailsPage")
+);
+const ArtistPage = lazy(() => import("./pages/ArtistPage/ArtistPage"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage/ProfilePage"));
+const DisplayListPage = lazy(
+  () => import("./pages/DisplayListPage/DisplayListPage")
+);
+const MixDetailsPage = lazy(
+  () => import("./pages/MixDetailsPage/MixDetailsPage")
+);
+const PersonalMixPage = lazy(
+  () => import("./pages/PersonalMixPage/PersonalMixPage")
+);
+const AllMixesPage = lazy(() => import("./pages/AllMixesPage/AllMixesPage"));
+const GeneratedPlaylistPage = lazy(
+  () => import("./pages/GeneratedPlaylistPage/GeneratedPlaylistPage")
+);
+const TopTracksPage = lazy(() => import("./pages/TopTracksPage/TopTracksPage"));
+const OfflinePage = lazy(() => import("./pages/OfflinePage/OfflinePage"));
+const LibraryPage = lazy(() => import("./pages/LibraryPage/LibraryPage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage/SettingsPage"));
+const SearchPage = lazy(() => import("./pages/SearchPage/SearchPage"));
+const LikedSongs = lazy(() => import("./pages/LikedSongs/LikedSongs"));
+const ChatPage = lazy(() => import("./pages/ChatPage/ChatPage"));
+
+const LoadingFallback = () => (
+  <div className="h-screen w-full bg-[#0f0f0f] flex items-center justify-center">
+    <StandardLoader size="lg" showText={false} />
+  </div>
+);
 
 function App() {
   const user = useAuthStore((state) => state.user);
@@ -39,47 +57,49 @@ function App() {
   const location = useLocation();
   const navigate = useNavigate();
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const initialDataFetchedRef = useRef(false);
 
-  const { fetchInitialData, setIsIosDevice } = useUIStore(); // <-- Получаем функцию
-  const { fetchLibrary } = useLibraryStore();
-  const { fetchMyPlaylists } = usePlaylistStore();
+  const { fetchInitialData, setIsIosDevice } = useUIStore();
   const canonicalUrl = `https://moodify-studio.vercel.app${location.pathname}`;
 
+  // Определяем iOS один раз при загрузке
   useEffect(() => {
-    // Определяем iOS один раз при загрузке
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     setIsIosDevice(isIOS);
   }, [setIsIosDevice]);
 
+  // Единственный вызов fetchInitialData с debounce
   useEffect(() => {
-    if (user && navigator.onLine) {
-      console.log("App.tsx: User detected, fetching initial app data.");
-      fetchInitialData();
+    if (initialDataFetchedRef.current || !navigator.onLine) return;
+
+    const shouldFetch = user || !useAuthStore.getState().user;
+
+    if (shouldFetch) {
+      console.log("App.tsx: Fetching initial data (once)");
+      initialDataFetchedRef.current = true;
+
+      // Небольшая задержка для предотвращения race conditions
+      const timeoutId = setTimeout(() => {
+        fetchInitialData();
+      }, 100);
+
+      return () => clearTimeout(timeoutId);
     }
   }, [user, fetchInitialData]);
 
   const fetchDataForUser = useCallback(() => {
-    if (navigator.onLine) {
-      console.log("fetchDataForUser called. Fetching all initial data...");
+    if (navigator.onLine && !initialDataFetchedRef.current) {
+      console.log("fetchDataForUser: Fetching initial data");
       fetchInitialData();
+      initialDataFetchedRef.current = true;
 
       const { syncLibrary } = useOfflineStore.getState().actions;
       console.log("User is online, syncing library.");
       syncLibrary();
-    } else {
-      console.log(
-        "fetchDataForUser called, but user is offline. Skipping network requests."
-      );
     }
   }, [fetchInitialData]);
 
-  useEffect(() => {
-    if (!useAuthStore.getState().user && navigator.onLine) {
-      console.log("No user on initial load. Fetching public data.");
-      fetchInitialData();
-    }
-  }, [fetchInitialData]);
-
+  // Инициализация offline store
   useEffect(() => {
     const { init: initOffline, checkOnlineStatus } =
       useOfflineStore.getState().actions;
@@ -101,6 +121,7 @@ function App() {
       }
     };
 
+    // Инициализируем offline store асинхронно
     initOffline();
 
     window.addEventListener("online", handleNetworkChange);
@@ -115,16 +136,7 @@ function App() {
     };
   }, [fetchDataForUser]);
 
-  useEffect(() => {
-    if (user && !navigator.onLine) {
-      console.log(
-        "App.tsx: User detected while offline. Triggering offline data load."
-      );
-      fetchLibrary();
-      fetchMyPlaylists();
-    }
-  }, [user, fetchLibrary, fetchMyPlaylists]);
-
+  // Редирект на offline страницу
   useEffect(() => {
     const exactSafePaths = [
       "/library",
@@ -165,40 +177,42 @@ function App() {
       </Helmet>
 
       <ErrorBoundary>
-        <Routes>
-          <Route path="sitemap.xml" element={"sitemap.xml"} />
-          <Route path="login" element={<AuthPage />} />
-          <Route element={<MainLayout />}>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/all-songs/:category?" element={<AllSongsPage />} />
-            <Route path="/chat" element={<ChatPage />} />
-            <Route path="/albums/:albumId" element={<AlbumPage />} />
-            <Route path="*" element={<NotFoundPage />} />
-            <Route path="/search" element={<SearchPage />} />
-            <Route path="/liked-songs" element={<LikedSongs />} />
-            <Route path="/library" element={<LibraryPage />} />
-            <Route
-              path="/playlists/:playlistId"
-              element={<PlaylistDetailsPage />}
-            />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/artists/:id" element={<ArtistPage />} />
-            <Route path="/users/:userId" element={<ProfilePage />} />
-            <Route path="/list" element={<DisplayListPage />} />
-            <Route path="/mixes/:mixId" element={<MixDetailsPage />} />
-            <Route path="/personal-mixes/:id" element={<PersonalMixPage />} />
-            <Route path="/all-mixes/:category" element={<AllMixesPage />} />
-            <Route path="/offline" element={<OfflinePage />} />
-            <Route
-              path="/generated-playlists/:id"
-              element={<GeneratedPlaylistPage />}
-            />
-            <Route
-              path="/users/:userId/top-tracks"
-              element={<TopTracksPage />}
-            />
-          </Route>
-        </Routes>
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            <Route path="sitemap.xml" element={"sitemap.xml"} />
+            <Route path="login" element={<AuthPage />} />
+            <Route element={<MainLayout />}>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/all-songs/:category?" element={<AllSongsPage />} />
+              <Route path="/chat" element={<ChatPage />} />
+              <Route path="/albums/:albumId" element={<AlbumPage />} />
+              <Route path="*" element={<NotFoundPage />} />
+              <Route path="/search" element={<SearchPage />} />
+              <Route path="/liked-songs" element={<LikedSongs />} />
+              <Route path="/library" element={<LibraryPage />} />
+              <Route
+                path="/playlists/:playlistId"
+                element={<PlaylistDetailsPage />}
+              />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/artists/:id" element={<ArtistPage />} />
+              <Route path="/users/:userId" element={<ProfilePage />} />
+              <Route path="/list" element={<DisplayListPage />} />
+              <Route path="/mixes/:mixId" element={<MixDetailsPage />} />
+              <Route path="/personal-mixes/:id" element={<PersonalMixPage />} />
+              <Route path="/all-mixes/:category" element={<AllMixesPage />} />
+              <Route path="/offline" element={<OfflinePage />} />
+              <Route
+                path="/generated-playlists/:id"
+                element={<GeneratedPlaylistPage />}
+              />
+              <Route
+                path="/users/:userId/top-tracks"
+                element={<TopTracksPage />}
+              />
+            </Route>
+          </Routes>
+        </Suspense>
       </ErrorBoundary>
       <Toaster
         toastOptions={{
