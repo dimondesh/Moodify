@@ -9,7 +9,7 @@ const MoodifyLogo = () => {
   return (
     <div className="logo-container">
       <img
-        src="/Moodify.svg"
+        src="/Moodify-transparent.svg"
         alt="Moodify Logo"
         className={`moodify-logo ${
           isReduceMotionEnabled ? "no-animation" : "animated"
