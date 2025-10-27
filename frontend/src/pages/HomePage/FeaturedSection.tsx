@@ -34,6 +34,8 @@ const FeaturedSectionComponent = ({
     fetchArtists();
   }, [fetchArtists]);
 
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
+
   const getArtistNamesDisplay = (
     artistsInput: (string | Artist)[] | undefined,
     isMobileView: boolean
@@ -98,7 +100,9 @@ const FeaturedSectionComponent = ({
   if (error) return <p className="text-red-500 mb-4 text-lg">{error}</p>;
 
   const songsArray = Array.isArray(featuredSongs) ? featuredSongs : [];
-  const songsToShow = songsArray.slice(0, 6);
+  const songsToShow = isDesktop
+    ? songsArray.slice(0, 8)
+    : songsArray.slice(0, 6);
 
   const handleNavigateToAlbum = (albumId: string | null | undefined) => {
     if (albumId) {
@@ -130,7 +134,7 @@ const FeaturedSectionComponent = ({
   };
   return (
     <div
-      className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-8"
+      className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-8"
       onMouseLeave={onSongLeave}
     >
       {songsToShow.map((song, index) => {

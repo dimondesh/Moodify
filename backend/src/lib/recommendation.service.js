@@ -155,7 +155,7 @@ export const generatePlaylistRecommendationsForUser = async (userId) => {
   }
 };
 
-export const generateFeaturedSongsForUser = async (userId, limit = 6) => {
+export const generateFeaturedSongsForUser = async (userId, limit = 8) => {
   try {
     const listenHistory = await ListenHistory.find({ user: userId })
       .sort({ listenedAt: -1 })

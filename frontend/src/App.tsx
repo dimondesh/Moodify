@@ -60,7 +60,7 @@ function App() {
   const initialDataFetchedRef = useRef(false);
 
   const { fetchInitialData, setIsIosDevice } = useUIStore();
-  const canonicalUrl = `https://moodify-studio.vercel.app${location.pathname}`;
+  const canonicalUrl = `https://moodify-music.vercel.app${location.pathname}`;
 
   // Определяем iOS один раз при загрузке
   useEffect(() => {
@@ -166,7 +166,7 @@ function App() {
   return (
     <>
       <Helmet
-        defaultTitle="Moodify - Your Music Creation Space"
+        defaultTitle="Moodify - Discover Your Music"
         titleTemplate="%s | Moodify"
       >
         <meta

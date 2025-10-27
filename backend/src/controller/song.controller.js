@@ -31,7 +31,7 @@ export const getQuickPicks = async (
   res,
   next,
   returnInternal = false,
-  limit = 6
+  limit = 8
 ) => {
   try {
     const userId = req.user?.id;

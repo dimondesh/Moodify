@@ -23,7 +23,7 @@ const HOME_SECTION_LIMIT = 12;
 
 export const getPrimaryHomePageData = async (req, res, next) => {
   try {
-    const featuredSongs = await getQuickPicks(req, res, next, true, 6);
+    const featuredSongs = await getQuickPicks(req, res, next, true, 8);
     res.status(200).json({ featuredSongs });
   } catch (error) {
     console.error("Error fetching primary homepage data:", error);
@@ -96,7 +96,7 @@ export const getBootstrapData = async (req, res, next) => {
     const userId = req.user?.id;
 
     const promises = [
-      getQuickPicks(req, res, next, true, 6),
+      getQuickPicks(req, res, next, true, 8),
 
       getTrendingAlbums(req, res, next, true, HOME_SECTION_LIMIT),
 
