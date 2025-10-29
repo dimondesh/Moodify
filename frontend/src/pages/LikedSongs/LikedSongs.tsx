@@ -282,7 +282,7 @@ const LikedSongsPage = () => {
                 <img
                   src="/liked.png"
                   alt={t("pages.likedSongs.title")}
-                  className="w-48 h-48 sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px] shadow-xl rounded object-cover"
+                  className="w-64 h-64 sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px] shadow-xl rounded object-cover"
                 />
                 <div className="flex flex-col justify-end text-center sm:text-left">
                   <p className="text-xs sm:text-sm font-medium ">

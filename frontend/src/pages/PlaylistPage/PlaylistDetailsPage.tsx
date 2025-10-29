@@ -652,7 +652,7 @@ const PlaylistDetailsPage = () => {
                     500
                   )}
                   alt={currentPlaylist.title}
-                  className="w-48 h-48 sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px] shadow-xl rounded-md object-cover flex-shrink-0 mx-auto sm:mx-0"
+                  className="w-64 h-64 sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px] shadow-xl rounded-md object-cover flex-shrink-0 mx-auto sm:mx-0"
                 />
                 <div className="flex flex-col justify-end text-center sm:text-left min-w-0 w-full">
                   <p className="text-xs sm:text-sm font-medium">

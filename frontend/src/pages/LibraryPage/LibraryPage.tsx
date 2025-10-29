@@ -563,7 +563,7 @@ const LibraryPage = () => {
                         <Link
                           key={`${item.type}-${item._id}`}
                           to={linkPath}
-                          className="bg-transparent p-0 rounded-md hover:bg-[#2a2a2a]/50 transition-all group cursor-pointer flex flex-col items-center text-center hover-scale"
+                          className="bg-transparent p-0 rounded-md hover:bg-[#2a2a2a]/50 transition-all group cursor-pointer flex flex-col items-center text-center"
                         >
                           <div className="relative mb-2 w-full">
                             <div

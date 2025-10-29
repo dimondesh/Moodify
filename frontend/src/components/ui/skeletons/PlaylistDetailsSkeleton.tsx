@@ -11,7 +11,7 @@ const PlaylistDetailsSkeleton = () => {
         />
         <div className="relative z-10">
           <div className="flex flex-col md:flex-row items-center md:items-end gap-6 mb-8">
-            <div className="w-48 h-48 md:w-56 md:h-56 lg:w-64 lg:h-64 rounded-md shadow-xl flex-shrink-0 bg-zinc-800 animate-pulse" />
+            <div className="w-64 h-64 md:w-56 md:h-56 lg:w-64 lg:h-64 rounded-md shadow-xl flex-shrink-0 bg-zinc-800 animate-pulse" />
             <div className="flex flex-col text-center md:text-left w-full max-w-lg">
               <div className="h-4 w-24 mb-2 bg-zinc-700 rounded animate-pulse" />{" "}
               <div className="h-10 w-3/4 mb-2 bg-zinc-700 rounded animate-pulse" />{" "}

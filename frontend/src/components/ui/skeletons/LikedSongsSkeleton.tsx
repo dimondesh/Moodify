@@ -17,7 +17,7 @@ const LikedSongsSkeleton: React.FC = () => {
             {/* Header section with image and title */}
             <div className="flex flex-col sm:flex-row p-4 sm:p-6 gap-4 sm:gap-6 pb-8 items-center sm:items-end">
               {/* Liked songs image skeleton */}
-              <div className="w-48 h-48 sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px] bg-[#2a2a2a] rounded shadow-xl animate-pulse" />
+              <div className="w-64 h-64 sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px] bg-[#2a2a2a] rounded shadow-xl animate-pulse" />
 
               {/* Title and metadata skeleton */}
               <div className="flex flex-col justify-end text-center sm:text-left">
