@@ -1,6 +1,8 @@
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { cn } from "../../../lib/utils";
 
 function FeaturedGridSkeleton({ className }: { className?: string }) {
+  const isMobile = useMediaQuery("(max-width: 1024px)");
   return (
     <div
       className={cn(
@@ -8,7 +10,7 @@ function FeaturedGridSkeleton({ className }: { className?: string }) {
         className
       )}
     >
-      {Array.from({ length: 8 }).map((_, i) => (
+      {Array.from({ length: isMobile ? 6 : 8 }).map((_, i) => (
         <div
           key={i}
           className="flex items-center bg-zinc-800/50 rounded-md overflow-hidden relative"
