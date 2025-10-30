@@ -1,53 +1,47 @@
-import React from "react";
-import { useTranslation } from "react-i18next";
-import { Card, CardContent } from "./ui/card";
+// src/components/ErrorBoundary.tsx
+import { Component, ErrorInfo, ReactNode } from "react";
+import { ErrorFallbackUI } from "./ui/ErrorFallbackUI"; // Импортируем наш UI
 
-interface ErrorBoundaryProps {
-  children: React.ReactNode;
+interface Props {
+  children: ReactNode;
 }
 
-const ErrorBoundary: React.FC<ErrorBoundaryProps> = ({ children }) => {
-  const { t } = useTranslation();
-  const [hasError, setHasError] = React.useState(false);
-  const [error, setError] = React.useState<Error | null>(null);
+interface State {
+  hasError: boolean;
+  error: Error | null;
+}
 
-  React.useEffect(() => {
-    const handleError = (event: ErrorEvent) => {
-      if (event.error?.name === "ChunkLoadError") {
-        console.error("ChunkLoadError occurred:", event.error);
-        window.location.reload();
-        return;
-      }
-      setError(event.error);
-      setHasError(true);
-    };
+class ErrorBoundary extends Component<Props, State> {
+  public state: State = {
+    hasError: false,
+    error: null,
+  };
 
-    window.addEventListener("error", handleError);
-    return () => window.removeEventListener("error", handleError);
-  }, []);
-
-  if (hasError) {
-    return (
-      <div className="h-screen w-full bg-[#0f0f0f] flex items-center justify-center">
-        <Card className="w-[90%] max-w-md bg-[#1a1a1a] border-[#2a2a2a]">
-          <CardContent className="flex flex-col items-center gap-4 pt-6">
-            <h2 className="text-gray-400 text-xl font-bold">
-              {t("errors.somethingWentWrong")}
-            </h2>
-            <button
-              className="px-4 py-2 bg-violet-600 text-white rounded-full hover:bg-violet-700 transition-colors"
-              onClick={() => window.location.reload()}
-            >
-              {t("errors.reloadPage")}
-            </button>
-            <p className="text-gray-500 text-sm">{error?.message}</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+  // Этот метод обновляет стейт, чтобы следующий рендер показал запасной UI.
+  public static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error };
   }
 
-  return children;
-};
+  // Этот метод вызывается после ошибки и идеально подходит для логирования
+  // или выполнения побочных эффектов, как перезагрузка страницы.
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("ErrorBoundary caught an error:", error, errorInfo);
+
+    // Здесь мы сохраняем вашу логику для ChunkLoadError!
+    if (error.name === "ChunkLoadError") {
+      window.location.reload();
+    }
+  }
+
+  public render() {
+    if (this.state.hasError) {
+      // Если произошла ошибка, рендерим наш красивый компонент
+      return <ErrorFallbackUI error={this.state.error} />;
+    }
+
+    // В противном случае, рендерим дочерние компоненты как обычно
+    return this.props.children;
+  }
+}
 
 export default ErrorBoundary;
