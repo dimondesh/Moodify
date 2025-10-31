@@ -225,7 +225,7 @@ const LeftSidebar = () => {
         libraryItemsMap.set(personalMix._id, {
           _id: personalMix._id,
           type: "personal-mix",
-          title: personalMix.name,
+          title: t("personalMix.title") + " " + personalMix.name.split(" ")[2],
           imageUrl: personalMix.imageUrl,
           createdAt: new Date((personalMix as any).addedAt ?? new Date()),
         } as PersonalMixItem);
@@ -507,7 +507,7 @@ const LeftSidebar = () => {
                     case "personal-mix": {
                       const personalMixItem = item as PersonalMixItem;
                       linkPath = `/personal-mixes/${personalMixItem._id}`;
-                      subtitle = "Personal Mix";
+                      subtitle = t("personalMix.title");
                       break;
                     }
                     default:

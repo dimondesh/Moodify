@@ -520,12 +520,14 @@ const PersonalMixPage = () => {
                   className="w-64 h-64 sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px] shadow-xl rounded-md object-cover flex-shrink-0 mx-auto sm:mx-0"
                 />
                 <div className="flex flex-col justify-end flex-grow">
-                  <p className="text-xs sm:text-sm font-medium">Personal Mix</p>
+                  <p className="text-xs sm:text-sm font-medium">
+                    {t("personalMix.title")}
+                  </p>
                   <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold mt-2 mb-2 sm:my-4">
-                    {personalMix.name}
+                    {t("personalMix.title")} {personalMix.name.split(" ")[2]}
                   </h1>
                   <p className="text-gray-400 text-base mt-2">
-                    A personal mix based on your listening habits.
+                    {t("personalMix.desc")}
                   </p>
                   <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 text-xs sm:text-sm text-gray-100 mt-2">
                     <img src="/Moodify.svg" alt="Moodify" className="size-4" />

@@ -811,12 +811,19 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
       albumArtistIds.push(artist._id);
     }
 
-    const albumType =
-      spotifyAlbumData.album_type === "single"
-        ? "Single"
-        : spotifyAlbumData.total_tracks <= 6
-        ? "EP"
-        : "Album";
+    const albumTypeFromSpotify = spotifyAlbumData.album_type;
+    const totalTracks = spotifyAlbumData.total_tracks;
+    let albumType;
+
+    if (albumTypeFromSpotify === "single") {
+      albumType = "Single";
+    } else {
+      if (totalTracks >= 2 && totalTracks <= 6) {
+        albumType = "EP";
+      } else {
+        albumType = "Album";
+      }
+    }
 
     const albumImageUrl =
       spotifyAlbumData.images?.[0]?.url || DEFAULT_ALBUM_IMAGE_URL;

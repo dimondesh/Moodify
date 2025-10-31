@@ -17,7 +17,6 @@
       "EP": "EP",
       "playlist": "Playlist",
       "artist": "Artist",
-      "dailyMix": "Daily Mix",
       "songs": "songs",
       "song": "song",
       "user": "User",
@@ -635,11 +634,11 @@
     "resetAudioDesc": "Resets equalizer, normalization, and wave analyzer settings to default values.",
     "downloads": "Downloads",
     "storage": "Storage Management",
-      "usedStorage": "Used Storage",
-      "downloadedContent": "Downloaded Content",
-      "calculating": "Calculating...",
-      "storageRefreshFailed": "Failed to refresh storage usage",
-      "totalAvailable": "Total Available",
+    "usedStorage": "Used Storage",
+    "downloadedContent": "Downloaded Content",
+    "calculating": "Calculating...",
+    "storageRefreshFailed": "Failed to refresh storage usage",
+    "totalAvailable": "Total Available",
     "clearAllDownloads": "Clear All Downloads",
     "clearLabel": "This will remove all downloaded songs, albums, and playlists from this device.",
     "playbackSpeed": "Playback Speed",
@@ -800,10 +799,10 @@
       "tableSongs": "Songs",
       "tableActions": "Actions",
       "share": "Share",
-    "addToLiked": "Add to Liked Songs",
-    "removeFromLiked": "Remove from Liked",
-    "addToPlaylist": "Add to playlist",
-    "goToArtist": "Go to artist"
+      "addToLiked": "Add to Liked Songs",
+      "removeFromLiked": "Remove from Liked",
+      "addToPlaylist": "Add to playlist",
+      "goToArtist": "Go to artist"
     },
     "artists": {
       "title": "Artists Library",
@@ -856,7 +855,7 @@
       "notFoundDesc": "The album you are looking for could not be found.",
       "type": "Album",
       "EP": "EP",
-      "Single": "Single", 
+      "Single": "Single",
       "Album": "Album",
       "songs": "songs",
       "song": "song",
@@ -1142,6 +1141,9 @@
     "heading": "You are offline",
     "description": "It seems you're not connected to the internet. You can still access your downloaded music.",
     "goToLibrary": "Go to Your Library"
+  },
+  "personalMix": {
+    "title": "Personal Mix",
+    "desc": "A personal mix based on your listening habits."
   }
-
 }

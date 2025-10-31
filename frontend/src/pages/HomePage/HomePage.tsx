@@ -267,6 +267,7 @@ const HomePageComponent = () => {
       personalMixes.map((mix) => ({
         ...mix,
         itemType: "personal-mix" as const,
+        name: t("personalMix.title") + " " + mix.name.split(" ")[2],
       })),
     [personalMixes]
   );

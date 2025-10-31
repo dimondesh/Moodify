@@ -6,7 +6,7 @@ function FeaturedGridSkeleton({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "grid grid-cols-2  sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8",
+        "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-8",
         className
       )}
     >
@@ -21,7 +21,11 @@ function FeaturedGridSkeleton({ className }: { className?: string }) {
             <div className="h-3 bg-zinc-700 rounded w-1/2 animate-pulse" />
           </div>
           {/* Play button placeholder */}
-          <div className="absolute bottom-4 right-4 bg-zinc-600 rounded-full size-12 opacity-0 group-hover:opacity-100 transition-opacity animate-pulse" />
+          <div
+            className={`absolute bottom-4 right-4 bg-zinc-600 rounded-full size-12 opacity-0 group-hover:opacity-100 transition-opacity animate-pulse ${
+              isMobile ? "hidden" : ""
+            }`}
+          />
         </div>
       ))}
     </div>
