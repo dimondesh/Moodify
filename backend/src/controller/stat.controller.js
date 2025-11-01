@@ -40,7 +40,7 @@ export const checkAnalysisServiceHealth = async (req, res, next) => {
   try {
     const analysisServiceUrl =
       process.env.ANALYSIS_SERVICE_URL ||
-      "https://moodify-analysis-service.onrender.com";
+      "https://moodify-analysis-service.onrender.com/";
 
     const response = await axios.get(analysisServiceUrl, {
       timeout: 50000,
