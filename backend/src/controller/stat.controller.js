@@ -38,18 +38,35 @@ export const getHealthStatus = async (req, res, next) => {
 };
 export const checkAnalysisServiceHealth = async (req, res, next) => {
   try {
-    const analysisServiceUrl = "https://moodify-analysis-service.onrender.com";
+    const analysisServiceUrl =
+      process.env.ANALYSIS_SERVICE_URL ||
+      "https://moodify-analysis-service.onrender.com";
 
-    const agent = new https.Agent({
-      rejectUnauthorized: false,
+    const response = await axios.get(analysisServiceUrl, {
+      timeout: 50000,
     });
-
-    const response = await axios.get(analysisServiceUrl, { httpsAgent: agent });
 
     res.status(response.status).json(response.data);
   } catch (error) {
-    console.error("Analysis service check failed:", error);
+    let status = 502;
+    let message = "Analysis service is unreachable or timed out";
 
-    res.status(502).json({ error: "Analysis service is unreachable" });
+    if (error.response) {
+      status = error.response.status;
+      message = error.response.data || "Analysis service returned an error";
+      console.error(
+        `Analysis service responded with status ${status}:`,
+        message
+      );
+    } else if (error.code === "ECONNABORTED") {
+      message = `Analysis service timed out after ${
+        error.config.timeout / 1000
+      }s.`;
+      console.error(message);
+    } else {
+      console.error("Generic error checking analysis service:", error.message);
+    }
+
+    res.status(status).json({ error: message });
   }
 };
