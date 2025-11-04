@@ -138,7 +138,12 @@ export const useUIStore = create<UIStore>()(
       fetchInitialData: async () => {
         set({ isHomePageLoading: true, isSecondaryHomePageLoading: true });
         try {
-          const { data } = await axiosInstance.get("/home/bootstrap");
+          const [bootstrapResponse] = await Promise.all([
+            axiosInstance.get("/home/bootstrap"),
+            usePlaylistStore.getState().fetchMyPlaylists(),
+          ]);
+
+          const { data } = bootstrapResponse;
 
           useMusicStore.setState({
             featuredSongs: data.featuredSongs || [],
@@ -159,7 +164,6 @@ export const useUIStore = create<UIStore>()(
             savedMixes: data.library.savedMixes || [],
             savedPersonalMixes: data.library.savedPersonalMixes || [],
             generatedPlaylists: data.library.generatedPlaylists || [],
-            isLoading: false,
           });
 
           usePlaylistStore.setState({

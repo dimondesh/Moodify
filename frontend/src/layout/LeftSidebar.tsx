@@ -48,16 +48,11 @@ const LeftSidebar = () => {
     savedMixes,
     savedPersonalMixes,
     followedArtists,
-    isLoading: isLoadingLibrary,
     generatedPlaylists,
     likedSongs,
   } = useLibraryStore();
 
-  const {
-    myPlaylists,
-    isLoading: isLoadingPlaylists,
-    fetchMyPlaylists,
-  } = usePlaylistStore();
+  const { myPlaylists, fetchMyPlaylists } = usePlaylistStore();
 
   const [user, loadingUser] = useAuthState(auth);
   const { isOffline } = useOfflineStore();
@@ -80,20 +75,10 @@ const LeftSidebar = () => {
   const playlistsFetchedRef = useRef(false);
   const sidebarSearchInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch playlists when library data is loaded and user is authenticated
-  useEffect(() => {
-    if (
-      user &&
-      !isLoadingLibrary &&
-      !isOffline &&
-      !playlistsFetchedRef.current
-    ) {
-      playlistsFetchedRef.current = true;
-      fetchMyPlaylists();
-    }
-  }, [user, isLoadingLibrary, isOffline, fetchMyPlaylists]);
+  const { isHomePageLoading } = useUIStore();
 
-  // Reset the ref when user changes
+  const isLoading = (isHomePageLoading || loadingUser) && !isOffline;
+
   useEffect(() => {
     playlistsFetchedRef.current = false;
   }, [user]);
@@ -130,9 +115,6 @@ const LeftSidebar = () => {
     },
     [artists, t]
   );
-
-  const isLoading =
-    (isLoadingLibrary || isLoadingPlaylists || loadingUser) && !isOffline;
 
   const libraryItems = useMemo(() => {
     const libraryItemsMap = new Map<string, LibraryItem>();

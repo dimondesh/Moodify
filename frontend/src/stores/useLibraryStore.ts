@@ -74,7 +74,6 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
       console.log("[Offline] Fetching library from IndexedDB.");
       if (!userId) {
         set({
-          isLoading: false,
           error: i18n.t("errors.userNotAvailableOffline"),
         });
         return;
@@ -96,13 +95,11 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
           generatedPlaylists: playlists.filter(
             (p: any) => p.isGenerated
           ) as unknown as GeneratedPlaylist[],
-          isLoading: false,
         });
       } catch (err: any) {
         console.error("Failed to fetch offline library data:", err);
         set({
           error: err.message || i18n.t("errors.fetchLibraryOfflineError"),
-          isLoading: false,
         });
       }
       return;
@@ -120,13 +117,13 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
         savedMixes: data.savedMixes || [],
         savedPersonalMixes: data.savedPersonalMixes || [],
         generatedPlaylists: data.generatedPlaylists || [],
-        isLoading: false,
       });
     } catch (err: any) {
       set({
         error: err.message || i18n.t("errors.fetchLibraryError"),
-        isLoading: false,
       });
+    } finally {
+      set({ isLoading: false });
     }
   },
 
@@ -175,7 +172,6 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
     if (isOffline) {
       if (!userId) {
         set({
-          isLoading: false,
           error: i18n.t("errors.userNotAvailableOffline"),
         });
         return;
@@ -185,11 +181,10 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
       );
       try {
         const allDownloadedSongs = await getAllUserSongs(userId);
-        set({ likedSongs: allDownloadedSongs, isLoading: false });
+        set({ likedSongs: allDownloadedSongs });
       } catch (err: any) {
         set({
           error: err.message || i18n.t("errors.fetchOfflineSongsError"),
-          isLoading: false,
         });
       }
       return;
@@ -197,12 +192,13 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
 
     try {
       const res = await axiosInstance.get("/library/liked-songs");
-      set({ likedSongs: res.data.songs, isLoading: false });
+      set({ likedSongs: res.data.songs });
     } catch (err: any) {
       set({
         error: err.message || i18n.t("errors.fetchLikedSongsError"),
-        isLoading: false,
       });
+    } finally {
+      set({ isLoading: false });
     }
   },
 
