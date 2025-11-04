@@ -14,7 +14,7 @@ import { cn } from "../lib/utils";
 import { Button } from "../components/ui/button";
 import { ScrollArea } from "../components/ui/scroll-area";
 import PlaylistSkeleton from "../components/ui/skeletons/PlaylistSkeleton";
-import { useMemo, useEffect, useRef, useCallback } from "react";
+import React, { useMemo, useEffect, useRef, useCallback } from "react";
 import { useLibraryStore } from "../stores/useLibraryStore";
 import { usePlaylistStore } from "../stores/usePlaylistStore";
 import { useAuthState } from "react-firebase-hooks/auth";
@@ -78,6 +78,24 @@ const LeftSidebar = () => {
   const { isHomePageLoading } = useUIStore();
 
   const isLoading = (isHomePageLoading || loadingUser) && !isOffline;
+
+  const GridSkeleton = React.memo(() => (
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,1fr))] gap-1">
+      {Array.from({ length: 18 }).map((_, index) => (
+        <div
+          key={index}
+          className="px-0 py-1 flex flex-col items-center space-y-2"
+        >
+          <div className="w-full h-20 bg-zinc-800 rounded-md animate-pulse" />
+          <div className="w-full flex flex-col items-center space-y-1.5">
+            <div className="h-3 w-3/4 bg-zinc-800 rounded-full animate-pulse" />
+            <div className="h-2 w-1/2 bg-zinc-800 rounded-full animate-pulse" />
+          </div>
+        </div>
+      ))}
+    </div>
+  ));
+  GridSkeleton.displayName = "GridSkeleton"; // Хорошая практика для отладки
 
   useEffect(() => {
     playlistsFetchedRef.current = false;
@@ -414,9 +432,12 @@ const LeftSidebar = () => {
             </div>
           </div>
         )}
-
         {isLoading ? (
-          <PlaylistSkeleton />
+          leftSidebarViewMode === "grid" ? (
+            <GridSkeleton />
+          ) : (
+            <PlaylistSkeleton />
+          )
         ) : !user ? (
           <LoginPrompt className="flex-1" />
         ) : filteredLibraryItems.length === 0 ? (
