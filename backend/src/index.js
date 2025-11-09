@@ -84,7 +84,7 @@ app.use(
 );
 
 cron.schedule(
-  "*/5 * * * *", // Каждые 6 часов
+  "* */6 * * *", // Каждые 6 часов
   async () => {
     console.log(
       'CRON JOB: Starting "Featured Songs" generation for all users...'
@@ -175,7 +175,7 @@ cron.schedule(
   }
 );
 cron.schedule(
-  "*/2 * * * *",
+  "0 0 * * *",
   async () => {
     console.log('CRON JOB: Starting "Personal Mixes" generation...');
     try {
@@ -206,7 +206,7 @@ cron.schedule("*/10 * * * *", () => {
 });
 
 cron.schedule(
-  "*/5 * * * *",
+  "0 1 * * *",
   () => {
     updateDailyMixes();
   },
@@ -218,7 +218,7 @@ cron.schedule(
 
 // Запускаем каждый день в 4 часа утра
 cron.schedule(
-  "*/10 * * * *",
+  "* * */3 * *",
   async () => {
     console.log('CRON JOB: Starting "On Repeat" playlist generation...');
     try {
