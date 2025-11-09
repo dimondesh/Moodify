@@ -58,6 +58,7 @@ const MainLayout = () => {
     isMobileLyricsFullScreen,
     setIsDesktopLyricsOpen,
     setIsMobileLyricsFullScreen,
+    togglePlay,
   } = usePlayerStore();
 
   const {
@@ -153,6 +154,37 @@ const MainLayout = () => {
       document.body.style.overflow = "";
     };
   }, [isUserSheetOpen, isMobile]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== " ") {
+        return;
+      }
+
+      const target = event.target as HTMLElement;
+      const isTyping =
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT" ||
+        target.isContentEditable;
+
+      if (isTyping) {
+        return;
+      }
+
+      event.preventDefault();
+
+      if (currentSong) {
+        togglePlay();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [togglePlay, currentSong]);
 
   return (
     <div
