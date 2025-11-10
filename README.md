@@ -3,7 +3,7 @@
 </p>
 
 <h1 align="center">Moodify Music</h1>
-<p align="center">Next-generation Ukrainian streaming service powered by AI, real-time audio, and deep personalization.</p>
+<p align="center">Next-generation streaming service powered by AI, real-time audio, and deep personalization.</p>
 
 ---
 
