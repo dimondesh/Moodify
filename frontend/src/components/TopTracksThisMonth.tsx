@@ -178,7 +178,7 @@ const TopTracksThisMonth: React.FC<TopTracksThisMonthProps> = ({
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-white truncate">
+                <h3 className="font-semibold text-white truncate max-w-40 sm:max-w-900">
                   {track.title}
                 </h3>
                 <p className="text-sm text-zinc-400 truncate">
