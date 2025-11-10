@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./preview.png" alt="Moodify Music Preview" width="100%">
+  <img src="./Preview.png" alt="Moodify Music Preview" width="100%">
 </p>
 
 <h1 align="center">Moodify Music</h1>
