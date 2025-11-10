@@ -47,7 +47,7 @@ export const getLikedSongs = async (req, res, next) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
-      return res.status(401).json({ message: "Unauthorized" });
+      return;
     }
 
     const library = await Library.findOne({ userId })
