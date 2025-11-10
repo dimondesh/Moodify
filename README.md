@@ -1,80 +1,89 @@
-# Moodify - Your Personal Music Streaming Service
+<p align="center">
+  <img src="./preview.png" alt="Moodify Music Preview" width="100%">
+</p>
 
-![Moodify Preview](https://github.com/dimondesh/Moodify/blob/main/Preview.png)
-
-Moodify is a modern, feature-rich music streaming service built from the ground up to provide a personalized, interactive, and seamless listening experience. This full-stack application showcases a wide range of modern web technologies, from an advanced Web Audio API player to real-time social features and complete offline PWA capabilities.
-
----
-
-## 🚀 Key Features
-
-- **🎧 Advanced Audio Player:** A high-performance player built with the **Web Audio API**, featuring:
-
-  - Separate instrumental and vocal track controls.
-  - A multi-band **Equalizer** with presets and custom settings.
-  - **Reverb** effects to simulate different room sizes.
-  - Adjustable playback speed.
-
-- **🤖 AI-Powered Personalization:**
-
-  - **AI Playlist Generator:** Describe a mood or activity (e.g., "upbeat rock for a workout"), and let AI curate a playlist for you using the Gemini API.
-  - **Personalized Mixes & Recommendations:** Backend cron jobs regularly analyze your listening history to generate daily mixes, "Discover Weekly," "On Repeat," and "New Releases" playlists.
-
-- **⚡ Real-Time Social Features:**
-
-  - **Live Chat:** Instant messaging between mutual followers, built with **Socket.IO**.
-  - **Friend Activity:** See what your friends are listening to in real-time.
-  - Features typing indicators and read receipts for a polished experience.
-
-- **🌐 Full Offline Support (PWA):**
-
-  - Download albums, playlists, and mixes for a complete offline listening experience.
-  - Uses **IndexedDB** for metadata and the **Cache API** for audio/image assets.
-  - **Automatic Library Sync:** Intelligently updates your downloaded content when you reconnect.
-
-- **🌐 Multi-Language Support:**
-
-  - Fully internationalized frontend with support for English, Russian, and Ukrainian using `i18next`.
-
-- **🛠️ Comprehensive Admin Dashboard:**
-  - A complete interface to manage the music catalog, including songs, albums, and artists.
-  - Supports bulk album creation from Spotify URLs and ZIP archives.
+<h1 align="center">🎵 Moodify Music</h1>
+<p align="center">Next-generation Ukrainian streaming service powered by AI, real-time audio, and deep personalization.</p>
 
 ---
 
-## 🏛️ Project Philosophy & Architecture
+## 🚀 Overview
 
-- **Frontend:** The React application is built on a modular and scalable architecture. State is managed with **Zustand**, using separate stores for different domains (player, auth, UI) to ensure maintainability. An offline-first approach is central to the design, providing a reliable experience regardless of network conditions.
-
-- **Backend:** The Express.js server follows a classic MVC-like pattern, separating concerns into routes, controllers, models, and a robust service layer. This ensures that business logic is decoupled and testable. Real-time communication is cleanly handled by a dedicated Socket.IO module, while heavy computational tasks like generating recommendations are offloaded to scheduled cron jobs, keeping the API fast and responsive.
+**Moodify Music** is a full-featured music streaming platform built with **React**, **Express**, and **HLS.js**.  
+It delivers adaptive streaming, advanced audio effects, AI-driven recommendations, playlist generation from prompts, and a real-time social layer similar to Spotify’s *Friend Activity*.  
+All modules are optimized for performance, scalability, and mobile usability.
 
 ---
 
-## 🛠️ Technologies Used
+## ✨ Key Features
 
-### Frontend
+🎧 **Adaptive HLS Streaming** — Seamless playback powered by `hls.js`  
+🎚️ **Audio Effects** — Reverb, EQ, normalization, speed control via `Web Audio API`  
+📈 **Waveform Analyzer** — FL Studio-style oscilloscope for real-time visuals  
+💬 **Realtime Chat** — Built on `Socket.io`, users can share tracks, albums, and playlists  
+🧠 **AI Recommendations** — Based on Gemini-generated tags and audio features  
+🪄 **AI Playlist Generator** — Create playlists by text prompt (e.g. *“summer synthpop vibes”*)  
+👥 **Friends Activity** — See what your friends are listening to in real time  
+📱 **Offline Mode** — Works via `IndexedDB` and `Service Worker`  
+🕵️ **Anonymous Mode** — Listen privately, no traces left  
+🎵 **Lyrics Display** — Synced lyrics for supported tracks  
+📂 **Queue Management** — Add, reorder, and remove songs dynamically  
+🌙 **Modern UI** — Built with `Tailwind CSS`, fully responsive and mobile-first  
 
-- **Framework:** React & TypeScript
-- **Build Tool:** Vite
-- **State Management:** Zustand
-- **Styling:** Tailwind CSS & shadcn/ui
-- **Routing:** React Router DOM
-- **Data Fetching:** Axios
-- **Real-Time:** Socket.IO Client
-- **Offline:** IndexedDB, Service Workers, Cache API
+---
 
-### Backend
+## 🧩 Tech Stack
 
-- **Runtime:** Node.js with Express.js
-- **Language:** JavaScript (ESM)
-- **Database:** MongoDB with Mongoose
-- **Real-Time:** Socket.IO
-- **File Handling:** `express-fileupload` for uploads, Sharp for image optimization
-- **Scheduling:** `node-cron` for background recommendation jobs
+**Frontend**
+- React + TypeScript  
+- Tailwind CSS  
+- Zustand (state management)  
+- HLS.js  
+- Web Audio API  
 
-### Authentication & Infrastructure
+**Backend**
+- Node.js + Express.js  
+- MongoDB  
+- Socket.io (chat + friend activity)  
+- Gemini API (AI tagging, playlist prompts)  
+- Spotify API (metadata and cover art)  
+- Audio Analysis Microservice (audio feature extraction)  
 
-- **Authentication:** Firebase Authentication (Email/Password, Google OAuth)
-- **File Storage:** Bunny.net CDN for optimized media delivery
-- **AI Services:** Google Gemini API
-- **Deployment:** Vercel (Frontend), Render (Backend), MongoDB Atlas (Database)
+**Offline / PWA**
+- IndexedDB + Service Worker  
+
+---
+
+## 🧠 Architecture
+
+Frontend (React + Zustand + Tailwind)
+│
+▼
+Backend (Express.js + MongoDB + Gemini + Spotify APIs)
+│
+├── Audio Analysis Microservice (Audio Features)
+├── HLS Streaming Engine
+└── Socket.io (Chat + Friends Activity)
+
+🔐 Authentication
+Authentication via Firebase Auth, with email/password and OAuth providers.
+
+🌍 Integrations
+Spotify API — Albums, artists, metadata
+
+Gemini API — AI tagging + playlist generation
+
+AudioFeatures API — Python-based track analysis
+
+🧭 Roadmap
+ Collaborative playlists
+
+ Personalized AI DJ mode
+
+ Mobile app (React Native)
+
+ Smart search with natural language prompts
+
+🧑‍💻 Author
+Dimon Desh — Full-Stack Developer & Music Producer
+💬 Inspired by sound, built for emotion.
