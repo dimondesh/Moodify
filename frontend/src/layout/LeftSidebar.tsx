@@ -666,7 +666,7 @@ const LeftSidebar = () => {
                             100
                           )}
                           alt={item.title}
-                          className={`w-full h-20 object-cover ${imageClass} transition-opacity group-hover:opacity-50`}
+                          className={`h-20 w-20 object-cover ${imageClass} transition-opacity group-hover:opacity-50`}
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = fallbackImage;
                           }}
