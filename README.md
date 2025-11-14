@@ -81,11 +81,8 @@ AudioFeatures API — Python-based track analysis
 🧭 Roadmap
 Collaborative playlists
 
-Personalized AI DJ mode
-
 Mobile app (React Native)
 
-Smart search with natural language prompts
 
 🧑‍💻 Author
 Dimon Desh — Full-Stack Developer & Music Producer
