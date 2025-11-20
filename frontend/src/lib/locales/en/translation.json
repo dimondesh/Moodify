@@ -20,7 +20,8 @@
       "songs": "songs",
       "song": "song",
       "user": "User",
-      "byUser": "By {{name}}"
+      "byUser": "By {{name}}",
+      "dailyMix": "Daily Mix"
     }
   },
   "topbar": {
