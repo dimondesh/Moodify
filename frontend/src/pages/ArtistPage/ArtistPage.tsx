@@ -47,27 +47,39 @@ const ArtistPage = () => {
       popularSongs: allArtistSongs.slice(0, 5),
       albums: allArtistAlbums.filter((album) => album.type === "Album"),
       singlesAndEps: allArtistAlbums.filter(
-        (album) => album.type === "Single" || album.type === "EP"
+        (album) => album.type === "Single" || album.type === "EP",
       ),
     };
   }, [artist]);
 
   const albumsItems = useMemo(
-    () => albums.map((album) => ({ ...album, itemType: "album" as const })),
-    [albums]
+    () =>
+      albums.map((album) => ({
+        ...album,
+        songs: [],
+        itemType: "album" as const,
+      })),
+    [albums],
   );
+
   const singlesAndEpsItems = useMemo(
     () =>
-      singlesAndEps.map((album) => ({ ...album, itemType: "album" as const })),
-    [singlesAndEps]
+      singlesAndEps.map((album) => ({
+        ...album,
+        songs: [],
+        itemType: "album" as const,
+      })),
+    [singlesAndEps],
   );
+
   const appearsOnItems = useMemo(
     () =>
       artistAppearsOn.map((album) => ({
         ...album,
+        songs: [],
         itemType: "album" as const,
       })),
-    [artistAppearsOn]
+    [artistAppearsOn],
   );
 
   const handleShowAllAlbums = useCallback(() => {
@@ -100,7 +112,7 @@ const ArtistPage = () => {
   const isAnyPopularSongPlaying = useMemo(
     () =>
       isPlaying && popularSongs.some((song) => song._id === currentSong?._id),
-    [isPlaying, popularSongs, currentSong]
+    [isPlaying, popularSongs, currentSong],
   );
 
   const handlePlayArtistSongs = useCallback(() => {
@@ -129,7 +141,7 @@ const ArtistPage = () => {
         });
       }
     },
-    [currentSong, togglePlay, setCurrentSong, playAlbum, popularSongs, artist]
+    [currentSong, togglePlay, setCurrentSong, playAlbum, popularSongs, artist],
   );
 
   const handleToggleFollow = useCallback(async () => {
@@ -187,7 +199,7 @@ const ArtistPage = () => {
                 (window.innerWidth >= 1024
                   ? artist.bannerUrl
                   : artist.imageUrl) || "https://moodify.b-cdn.net/artist.jpeg",
-                800
+                800,
               )})`,
             }}
           />
@@ -282,7 +294,7 @@ const ArtistPage = () => {
                         <img
                           src={getOptimizedImageUrl(
                             song.imageUrl || "/default-song-cover.png",
-                            100
+                            100,
                           )}
                           alt={song.title}
                           className="w-full h-full object-cover rounded-md"
