@@ -191,7 +191,7 @@ const ArtistPage = () => {
         <meta name="description" content={metaDescription} />
       </Helmet>
       <div className="bg-[#0f0f0f] overflow-y-auto h-full hide-scrollbar pb-30 lg:pb-0">
-        <div className="relative w-full h-[340px] sm:h-[300px] md:h-[300px] lg:h-[400px]">
+        <div className="relative w-full h-[340px] sm:h-[300px] md:h-[300px] lg:h-[450px]">
           <div
             className="absolute inset-0 bg-cover bg-center"
             style={{
