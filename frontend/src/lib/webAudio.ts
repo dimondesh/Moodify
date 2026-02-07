@@ -1,3 +1,5 @@
+// frontend/src/lib/webAudio.ts
+
 /* eslint-disable no-empty */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -5,6 +7,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export type NormalizationMode = "off" | "loud" | "normal" | "quiet";
+export type AnalyzerSmoothness = "low" | "medium" | "high";
 
 export const defaultFrequencies = [
   "60",
@@ -198,6 +201,7 @@ interface AudioSettings {
   equalizerGains: { [key: string]: number };
   normalizationMode: NormalizationMode;
   waveAnalyzerEnabled: boolean;
+  analyzerSmoothness: AnalyzerSmoothness;
   activePresetName: string;
   reverbEnabled: boolean;
   reverbMix: number;
@@ -212,6 +216,7 @@ interface AudioStore extends AudioSettings {
   setEqualizerGain: (frequency: string, gain: number) => void;
   setNormalizationMode: (mode: NormalizationMode) => void;
   setWaveAnalyzerEnabled: (enabled: boolean) => void;
+  setAnalyzerSmoothness: (smoothness: AnalyzerSmoothness) => void;
   applyPreset: (preset: EqualizerPreset) => void;
   resetAudioSettings: () => void;
   updateCustomPreset: () => void;
@@ -230,6 +235,7 @@ export const useAudioSettingsStore = create<AudioStore>()(
       equalizerGains: { ...equalizerPresets[0].gains },
       normalizationMode: "normal",
       waveAnalyzerEnabled: false,
+      analyzerSmoothness: "medium",
       activePresetName: equalizerPresets[0].name,
       reverbEnabled: false,
       reverbMix: 0.5,
@@ -261,6 +267,8 @@ export const useAudioSettingsStore = create<AudioStore>()(
       },
       setWaveAnalyzerEnabled: (enabled) =>
         set({ waveAnalyzerEnabled: enabled }),
+      setAnalyzerSmoothness: (smoothness) =>
+        set({ analyzerSmoothness: smoothness }),
       applyPreset: (preset) => {
         set({
           equalizerGains: { ...preset.gains },
@@ -274,6 +282,7 @@ export const useAudioSettingsStore = create<AudioStore>()(
           equalizerGains: { ...equalizerPresets[0].gains },
           normalizationMode: "off",
           waveAnalyzerEnabled: true,
+          analyzerSmoothness: "medium",
           activePresetName: equalizerPresets[0].name,
           reverbEnabled: false,
           reverbMix: 0.5,
@@ -305,7 +314,7 @@ export const useAudioSettingsStore = create<AudioStore>()(
     }),
     {
       name: "audio-settings-storage",
-      version: 3,
+      version: 4,
       migrate: (persistedState: any, version) => {
         if (version < 2 && persistedState) {
           persistedState.reverbEnabled = false;
@@ -316,10 +325,13 @@ export const useAudioSettingsStore = create<AudioStore>()(
           persistedState.playbackRateEnabled = false;
           persistedState.playbackRate = 0.85;
         }
+        if (version < 4 && persistedState) {
+          persistedState.analyzerSmoothness = "medium";
+        }
         return persistedState as AudioStore;
       },
-    }
-  )
+    },
+  ),
 );
 
 class WebAudioService {
@@ -484,12 +496,12 @@ class WebAudioService {
 
       if (!response) {
         console.log(
-          `[Cache] IR file not found for ${url}. Fetching from network and caching...`
+          `[Cache] IR file not found for ${url}. Fetching from network and caching...`,
         );
         const fetchResponse = await fetch(url);
         if (!fetchResponse.ok) {
           throw new Error(
-            `Failed to fetch IR file: ${fetchResponse.status} ${fetchResponse.statusText}`
+            `Failed to fetch IR file: ${fetchResponse.status} ${fetchResponse.statusText}`,
           );
         }
 
@@ -509,7 +521,7 @@ class WebAudioService {
     } catch (error) {
       console.error(
         `Error loading or decoding IR file for ${roomSize}:`,
-        error
+        error,
       );
       if (this.convolverNode) {
         this.convolverNode.buffer = null;
@@ -531,7 +543,7 @@ class WebAudioService {
       !this.analyserNode
     ) {
       console.warn(
-        "WebAudioService not fully initialized. Cannot apply settings to graph."
+        "WebAudioService not fully initialized. Cannot apply settings to graph.",
       );
       return;
     }
@@ -634,71 +646,71 @@ class WebAudioService {
 
     this.compressorNode.threshold.setValueAtTime(
       0,
-      this.audioContext.currentTime
+      this.audioContext.currentTime,
     );
     this.compressorNode.ratio.setValueAtTime(1, this.audioContext.currentTime);
     this.compressorNode.attack.setValueAtTime(
       0.003,
-      this.audioContext.currentTime
+      this.audioContext.currentTime,
     );
     this.compressorNode.release.setValueAtTime(
       0.25,
-      this.audioContext.currentTime
+      this.audioContext.currentTime,
     );
 
     switch (mode) {
       case "loud":
         this.compressorNode.threshold.setValueAtTime(
           -12,
-          this.audioContext.currentTime
+          this.audioContext.currentTime,
         );
         this.compressorNode.ratio.setValueAtTime(
           3,
-          this.audioContext.currentTime
+          this.audioContext.currentTime,
         );
         this.compressorNode.attack.setValueAtTime(
           0.01,
-          this.audioContext.currentTime
+          this.audioContext.currentTime,
         );
         this.compressorNode.release.setValueAtTime(
           0.2,
-          this.audioContext.currentTime
+          this.audioContext.currentTime,
         );
         break;
       case "normal":
         this.compressorNode.threshold.setValueAtTime(
           -18,
-          this.audioContext.currentTime
+          this.audioContext.currentTime,
         );
         this.compressorNode.ratio.setValueAtTime(
           2.5,
-          this.audioContext.currentTime
+          this.audioContext.currentTime,
         );
         this.compressorNode.attack.setValueAtTime(
           0.008,
-          this.audioContext.currentTime
+          this.audioContext.currentTime,
         );
         this.compressorNode.release.setValueAtTime(
           0.3,
-          this.audioContext.currentTime
+          this.audioContext.currentTime,
         );
         break;
       case "quiet":
         this.compressorNode.threshold.setValueAtTime(
           -24,
-          this.audioContext.currentTime
+          this.audioContext.currentTime,
         );
         this.compressorNode.ratio.setValueAtTime(
           2,
-          this.audioContext.currentTime
+          this.audioContext.currentTime,
         );
         this.compressorNode.attack.setValueAtTime(
           0.005,
-          this.audioContext.currentTime
+          this.audioContext.currentTime,
         );
         this.compressorNode.release.setValueAtTime(
           0.4,
-          this.audioContext.currentTime
+          this.audioContext.currentTime,
         );
         break;
       case "off":
@@ -724,13 +736,14 @@ useAudioSettingsStore.subscribe((state, prevState) => {
     webAudioService.getAudioContext()?.state !== "closed"
   ) {
     const equalizerGainsChanged = Object.keys(state.equalizerGains).some(
-      (key) => state.equalizerGains[key] !== prevState.equalizerGains[key]
+      (key) => state.equalizerGains[key] !== prevState.equalizerGains[key],
     );
 
     if (
       state.equalizerEnabled !== prevState.equalizerEnabled ||
       state.normalizationMode !== prevState.normalizationMode ||
       state.waveAnalyzerEnabled !== prevState.waveAnalyzerEnabled ||
+      // Убрали подписку на analyzerSmoothness, так как это теперь чисто UI параметр
       equalizerGainsChanged ||
       (state.activePresetName === "Custom" &&
         prevState.activePresetName !== "Custom") ||

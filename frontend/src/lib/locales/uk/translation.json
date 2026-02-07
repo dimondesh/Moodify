@@ -608,6 +608,14 @@
       "showRecentlyListenedArtists": "Показувати нещодавно прослушаних виконавців",
       "showRecentlyListenedArtistsDesc": "Дозволити іншим користувачам бачити розділ з нещодавно прослушаними виконавцями у вашому профілі."
     },
+
+    "waveAnalyzerSmoothness": "Плавність аналізатора",
+    "smoothness": {
+      "low": "Низька",
+      "medium": "Середня",
+      "high": "Висока"
+    },
+    "smoothnessPerformance": "Висока плавність може впливати на продуктивність.",
     "audioTitle": "Налаштування аудіо",
     "equalizer": "Еквалайзер",
     "selectPreset": "Оберіть пресет",

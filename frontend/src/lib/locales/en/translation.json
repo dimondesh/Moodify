@@ -609,6 +609,13 @@
       "showRecentlyListenedArtists": "Show Recently Listened Artists",
       "showRecentlyListenedArtistsDesc": "Allow other users to see the recently listened artists section on your profile."
     },
+    "waveAnalyzerSmoothness": "Analyzer Smoothness",
+    "smoothness": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "smoothnessPerformance": "High smoothness may affect performance.",
     "audioTitle": "Audio Settings",
     "equalizer": "Equalizer",
     "selectPreset": "Select a preset",

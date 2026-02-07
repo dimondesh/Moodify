@@ -9,6 +9,7 @@ import {
   ReverbRoomSize,
   reverbIRPaths,
   useAudioSettingsStore,
+  AnalyzerSmoothness, // <-- Импорт типа
 } from "../../lib/webAudio";
 import { RefreshCw } from "lucide-react";
 import { Label } from "../../components/ui/label";
@@ -29,7 +30,7 @@ import { useAuthStore } from "../../stores/useAuthStore";
 import { Helmet } from "react-helmet-async";
 import { useOfflineStore } from "../../stores/useOfflineStore";
 import toast from "react-hot-toast";
-import { useUIStore } from "@/stores/useUIStore"; // <-- Импортируем UIStore
+import { useUIStore } from "@/stores/useUIStore";
 
 const SettingsPage: React.FC = () => {
   const {
@@ -37,6 +38,7 @@ const SettingsPage: React.FC = () => {
     equalizerGains,
     normalizationMode,
     waveAnalyzerEnabled,
+    analyzerSmoothness, // <-- Получаем значение
     activePresetName,
     reverbEnabled,
     reverbMix,
@@ -48,6 +50,7 @@ const SettingsPage: React.FC = () => {
     setEqualizerGain,
     setNormalizationMode,
     setWaveAnalyzerEnabled,
+    setAnalyzerSmoothness, // <-- Получаем сеттер
     applyPreset,
     resetAudioSettings,
     setReverbEnabled,
@@ -58,7 +61,7 @@ const SettingsPage: React.FC = () => {
     setIsReduceMotionEnabled,
   } = useAudioSettingsStore();
 
-  const { isIosDevice } = useUIStore(); // <-- Получаем флаг iOS
+  const { isIosDevice } = useUIStore();
 
   const { t, i18n } = useTranslation();
   const {
@@ -89,7 +92,7 @@ const SettingsPage: React.FC = () => {
     try {
       await updateUserPrivacy(checked);
       toast.success(
-        checked ? t("toasts.anonymousEnabled") : t("toasts.anonymousDisabled")
+        checked ? t("toasts.anonymousEnabled") : t("toasts.anonymousDisabled"),
       );
     } catch {
       toast.error(t("toasts.privacyUpdateFailed"));
@@ -102,7 +105,7 @@ const SettingsPage: React.FC = () => {
       toast.success(
         checked
           ? t("toasts.recentlyListenedArtistsEnabled")
-          : t("toasts.recentlyListenedArtistsDisabled")
+          : t("toasts.recentlyListenedArtistsDisabled"),
       );
     } catch {
       toast.error(t("toasts.privacyUpdateFailed"));
@@ -136,7 +139,7 @@ const SettingsPage: React.FC = () => {
     }
   };
   const { getDownloadedContentSize, clearAllDownloads } = useOfflineStore(
-    (s) => s.actions
+    (s) => s.actions,
   );
   const downloadedItemIds = useOfflineStore((s) => s.downloadedItemIds);
   const downloadingItemIds = useOfflineStore((s) => s.downloadingItemIds);
@@ -386,7 +389,7 @@ const SettingsPage: React.FC = () => {
                                   {t(
                                     `settings.${
                                       size as "small" | "medium" | "large"
-                                    }`
+                                    }`,
                                   )}
                                 </SelectItem>
                               ))}
@@ -516,9 +519,44 @@ const SettingsPage: React.FC = () => {
                         className="data-[state=checked]:bg-violet-600"
                       />
                     </div>
-                    <p className="text-gray-400 text-sm mt-2">
+                    <p className="text-gray-400 text-sm mt-2 mb-4">
                       {t("settings.waveAnalyzerDesc")}
                     </p>
+
+                    {/* --- Analyzer Smoothness Control --- */}
+                    {waveAnalyzerEnabled && (
+                      <div className="mt-4">
+                        <Label className="text-sm font-medium text-gray-300 mb-3 block">
+                          {t("settings.waveAnalyzerSmoothness")}
+                        </Label>
+                        <div className="flex">
+                          {(
+                            ["low", "medium", "high"] as AnalyzerSmoothness[]
+                          ).map((mode, index, arr) => (
+                            <button
+                              key={mode}
+                              onClick={() => setAnalyzerSmoothness(mode)}
+                              className={`
+                                  flex-1 py-2 px-4 text-sm font-medium transition-colors
+                                  ${
+                                    analyzerSmoothness === mode
+                                      ? "bg-violet-600 text-white"
+                                      : "bg-zinc-800 text-gray-400 hover:bg-zinc-700"
+                                  }
+                                  ${index === 0 ? "rounded-l-md" : ""}
+                                  ${index === arr.length - 1 ? "rounded-r-md" : ""}
+                                  border-r border-zinc-700 last:border-r-0
+                                `}
+                            >
+                              {t(`settings.smoothness.${mode}`)}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-yellow-500/80 text-xs mt-2">
+                          {t("settings.smoothnessPerformance")}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </>
               )}
@@ -539,6 +577,7 @@ const SettingsPage: React.FC = () => {
                 </div>
               )}
             </Card>
+            {/* ... Rest of the component (Storage Management) ... */}
             <h1 className="text-3xl font-bold text-white mb-6 mt-8">
               {" "}
               {t("settings.downloads")}
