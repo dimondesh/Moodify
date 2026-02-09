@@ -99,6 +99,9 @@
     "genre": {
       "80s-inspired": "В стиле 80-х Микс",
       "acoustic": "Акустический Микс",
+      "game_soundtrack": "Игровой Саундтрек",
+      "game_music": "Игровая музыка",
+
       "acoustic_pop": "Акустик-поп Микс",
       "agressive_hip_hop": "Агрессивный хип-хоп Микс",
       "aggrotech": "Аггротек Микс",
