@@ -1,9 +1,12 @@
 {
   "rewrites": [
     {
+      "source": "/sitemap.xml",
+      "destination": "https://moodify-fpvm.onrender.com/sitemap.xml"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
- 
 }

@@ -39,6 +39,7 @@ import {
 } from "./lib/recommendation.service.js";
 import homeRoutes from "./routes/home.route.js";
 import { cleanAllTempDirectories } from "./lib/tempCleanup.service.js";
+import { getSitemap } from "./controller/sitemap.controller.js";
 
 dotenv.config();
 
@@ -57,7 +58,7 @@ const allowedOrigins = [
 ];
 
 console.log(
-  `CORS middleware configured for origins: ${allowedOrigins.join(", ")}`
+  `CORS middleware configured for origins: ${allowedOrigins.join(", ")}`,
 );
 
 app.use(
@@ -71,7 +72,7 @@ app.use(
       }
     },
     credentials: true,
-  })
+  }),
 );
 
 app.use(
@@ -80,14 +81,14 @@ app.use(
     tempFileDir: path.join(__dirname, "temp"),
     createParentPath: true,
     limits: { fileSize: 800 * 1024 * 1024 },
-  })
+  }),
 );
 
 cron.schedule(
   "* */6 * * *", // Каждые 6 часов
   async () => {
     console.log(
-      'CRON JOB: Starting "Featured Songs" generation for all users...'
+      'CRON JOB: Starting "Featured Songs" generation for all users...',
     );
     try {
       const allUsers = await User.find({}).select("_id");
@@ -95,7 +96,7 @@ cron.schedule(
         await generateFeaturedSongsForUser(user._id);
       }
       console.log(
-        `CRON JOB: "Featured Songs" generation finished for ${allUsers.length} users.`
+        `CRON JOB: "Featured Songs" generation finished for ${allUsers.length} users.`,
       );
     } catch (error) {
       console.error('CRON JOB: Error in "Featured Songs" generation:', error);
@@ -104,7 +105,7 @@ cron.schedule(
   {
     scheduled: true,
     timezone: "Europe/Kyiv",
-  }
+  },
 );
 
 cron.schedule(
@@ -117,7 +118,7 @@ cron.schedule(
     }
     console.log(`CRON JOB: "Playlists for You" generation finished.`);
   },
-  { scheduled: true, timezone: "Europe/Kyiv" }
+  { scheduled: true, timezone: "Europe/Kyiv" },
 );
 cron.schedule(
   "0 3 * * *",
@@ -129,7 +130,7 @@ cron.schedule(
     }
     console.log(`CRON JOB: "New Releases" generation finished.`);
   },
-  { scheduled: true, timezone: "Europe/Kyiv" }
+  { scheduled: true, timezone: "Europe/Kyiv" },
 );
 cron.schedule(
   "0 5 1 * *",
@@ -141,7 +142,7 @@ cron.schedule(
         await generateOnRepeatRewindForUser(user._id);
       }
       console.log(
-        `CRON JOB: "On Repeat Rewind" generation finished for ${allUsers.length} users.`
+        `CRON JOB: "On Repeat Rewind" generation finished for ${allUsers.length} users.`,
       );
     } catch (error) {
       console.error('CRON JOB: Error in "On Repeat Rewind" generation:', error);
@@ -150,7 +151,7 @@ cron.schedule(
   {
     scheduled: true,
     timezone: "Europe/Kyiv",
-  }
+  },
 );
 
 cron.schedule(
@@ -163,7 +164,7 @@ cron.schedule(
         await generateDiscoverWeeklyForUser(user._id);
       }
       console.log(
-        `CRON JOB: "Discover Weekly" generation finished for ${allUsers.length} users.`
+        `CRON JOB: "Discover Weekly" generation finished for ${allUsers.length} users.`,
       );
     } catch (error) {
       console.error('CRON JOB: Error in "Discover Weekly" generation:', error);
@@ -172,7 +173,7 @@ cron.schedule(
   {
     scheduled: true,
     timezone: "Europe/Kyiv",
-  }
+  },
 );
 cron.schedule(
   "0 0 * * *",
@@ -188,7 +189,7 @@ cron.schedule(
         await generatePersonalMixes(user._id);
       }
       console.log(
-        `CRON JOB: "Personal Mixes" generation finished for ${eligibleUsers.length} users.`
+        `CRON JOB: "Personal Mixes" generation finished for ${eligibleUsers.length} users.`,
       );
     } catch (error) {
       console.error('CRON JOB: Error in "Personal Mixes" generation:', error);
@@ -197,7 +198,7 @@ cron.schedule(
   {
     scheduled: true,
     timezone: "Europe/Kyiv",
-  }
+  },
 );
 
 cron.schedule("*/10 * * * *", () => {
@@ -213,7 +214,7 @@ cron.schedule(
   {
     scheduled: true,
     timezone: "Europe/Kyiv",
-  }
+  },
 );
 
 // Запускаем каждый день в 4 часа утра
@@ -231,7 +232,7 @@ cron.schedule(
         await generateOnRepeatPlaylistForUser(user._id);
       }
       console.log(
-        `CRON JOB: "On Repeat" generation finished for ${eligibleUsers.length} users.`
+        `CRON JOB: "On Repeat" generation finished for ${eligibleUsers.length} users.`,
       );
     } catch (error) {
       console.error('CRON JOB: Error in "On Repeat" generation:', error);
@@ -240,7 +241,7 @@ cron.schedule(
   {
     scheduled: true,
     timezone: "Europe/Kyiv",
-  }
+  },
 );
 
 app.use((req, res, next) => {
@@ -251,6 +252,7 @@ app.use((req, res, next) => {
 });
 
 const jsonParser = express.json();
+app.get("/sitemap.xml", getSitemap);
 app.use(jsonParser);
 
 app.use("/api/users", userRoutes);
@@ -288,6 +290,6 @@ app.use((err, req, res, next) => {
 httpServer.listen(PORT, () => {
   connectDB();
   console.log(
-    `Server on port ${PORT} in ${process.env.NODE_ENV || "development"} mode`
+    `Server on port ${PORT} in ${process.env.NODE_ENV || "development"} mode`,
   );
 });

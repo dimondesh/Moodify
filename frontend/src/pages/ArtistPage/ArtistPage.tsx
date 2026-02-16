@@ -187,8 +187,29 @@ const ArtistPage = () => {
   return (
     <>
       <Helmet>
-        <title>{`${artist.name}`}</title>
+        <title>{`${artist.name} | Слушать на Moodify`}</title>
         <meta name="description" content={metaDescription} />
+
+        {/* Open Graph / Facebook / Telegram - чтобы ссылка была красивой */}
+        <meta property="og:type" content="music.musician" />
+        <meta property="og:title" content={artist.name} />
+        <meta
+          property="og:description"
+          content={`Слушай треки ${artist.name} бесплатно на Moodify.`}
+        />
+        <meta
+          property="og:image"
+          content={getOptimizedImageUrl(artist.imageUrl || "", 600)}
+        />
+        <meta property="og:url" content={window.location.href} />
+
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={artist.name} />
+        <meta
+          name="twitter:image"
+          content={getOptimizedImageUrl(artist.imageUrl || "", 600)}
+        />
       </Helmet>
       <div className="bg-[#0f0f0f] overflow-y-auto h-full hide-scrollbar pb-30 lg:pb-0">
         <div className="relative w-full h-[340px] sm:h-[300px] md:h-[300px] lg:h-[450px]">
