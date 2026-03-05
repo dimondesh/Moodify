@@ -1072,17 +1072,22 @@
     "loginLink": "Log in",
     "verifyEmailPrompt": "Please verify your email before logging in."
   },
+
   "common": {
     "unknownArtist": "Unknown Artist",
-    "songsNotFound": "No available songs in this category.",
+    "songsNotFound": "No available songs.",
     "noTitle": "No title",
     "noSongs": "No songs available",
     "error": "Error",
-    "noData": "No data available to display.",
+    "noData": "No data to display.",
     "searchMusic": "Search Music",
     "resultsFor": "Results for",
     "mixes": "Mixes",
     "share": "Share",
+    "copyLink": "Copy link",
+    "linkCopied": "Link copied!",
+    "copyFailed": "Failed to copy link",
+    "orSendToFriend": "Or send to a friend",
     "custom": "Custom",
     "andMore": "and more",
     "preview": "Preview",
@@ -1098,7 +1103,6 @@
     "checkOutThis": "Check out this",
     "sharedToChat": "Shared to chat!",
     "shareWithFriend": "Share with a friend",
-    "selectFriendToShare": "Select a friend to share this",
     "send": "Send",
     "added": "Added",
     "add": "Add",
@@ -1113,8 +1117,18 @@
     "playlists": "Playlists",
     "albums": "Albums",
     "artists": "Artists",
-    "downloaded": "Downloaded"
+    "downloaded": "Downloaded",
+    "selectFriendToShare": "Select a friend to share this {{entity}} with",
+    "entities": {
+      "instrumental": {
+        "song": "song",
+        "album": "album",
+        "playlist": "playlist",
+        "mix": "mix"
+      }
+    }
   },
+
   "equalizerPresets": {
     "flat": "Flat",
     "bassBoost": "Bass Boost",

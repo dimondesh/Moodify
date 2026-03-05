@@ -12,6 +12,8 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { ScrollArea } from "./scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
 import { Button } from "./button";
+import { Separator } from "./separator"; // Импортируем разделитель
+import { Link2 } from "lucide-react"; // Импортируем иконку ссылки
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 
@@ -38,6 +40,31 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
     }
   }, [isOpen, fetchUsers]);
 
+  // Функция для копирования ссылки в буфер обмена
+  const handleCopyLink = () => {
+    // Формируем URL в зависимости от типа сущности
+    // Здесь предполагается стандартный роутинг, например: /album/id или /track/id
+    const baseUrl = window.location.origin;
+    const pathMap: Record<string, string> = {
+      song: "track",
+      album: "albums",
+      playlist: "playlists",
+      mix: "mixes",
+    };
+
+    const path = pathMap[entityType] || entityType;
+    const shareUrl = `${baseUrl}/${path}/${entityId}`;
+
+    navigator.clipboard
+      .writeText(shareUrl)
+      .then(() => {
+        toast.success(t("common.linkCopied")); // Предполагается наличие ключа в переводах
+      })
+      .catch(() => {
+        toast.error(t("common.copyFailed"));
+      });
+  };
+
   const handleSend = (receiverId: string) => {
     if (user) {
       const content = `${t("common.checkOutThis")} ${entityType}!`;
@@ -56,30 +83,52 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
         <DialogHeader>
           <DialogTitle>{t("common.shareWithFriend")}</DialogTitle>
           <DialogDescription>
-            {t("common.selectFriendToShare")} {entityType} {t("common.with")}.
+            {t("common.selectFriendToShare", {
+              entity: t(`common.entities.instrumental.${entityType}`),
+            })}
           </DialogDescription>
         </DialogHeader>
-        <ScrollArea className="h-64">
-          <div className="space-y-2">
-            {users.map((friend) => (
-              <div
-                key={friend._id}
-                className="flex items-center justify-between p-2 rounded-md hover:bg-zinc-800"
-              >
-                <div className="flex items-center gap-3">
-                  <Avatar>
-                    <AvatarImage src={friend.imageUrl} />
-                    <AvatarFallback>{friend.fullName[0]}</AvatarFallback>
-                  </Avatar>
-                  <span>{friend.fullName}</span>
-                </div>
-                <Button size="sm" onClick={() => handleSend(friend._id)}>
-                  {t("common.send")}
-                </Button>
-              </div>
-            ))}
+
+        <div className="flex flex-col gap-4">
+          <Button
+            variant="secondary"
+            className="w-full flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700"
+            onClick={handleCopyLink}
+          >
+            <Link2 className="h-4 w-4" />
+            {t("common.copyLink")}
+          </Button>
+
+          <div className="flex items-center gap-2">
+            <Separator className="flex-1 bg-zinc-700" />
+            <span className="text-xs text-zinc-500 uppercase">
+              {t("common.orSendToFriend")}
+            </span>
+            <Separator className="flex-1 bg-zinc-700" />
           </div>
-        </ScrollArea>
+
+          <ScrollArea className="h-64">
+            <div className="space-y-2">
+              {users.map((friend) => (
+                <div
+                  key={friend._id}
+                  className="flex items-center justify-between p-2 rounded-md hover:bg-zinc-800"
+                >
+                  <div className="flex items-center gap-3">
+                    <Avatar>
+                      <AvatarImage src={friend.imageUrl} />
+                      <AvatarFallback>{friend.fullName[0]}</AvatarFallback>
+                    </Avatar>
+                    <span>{friend.fullName}</span>
+                  </div>
+                  <Button size="sm" onClick={() => handleSend(friend._id)}>
+                    {t("common.send")}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
