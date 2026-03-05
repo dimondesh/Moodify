@@ -20,22 +20,22 @@ const AlbumPage = lazy(() => import("./pages/AlbumPage/AlbumPage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage/NotFoundPage"));
 const AllSongsPage = lazy(() => import("./pages/AllSongs/AllSongsPage"));
 const PlaylistDetailsPage = lazy(
-  () => import("./pages/PlaylistPage/PlaylistDetailsPage")
+  () => import("./pages/PlaylistPage/PlaylistDetailsPage"),
 );
 const ArtistPage = lazy(() => import("./pages/ArtistPage/ArtistPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage/ProfilePage"));
 const DisplayListPage = lazy(
-  () => import("./pages/DisplayListPage/DisplayListPage")
+  () => import("./pages/DisplayListPage/DisplayListPage"),
 );
 const MixDetailsPage = lazy(
-  () => import("./pages/MixDetailsPage/MixDetailsPage")
+  () => import("./pages/MixDetailsPage/MixDetailsPage"),
 );
 const PersonalMixPage = lazy(
-  () => import("./pages/PersonalMixPage/PersonalMixPage")
+  () => import("./pages/PersonalMixPage/PersonalMixPage"),
 );
 const AllMixesPage = lazy(() => import("./pages/AllMixesPage/AllMixesPage"));
 const GeneratedPlaylistPage = lazy(
-  () => import("./pages/GeneratedPlaylistPage/GeneratedPlaylistPage")
+  () => import("./pages/GeneratedPlaylistPage/GeneratedPlaylistPage"),
 );
 const TopTracksPage = lazy(() => import("./pages/TopTracksPage/TopTracksPage"));
 const OfflinePage = lazy(() => import("./pages/OfflinePage/OfflinePage"));
@@ -60,7 +60,7 @@ function App() {
   const initialDataFetchedRef = useRef(false);
 
   const { fetchInitialData, setIsIosDevice } = useUIStore();
-  const canonicalUrl = `https://moodify-music.vercel.app${location.pathname}`;
+  const canonicalUrl = `https://moodify-music.com${location.pathname}`;
 
   // Определяем iOS один раз при загрузке
   useEffect(() => {
@@ -154,7 +154,7 @@ function App() {
 
     const isExactSafe = exactSafePaths.includes(location.pathname);
     const isPrefixSafe = prefixSafePaths.some((path) =>
-      location.pathname.startsWith(path)
+      location.pathname.startsWith(path),
     );
     const isSafe = isExactSafe || isPrefixSafe;
 
@@ -210,8 +210,6 @@ function App() {
                 path="/users/:userId/top-tracks"
                 element={<TopTracksPage />}
               />
-
-              
             </Route>
           </Routes>
         </Suspense>
