@@ -6,19 +6,17 @@ import { User } from "../models/user.model.js";
 
 export const getSitemap = async (req, res) => {
   try {
-    // 1. Параллельно забираем ВСЕ данные из базы
-    // Берем только ID и дату обновления, чтобы не грузить базу
     const [artists, albums, playlists, mixes, users] = await Promise.all([
       Artist.find({}, "_id updatedAt"),
       Album.find({}, "_id updatedAt"),
-      // Важно: Выводим только публичные плейлисты (если у тебя есть флаг isPublic)
-      // Если флага нет, используй просто Playlist.find({}, "_id updatedAt")
       Playlist.find({ isPublic: true }, "_id updatedAt"),
       Mix.find({}, "_id updatedAt"),
       User.find({}, "_id updatedAt"),
     ]);
 
-    const baseUrl = "https://moodify-music.vercel.app";
+    // Берем URL из .env или используем твой новый домен напрямую
+    const baseUrl =
+      process.env.CLIENT_ORIGIN_URL || "https://moodify-music.com";
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
     <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -27,7 +25,6 @@ export const getSitemap = async (req, res) => {
       <url><loc>${baseUrl}/search</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
       <url><loc>${baseUrl}/login</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>`;
 
-    // 2. Генерация URL для Артистов (path: /artists/:id)
     artists.forEach((item) => {
       xml += `
       <url>
@@ -38,7 +35,6 @@ export const getSitemap = async (req, res) => {
       </url>`;
     });
 
-    // 3. Генерация URL для Альбомов (path: /albums/:id)
     albums.forEach((item) => {
       xml += `
       <url>
@@ -49,7 +45,6 @@ export const getSitemap = async (req, res) => {
       </url>`;
     });
 
-    // 4. Генерация URL для Плейлистов (path: /playlists/:id)
     playlists.forEach((item) => {
       xml += `
       <url>
@@ -60,7 +55,6 @@ export const getSitemap = async (req, res) => {
       </url>`;
     });
 
-    // 5. Генерация URL для Миксов (path: /mixes/:id)
     mixes.forEach((item) => {
       xml += `
       <url>
@@ -71,7 +65,6 @@ export const getSitemap = async (req, res) => {
       </url>`;
     });
 
-    // 6. Генерация URL для Юзеров (path: /users/:id)
     users.forEach((item) => {
       xml += `
       <url>
@@ -84,7 +77,6 @@ export const getSitemap = async (req, res) => {
 
     xml += `</urlset>`;
 
-    // Отдаем XML
     res.header("Content-Type", "application/xml");
     res.send(xml);
   } catch (error) {
