@@ -47,7 +47,7 @@ interface ChatStore {
     shareDetails?: {
       entityType: "song" | "album" | "playlist" | "mix";
       entityId: string;
-    }
+    },
   ) => void;
   fetchMessages: (userId: string) => Promise<void>;
   fetchUnreadCounts: () => Promise<void>;
@@ -64,7 +64,9 @@ const baseURL = import.meta.env.VITE_SOCKETIO_URL;
 
 const socket: Socket<DefaultEventsMap, DefaultEventsMap> = io(baseURL, {
   autoConnect: false,
-  auth: {},
+  path: "/socket.io/",
+  transports: ["websocket"],
+  upgrade: false,
   withCredentials: true,
   reconnectionAttempts: 5,
   reconnectionDelay: 1000,
@@ -129,7 +131,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     const { user: authUser } = useAuthStore.getState();
     if (!authUser || !authUser.id) {
       console.warn(
-        "fetchUsers: No authenticated user or user ID available. Skipping fetch."
+        "fetchUsers: No authenticated user or user ID available. Skipping fetch.",
       );
       set({
         isLoading: false,
@@ -143,7 +145,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       const currentUser = auth.currentUser;
       if (!currentUser) {
         throw new Error(
-          "No Firebase user is logged in to get ID token for fetching users."
+          "No Firebase user is logged in to get ID token for fetching users.",
         );
       }
       const token = await currentUser.getIdToken();
@@ -170,7 +172,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }
     if (!mongoDbUserId) {
       console.warn(
-        "initSocket: MongoDB User ID is missing or invalid. Cannot initialize socket."
+        "initSocket: MongoDB User ID is missing or invalid. Cannot initialize socket.",
       );
       set({ error: "Socket.IO init failed: MongoDB User ID is missing." });
       return;
@@ -178,7 +180,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
     if (get().isConnected || socket.connected) {
       console.log(
-        "initSocket: Socket already connected or connecting. Aborting init."
+        "initSocket: Socket already connected or connecting. Aborting init.",
       );
       return;
     }
@@ -186,7 +188,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     const currentUser = auth.currentUser;
     if (!currentUser) {
       console.warn(
-        "initSocket: No Firebase user is logged in. Cannot get ID token."
+        "initSocket: No Firebase user is logged in. Cannot get ID token.",
       );
       set({ error: "Socket.IO init failed: No Firebase user logged in." });
       return;
@@ -196,7 +198,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       const idToken = await currentUser.getIdToken(true);
       socket.auth = { token: idToken };
       console.log(
-        "initSocket: Firebase ID Token obtained, setting socket.auth."
+        "initSocket: Firebase ID Token obtained, setting socket.auth.",
       );
 
       if (!listenersRegistered) {
@@ -204,7 +206,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         socket.on("connect", () => {
           set({ isConnected: true, error: null });
           console.log(
-            "Socket.IO: 'connect' event - Socket connected. Emitting 'user_connected'."
+            "Socket.IO: 'connect' event - Socket connected. Emitting 'user_connected'.",
           );
           socket.emit("user_connected", mongoDbUserId);
           get().fetchUnreadCounts();
@@ -214,7 +216,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
           console.error(
             "Socket.IO: 'connect_error' event - Connection error:",
             err.message,
-            err.data?.message || ""
+            err.data?.message || "",
           );
           set({
             isConnected: false,
@@ -227,7 +229,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         socket.on("disconnect", (reason: string) => {
           console.log(
             "Socket.IO: 'disconnect' event - Socket disconnected. Reason:",
-            reason
+            reason,
           );
           set({
             isConnected: false,
@@ -240,7 +242,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         socket.on("users_online", (users: string[]) => {
           console.log(
             "Socket.IO: 'users_online' event - Received online users:",
-            users
+            users,
           );
           set({ onlineUsers: new Set(users) });
         });
@@ -250,16 +252,16 @@ export const useChatStore = create<ChatStore>((set, get) => ({
           (activities: [string, UserActivity | "Idle"][]) => {
             console.log(
               "Socket.IO: 'activities' event - Received activities:",
-              activities
+              activities,
             );
             set({ userActivities: new Map(activities) });
-          }
+          },
         );
 
         socket.on("user_connected", (userId: string) => {
           console.log(
             "Socket.IO: 'user_connected' event - User connected:",
-            userId
+            userId,
           );
           set((state) => ({
             onlineUsers: new Set([...state.onlineUsers, userId]),
@@ -269,7 +271,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         socket.on("user_disconnected", (userId: string) => {
           console.log(
             "Socket.IO: 'user_disconnected' event - User disconnected:",
-            userId
+            userId,
           );
           set((state) => {
             const newOnlineUsers = new Set(state.onlineUsers);
@@ -281,7 +283,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         socket.on("receive_message", (message: Message) => {
           console.log(
             "Socket.IO: 'receive_message' event - Received message:",
-            message
+            message,
           );
           const { selectedUser, isChatPageActive } = get();
 
@@ -298,7 +300,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
               const newUnread = new Map(state.unreadMessages);
               newUnread.set(
                 message.senderId,
-                (newUnread.get(message.senderId) || 0) + 1
+                (newUnread.get(message.senderId) || 0) + 1,
               );
               return { unreadMessages: newUnread };
             });
@@ -311,7 +313,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
               messages: state.messages.map((msg) =>
                 msg.senderId === useAuthStore.getState().user?.id
                   ? { ...msg, isRead: true }
-                  : msg
+                  : msg,
               ),
             }));
           }
@@ -319,7 +321,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         socket.on("message_sent", (message: Message) => {
           console.log(
             "Socket.IO: 'message_sent' event - Message sent confirmation:",
-            message
+            message,
           );
           const currentMessages = get().messages;
           if (!currentMessages.some((m) => m._id === message._id)) {
@@ -331,7 +333,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
         socket.on("activity_updated", ({ userId, activity }) => {
           console.log(
-            `Socket.IO: 'activity_updated' event - User ${userId} activity updated to ${activity}`
+            `Socket.IO: 'activity_updated' event - User ${userId} activity updated to ${activity}`,
           );
           set((state) => {
             const newActivities = new Map(state.userActivities);
@@ -346,7 +348,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
               messages: state.messages.map((msg) =>
                 msg.receiverId === chatPartnerId
                   ? { ...msg, isRead: true }
-                  : msg
+                  : msg,
               ),
             }));
           }
@@ -376,7 +378,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     } catch (error: any) {
       console.error(
         "initSocket: Error getting Firebase ID Token or connecting Socket.IO:",
-        error
+        error,
       );
       set({ error: `Socket.IO init failed: ${error.message}` });
     }
@@ -400,13 +402,13 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     const currentSocket = get().socket;
     if (!currentSocket || !get().isConnected) {
       console.error(
-        "sendMessage: Socket not connected for sending message. Cannot send."
+        "sendMessage: Socket not connected for sending message. Cannot send.",
       );
       set({ error: "Cannot send message: Socket not connected." });
       return;
     }
     console.log(
-      `sendMessage: Emitting 'send_message' to ${receiverId} from ${senderId}...`
+      `sendMessage: Emitting 'send_message' to ${receiverId} from ${senderId}...`,
     );
     currentSocket.emit("send_message", {
       receiverId,
@@ -425,7 +427,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       const currentUser = auth.currentUser;
       if (!currentUser) {
         throw new Error(
-          "No Firebase user is logged in to get ID token for fetching messages."
+          "No Firebase user is logged in to get ID token for fetching messages.",
         );
       }
       const token = await currentUser.getIdToken();
