@@ -1,5 +1,5 @@
-// frontend/src/components/ui/ShareDialog.tsx
-import React, { useEffect } from "react";
+// src/components/ui/ShareDialog.tsx
+import React, { useEffect, useState } from "react"; // Добавляем useState
 import {
   Dialog,
   DialogContent,
@@ -12,8 +12,8 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { ScrollArea } from "./scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
 import { Button } from "./button";
-import { Separator } from "./separator"; // Импортируем разделитель
-import { Link2 } from "lucide-react"; // Импортируем иконку ссылки
+import { Separator } from "./separator";
+import { Link2, Check } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 
@@ -34,16 +34,15 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
   const { users, fetchUsers, sendMessage } = useChatStore();
   const { user } = useAuthStore();
 
+  const [isCopied, setIsCopied] = useState(false);
+
   useEffect(() => {
     if (isOpen) {
       fetchUsers();
     }
   }, [isOpen, fetchUsers]);
 
-  // Функция для копирования ссылки в буфер обмена
   const handleCopyLink = () => {
-    // Формируем URL в зависимости от типа сущности
-    // Здесь предполагается стандартный роутинг, например: /album/id или /track/id
     const baseUrl = window.location.origin;
     const pathMap: Record<string, string> = {
       song: "track",
@@ -58,7 +57,12 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
     navigator.clipboard
       .writeText(shareUrl)
       .then(() => {
-        toast.success(t("common.linkCopied")); // Предполагается наличие ключа в переводах
+        toast.success(t("common.linkCopied"));
+        setIsCopied(true);
+
+        setTimeout(() => {
+          setIsCopied(false);
+        }, 2000);
       })
       .catch(() => {
         toast.error(t("common.copyFailed"));
@@ -92,10 +96,15 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
         <div className="flex flex-col gap-4">
           <Button
             variant="secondary"
-            className="w-full flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700"
+            className="w-full flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 transition-all"
             onClick={handleCopyLink}
           >
-            <Link2 className="h-4 w-4" />
+            {/* Условный рендеринг иконки */}
+            {isCopied ? (
+              <Check className="h-4 w-4 text-green-500" />
+            ) : (
+              <Link2 className="h-4 w-4" />
+            )}
             {t("common.copyLink")}
           </Button>
 
