@@ -14,6 +14,7 @@ import StandardLoader from "./components/ui/StandardLoader";
 import HomePage from "./pages/HomePage/HomePage";
 import MainLayout from "./layout/MainLayout";
 import AuthPage from "./pages/AuthPage/AuthPage";
+import TrackRedirect from "./pages/TrackRedirect";
 
 // Lazy load остальные страницы
 const AlbumPage = lazy(() => import("./pages/AlbumPage/AlbumPage"));
@@ -202,6 +203,7 @@ function App() {
               <Route path="/personal-mixes/:id" element={<PersonalMixPage />} />
               <Route path="/all-mixes/:category" element={<AllMixesPage />} />
               <Route path="/offline" element={<OfflinePage />} />
+              <Route path="/track/:id" element={<TrackRedirect />} />
               <Route
                 path="/generated-playlists/:id"
                 element={<GeneratedPlaylistPage />}

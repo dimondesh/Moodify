@@ -14,7 +14,7 @@ export const getAllSongs = async (req, res, next) => {
   try {
     const songs = await Song.find()
       .select(
-        "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics"
+        "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics",
       )
       .populate("artist", "name imageUrl")
       .populate("genres")
@@ -31,7 +31,7 @@ export const getQuickPicks = async (
   res,
   next,
   returnInternal = false,
-  limit = 8
+  limit = 8,
 ) => {
   try {
     const userId = req.user?.id;
@@ -73,7 +73,7 @@ export const getQuickPicks = async (
       res,
       next,
       true,
-      limit
+      limit,
     );
     if (returnInternal) {
       return trendingFallback;
@@ -87,7 +87,7 @@ export const getTrendingSongs = async (
   res,
   next,
   returnInternal = false,
-  limit = 12
+  limit = 12,
 ) => {
   try {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -111,7 +111,7 @@ export const getTrendingSongs = async (
         .sort({ playCount: -1 })
         .limit(limit)
         .select(
-          "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics"
+          "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics",
         )
         .populate("artist", "name imageUrl");
     } else {
@@ -119,12 +119,12 @@ export const getTrendingSongs = async (
         _id: { $in: orderedSongIds },
       })
         .select(
-          "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics"
+          "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics",
         )
         .populate("artist", "name imageUrl");
 
       const songMap = new Map(
-        unorderedSongs.map((song) => [song._id.toString(), song])
+        unorderedSongs.map((song) => [song._id.toString(), song]),
       );
 
       finalSongs = orderedSongIds
@@ -151,7 +151,7 @@ export const getMadeForYouSongs = async (
   res,
   next,
   returnInternal = false,
-  limit = 12
+  limit = 12,
 ) => {
   try {
     const userId = req.user.id;
@@ -170,7 +170,7 @@ export const getMadeForYouSongs = async (
         res,
         next,
         true,
-        limit
+        limit,
       );
       if (returnInternal) return trendingFallback;
       return res.json(trendingFallback);
@@ -184,7 +184,7 @@ export const getMadeForYouSongs = async (
         res,
         next,
         true,
-        limit
+        limit,
       );
       if (returnInternal) return trendingFallback;
       return res.json(trendingFallback);
@@ -230,7 +230,7 @@ export const getMadeForYouSongs = async (
     })
       .limit(50)
       .select(
-        "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics"
+        "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics",
       )
       .populate("artist", "name imageUrl");
 
@@ -267,7 +267,7 @@ export const recordListen = async (req, res, next) => {
 
     if (!songId || !userId) {
       console.error(
-        `[recordListen] Validation Failed: songId=${songId}, userId=${userId}`
+        `[recordListen] Validation Failed: songId=${songId}, userId=${userId}`,
       );
       return res
         .status(400)
@@ -330,7 +330,7 @@ export const getListenHistory = async (
   res,
   next,
   returnInternal = false,
-  limit = 12
+  limit = 12,
 ) => {
   try {
     const userId = req.user.id;
@@ -473,7 +473,7 @@ export const getListenHistory = async (
           } catch (error) {
             console.warn(
               `Could not fetch entity data for ${type} ${entityId}:`,
-              error.message
+              error.message,
             );
             // Если не удалось получить данные, используем дефолтную обложку
             entity.imageUrl = "/default-album-cover.png";
@@ -522,14 +522,14 @@ export const getImageForColorAnalysis = async (req, res, next) => {
     } catch (error) {
       console.error(
         `Image proxy error (Attempt ${attempt}/${maxRetries}):`,
-        error.message
+        error.message,
       );
 
       if (attempt === maxRetries) {
         if (error.response) {
           console.error(
             "Proxy target responded with status:",
-            error.response.status
+            error.response.status,
           );
         }
         return next(new Error("Failed to proxy image after multiple attempts"));
@@ -537,5 +537,17 @@ export const getImageForColorAnalysis = async (req, res, next) => {
 
       await delay(retryDelay);
     }
+  }
+};
+
+export const getSongById = async (req, res, next) => {
+  try {
+    const song = await Song.findById(req.params.id);
+    if (!song) {
+      return res.status(404).json({ message: "Song not found" });
+    }
+    res.status(200).json(song);
+  } catch (error) {
+    next(error);
   }
 };
