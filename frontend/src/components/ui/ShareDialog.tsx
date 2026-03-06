@@ -1,5 +1,5 @@
 // src/components/ui/ShareDialog.tsx
-import React, { useEffect, useState } from "react"; // Добавляем useState
+import React, { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
