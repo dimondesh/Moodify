@@ -1,27 +1,13 @@
-// src/controller/og.controller.js
 import { Song } from "../models/song.model.js";
 import { Album } from "../models/album.model.js";
 import { Playlist } from "../models/playlist.model.js";
 import { Mix } from "../models/mix.model.js";
 
 export const generateOGMeta = async (req, res, next) => {
-  const userAgent = req.headers["user-agent"] || "";
-  // Проверяем, кто делает запрос: реальный браузер или бот-парсер
-  const isBot =
-    /bot|facebook|telegram|twitter|discord|whatsapp|viber|skype|vkShare/i.test(
-      userAgent,
-    );
-
-  if (!isBot) {
-    // Если это человек, просто пропускаем запрос дальше
-    return next();
-  }
-
   try {
     const { id } = req.params;
     const path = req.path;
 
-    // Дефолтные значения (fallback)
     let title = "Moodify - Discover Your Music";
     let description =
       "Listen on Moodify, the ultimate music streaming experience.";
@@ -66,7 +52,6 @@ export const generateOGMeta = async (req, res, next) => {
       }
     }
 
-    // Собираем HTML только с метатегами для бота
     const html = `
       <!DOCTYPE html>
       <html lang="en">
@@ -98,6 +83,8 @@ export const generateOGMeta = async (req, res, next) => {
     return res.send(html);
   } catch (error) {
     console.error("OG Tag Generation Error:", error);
-    next(); // Если произошла ошибка, не ломаем приложение, а просто идем дальше
+    res
+      .status(500)
+      .send("<html><head><title>Moodify</title></head><body></body></html>");
   }
 };
