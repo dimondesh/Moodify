@@ -47,7 +47,7 @@ export const generateOGMeta = async (req, res, next) => {
       const mix = await Mix.findById(id);
       if (mix) {
         title = `${mix.sourceName} | Moodify Mix`;
-        description = `Listen to ${mix.title} on Moodify.`;
+        description = `Listen to ${mix.sourceName} Mix on Moodify.`;
         image = mix.imageUrl || image;
       }
     }
