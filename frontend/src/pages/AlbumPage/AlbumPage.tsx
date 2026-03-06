@@ -33,6 +33,7 @@ import { Song } from "@/types";
 import EqualizerTitle from "@/components/ui/equalizer-title";
 import { getOptimizedImageUrl } from "@/lib/utils";
 import { useHasFriends } from "@/hooks/useHasFriends";
+import { useSearchParams } from "react-router-dom";
 
 const formatDuration = (seconds: number) => {
   if (isNaN(seconds) || seconds < 0) return "0:00";
@@ -46,6 +47,8 @@ const AlbumPage = () => {
   const { t } = useTranslation();
   const [user] = useAuthState(auth);
   const { albumId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const playSongId = searchParams.get("play");
   const navigate = useNavigate();
   const { openShareDialog, closeAllDialogs, shareEntity } = useUIStore();
 
@@ -59,7 +62,7 @@ const AlbumPage = () => {
   const [inLibrary, setInLibrary] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
   const [selectedSongForMenu, setSelectedSongForMenu] = useState<Song | null>(
-    null
+    null,
   );
   const { hasFriends } = useHasFriends();
 
@@ -97,10 +100,44 @@ const AlbumPage = () => {
   useEffect(() => {
     if (!currentAlbum) return;
     const exists = albums.some(
-      (a) => a._id.toString() === currentAlbum._id.toString()
+      (a) => a._id.toString() === currentAlbum._id.toString(),
     );
     setInLibrary(exists);
   }, [albums, currentAlbum]);
+
+  useEffect(() => {
+    if (
+      currentAlbum &&
+      playSongId &&
+      !isAlbumDataLoading &&
+      currentAlbum.songs.length > 0
+    ) {
+      const songIndex = currentAlbum.songs.findIndex(
+        (s) => s._id === playSongId,
+      );
+
+      // Если трек найден и он сейчас не играет
+      if (songIndex !== -1 && currentSong?._id !== playSongId) {
+        playAlbum(currentAlbum.songs, songIndex, {
+          type: "album",
+          entityId: currentAlbum._id,
+          entityTitle: currentAlbum.title,
+        });
+
+        // Очищаем URL, чтобы трек не запускался заново при ререндерах
+        searchParams.delete("play");
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [
+    currentAlbum,
+    playSongId,
+    isAlbumDataLoading,
+    playAlbum,
+    currentSong,
+    searchParams,
+    setSearchParams,
+  ]);
 
   const handleToggleAlbum = async () => {
     if (!currentAlbum || isToggling) return;
@@ -140,7 +177,7 @@ const AlbumPage = () => {
 
   const handlePlayAlbum = () => {
     const isCurrentAlbumPlaying = currentAlbum.songs.some(
-      (song) => song._id === currentSong?._id
+      (song) => song._id === currentSong?._id,
     );
     if (isCurrentAlbumPlaying) togglePlay();
     else
@@ -173,7 +210,7 @@ const AlbumPage = () => {
     currentAlbum.songs.map((song, index) => {
       const isCurrentSong = currentSong?._id === song._id;
       const songIsLiked = likedSongs.some(
-        (likedSong) => likedSong._id === song._id
+        (likedSong) => likedSong._id === song._id,
       );
 
       return (
@@ -200,7 +237,7 @@ const AlbumPage = () => {
             <img
               src={getOptimizedImageUrl(
                 song.imageUrl || "/default-song-cover.png",
-                80
+                80,
               )}
               alt={song.title}
               className="size-10 object-cover rounded-md flex-shrink-0"
@@ -275,7 +312,7 @@ const AlbumPage = () => {
           key={song._id}
           onClick={() =>
             handlePlaySong(
-              currentAlbum.songs.findIndex((s) => s._id === song._id)
+              currentAlbum.songs.findIndex((s) => s._id === song._id),
             )
           }
           className={`flex items-center justify-between gap-4 p-2 rounded-md group cursor-pointer ${
@@ -319,6 +356,18 @@ const AlbumPage = () => {
     <>
       <Helmet>
         <title>{`${currentAlbum.title} - ${artistNames}`}</title>
+        <meta
+          property="og:title"
+          content={`${currentAlbum.title} - ${artistNames} | Moodify`}
+        />
+        <meta
+          property="og:description"
+          content={`Listen to ${currentAlbum.title} by ${artistNames} on Moodify.`}
+        />
+        <meta property="og:image" content={currentAlbum.imageUrl} />
+        <meta property="og:site_name" content="Moodify" />
+        <meta property="og:type" content="music.album" />
+        <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
       <div className="h-full">
         <ScrollArea className="h-full pb-30 rounded-md lg:pb-0">
@@ -385,7 +434,7 @@ const AlbumPage = () => {
                 >
                   {isPlaying &&
                   currentAlbum.songs.some(
-                    (song) => song._id === currentSong?._id
+                    (song) => song._id === currentSong?._id,
                   ) ? (
                     <Pause className="w-6 h-6 sm:w-8 sm:h-8 text-black fill-current" />
                   ) : (
@@ -405,8 +454,8 @@ const AlbumPage = () => {
                       !user
                         ? t("auth.loginRequired")
                         : inLibrary
-                        ? t("pages.album.actions.removeFromLibrary")
-                        : t("pages.album.actions.addToLibrary")
+                          ? t("pages.album.actions.removeFromLibrary")
+                          : t("pages.album.actions.addToLibrary")
                     }
                   >
                     {inLibrary ? (
@@ -432,8 +481,8 @@ const AlbumPage = () => {
                     !user
                       ? t("auth.loginRequired")
                       : !hasFriends
-                      ? t("common.noFriendsToShare")
-                      : t("common.share")
+                        ? t("common.noFriendsToShare")
+                        : t("common.share")
                   }
                   onClick={() =>
                     openShareDialog({ type: "album", id: currentAlbum._id })

@@ -40,6 +40,7 @@ import {
 import homeRoutes from "./routes/home.route.js";
 import { cleanAllTempDirectories } from "./lib/tempCleanup.service.js";
 import { getSitemap } from "./controller/sitemap.controller.js";
+import ogRoutes from "./routes/og.route.js";
 
 dotenv.config();
 
@@ -274,6 +275,7 @@ app.use("/api/home", homeRoutes);
 
 app.use("/api/cron", cronRoutes);
 app.use("/api/share", shareRoutes);
+app.use("/", ogRoutes);
 
 app.use((err, req, res, next) => {
   console.error("GLOBAL ERROR HANDLER CAUGHT AN ERROR:");
