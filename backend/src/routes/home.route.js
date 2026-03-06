@@ -7,12 +7,22 @@ import {
   getSecondaryHomePageData,
   getBootstrapData,
 } from "../controller/home.controller.js";
+import { cacheRoute } from "../middleware/cache.middleware.js";
 
 const router = Router();
 
-router.get("/bootstrap", identifyUser, getBootstrapData);
-
-router.get("/primary", identifyUser, getPrimaryHomePageData);
-router.get("/secondary", identifyUser, getSecondaryHomePageData);
+router.get("/bootstrap", identifyUser, cacheRoute(900, true), getBootstrapData);
+router.get(
+  "/primary",
+  identifyUser,
+  cacheRoute(900, true),
+  getPrimaryHomePageData,
+);
+router.get(
+  "/secondary",
+  identifyUser,
+  cacheRoute(900, true),
+  getSecondaryHomePageData,
+);
 
 export default router;

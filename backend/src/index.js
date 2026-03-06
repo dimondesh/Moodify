@@ -41,6 +41,7 @@ import homeRoutes from "./routes/home.route.js";
 import { cleanAllTempDirectories } from "./lib/tempCleanup.service.js";
 import { getSitemap } from "./controller/sitemap.controller.js";
 import ogRoutes from "./routes/og.route.js";
+import { connectRedis } from "./lib/redis.js";
 
 dotenv.config();
 
@@ -289,8 +290,9 @@ app.use((err, req, res, next) => {
   });
 });
 
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, async () => {
   connectDB();
+  await connectRedis();
   console.log(
     `Server on port ${PORT} in ${process.env.NODE_ENV || "development"} mode`,
   );
