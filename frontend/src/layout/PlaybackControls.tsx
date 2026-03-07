@@ -165,7 +165,7 @@ const PlaybackControls = () => {
         title: currentSong.title,
         artist: getArtistNames(
           Array.isArray(currentSong.artist) ? currentSong.artist : [],
-          []
+          [],
         ),
         album: currentSong.albumTitle || "",
         artwork: [
@@ -454,7 +454,7 @@ const PlaybackControls = () => {
                       Array.isArray(currentSong.artist)
                         ? currentSong.artist
                         : [],
-                      []
+                      [],
                     )}
                   </Drawer.Title>
                   <div className="flex justify-between items-center mb-4 flex-shrink-0">
@@ -639,8 +639,8 @@ const PlaybackControls = () => {
                               !user
                                 ? t("auth.loginRequired")
                                 : !hasFriends
-                                ? t("common.noFriendsToShare")
-                                : t("player.share")
+                                  ? t("common.noFriendsToShare")
+                                  : t("player.share")
                             }
                           >
                             <Share className="h-5 w-5" />
@@ -987,8 +987,8 @@ const PlaybackControls = () => {
                   !user
                     ? t("auth.loginRequired")
                     : !hasFriends
-                    ? t("common.noFriendsToShare")
-                    : t("player.share")
+                      ? t("common.noFriendsToShare")
+                      : t("player.share")
                 }
               >
                 <Share className="h-4 w-4" />

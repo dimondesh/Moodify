@@ -6,7 +6,6 @@ import { getArtistNames } from "@/lib/utils";
 import { ScrollArea } from "../../components/ui/scroll-area";
 import { Button } from "../../components/ui/button";
 import { ChevronDown } from "lucide-react";
-import { useDominantColor } from "@/hooks/useDominantColor";
 import { useTranslation } from "react-i18next";
 
 interface LyricLine {
@@ -56,46 +55,17 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
   const [isUserScrolling, setIsUserScrolling] = useState(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { extractColor } = useDominantColor();
-  const lastImageUrlRef = useRef<string | null>(null);
-
-  const backgroundKeyRef = useRef(0);
-  const [backgrounds, setBackgrounds] = useState([
-    { key: 0, color: "#18181b" },
-  ]);
-
   const lyrics = useMemo(() => {
     return currentSong?.lyrics ? parseLrc(currentSong.lyrics) : [];
   }, [currentSong?.lyrics]);
 
-  // Test: Use currentTime directly first to see if basic sync works
   const realCurrentTime = currentTime;
-
-  useEffect(() => {
-    const updateBackgroundColor = (color: string) => {
-      backgroundKeyRef.current += 1;
-      const newKey = backgroundKeyRef.current;
-      setBackgrounds((prev) => [{ key: newKey, color }, ...prev.slice(0, 1)]);
-    };
-
-    if (
-      currentSong?.imageUrl &&
-      currentSong.imageUrl !== lastImageUrlRef.current
-    ) {
-      lastImageUrlRef.current = currentSong.imageUrl;
-      extractColor(currentSong.imageUrl).then((color) => {
-        updateBackgroundColor(color || "#18181b");
-      });
-    } else if (!currentSong) {
-      updateBackgroundColor("#18181b");
-    }
-  }, [currentSong, extractColor]);
 
   useEffect(() => {
     setIsUserScrolling(false);
     if (lyricsScrollAreaRef.current) {
       const viewport = lyricsScrollAreaRef.current.querySelector(
-        "[data-radix-scroll-area-viewport]"
+        "[data-radix-scroll-area-viewport]",
       );
       if (viewport) viewport.scrollTop = 0;
     }
@@ -107,11 +77,11 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
         (line, index) =>
           realCurrentTime >= line.time &&
           (index === lyrics.length - 1 ||
-            realCurrentTime < lyrics[index + 1].time)
+            realCurrentTime < lyrics[index + 1].time),
       );
       if (activeLineIndex !== -1) {
         const activeLineElement = lyricsScrollAreaRef.current.querySelector(
-          `.lyric-line-${activeLineIndex}`
+          `.lyric-line-${activeLineIndex}`,
         ) as HTMLElement;
         if (activeLineElement) {
           activeLineElement.scrollIntoView({
@@ -134,7 +104,7 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
 
   useEffect(() => {
     const scrollAreaElement = lyricsScrollAreaRef.current?.querySelector(
-      "[data-radix-scroll-area-viewport]"
+      "[data-radix-scroll-area-viewport]",
     ) as HTMLElement;
     if (scrollAreaElement) {
       scrollAreaElement.addEventListener("scroll", handleScroll);
@@ -170,7 +140,6 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
 
   const handleLyricLineClick = (time: number) => {
     setIsUserScrolling(false);
-    // Seek directly to the lyric time - playback rate doesn't affect seek position
     seekToTime(time);
   };
 
@@ -192,27 +161,28 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative min-h-screen overflow-hidden bg-zinc-950">
+      {/* 1. Блюр фона на основе обложки */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        {currentSong?.imageUrl && (
+          <>
+            <img
+              src={currentSong.imageUrl}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover opacity-60 scale-150 animate-fade-in"
+              style={{ filter: "blur(80px)" }}
+            />
+            {/* Затемняющий оверлей поверх блюра, чтобы текст оставался читаемым */}
+            <div className="absolute inset-0 bg-black/40" />
+          </>
+        )}
+      </div>
+
       <div
-        className={`flex flex-col items-center justify-start h-[calc(100vh - 1px)] p-4 sm:p-8 text-white ${
+        className={`relative z-10 flex flex-col items-center justify-start h-[calc(100vh - 1px)] p-4 sm:p-8 text-white ${
           isMobileFullScreen ? "fixed inset-0 z-[80]" : "w-full"
         }`}
       >
-        {backgrounds
-          .slice(0, 2)
-          .reverse()
-          .map((bg, index) => (
-            <div
-              key={bg.key}
-              className={`absolute inset-y-0 w-full ${
-                index === 1 ? "animate-fade-in" : ""
-              }`}
-              style={{
-                background: `linear-gradient(to bottom, ${bg.color} 0%, rgba(20, 20, 20, 0.8) 100%, #18181b 100%)`,
-              }}
-            />
-          ))}
-
         <div className="flex justify-between items-center w-full max-w-4xl mb-4 z-10">
           <Button
             variant="ghost"
@@ -227,32 +197,72 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
           </div>
           <div className="w-10 h-10 z-10" />
         </div>
-        <div className="text-center mb-8 z-10">
+
+        <div className="text-center mb-6 z-10">
           <h2 className="text-3xl font-bold mb-1">{currentSong.title}</h2>
           <p className="text-zinc-400 text-lg">
             {getArtistNames(currentSong.artist, [])}
           </p>
         </div>
+
+        {/* 2. Градиент-маска на ScrollArea */}
         <ScrollArea
           className="flex-1 w-full max-w-4xl text-center h-full"
           ref={lyricsScrollAreaRef}
+          style={{
+            maskImage:
+              "linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)",
+            WebkitMaskImage:
+              "linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)",
+          }}
         >
-          {lyrics.map((line, index) => (
-            <p
-              key={index}
-              className={`py-1 text-2xl px-2 sm:text-3xl font-semibold transition-all duration-200 lyric-line-${index} cursor-pointer hover:text-white ${
-                realCurrentTime >= line.time &&
-                (index === lyrics.length - 1 ||
-                  realCurrentTime < lyrics[index + 1].time)
-                  ? "text-violet-400 scale-105"
-                  : "text-zinc-400"
-              }`}
-              onClick={() => handleLyricLineClick(line.time)}
-            >
-              {line.text}
-            </p>
-          ))}
-          <div className="h-[50vh] w-full"></div>
+          {/* Добавляем пустой блок сверху, чтобы самая первая строка могла оказаться в центре при скролле */}
+          <div className="h-[20vh] w-full" />
+
+          {lyrics.map((line, index) => {
+            const isActive =
+              realCurrentTime >= line.time &&
+              (index === lyrics.length - 1 ||
+                realCurrentTime < lyrics[index + 1].time);
+
+            // Вычисляем, начнется ли эта строка менее чем через 1 секунду
+            const isUpcoming =
+              line.time > realCurrentTime && line.time - realCurrentTime <= 1;
+
+            // 3. Логика классов для блюра и цветов
+            let stateClasses = "";
+
+            if (isUserScrolling) {
+              // Если пользователь скроллит - убираем блюр у всех строк
+              stateClasses = isActive
+                ? "text-violet-500 scale-105 opacity-100! blur-none"
+                : "text-zinc-300 opacity-80 blur-none";
+            } else {
+              if (isActive) {
+                stateClasses =
+                  "text-violet-400 scale-105 opacity-100! blur-none drop-shadow-lg";
+              } else if (isUpcoming) {
+                // Если строка будет петься через <= 1 сек, плавно выводим из блюра
+                stateClasses =
+                  "text-zinc-200 opacity-90 blur-none duration-1000";
+              } else {
+                // Обычное состояние (прошедшие или будущие строки)
+                stateClasses = "text-zinc-400 blur-[4px] opacity-40";
+              }
+            }
+
+            return (
+              <p
+                key={index}
+                className={`py-2 text-2xl px-2 sm:text-3xl font-bold transition-all duration-500 lyric-line-${index} cursor-pointer hover:text-white hover:blur-none hover:opacity-100 ${stateClasses}`}
+                onClick={() => handleLyricLineClick(line.time)}
+              >
+                {line.text}
+              </p>
+            );
+          })}
+
+          <div className="h-[50vh] w-full" />
         </ScrollArea>
       </div>
     </div>
