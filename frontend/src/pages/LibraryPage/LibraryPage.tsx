@@ -70,7 +70,7 @@ const LibraryPage = () => {
   const { artists } = useMusicStore();
   const [user] = useAuthState(auth);
   const { isDownloaded, fetchAllDownloaded } = useOfflineStore(
-    (s) => s.actions
+    (s) => s.actions,
   );
   const isOffline = useOfflineStore((s) => s.isOffline);
 
@@ -99,7 +99,7 @@ const LibraryPage = () => {
               title: t((item as any).nameKey, (item as any).title),
               imageUrl: item.imageUrl,
               createdAt: new Date(
-                (item as any).addedAt || (item as any).generatedOn
+                (item as any).addedAt || (item as any).generatedOn,
               ),
               sourceName: "Moodify",
             } as GeneratedPlaylistItem);
@@ -147,7 +147,7 @@ const LibraryPage = () => {
           }
         });
         const sortedItems = Array.from(downloadedLibraryItemsMap.values()).sort(
-          (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+          (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
         );
         setDownloadedItems(sortedItems);
       };
@@ -174,7 +174,7 @@ const LibraryPage = () => {
         .map((artistOrId) => {
           if (typeof artistOrId === "string") {
             const foundArtist = artists.find(
-              (a: Artist) => a._id === artistOrId
+              (a: Artist) => a._id === artistOrId,
             );
             return foundArtist ? foundArtist.name : null;
           } else {
@@ -184,7 +184,7 @@ const LibraryPage = () => {
         .filter(Boolean);
       return names.join(", ") || t("common.unknownArtist");
     },
-    [artists, t]
+    [artists, t],
   );
 
   const isLoading = (isLoadingLibrary || isLoadingPlaylists) && !isOffline;
@@ -204,7 +204,7 @@ const LibraryPage = () => {
         createdAt: new Date(album.addedAt ?? new Date()),
         artist: album.artist,
         albumType: album.type,
-      } as AlbumItem)
+      } as AlbumItem),
     );
 
     [...(myPlaylists || []), ...(playlists || [])].forEach((playlist) => {
@@ -216,7 +216,7 @@ const LibraryPage = () => {
           title: isGenerated ? t((playlist as any).nameKey) : playlist.title,
           imageUrl: playlist.imageUrl,
           createdAt: new Date(
-            (playlist as any).addedAt || playlist.updatedAt || new Date()
+            (playlist as any).addedAt || playlist.updatedAt || new Date(),
           ),
           owner: playlist.owner,
           isGenerated: isGenerated,
@@ -245,7 +245,7 @@ const LibraryPage = () => {
         imageUrl: mix.imageUrl,
         createdAt: new Date(mix.addedAt ?? new Date()),
         sourceName: mix.sourceName,
-      } as MixItem)
+      } as MixItem),
     );
 
     (savedPersonalMixes || []).forEach((personalMix) =>
@@ -255,7 +255,7 @@ const LibraryPage = () => {
         title: personalMix.name,
         imageUrl: personalMix.imageUrl,
         createdAt: new Date((personalMix as any).addedAt ?? new Date()),
-      } as PersonalMixItem)
+      } as PersonalMixItem),
     );
 
     (followedArtists || []).forEach((artist) =>
@@ -266,7 +266,7 @@ const LibraryPage = () => {
         imageUrl: artist.imageUrl,
         createdAt: new Date(artist.addedAt || artist.createdAt),
         artistId: artist._id,
-      } as FollowedArtistItem)
+      } as FollowedArtistItem),
     );
 
     if (likedSongs.length > 0) {
@@ -276,14 +276,14 @@ const LibraryPage = () => {
         title: t("sidebar.likedSongs"),
         imageUrl: "/liked.png",
         createdAt: new Date(
-          likedSongs[0]?.addedAt || likedSongs[0]?.likedAt || Date.now()
+          likedSongs[0]?.addedAt || likedSongs[0]?.likedAt || Date.now(),
         ),
         songsCount: likedSongs.length,
       });
     }
 
     return Array.from(libraryItemsMap.values()).sort(
-      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
     );
   }, [
     albums,
@@ -305,7 +305,7 @@ const LibraryPage = () => {
         case "playlists":
           filtered = filtered.filter(
             (item) =>
-              item.type === "playlist" || item.type === "generated-playlist"
+              item.type === "playlist" || item.type === "generated-playlist",
           );
           break;
         case "albums":
@@ -328,7 +328,7 @@ const LibraryPage = () => {
       filtered = filtered.filter((item) => {
         const title = item.title.toLowerCase();
         const subtitle = getArtistNames(
-          item.type === "album" ? (item as AlbumItem).artist : undefined
+          item.type === "album" ? (item as AlbumItem).artist : undefined,
         ).toLowerCase();
 
         return title.includes(query) || subtitle.includes(query);
@@ -406,7 +406,7 @@ const LibraryPage = () => {
 
               <div className="mb-6 space-y-4">
                 {/* Search and toggle controls */}
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 max-w-screen">
                   {/* Search button and input container */}
                   <div className="flex-1">
                     <div
@@ -426,7 +426,7 @@ const LibraryPage = () => {
                           "text-gray-400 hover:text-white hover:bg-[#2a2a2a] h-12 w-12 p-0 transition-all duration-300 ease-in-out z-20",
                           isLibraryPageSearchOpen
                             ? "opacity-0 pointer-events-none"
-                            : "opacity-100"
+                            : "opacity-100",
                         )}
                       >
                         <Search className="size-5" />
@@ -438,7 +438,7 @@ const LibraryPage = () => {
                           "absolute top-0 left-0 transition-all duration-300 ease-in-out overflow-hidden z-10",
                           isLibraryPageSearchOpen
                             ? "w-full opacity-100"
-                            : "w-12 opacity-0"
+                            : "w-12 opacity-0",
                         )}
                       >
                         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
@@ -465,7 +465,7 @@ const LibraryPage = () => {
                     size="sm"
                     onClick={() =>
                       setLibraryPageViewMode(
-                        libraryPageViewMode === "grid" ? "list" : "grid"
+                        libraryPageViewMode === "grid" ? "list" : "grid",
                       )
                     }
                     className="text-gray-400 hover:text-white hover:bg-[#2a2a2a] h-12 w-12 p-0 flex-shrink-0"
@@ -485,8 +485,8 @@ const LibraryPage = () => {
                     {librarySearchQuery.trim()
                       ? t("sidebar.noSearchResults")
                       : entityTypeFilter === "downloaded"
-                      ? "You have no downloaded content yet."
-                      : t("sidebar.emptyLibrary")}
+                        ? "You have no downloaded content yet."
+                        : t("sidebar.emptyLibrary")}
                   </p>
                 ) : libraryPageViewMode === "grid" ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
@@ -571,7 +571,7 @@ const LibraryPage = () => {
                                 "relative aspect-square w-full overflow-hidden shadow-lg",
                                 item.type === "artist"
                                   ? "rounded-full"
-                                  : "rounded-md"
+                                  : "rounded-md",
                               )}
                             >
                               <img

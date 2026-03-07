@@ -37,7 +37,7 @@ const EntityTypeFilter = ({
 
   const checkScrollability = useCallback(() => {
     const element = scrollContainerRef.current?.querySelector<HTMLDivElement>(
-      "[data-radix-scroll-area-viewport]"
+      "[data-radix-scroll-area-viewport]",
     );
     if (element) {
       const { scrollLeft, scrollWidth, clientWidth } = element;
@@ -49,7 +49,7 @@ const EntityTypeFilter = ({
   useEffect(() => {
     const scrollAreaElement = scrollContainerRef.current;
     const viewportElement = scrollAreaElement?.querySelector<HTMLDivElement>(
-      "[data-radix-scroll-area-viewport]"
+      "[data-radix-scroll-area-viewport]",
     );
 
     if (viewportElement) {
@@ -76,7 +76,7 @@ const EntityTypeFilter = ({
 
   const scroll = (direction: "left" | "right") => {
     const element = scrollContainerRef.current?.querySelector<HTMLDivElement>(
-      "[data-radix-scroll-area-viewport]"
+      "[data-radix-scroll-area-viewport]",
     );
     if (element) {
       const scrollAmount = element.clientWidth * 0.8;
@@ -88,7 +88,12 @@ const EntityTypeFilter = ({
   };
 
   return (
-    <div className={cn("relative w-full group/section", className)}>
+    <div
+      className={cn(
+        "relative w-full max-w-[calc(100vw-28px)] group/section",
+        className,
+      )}
+    >
       {/* Left scroll button */}
       {isDesktop && canScrollLeft && (
         <button
@@ -122,7 +127,7 @@ const EntityTypeFilter = ({
                 "px-3 py-1.5 text-xs font-medium transition-all whitespace-nowrap rounded-full border flex-shrink-0",
                 currentFilter === key
                   ? "bg-white text-black border-white hover:bg-gray-100"
-                  : "bg-transparent text-white border-gray-600 hover:border-white hover:bg-white/10"
+                  : "bg-transparent text-white border-gray-600 hover:border-white hover:bg-white/10",
               )}
             >
               {label}
