@@ -458,7 +458,12 @@ const PlaybackControls = () => {
                         }`}
                         style={{
                           filter: "blur(80px)",
-                          transform: "scale(2.5)",
+                          WebkitFilter: "blur(80px)", // Принудительно для Safari
+                          transform: "scale(2.5) translateZ(0)", // translateZ(0) выносит на отдельный GPU-слой
+                          WebkitTransform: "scale(2.5) translateZ(0)", // GPU-хак для Safari
+                          backfaceVisibility: "hidden", // Убирает мерцание задней поверхности в Safari
+                          WebkitBackfaceVisibility: "hidden",
+                          willChange: "opacity", // Заранее предупреждаем браузер, что будем менять прозрачность
                         }}
                       />
                     ))}
@@ -775,7 +780,7 @@ const PlaybackControls = () => {
                             ));
                           })()}
                           {lyrics.length > 5 && (
-                            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-zinc-950/50 to-transparent backdrop-blur-xs flex items-end justify-center pb-2">
+                            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-zinc-950/50 to-transparent flex items-end justify-center pb-2">
                               <Button
                                 variant="ghost"
                                 className="text-violet-400 hover:text-violet-300 text-sm font-bold"
