@@ -73,8 +73,8 @@ const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "flex items-center gap-3 p-3 rounded-md hover:bg-zinc-800 group cursor-pointer",
-        isCurrent && "bg-[#8b5cf6]/20"
+        "flex items-center gap-2 p-3 rounded-md hover:bg-zinc-800 group cursor-pointer",
+        isCurrent && "bg-[#8b5cf6]/20",
       )}
       onClick={(e) => onPlay(song, e)}
     >
@@ -97,8 +97,8 @@ const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
       <div className="flex-1 min-w-0">
         <div
           className={cn(
-            "text-base font-medium truncate",
-            isCurrent ? "text-[#8b5cf6]" : "text-white"
+            "text-base font-medium truncate min-w-0! max-w-45",
+            isCurrent ? "text-[#8b5cf6]" : "text-white",
           )}
         >
           {song.title}
@@ -145,7 +145,7 @@ export const QueueDrawer: React.FC<QueueDrawerProps> = ({
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const handleRemoveSong = (songId: string, e: React.MouseEvent) => {
@@ -164,20 +164,20 @@ export const QueueDrawer: React.FC<QueueDrawerProps> = ({
     console.log("Drag end:", { activeId: active.id, overId: over?.id });
     console.log(
       "Display songs:",
-      displaySongs.map((s) => s._id)
+      displaySongs.map((s) => s._id),
     );
     console.log(
       "Queue:",
-      queue.map((s) => s._id)
+      queue.map((s) => s._id),
     );
 
     if (over && active.id !== over.id) {
       // Находим индексы в отображаемом списке
       const oldDisplayIndex = displaySongs.findIndex(
-        (song) => song._id === active.id
+        (song) => song._id === active.id,
       );
       const newDisplayIndex = displaySongs.findIndex(
-        (song) => song._id === over.id
+        (song) => song._id === over.id,
       );
 
       console.log("Display indices:", { oldDisplayIndex, newDisplayIndex });
@@ -192,10 +192,10 @@ export const QueueDrawer: React.FC<QueueDrawerProps> = ({
           const newSong = displaySongs[newDisplayIndex];
 
           const oldShuffleIndex = shuffleHistory.findIndex(
-            (idx) => queue[idx]._id === oldSong._id
+            (idx) => queue[idx]._id === oldSong._id,
           );
           const newShuffleIndex = shuffleHistory.findIndex(
-            (idx) => queue[idx]._id === newSong._id
+            (idx) => queue[idx]._id === newSong._id,
           );
 
           console.log("Shuffle indices:", { oldShuffleIndex, newShuffleIndex });
@@ -291,7 +291,8 @@ export const QueueDrawer: React.FC<QueueDrawerProps> = ({
 
     // Удаляем дубликаты по ID
     const uniqueSongs = allSongs.filter(
-      (song, index, self) => index === self.findIndex((s) => s._id === song._id)
+      (song, index, self) =>
+        index === self.findIndex((s) => s._id === song._id),
     );
 
     return uniqueSongs;
