@@ -1,11 +1,10 @@
 // src/layout/PlaybackControls.tsx
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Drawer } from "vaul";
 import { usePlayerStore } from "../stores/usePlayerStore";
 import { useLibraryStore } from "../stores/useLibraryStore";
 import { Button } from "../components/ui/button";
-import { useDominantColor } from "@/hooks/useDominantColor";
 import { useAudioSettingsStore } from "../lib/webAudio";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -141,10 +140,10 @@ const PlaybackControls = () => {
   const [lyrics, setLyrics] = useState<LyricLine[]>([]);
   const [isQueueDrawerOpen, setIsQueueDrawerOpen] = useState(false);
 
-  const { extractColor } = useDominantColor();
-  const [bgColors, setBgColors] = useState(["#18181b", "#18181b"]);
-
-  const lastImageUrlRef = useRef<string | null>(null);
+  // Очередь фонов для безупречного кроссфейда
+  const [bgQueue, setBgQueue] = useState<
+    { id: string; url: string; loaded: boolean }[]
+  >([]);
 
   useEffect(() => {
     if ("mediaSession" in navigator) {
@@ -255,20 +254,35 @@ const PlaybackControls = () => {
     }
   }, [currentTime, duration, isPlaying, currentSong]);
 
+  // Обновленная логика фонов
   useEffect(() => {
-    if (
-      currentSong?.imageUrl &&
-      currentSong.imageUrl !== lastImageUrlRef.current
-    ) {
-      lastImageUrlRef.current = currentSong.imageUrl;
-      extractColor(currentSong.imageUrl).then((color) => {
-        const newColor = color || "#18181b";
-        setBgColors((prev) => [newColor, prev[0]]);
-      });
-    } else if (!currentSong) {
-      setBgColors((prev) => ["#18181b", prev[0]]);
+    const url = currentSong?.imageUrl;
+    if (!url) {
+      setBgQueue([]);
+      return;
     }
-  }, [currentSong, extractColor]);
+
+    setBgQueue((prev) => {
+      // Если обложка не изменилась, ничего не делаем
+      if (prev.length > 0 && prev[prev.length - 1].url === url) {
+        return prev;
+      }
+
+      // Находим последнюю картинку, которая УЖЕ полностью загрузилась.
+      // Это спасет от мерцания, если быстро переключать треки.
+      const lastLoaded = [...prev].reverse().find((img) => img.loaded);
+      const newImg = { id: Math.random().toString(), url, loaded: false };
+
+      // Держим в массиве ровно 2 элемента: старый фон (как подложку) и новый (который будет появляться)
+      return lastLoaded ? [lastLoaded, newImg] : [newImg];
+    });
+  }, [currentSong?.imageUrl]);
+
+  const handleBgLoad = (id: string) => {
+    setBgQueue((prev) =>
+      prev.map((bg) => (bg.id === id ? { ...bg, loaded: true } : bg)),
+    );
+  };
 
   useEffect(() => {
     fetchLikedSongs();
@@ -431,21 +445,26 @@ const PlaybackControls = () => {
                   isAnyDialogOpen ? "player-dialog-blur" : ""
                 }`}
               >
-                <div
-                  key={bgColors[1]}
-                  className="absolute
- inset-0 -z-10"
-                  style={{
-                    background: `linear-gradient(to bottom, ${bgColors[1]} 0%, rgba(20, 20, 20, 1) 75%, #18181b 100%)`,
-                  }}
-                />
-                <div
-                  key={bgColors[0]}
-                  className="absolute inset-0 -z-10 animate-fade-in"
-                  style={{
-                    background: `linear-gradient(to bottom, ${bgColors[0]} 0%, rgba(20, 20, 20, 1) 75%, #18181b 100%)`,
-                  }}
-                />
+                <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none bg-zinc-950">
+                  <div className="absolute inset-0 opacity-60">
+                    {bgQueue.map((bg) => (
+                      <img
+                        key={bg.id}
+                        src={bg.url}
+                        alt=""
+                        onLoad={() => handleBgLoad(bg.id)}
+                        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
+                          bg.loaded ? "opacity-100" : "opacity-0"
+                        }`}
+                        style={{
+                          filter: "blur(80px)",
+                          transform: "scale(2.5)",
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <div className="absolute inset-0 bg-black/40" />
+                </div>
 
                 <div className=" w-full mx-auto p-4  overflow-auto  hide-scrollbar">
                   <Drawer.Title className="sr-only">
@@ -756,7 +775,7 @@ const PlaybackControls = () => {
                             ));
                           })()}
                           {lyrics.length > 5 && (
-                            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-zinc-950 to-transparent flex items-end justify-center pb-2">
+                            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-zinc-950/50 to-transparent backdrop-blur-xs flex items-end justify-center pb-2">
                               <Button
                                 variant="ghost"
                                 className="text-violet-400 hover:text-violet-300 text-sm font-bold"
