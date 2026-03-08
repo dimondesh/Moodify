@@ -38,9 +38,7 @@ export const getHealthStatus = async (req, res, next) => {
 };
 export const checkAnalysisServiceHealth = async (req, res, next) => {
   try {
-    const analysisServiceUrl =
-      process.env.ANALYSIS_SERVICE_URL ||
-      "https://moodify-analysis-service.onrender.com/";
+    const analysisServiceUrl = process.env.ANALYSIS_SERVICE_URL;
 
     const response = await axios.get(analysisServiceUrl, {
       timeout: 50000,
@@ -56,7 +54,7 @@ export const checkAnalysisServiceHealth = async (req, res, next) => {
       message = error.response.data || "Analysis service returned an error";
       console.error(
         `Analysis service responded with status ${status}:`,
-        message
+        message,
       );
     } else if (error.code === "ECONNABORTED") {
       message = `Analysis service timed out after ${
