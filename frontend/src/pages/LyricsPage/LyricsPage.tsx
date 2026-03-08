@@ -106,27 +106,38 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
     const scrollAreaElement = lyricsScrollAreaRef.current?.querySelector(
       "[data-radix-scroll-area-viewport]",
     ) as HTMLElement;
+
     if (scrollAreaElement) {
-      scrollAreaElement.addEventListener("scroll", handleScroll);
-      scrollAreaElement.addEventListener("touchstart", () => {
+      const handleTouchStart = () => {
         if (scrollTimeoutRef.current) {
           clearTimeout(scrollTimeoutRef.current);
           scrollTimeoutRef.current = null;
         }
         setIsUserScrolling(true);
+      };
+
+      // Добавлено { passive: true } для исправления блокировки скролла на мобилках
+      scrollAreaElement.addEventListener("scroll", handleScroll, {
+        passive: true,
       });
-      scrollAreaElement.addEventListener("touchend", handleScroll);
-      scrollAreaElement.addEventListener("touchcancel", handleScroll);
-    }
-    return () => {
-      if (scrollAreaElement) {
+      scrollAreaElement.addEventListener("touchstart", handleTouchStart, {
+        passive: true,
+      });
+      scrollAreaElement.addEventListener("touchend", handleScroll, {
+        passive: true,
+      });
+      scrollAreaElement.addEventListener("touchcancel", handleScroll, {
+        passive: true,
+      });
+
+      return () => {
         scrollAreaElement.removeEventListener("scroll", handleScroll);
-        scrollAreaElement.removeEventListener("touchstart", () => {});
+        scrollAreaElement.removeEventListener("touchstart", handleTouchStart);
         scrollAreaElement.removeEventListener("touchend", handleScroll);
         scrollAreaElement.removeEventListener("touchcancel", handleScroll);
-      }
-      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-    };
+        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      };
+    }
   }, [handleScroll]);
 
   const handleClose = () => {
@@ -161,8 +172,10 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-zinc-950">
-      {/* 1. Блюр фона на основе обложки */}
+    // Добавлен класс group для CSS-логики скролла
+    <div
+      className={`relative min-h-screen overflow-hidden bg-zinc-950 group ${isUserScrolling ? "is-scrolling" : ""}`}
+    >
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         {currentSong?.imageUrl && (
           <>
@@ -172,7 +185,6 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
               className="absolute inset-0 w-full h-full object-cover opacity-60 scale-150 animate-fade-in"
               style={{ filter: "blur(80px)" }}
             />
-            {/* Затемняющий оверлей поверх блюра, чтобы текст оставался читаемым */}
             <div className="absolute inset-0 bg-black/40" />
           </>
         )}
@@ -205,19 +217,19 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
           </p>
         </div>
 
-        {/* 2. Градиент-маска на ScrollArea */}
         <ScrollArea
           className="flex-1 w-full max-w-4xl text-center h-full"
           ref={lyricsScrollAreaRef}
           style={{
+            // Маска 10%, чтобы блюр был только у самого края
             maskImage:
-              "linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)",
+              "linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)",
             WebkitMaskImage:
-              "linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)",
+              "linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)",
           }}
         >
-          {/* Добавляем пустой блок сверху, чтобы самая первая строка могла оказаться в центре при скролле */}
-          <div className="h-[20vh] w-full" />
+          {/* Отступ 12vh ровно выводит первую строчку из зоны блюра в начале песни */}
+          <div className="h-[12vh] w-full" />
 
           {lyrics.map((line, index) => {
             const isActive =
@@ -225,36 +237,27 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
               (index === lyrics.length - 1 ||
                 realCurrentTime < lyrics[index + 1].time);
 
-            // Вычисляем, начнется ли эта строка менее чем через 1 секунду
             const isUpcoming =
               line.time > realCurrentTime && line.time - realCurrentTime <= 1;
 
-            // 3. Логика классов для блюра и цветов
+            // Логика блюра и прозрачности перенесена на CSS (Tailwind group-[.is-scrolling])
             let stateClasses = "";
 
-            if (isUserScrolling) {
-              // Если пользователь скроллит - убираем блюр у всех строк
-              stateClasses = isActive
-                ? "text-violet-500 scale-105 opacity-100! blur-none"
-                : "text-zinc-300 opacity-80 blur-none";
+            if (isActive) {
+              stateClasses =
+                "text-violet-400 scale-105 opacity-100 blur-none drop-shadow-lg group-[.is-scrolling]:drop-shadow-none";
+            } else if (isUpcoming) {
+              stateClasses =
+                "text-zinc-200 opacity-90 blur-none group-[.is-scrolling]:opacity-80 group-[.is-scrolling]:text-zinc-300";
             } else {
-              if (isActive) {
-                stateClasses =
-                  "text-violet-400 scale-105 opacity-100! blur-none drop-shadow-lg";
-              } else if (isUpcoming) {
-                // Если строка будет петься через <= 1 сек, плавно выводим из блюра
-                stateClasses =
-                  "text-zinc-200 opacity-90 blur-none duration-1000";
-              } else {
-                // Обычное состояние (прошедшие или будущие строки)
-                stateClasses = "text-zinc-400 blur-[4px] opacity-40";
-              }
+              stateClasses =
+                "text-zinc-400 blur-[4px] opacity-40 group-[.is-scrolling]:blur-none group-[.is-scrolling]:opacity-80 group-[.is-scrolling]:text-zinc-300 hover:text-white hover:blur-none hover:opacity-100";
             }
 
             return (
               <p
                 key={index}
-                className={`py-2 text-2xl px-2 sm:text-3xl font-bold transition-all duration-500 lyric-line-${index} cursor-pointer hover:text-white hover:blur-none hover:opacity-100 ${stateClasses}`}
+                className={`py-2 text-2xl px-2 sm:text-3xl font-bold transition-all duration-500 lyric-line-${index} cursor-pointer ${stateClasses}`}
                 onClick={() => handleLyricLineClick(line.time)}
               >
                 {line.text}
@@ -262,6 +265,7 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
             );
           })}
 
+          {/* Снизу отступ большой, чтобы последняя строка доскролливалась до центра */}
           <div className="h-[50vh] w-full" />
         </ScrollArea>
       </div>
