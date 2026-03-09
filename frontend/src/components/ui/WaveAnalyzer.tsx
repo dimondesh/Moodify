@@ -15,18 +15,21 @@ const WaveAnalyzer: React.FC<WaveAnalyzerProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameId = useRef<number | null>(null);
 
-  // Добавляем analyzerSmoothness
-  const { waveAnalyzerEnabled, analyzerSmoothness } = useAudioSettingsStore();
-
-  // Ref для хранения времени последней отрисовки
+  const dataArrayRef = useRef<Uint8Array | null>(null);
   const lastDrawTimeRef = useRef<number>(0);
+
+  const waveAnalyzerEnabled = useAudioSettingsStore(
+    (state) => state.waveAnalyzerEnabled,
+  );
+  const analyzerSmoothness = useAudioSettingsStore(
+    (state) => state.analyzerSmoothness,
+  );
 
   const draw = useCallback(
     (timestamp: number) => {
       const canvas = canvasRef.current;
       if (!canvas) return;
 
-      // Определяем интервал в мс на основе настройки плавности (FPS)
       let fpsInterval = 1000 / 60; // Default High (60 FPS)
 
       if (analyzerSmoothness === "low") {
@@ -34,19 +37,17 @@ const WaveAnalyzer: React.FC<WaveAnalyzerProps> = ({
       } else if (analyzerSmoothness === "medium") {
         fpsInterval = 1000 / 60; // Medium (60 FPS)
       } else {
-        fpsInterval = 1000 / 120; // High 120
+        fpsInterval = 1000 / 120; // High (120 FPS)
       }
 
       const elapsed = timestamp - lastDrawTimeRef.current;
 
-      // Всегда запрашиваем следующий кадр, но рисуем только если прошло достаточно времени
       animationFrameId.current = requestAnimationFrame(draw);
 
       if (elapsed < fpsInterval) {
         return;
       }
 
-      // Сохраняем время отрисовки, учитывая "остаток" времени для более точного FPS
       lastDrawTimeRef.current = timestamp - (elapsed % fpsInterval);
 
       const canvasCtx = canvas.getContext("2d");
@@ -71,8 +72,18 @@ const WaveAnalyzer: React.FC<WaveAnalyzerProps> = ({
         canvasCtx.lineTo(width, height / 2);
       } else {
         const bufferLength = analyser.fftSize;
-        const dataArray = new Uint8Array(bufferLength);
-        analyser.getByteTimeDomainData(dataArray);
+
+        if (
+          !dataArrayRef.current ||
+          dataArrayRef.current.length !== bufferLength
+        ) {
+          dataArrayRef.current = new Uint8Array(bufferLength);
+        }
+
+        const dataArray = dataArrayRef.current;
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        analyser.getByteTimeDomainData(dataArray as any);
 
         const sliceWidth = (width * 1.0) / bufferLength;
         let x = 0;
@@ -93,12 +104,12 @@ const WaveAnalyzer: React.FC<WaveAnalyzerProps> = ({
       canvasCtx.stroke();
     },
     [width, height, analyzerSmoothness],
-  ); // Зависимость от analyzerSmoothness
+  );
 
   useEffect(() => {
     const startAnimation = () => {
       if (!animationFrameId.current) {
-        lastDrawTimeRef.current = performance.now(); // Сброс времени при старте
+        lastDrawTimeRef.current = performance.now();
         animationFrameId.current = requestAnimationFrame(draw);
       }
     };
