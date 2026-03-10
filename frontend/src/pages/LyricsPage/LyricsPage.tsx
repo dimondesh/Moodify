@@ -71,7 +71,6 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
     }
   }, [lyrics]);
 
-  // ОРИГИНАЛЬНАЯ ЛОГИКА АВТОСКРОЛЛА (без изменений)
   useEffect(() => {
     if (lyricsScrollAreaRef.current && lyrics.length > 0 && !isUserScrolling) {
       const activeLineIndex = lyrics.findIndex(
@@ -94,7 +93,6 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
     }
   }, [realCurrentTime, lyrics, isUserScrolling]);
 
-  // ОРИГИНАЛЬНАЯ ЛОГИКА ПАУЗЫ СКРОЛЛА ПРИ ЛИСТАНИИ (без изменений)
   const handleScroll = useCallback(() => {
     if (!isUserScrolling) setIsUserScrolling(true);
     if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
@@ -148,9 +146,9 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
   if (!currentSong || !lyrics.length) {
     return (
       <div
-        className={`flex flex-col items-center justify-center min-h-screen text-zinc-400 ${
+        className={`flex flex-col items-center justify-center min-h-[100dvh] text-zinc-400 ${
           isMobileFullScreen
-            ? "fixed inset-0 z-[80] bg-zinc-950"
+            ? "fixed inset-0 z-[100] bg-zinc-950"
             : "w-full bg-black"
         }`}
       >
@@ -163,28 +161,31 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-zinc-950">
-      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-        {currentSong?.imageUrl && (
-          <>
-            <img
-              src={currentSong.imageUrl}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover opacity-60 scale-150 animate-fade-in"
-              style={{ filter: "blur(80px)" }}
-            />
-            <div className="absolute inset-0 bg-black/40" />
-            <div className="absolute inset-y-0 w-full bg-gradient-to-b from-transparent via-zinc-950/80 to-zinc-950" />
-          </>
-        )}
-      </div>
+    <div
+      className={`overflow-hidden bg-black ${
+        isMobileFullScreen
+          ? "fixed inset-0 z-[100]"
+          : "relative min-h-[100dvh] w-full"
+      }`}
+    >
+      {currentSong?.imageUrl && (
+        <div
+          className="absolute -inset-[0%] z-0 pointer-events-none transition-all duration-700 ease-in-out"
+          style={{
+            backgroundImage: `url(${currentSong.imageUrl})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            filter: "blur(80px)",
+            WebkitFilter: "blur(80px)", 
+            transform: "scale(1.5) translateZ(0)",
+          }}
+        />
+      )}
 
-      <div
-        className={`relative z-10 flex flex-col items-center justify-start h-[calc(100vh - 1px)] p-4 sm:p-8 text-white ${
-          isMobileFullScreen ? "fixed inset-0 z-[80]" : "w-full"
-        }`}
-      >
-        <div className="flex justify-between items-center w-full max-w-4xl mb-4 z-10">
+      <div className="absolute inset-0 z-0 bg-black/60 pointer-events-none" />
+
+      <div className="flex flex-col items-center justify-start h-full p-4 pt-12 sm:p-8 text-white relative z-10 w-full">
+        <div className="flex justify-between items-center w-full max-w-4xl mb-4">
           <Button
             variant="ghost"
             size="icon"
@@ -193,39 +194,42 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
           >
             <ChevronDown className="h-6 w-6" />
           </Button>
-          <div className="text-sm font-semibold text-zinc-400 uppercase z-10">
+          <div className="text-sm font-semibold text-zinc-400 uppercase drop-shadow-md tracking-widest">
             {t("player.lyrics")}
           </div>
-          <div className="w-10 h-10 z-10" />
+          <div className="w-10 h-10" />
         </div>
-        <div className="text-center mb-8 z-10">
-          <h2 className="text-3xl font-bold mb-1">{currentSong.title}</h2>
-          <p className="text-zinc-400 text-lg">
+
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold mb-1 drop-shadow-lg">
+            {currentSong.title}
+          </h2>
+          <p className="text-zinc-300 text-lg drop-shadow-md">
             {getArtistNames(currentSong.artist, [])}
           </p>
         </div>
 
-        {/* ОРИГИНАЛЬНАЯ ЛОГИКА РЕНДЕРИНГА ТЕКСТА (без масок и блюра на тексте) */}
         <ScrollArea
-          className="flex-1 w-full max-w-4xl text-center h-full"
+          className="flex-1 w-full max-w-4xl text-center h-full relative z-10 overflow-hidden"
           ref={lyricsScrollAreaRef}
+          style={{}}
         >
           {lyrics.map((line, index) => (
             <p
               key={index}
-              className={`py-1 text-2xl px-2 sm:text-3xl font-semibold transition-all duration-200 lyric-line-${index} cursor-pointer hover:text-white ${
+              className={`py-1 text-2xl px-2 sm:text-3xl font-semibold transition-all duration-200 lyric-line-${index} cursor-pointer hover:text-white drop-shadow-md ${
                 realCurrentTime >= line.time &&
                 (index === lyrics.length - 1 ||
                   realCurrentTime < lyrics[index + 1].time)
                   ? "text-violet-400 scale-105"
-                  : "text-zinc-400"
+                  : "text-zinc-400/80 hover:text-zinc-200"
               }`}
               onClick={() => handleLyricLineClick(line.time)}
             >
               {line.text}
             </p>
           ))}
-          <div className="h-[50vh] w-full"></div>
+          <div className="h-[50vh] w-full pointer-events-none"></div>
         </ScrollArea>
       </div>
     </div>

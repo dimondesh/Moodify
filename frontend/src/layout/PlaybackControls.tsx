@@ -459,8 +459,8 @@ const PlaybackControls = () => {
                         style={{
                           filter: "blur(80px)",
                           WebkitFilter: "blur(80px)", // Принудительно для Safari
-                          transform: "scale(2.5) translateZ(0)", // translateZ(0) выносит на отдельный GPU-слой
-                          WebkitTransform: "scale(2.5) translateZ(0)", // GPU-хак для Safari
+                          transform: "scale(1.5) translateZ(0)",
+                          WebkitTransform: "scale(1.5) translateZ(0)",
                           backfaceVisibility: "hidden", // Убирает мерцание задней поверхности в Safari
                           WebkitBackfaceVisibility: "hidden",
                           willChange: "opacity", // Заранее предупреждаем браузер, что будем менять прозрачность
