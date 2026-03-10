@@ -148,7 +148,7 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
       <div
         className={`flex flex-col items-center justify-center min-h-[100dvh] text-zinc-400 ${
           isMobileFullScreen
-            ? "fixed inset-0 z-[100] bg-zinc-950"
+            ? "fixed inset-0 z-[100] bg-zinc-950 overscroll-none"
             : "w-full bg-black"
         }`}
       >
@@ -162,7 +162,7 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
 
   return (
     <div
-      className={`overflow-hidden bg-black ${
+      className={`overflow-hidden bg-zinc-950 overscroll-none ${
         isMobileFullScreen
           ? "fixed inset-0 z-[100]"
           : "relative min-h-[100dvh] w-full"
@@ -170,14 +170,13 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
     >
       {currentSong?.imageUrl && (
         <div
-          className="absolute -inset-[0%] z-0 pointer-events-none transition-all duration-700 ease-in-out"
+          className="absolute inset-0 z-0 pointer-events-none transition-all duration-700 ease-in-out origin-center transform-gpu"
           style={{
             backgroundImage: `url(${currentSong.imageUrl})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
             filter: "blur(80px)",
-            WebkitFilter: "blur(80px)", 
-            transform: "scale(1.5) translateZ(0)",
+            WebkitFilter: "blur(80px)",
           }}
         />
       )}
@@ -212,8 +211,15 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
         <ScrollArea
           className="flex-1 w-full max-w-4xl text-center h-full relative z-10 overflow-hidden"
           ref={lyricsScrollAreaRef}
-          style={{}}
+          style={{
+            maskImage:
+              "linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)",
+            WebkitMaskImage:
+              "linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)",
+          }}
         >
+          <div className="h-[8vh] w-full pointer-events-none"></div>
+
           {lyrics.map((line, index) => (
             <p
               key={index}
