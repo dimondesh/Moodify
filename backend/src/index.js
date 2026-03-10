@@ -87,7 +87,7 @@ app.use(
 );
 
 cron.schedule(
-  "* */6 * * *", // Каждые 6 часов
+  "0 */6 * * *", // Каждые 6 часов
   async () => {
     console.log(
       'CRON JOB: Starting "Featured Songs" generation for all users...',
@@ -221,7 +221,7 @@ cron.schedule(
 
 // Запускаем каждый день в 4 часа утра
 cron.schedule(
-  "* * */3 * *",
+  "0 * */3 * *",
   async () => {
     console.log('CRON JOB: Starting "On Repeat" playlist generation...');
     try {
