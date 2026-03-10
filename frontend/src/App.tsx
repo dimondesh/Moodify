@@ -10,13 +10,11 @@ import { useUIStore } from "./stores/useUIStore";
 import ErrorBoundary from "./components/ErrorBoundary";
 import StandardLoader from "./components/ui/StandardLoader";
 
-// Eager load критичные компоненты
 import HomePage from "./pages/HomePage/HomePage";
 import MainLayout from "./layout/MainLayout";
 import AuthPage from "./pages/AuthPage/AuthPage";
 import TrackRedirect from "./pages/TrackRedirect";
 
-// Lazy load остальные страницы
 const AlbumPage = lazy(() => import("./pages/AlbumPage/AlbumPage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage/NotFoundPage"));
 const AllSongsPage = lazy(() => import("./pages/AllSongs/AllSongsPage"));
@@ -69,7 +67,6 @@ function App() {
     setIsIosDevice(isIOS);
   }, [setIsIosDevice]);
 
-  // Единственный вызов fetchInitialData с debounce
   useEffect(() => {
     if (initialDataFetchedRef.current || !navigator.onLine) return;
 
