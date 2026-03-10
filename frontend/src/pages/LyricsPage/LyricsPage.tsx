@@ -67,18 +67,32 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
       const viewport = lyricsScrollAreaRef.current.querySelector(
         "[data-radix-scroll-area-viewport]",
       );
-      if (viewport) viewport.scrollTop = 0;
+      if (viewport) {
+        viewport.scrollTo({ top: 0, behavior: "smooth" });
+      }
     }
-  }, [lyrics]);
+  }, [currentSong?._id]);
 
   useEffect(() => {
     if (lyricsScrollAreaRef.current && lyrics.length > 0 && !isUserScrolling) {
+      // Если мы находимся во вступлении (до первых слов) - держим скролл наверху
+      if (realCurrentTime < lyrics[0].time) {
+        const viewport = lyricsScrollAreaRef.current.querySelector(
+          "[data-radix-scroll-area-viewport]",
+        );
+        if (viewport && viewport.scrollTop > 10) {
+          viewport.scrollTo({ top: 0, behavior: "smooth" });
+        }
+        return;
+      }
+
       const activeLineIndex = lyrics.findIndex(
         (line, index) =>
           realCurrentTime >= line.time &&
           (index === lyrics.length - 1 ||
             realCurrentTime < lyrics[index + 1].time),
       );
+
       if (activeLineIndex !== -1) {
         const activeLineElement = lyricsScrollAreaRef.current.querySelector(
           `.lyric-line-${activeLineIndex}`,
@@ -148,7 +162,7 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
       <div
         className={`flex flex-col items-center justify-center min-h-[100dvh] text-zinc-400 ${
           isMobileFullScreen
-            ? "fixed inset-0 z-[100] bg-zinc-950 overscroll-none"
+            ? "fixed inset-0 z-[100] bg-black overscroll-none"
             : "w-full bg-black"
         }`}
       >
@@ -162,7 +176,7 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
 
   return (
     <div
-      className={`overflow-hidden bg-zinc-950 overscroll-none ${
+      className={`overflow-hidden bg-black overscroll-none ${
         isMobileFullScreen
           ? "fixed inset-0 z-[100]"
           : "relative min-h-[100dvh] w-full"
