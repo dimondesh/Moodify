@@ -441,7 +441,7 @@ const PlaybackControls = () => {
               <Drawer.Overlay className="fixed bg-black/40 z-[70] max-w-none " />
               <Drawer.Content
                 aria-describedby={undefined}
-                className={`bg-zinc-950 flex flex-col rounded-t-[10px]  w-auto max-w-none h-full max-h-[100%] mt-24 min-w-screen overflow-hidden  fixed bottom-0 left-0 right-0 z-[70]  ${
+                className={`bg-zinc-950 flex flex-col  w-auto max-w-none h-full max-h-[100%] mt-24 min-w-screen overflow-hidden  fixed bottom-0 left-0 right-0 z-[70]  ${
                   isAnyDialogOpen ? "player-dialog-blur" : ""
                 }`}
               >
