@@ -23,6 +23,7 @@ import {
 
 import path from "path";
 import fs from "fs/promises";
+import fsSync from "fs";
 import { getGenresAndMoodsForTrack } from "../lib/lastfm.service.js";
 import { Genre } from "../models/genre.model.js";
 import { Mood } from "../models/mood.model.js";
