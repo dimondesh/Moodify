@@ -192,7 +192,7 @@ const MainLayout = () => {
         "h-screen bg-[#0f0f0f] text-white flex flex-col transition-transform ease-in-out",
         isUserSheetOpen && isMobile
           ? "duration-300 -translate-x-[290px] rounded-none overflow-hidden"
-          : "duration-300 translate-x-0 rounded-none"
+          : "duration-300 translate-x-0 rounded-none",
       )}
     >
       <DynamicTitleUpdater />
@@ -204,7 +204,7 @@ const MainLayout = () => {
       <ResizablePanelGroup
         direction="horizontal"
         className={`flex-1 flex overflow-hidden ${contentPaddingBottom} ${
-          isMobile ? "p-0" : "p-1"
+          isMobile ? "p-0" : "p-0"
         }`}
         id="main-layout-group"
       >
