@@ -17,6 +17,7 @@ import {
   getPaginatedArtists,
   analyzeSongAudio,
   getSongAudioFeatures,
+  uploadChunk,
 } from "../controller/admin.controller.js";
 import { protectRoute } from "../middleware/auth.middleware.js";
 
@@ -31,6 +32,7 @@ router.delete("/songs/:id", deleteSong);
 router.post("/albums", createAlbum);
 router.put("/albums/:id", updateAlbum);
 router.delete("/albums/:id", deleteAlbum);
+router.post("/albums/upload-chunk", uploadChunk);
 router.post("/albums/upload-full-album", uploadFullAlbumAuto);
 
 router.post("/artists", createArtist);

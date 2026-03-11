@@ -688,6 +688,42 @@ export const deleteArtist = async (req, res, next) => {
   }
 };
 
+export const uploadChunk = async (req, res, next) => {
+  try {
+    // Если файла нет, express-fileupload выбросит ошибку, так что проверим:
+    if (!req.files || !req.files.chunk) {
+      return res.status(400).json({ message: "Chunk is missing" });
+    }
+
+    const { uploadId, chunkIndex, totalChunks } = req.body;
+    const chunk = req.files.chunk;
+
+    // Создаем папку для сборки файла
+    const tempDir = path.join(process.cwd(), "temp", "chunks", uploadId);
+    if (!fsSync.existsSync(tempDir)) {
+      fsSync.mkdirSync(tempDir, { recursive: true });
+    }
+
+    // Дописываем кусочек в конец общего файла
+    const assembledFilePath = path.join(tempDir, "album.zip");
+    fsSync.appendFileSync(
+      assembledFilePath,
+      fsSync.readFileSync(chunk.tempFilePath),
+    );
+
+    // Удаляем временный файл чанка от express-fileupload
+    fsSync.unlinkSync(chunk.tempFilePath);
+
+    res.status(200).json({
+      success: true,
+      message: `Chunk ${chunkIndex}/${totalChunks} merged`,
+    });
+  } catch (error) {
+    console.error("Chunk upload error:", error);
+    next(error);
+  }
+};
+
 export const uploadFullAlbumAuto = async (req, res, next) => {
   console.log("🚀 Reached HLS /admin/albums/upload-full-album route");
 
@@ -700,15 +736,37 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
       .json({ message: "Access denied. Admin privileges required." });
   }
 
-  const { spotifyAlbumUrl } = req.body;
+  const { spotifyAlbumUrl, uploadId } = req.body;
   const albumAudioZip = req.files ? req.files.albumAudioZip : null;
 
-  if (!spotifyAlbumUrl || !albumAudioZip) {
-    return res.status(400).json({
-      success: false,
-      message: "Spotify URL and ZIP file are required.",
-    });
+  if (!spotifyAlbumUrl) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Spotify URL is required." });
   }
+
+  let zipFilePath;
+  if (uploadId) {
+    zipFilePath = path.join(
+      process.cwd(),
+      "temp",
+      "chunks",
+      uploadId,
+      "album.zip",
+    );
+    if (!fsSync.existsSync(zipFilePath)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Assembled ZIP not found." });
+    }
+  } else if (albumAudioZip) {
+    zipFilePath = albumAudioZip.tempFilePath;
+  } else {
+    return res
+      .status(400)
+      .json({ success: false, message: "ZIP file or uploadId is required." });
+  }
+  // -------------------------------------
 
   const tempUnzipDir = path.join(
     process.cwd(),
@@ -730,10 +788,7 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
       throw new Error("Could not get album data from Spotify.");
     }
 
-    const extractedFilePaths = await extractZip(
-      albumAudioZip.tempFilePath,
-      tempUnzipDir,
-    );
+    const extractedFilePaths = await extractZip(zipFilePath, tempUnzipDir);
     const trackFilesMap = {};
     for (const filePath of extractedFilePaths) {
       const parsed = parseTrackFileName(filePath);
@@ -1017,9 +1072,16 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
 
     next(error);
   } finally {
-    // Снимаем флаг загрузки
     clearUploadInProgress();
     await cleanUpTempDir(tempUnzipDir);
+    if (uploadId) {
+      await fs
+        .rm(path.join(process.cwd(), "temp", "chunks", uploadId), {
+          recursive: true,
+          force: true,
+        })
+        .catch(() => {});
+    }
   }
 };
 
