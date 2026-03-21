@@ -562,19 +562,21 @@ const PlaybackControls = () => {
                         )}
                       </div>
 
-                      <div className="w-full flex items-center gap-2 mb-8 px-2">
-                        <div className="text-xs text-zinc-400">
-                          {formatTime(currentTime)}
-                        </div>
+                      <div className="w-full flex flex-col gap-2 mb-8 px-2">
                         <Slider
                           value={[currentTime]}
                           max={duration || 100}
                           step={1}
-                          className="flex-1 hover:cursor-grab active:cursor-grabbing"
+                          className="w-full hover:cursor-grab active:cursor-grabbing"
                           onValueChange={(value) => seekToTime(value[0])}
                         />
-                        <div className="text-xs text-zinc-400">
-                          {formatTime(duration)}
+                        <div className="w-full flex items-center justify-between">
+                          <div className="text-xs text-zinc-400 font-mono">
+                            {formatTime(currentTime)}
+                          </div>
+                          <div className="text-xs text-zinc-400 font-mono">
+                            {formatTime(duration)}
+                          </div>
                         </div>
                       </div>
 
