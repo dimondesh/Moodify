@@ -411,8 +411,8 @@ const PlaybackControls = () => {
               <div className="flex items-center gap-2 flex-shrink-0">
                 <AddToPlaylistControl
                   song={currentSong}
-                  className="w-8 h-8"
-                  iconClassName="h-5 w-5"
+                  className="size-5.5"
+                  iconClassName="size-5.5"
                   disabled={!user}
                 />
                 <Button
