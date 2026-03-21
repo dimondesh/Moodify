@@ -24,6 +24,7 @@ import { ScrollArea } from "../components/ui/scroll-area";
 import { Input } from "../components/ui/input";
 import { useTranslation } from "react-i18next";
 import { cn } from "../lib/utils";
+import CheckedIcon from "@/components/ui/checkedIcon";
 
 interface PlaylistMenuContentProps {
   song: Song;
@@ -55,14 +56,14 @@ const PlaylistMenuContent: React.FC<PlaylistMenuContentProps> = memo(
     const filteredPlaylists = useMemo(
       () =>
         allOwnedPlaylists.filter((playlist) =>
-          playlist.title.toLowerCase().includes(searchTerm.toLowerCase())
+          playlist.title.toLowerCase().includes(searchTerm.toLowerCase()),
         ),
-      [allOwnedPlaylists, searchTerm]
+      [allOwnedPlaylists, searchTerm],
     );
 
     const handlePlaylistToggle = async (
       playlistId: string,
-      shouldBeInPlaylist: boolean
+      shouldBeInPlaylist: boolean,
     ) => {
       try {
         if (shouldBeInPlaylist) {
@@ -123,7 +124,7 @@ const PlaylistMenuContent: React.FC<PlaylistMenuContentProps> = memo(
             "w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0",
             checked
               ? "bg-violet-600 border-violet-600"
-              : "border-gray-500 group-hover:border-white"
+              : "border-gray-500 group-hover:border-white",
           )}
         >
           {checked && <Check className="w-4 h-4 text-white" />}
@@ -168,7 +169,7 @@ const PlaylistMenuContent: React.FC<PlaylistMenuContentProps> = memo(
                 imageUrl={playlist.imageUrl}
                 title={playlist.title}
                 subtitle={`${playlist.songs.length} ${t(
-                  "sidebar.subtitle.songs"
+                  "sidebar.subtitle.songs",
                 )}`}
               />
             ))}
@@ -176,7 +177,7 @@ const PlaylistMenuContent: React.FC<PlaylistMenuContentProps> = memo(
         </ScrollArea>
       </div>
     );
-  }
+  },
 );
 PlaylistMenuContent.displayName = "PlaylistMenuContent";
 
@@ -250,7 +251,7 @@ export const AddToPlaylistControl: React.FC<AddToPlaylistControlProps> = ({
         "hover:text-white",
         isAdded ? "text-violet-500" : "text-zinc-400",
         disabled && "opacity-50 cursor-not-allowed",
-        className
+        className,
       )}
       onClick={disabled ? undefined : handleInitialAdd}
       disabled={disabled}
@@ -258,12 +259,12 @@ export const AddToPlaylistControl: React.FC<AddToPlaylistControlProps> = ({
         disabled
           ? t("auth.loginRequired")
           : isAdded
-          ? t("player.addToPlaylist")
-          : t("player.saveToLibrary")
+            ? t("player.addToPlaylist")
+            : t("player.saveToLibrary")
       }
     >
       {isAdded ? (
-        <Check className={cn(iconClassName)} />
+        <CheckedIcon className={cn(iconClassName)} />
       ) : (
         <Plus className={cn(iconClassName)} />
       )}

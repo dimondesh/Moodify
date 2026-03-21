@@ -334,10 +334,10 @@ const PlaybackControls = () => {
   };
 
   const renderVolumeIcon = () => {
-    if (masterVolume === 0) return <VolumeX className="h-4 w-4" />;
-    if (masterVolume <= 33) return <Volume className="h-4 w-4" />;
-    if (masterVolume <= 66) return <Volume1 className="h-4 w-4" />;
-    return <Volume2 className="h-4 w-4" />;
+    if (masterVolume === 0) return <VolumeX className="size-5 md:size-4" />;
+    if (masterVolume <= 33) return <Volume className="size-5 md:size-4" />;
+    if (masterVolume <= 66) return <Volume1 className="size-5 md:size-4" />;
+    return <Volume2 className="size-5 md:size-4" />;
   };
 
   const handleArtistClick = (artistId: string) => {
@@ -471,7 +471,7 @@ const PlaybackControls = () => {
                   <div className="absolute inset-0 bg-black/40" />
                 </div>
 
-                <div className=" w-full mx-auto p-4  overflow-auto  hide-scrollbar">
+                <div className=" w-full mx-auto p-0  overflow-auto  hide-scrollbar">
                   <Drawer.Title className="sr-only">
                     {currentSong?.title || t("player.nowPlaying")} -{" "}
                     {getArtistNames(
@@ -481,14 +481,14 @@ const PlaybackControls = () => {
                       [],
                     )}
                   </Drawer.Title>
-                  <div className="flex justify-between items-center mb-4 flex-shrink-0">
+                  <div className="flex justify-between items-center mb-4 flex-shrink-0 mt-2">
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => setIsFullScreenPlayerOpen(false)}
                       className="text-zinc-400 hover:text-white"
                     >
-                      <ChevronDown className="h-6 w-6" />
+                      <ChevronDown className="size-6" />
                     </Button>
                     <button
                       onClick={() => {
@@ -555,7 +555,7 @@ const PlaybackControls = () => {
                           <div className="flex-shrink-0 ml-2 flex items-center gap-2">
                             <AddToPlaylistControl
                               song={currentSong}
-                              iconClassName="size-5"
+                              iconClassName="size-7"
                               disabled={!user}
                             />
                           </div>
@@ -588,7 +588,7 @@ const PlaybackControls = () => {
                           onClick={toggleShuffle}
                           title={t("player.toggleShuffle")}
                         >
-                          <Shuffle className="h-6 w-6" />
+                          <Shuffle className="size-5" />
                         </Button>
                         <Button
                           size="icon"
@@ -602,7 +602,7 @@ const PlaybackControls = () => {
                             }
                           }}
                         >
-                          <SkipBack className="h-6 w-6 fill-current" />
+                          <SkipBack className="size-5 fill-current" />
                         </Button>
                         <Button
                           size="icon"
@@ -610,9 +610,9 @@ const PlaybackControls = () => {
                           onClick={togglePlay}
                         >
                           {isPlaying ? (
-                            <Pause className="h-9 w-9 fill-current" />
+                            <Pause className="size-5 fill-current" />
                           ) : (
-                            <Play className="h-9 w-9 fill-current" />
+                            <Play className="size-5 fill-current" />
                           )}
                         </Button>
                         <Button
@@ -621,7 +621,7 @@ const PlaybackControls = () => {
                           className="hover:text-white text-zinc-400"
                           onClick={playNext}
                         >
-                          <SkipForward className="h-6 w-6 fill-current" />
+                          <SkipForward className="size-5 fill-current" />
                         </Button>
                         <Button
                           size="icon"
@@ -635,9 +635,9 @@ const PlaybackControls = () => {
                           title={t("player.toggleRepeat")}
                         >
                           {repeatMode === "one" ? (
-                            <Repeat1 className="h-6 w-6" />
+                            <Repeat1 className="size-5" />
                           ) : (
-                            <Repeat className="h-6 w-6" />
+                            <Repeat className="size-5" />
                           )}
                         </Button>
                       </div>
@@ -667,7 +667,7 @@ const PlaybackControls = () => {
                                   : t("player.share")
                             }
                           >
-                            <Share className="h-5 w-5" />
+                            <Share className="size-5" />
                           </Button>
                           {!isIosDevice && (
                             <DropdownMenu>
@@ -744,7 +744,7 @@ const PlaybackControls = () => {
                             onClick={() => setIsQueueDrawerOpen(true)}
                             title={t("player.queue.title")}
                           >
-                            <List className="h-4 w-4" />
+                            <List className="size-5" />
                           </Button>
                         </div>
                       </div>
