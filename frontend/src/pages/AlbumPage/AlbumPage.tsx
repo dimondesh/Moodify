@@ -34,6 +34,7 @@ import EqualizerTitle from "@/components/ui/equalizer-title";
 import { getOptimizedImageUrl } from "@/lib/utils";
 import { useHasFriends } from "@/hooks/useHasFriends";
 import { useSearchParams } from "react-router-dom";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 const formatDuration = (seconds: number) => {
   if (isNaN(seconds) || seconds < 0) return "0:00";
@@ -64,6 +65,7 @@ const AlbumPage = () => {
   const [selectedSongForMenu, setSelectedSongForMenu] = useState<Song | null>(
     null,
   );
+  const [isCoverModalOpen, setIsCoverModalOpen] = useState(false);
   const { hasFriends } = useHasFriends();
 
   const { extractColor } = useDominantColor();
@@ -392,7 +394,14 @@ const AlbumPage = () => {
                 <img
                   src={getOptimizedImageUrl(currentAlbum.imageUrl, 500)}
                   alt={currentAlbum.title}
-                  className="w-64 h-64 sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px] shadow-xl rounded object-cover"
+                  onClick={() => {
+                    if (!isMobile) setIsCoverModalOpen(true);
+                  }}
+                  className={`w-64 h-64 sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px] shadow-xl rounded object-cover ${
+                    !isMobile
+                      ? "cursor-pointer hover:opacity-80 transition-opacity"
+                      : ""
+                  }`}
                 />
                 <div className="flex flex-col justify-end text-center sm:text-left min-w-0">
                   <p className="text-xs sm:text-sm font-medium ">
@@ -546,6 +555,20 @@ const AlbumPage = () => {
           }
         }}
       />
+      {!isMobile && currentAlbum && (
+        <Dialog open={isCoverModalOpen} onOpenChange={setIsCoverModalOpen}>
+          <DialogContent className="border-none bg-transparent p-0 shadow-none flex justify-center max-w-4xl text-white">
+            <DialogTitle className="sr-only">
+              Album Cover {currentAlbum.title}
+            </DialogTitle>
+            <img
+              src={currentAlbum.imageUrl} // Здесь берем оригинальную (или максимальную) картинку
+              alt={currentAlbum.title}
+              className="max-h-[85vh] w-auto max-w-full rounded-lg object-contain shadow-2xl"
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 };

@@ -871,14 +871,12 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
     const totalTracks = spotifyAlbumData.total_tracks;
     let albumType;
 
-    if (albumTypeFromSpotify === "single") {
+    if (totalTracks === 1) {
       albumType = "Single";
+    } else if (totalTracks >= 2 && totalTracks <= 6) {
+      albumType = "EP";
     } else {
-      if (totalTracks >= 2 && totalTracks <= 6) {
-        albumType = "EP";
-      } else {
-        albumType = "Album";
-      }
+      albumType = "Album";
     }
 
     const albumImageUrl =
