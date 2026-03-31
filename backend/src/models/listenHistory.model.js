@@ -36,13 +36,14 @@ const listenHistorySchema = new mongoose.Schema(
       default: Date.now,
     },
   },
-  { timestamps: false }
+  { timestamps: false },
 );
 
 listenHistorySchema.index({ user: 1, listenedAt: -1 });
 listenHistorySchema.index({ song: 1, listenedAt: -1 });
+listenHistorySchema.index({ listenedAt: -1 });
 
 export const ListenHistory = mongoose.model(
   "ListenHistory",
-  listenHistorySchema
+  listenHistorySchema,
 );

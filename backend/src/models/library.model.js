@@ -100,7 +100,10 @@ const librarySchema = new mongoose.Schema(
       },
     ],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
+librarySchema.index({ userId: 1 });
+librarySchema.index({ "likedSongs.songId": 1 });
+librarySchema.index({ "albums.albumId": 1 });
 
 export const Library = mongoose.model("Library", librarySchema);

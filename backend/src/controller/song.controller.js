@@ -19,7 +19,9 @@ export const getAllSongs = async (req, res, next) => {
       .populate("artist", "name imageUrl")
       .populate("genres")
       .populate("moods")
+      .lean()
       .sort({ createdAt: -1 });
+
     res.status(200).json({ songs });
   } catch (error) {
     next(error);
