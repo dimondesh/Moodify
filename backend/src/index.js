@@ -87,7 +87,7 @@ app.use(
 );
 
 cron.schedule(
-  "0 */6 * * *", // Каждые 6 часов
+  "*/1 * * * *", // Каждые 6 часов
   async () => {
     console.log(
       'CRON JOB: Starting "Featured Songs" generation for all users...',
@@ -203,7 +203,7 @@ cron.schedule(
   },
 );
 
-cron.schedule("*/10 * * * *", () => {
+cron.schedule("*/20 * * * *", () => {
   console.log("[CronJob] Запуск очистки временных директорий...");
   cleanAllTempDirectories();
 });

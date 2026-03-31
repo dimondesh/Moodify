@@ -11,7 +11,7 @@ import { ListenHistory } from "../models/listenHistory.model.js";
 export const generateNewReleasesForUser = async (userId) => {
   try {
     const library = await Library.findOne({ userId }).select(
-      "followedArtists.artistId"
+      "followedArtists.artistId",
     );
     if (!library || library.followedArtists.length === 0) {
       return;
@@ -33,10 +33,10 @@ export const generateNewReleasesForUser = async (userId) => {
           items: newReleases.map((album) => album._id),
           generatedAt: new Date(),
         },
-        { upsert: true, new: true }
+        { upsert: true, new: true },
       );
       console.log(
-        `[New Releases] Found ${newReleases.length} new releases for user ${userId}`
+        `[New Releases] Found ${newReleases.length} new releases for user ${userId}`,
       );
     }
   } catch (error) {
@@ -49,7 +49,7 @@ export const generatePlaylistRecommendationsForUser = async (userId) => {
 
     const user = await User.findById(userId).select("playlists");
     const library = await Library.findOne({ userId }).select(
-      "playlists.playlistId"
+      "playlists.playlistId",
     );
 
     const userPlaylistIds = user ? user.playlists.map((p) => p.toString()) : [];
@@ -72,13 +72,13 @@ export const generatePlaylistRecommendationsForUser = async (userId) => {
 
     if (allSongIds.length < 10) {
       console.log(
-        `[Playlist Recs] User ${userId} has too few songs in playlists. Skipping.`
+        `[Playlist Recs] User ${userId} has too few songs in playlists. Skipping.`,
       );
       return;
     }
 
     const songsWithTags = await Song.find({ _id: { $in: allSongIds } }).select(
-      "genres moods"
+      "genres moods",
     );
     const genreCounts = {};
     const moodCounts = {};
@@ -109,10 +109,10 @@ export const generatePlaylistRecommendationsForUser = async (userId) => {
     for (const playlist of candidatePlaylists) {
       let score = 0;
       const playlistGenreSet = new Set(
-        playlist.songs.flatMap((s) => s.genres.map((id) => id.toString()))
+        playlist.songs.flatMap((s) => s.genres.map((id) => id.toString())),
       );
       const playlistMoodSet = new Set(
-        playlist.songs.flatMap((s) => s.moods.map((id) => id.toString()))
+        playlist.songs.flatMap((s) => s.moods.map((id) => id.toString())),
       );
 
       userTopGenres.forEach((genreId) => {
@@ -141,16 +141,16 @@ export const generatePlaylistRecommendationsForUser = async (userId) => {
           items: recommendedPlaylistIds,
           generatedAt: new Date(),
         },
-        { upsert: true, new: true, setDefaultsOnInsert: true }
+        { upsert: true, new: true, setDefaultsOnInsert: true },
       );
       console.log(
-        `[Playlist Recs] Saved ${recommendedPlaylistIds.length} recommendations for user ${userId}`
+        `[Playlist Recs] Saved ${recommendedPlaylistIds.length} recommendations for user ${userId}`,
       );
     }
   } catch (error) {
     console.error(
       `[Playlist Recs] Error generating for user ${userId}:`,
-      error
+      error,
     );
   }
 };
@@ -196,32 +196,44 @@ export const generateFeaturedSongsForUser = async (userId, limit = 8) => {
           .sort((a, b) => counts[b] - counts[a])
           .slice(0, countLimit);
 
-      const topGenreIds = getTopItems(genreCounts, 3);
-      const topMoodIds = getTopItems(moodCounts, 2);
-      const topArtistIds = getTopItems(artistCounts, 3);
+      const topGenreIds = getTopItems(genreCounts, 3).map(
+        (id) => new mongoose.Types.ObjectId(id),
+      );
+      const topMoodIds = getTopItems(moodCounts, 2).map(
+        (id) => new mongoose.Types.ObjectId(id),
+      );
+      const topArtistIds = getTopItems(artistCounts, 3).map(
+        (id) => new mongoose.Types.ObjectId(id),
+      );
 
-      const recommendations = await Song.find({
-        _id: { $nin: listenedSongIds },
-        $or: [
-          { genres: { $in: topGenreIds } },
-          { moods: { $in: topMoodIds } },
-          { artist: { $in: topArtistIds } },
-        ],
-      })
-        .limit(50)
-        .select("_id");
+      const recommendations = await Song.aggregate([
+        {
+          $match: {
+            _id: { $nin: listenedSongIds },
+            $or: [
+              { genres: { $in: topGenreIds } },
+              { moods: { $in: topMoodIds } },
+              { artist: { $in: topArtistIds } },
+            ],
+          },
+        },
+        { $sample: { size: limit } },
+        { $project: { _id: 1 } },
+      ]);
 
-      finalPicksIds = recommendations
-        .sort(() => 0.5 - Math.random())
-        .map((s) => s._id)
-        .slice(0, limit);
+      finalPicksIds = recommendations.map((s) => s._id);
     }
 
     if (finalPicksIds.length < limit) {
-      const trending = await Song.find({ _id: { $nin: finalPicksIds } })
-        .sort({ playCount: -1 })
-        .limit(limit - finalPicksIds.length)
-        .select("_id");
+      const trendingCount = limit - finalPicksIds.length;
+      const trending = await Song.aggregate([
+        { $match: { _id: { $nin: finalPicksIds } } },
+        { $sort: { playCount: -1 } },
+        { $limit: trendingCount * 3 },
+        { $sample: { size: trendingCount } },
+        { $project: { _id: 1 } },
+      ]);
+
       finalPicksIds.push(...trending.map((s) => s._id));
     }
 
@@ -232,16 +244,16 @@ export const generateFeaturedSongsForUser = async (userId, limit = 8) => {
           items: finalPicksIds,
           generatedAt: new Date(),
         },
-        { upsert: true, new: true }
+        { upsert: true, new: true },
       );
       console.log(
-        `[Featured Songs] Generated ${finalPicksIds.length} picks for user ${userId}`
+        `[Featured Songs] Generated ${finalPicksIds.length} picks for user ${userId}`,
       );
     }
   } catch (error) {
     console.error(
       `[Featured Songs] Error generating for user ${userId}:`,
-      error
+      error,
     );
   }
 };
