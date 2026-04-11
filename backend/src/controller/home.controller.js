@@ -95,58 +95,78 @@ export const getBootstrapData = async (req, res, next) => {
   try {
     const userId = req.user?.id;
 
-    const promises = [
+    // 1. Эти данные грузим всегда (даже для неавторизованных)
+    const commonPromises = [
       getQuickPicks(req, res, next, true, 8),
-
       getTrendingAlbums(req, res, next, true, HOME_SECTION_LIMIT),
-
       getDailyMixes(req, res, next, true, HOME_SECTION_LIMIT),
-
-      getPersonalMixes(req, res, next, true),
-
       getPublicPlaylists(req, res, next, true, HOME_SECTION_LIMIT),
-
-      getMyGeneratedPlaylists(req, res, next, true, HOME_SECTION_LIMIT),
-
-      getMadeForYouSongs(req, res, next, true, HOME_SECTION_LIMIT),
-      getListenHistory(req, res, next, true, HOME_SECTION_LIMIT),
-      getFavoriteArtists(req, res, next, true, HOME_SECTION_LIMIT),
-      getNewReleases(req, res, next, true, HOME_SECTION_LIMIT),
-      getPlaylistRecommendations(req, res, next, true, HOME_SECTION_LIMIT),
-
-      getOptimizedLibrarySummary(userId),
     ];
 
-    const [
-      featuredSongs,
-      trendingAlbums,
-      mixesData,
-      personalMixes,
-      publicPlaylists,
-      allGeneratedPlaylists,
-      madeForYouSongs,
-      recentlyListened,
-      favoriteArtists,
-      newReleases,
-      recommendedPlaylists,
-      librarySummary,
-    ] = await Promise.all(promises);
+    // 2. Эти данные запрашиваем ТОЛЬКО если есть userId
+    const userSpecificPromises = userId
+      ? [
+          getPersonalMixes(req, res, next, true),
+          getMyGeneratedPlaylists(req, res, next, true, HOME_SECTION_LIMIT),
+          getMadeForYouSongs(req, res, next, true, HOME_SECTION_LIMIT),
+          getListenHistory(req, res, next, true, HOME_SECTION_LIMIT),
+          getFavoriteArtists(req, res, next, true, HOME_SECTION_LIMIT),
+          getNewReleases(req, res, next, true, HOME_SECTION_LIMIT),
+          getPlaylistRecommendations(req, res, next, true, HOME_SECTION_LIMIT),
+          getOptimizedLibrarySummary(userId),
+        ]
+      : [];
 
+    const [featuredSongs, trendingAlbums, mixesData, publicPlaylists] =
+      await Promise.all(commonPromises);
+
+    // 3. Базовая структура ответа (дефолтные пустые массивы для гостей)
     const bootstrapData = {
       featuredSongs,
       trendingAlbums,
       genreMixes: mixesData.genreMixes,
       moodMixes: mixesData.moodMixes,
-      personalMixes,
+      personalMixes: [],
       publicPlaylists,
-      allGeneratedPlaylists,
-      madeForYouSongs,
-      recentlyListenedSongs: recentlyListened.songs,
-      favoriteArtists,
-      newReleases,
-      recommendedPlaylists,
-      library: librarySummary,
+      allGeneratedPlaylists: [],
+      madeForYouSongs: [],
+      recentlyListenedSongs: [],
+      favoriteArtists: [],
+      newReleases: [],
+      recommendedPlaylists: [],
+      library: {
+        albums: [],
+        likedSongs: [],
+        playlists: [],
+        followedArtists: [],
+        savedMixes: [],
+        savedPersonalMixes: [],
+        generatedPlaylists: [],
+      },
     };
+
+    // 4. Если пользователь авторизован, подставляем его персональные данные
+    if (userId && userSpecificPromises.length > 0) {
+      const [
+        personalMixes,
+        allGeneratedPlaylists,
+        madeForYouSongs,
+        recentlyListened,
+        favoriteArtists,
+        newReleases,
+        recommendedPlaylists,
+        librarySummary,
+      ] = await Promise.all(userSpecificPromises);
+
+      bootstrapData.personalMixes = personalMixes;
+      bootstrapData.allGeneratedPlaylists = allGeneratedPlaylists;
+      bootstrapData.madeForYouSongs = madeForYouSongs;
+      bootstrapData.recentlyListenedSongs = recentlyListened.songs || [];
+      bootstrapData.favoriteArtists = favoriteArtists;
+      bootstrapData.newReleases = newReleases;
+      bootstrapData.recommendedPlaylists = recommendedPlaylists;
+      bootstrapData.library = librarySummary;
+    }
 
     res.status(200).json(bootstrapData);
   } catch (error) {
