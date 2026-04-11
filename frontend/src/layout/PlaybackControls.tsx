@@ -529,7 +529,7 @@ const PlaybackControls = () => {
                             currentSong.imageUrl || "/default-song-cover.png"
                           }
                           alt={currentSong.title}
-                          className="w-full max-w-md aspect-square object-cover rounded-lg shadow-2xl mb-8"
+                          className="w-full max-w-md aspect-square object-cover rounded-lg shadow-2xl mb-10"
                         />
                       ) : (
                         <div className="w-full max-w-md aspect-square bg-zinc-800 rounded-lg flex items-center justify-center text-zinc-500 mb-8">
@@ -537,7 +537,7 @@ const PlaybackControls = () => {
                         </div>
                       )}
 
-                      <div className="flex justify-between items-center w-full mb-2 px-2">
+                      <div className="flex justify-between items-center w-full mb-4 px-2">
                         <div className="flex flex-col text-left min-w-0 flex-1">
                           <button
                             onClick={() => {
@@ -598,7 +598,7 @@ const PlaybackControls = () => {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-around w-full mb-8 px-2">
+                      <div className="flex items-center justify-between w-full mb-6 px-2">
                         <Button
                           size="icon"
                           variant="ghost"
@@ -608,7 +608,7 @@ const PlaybackControls = () => {
                           onClick={toggleShuffle}
                           title={t("player.toggleShuffle")}
                         >
-                          <Shuffle className="size-5" />
+                          <Shuffle className="size-6" />
                         </Button>
                         <Button
                           size="icon"
@@ -622,7 +622,7 @@ const PlaybackControls = () => {
                             }
                           }}
                         >
-                          <SkipBack className="size-5 fill-current" />
+                          <SkipBack className="size-6 fill-current" />
                         </Button>
                         <Button
                           size="icon"
@@ -630,9 +630,9 @@ const PlaybackControls = () => {
                           onClick={togglePlay}
                         >
                           {isPlaying ? (
-                            <Pause className="size-5 fill-current" />
+                            <Pause className="size-6 fill-current" />
                           ) : (
-                            <Play className="size-5 fill-current" />
+                            <Play className="size-6 fill-current" />
                           )}
                         </Button>
                         <Button
@@ -641,7 +641,7 @@ const PlaybackControls = () => {
                           className="hover:text-white text-zinc-400"
                           onClick={playNext}
                         >
-                          <SkipForward className="size-5 fill-current" />
+                          <SkipForward className="size-6 fill-current" />
                         </Button>
                         <Button
                           size="icon"
@@ -655,9 +655,9 @@ const PlaybackControls = () => {
                           title={t("player.toggleRepeat")}
                         >
                           {repeatMode === "one" ? (
-                            <Repeat1 className="size-5" />
+                            <Repeat1 className="size-6" />
                           ) : (
-                            <Repeat className="size-5" />
+                            <Repeat className="size-6" />
                           )}
                         </Button>
                       </div>
@@ -779,7 +779,7 @@ const PlaybackControls = () => {
                         }}
                       >
                         <div
-                          className="w-full rounded-2xl p-5 sm:p-6 shadow-xl transition-colors duration-1000 relative overflow-hidden"
+                          className="w-full rounded-2xl p-4 sm:p-6 shadow-xl transition-colors duration-1000 relative overflow-hidden"
                           style={{
                             backgroundColor: lyricsBgColor,
                             // Слегка затемняем фон, чтобы белый текст всегда читался
