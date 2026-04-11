@@ -29,7 +29,7 @@ export const generatePersonalMixes = async (userId) => {
 
     if (validHistory.length < 10) {
       console.log(
-        `Not enough listen history for user ${userId}: ${validHistory.length} songs`
+        `Not enough listen history for user ${userId}: ${validHistory.length} songs`,
       );
       return [];
     }
@@ -114,7 +114,7 @@ export const generatePersonalMixes = async (userId) => {
             generatedOn: today,
           },
         },
-        { upsert: true, new: true }
+        { upsert: true, new: true },
       );
 
       mixes.push(personalMix);
@@ -154,7 +154,7 @@ export const generatePersonalMixes = async (userId) => {
             generatedOn: today,
           },
         },
-        { upsert: true, new: true }
+        { upsert: true, new: true },
       );
 
       mixes.push(personalMix);
@@ -172,7 +172,7 @@ export const getPersonalMixes = async (
   req,
   res,
   next,
-  returnInternal = false
+  returnInternal = false,
 ) => {
   try {
     const userId = req.user.id;
@@ -195,8 +195,9 @@ export const getPersonalMixes = async (
     // Популируем песни
     const populatedMixes = await PersonalMix.populate(personalMixes, {
       path: "songs",
+      select: "-lyrics",
       select:
-        "title duration imageUrl artist albumId hlsUrl playCount genres moods lyrics",
+        "title duration imageUrl artist albumId hlsUrl playCount genres moods",
       populate: { path: "artist", select: "name imageUrl" },
     });
 
@@ -223,8 +224,9 @@ export const getPersonalMixById = async (req, res, next) => {
       user: userId,
     }).populate({
       path: "songs",
+      select: "-lyrics",
       select:
-        "title duration imageUrl artist albumId hlsUrl playCount genres moods lyrics",
+        "title duration imageUrl artist albumId hlsUrl playCount genres moods",
       populate: { path: "artist", model: "Artist", select: "name imageUrl" },
     });
 

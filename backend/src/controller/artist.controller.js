@@ -18,8 +18,9 @@ export const getArtistById = async (req, res, next) => {
     const artist = await Artist.findById(id)
       .populate({
         path: "songs",
+        select: "-lyrics",
         select:
-          "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics",
+          "title artist albumId imageUrl hlsUrl duration playCount genres moods",
         populate: {
           path: "artist",
           select: "name imageUrl",
@@ -64,7 +65,7 @@ export const getArtistAppearsOn = async (req, res, next) => {
     ];
 
     const appearsOnAlbumIds = allAlbumIdsWithArtist.filter(
-      (albumId) => !ownAlbumIds.some((ownId) => ownId.equals(albumId))
+      (albumId) => !ownAlbumIds.some((ownId) => ownId.equals(albumId)),
     );
 
     const albums = await Album.find({ _id: { $in: appearsOnAlbumIds } })

@@ -19,7 +19,7 @@ const AudioPlayer = () => {
   const hlsRef = useRef<Hls | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaElementSourceRef = useRef<MediaElementAudioSourceNode | null>(
-    null
+    null,
   );
   const masterGainNodeRef = useRef<GainNode | null>(null);
   const lastSongIdRef = useRef<string | null>(null);
@@ -53,7 +53,7 @@ const AudioPlayer = () => {
       // Lyrics уже должны быть в объекте песни
       // Не делаем дополнительный запрос, чтобы избежать 404 ошибок
     },
-    [isOffline]
+    [isOffline],
   );
 
   // Инициализация Web Audio API
@@ -72,7 +72,7 @@ const AudioPlayer = () => {
       webAudioService.init(
         context,
         masterGainNodeRef.current,
-        context.destination
+        context.destination,
       );
       webAudioService.applySettingsToGraph();
     }
@@ -229,7 +229,7 @@ const AudioPlayer = () => {
                 currentTime < lastRecordedTimeRef.current
                   ? " (repeat)"
                   : ""
-              }`
+              }`,
             );
             useMusicStore.getState().fetchRecentlyListenedSongs();
           })

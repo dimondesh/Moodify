@@ -15,7 +15,7 @@ export const getLibraryAlbums = async (req, res, next) => {
     }
 
     const library = await Library.findOne({ userId }).populate(
-      "albums.albumId"
+      "albums.albumId",
     );
 
     if (!library) {
@@ -33,7 +33,7 @@ export const getLibraryAlbums = async (req, res, next) => {
         addedAt: a.addedAt,
       }))
       .sort(
-        (a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime()
+        (a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime(),
       );
 
     res.json({ albums });
@@ -73,7 +73,7 @@ export const getLikedSongs = async (req, res, next) => {
     const songs = library.likedSongs
       .filter((item) => item.songId)
       .sort(
-        (a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime()
+        (a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime(),
       )
       .map((item) => ({
         ...item.songId,
@@ -106,7 +106,7 @@ export const toggleAlbumInLibrary = async (req, res, next) => {
     const library = await Library.findOneAndUpdate(
       { userId },
       {},
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
 
     if (!library.albums) {
@@ -114,12 +114,12 @@ export const toggleAlbumInLibrary = async (req, res, next) => {
     }
 
     const exists = library.albums.some(
-      (a) => a.albumId?.toString() === albumId
+      (a) => a.albumId?.toString() === albumId,
     );
 
     if (exists) {
       library.albums = library.albums.filter(
-        (a) => a.albumId?.toString() !== albumId
+        (a) => a.albumId?.toString() !== albumId,
       );
     } else {
       library.albums.push({
@@ -153,7 +153,7 @@ export const toggleSongLikeInLibrary = async (req, res, next) => {
     const library = await Library.findOneAndUpdate(
       { userId },
       {},
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
 
     if (!library.likedSongs) {
@@ -161,7 +161,7 @@ export const toggleSongLikeInLibrary = async (req, res, next) => {
     }
 
     const exists = library.likedSongs.some(
-      (s) => s.songId?.toString() === songId
+      (s) => s.songId?.toString() === songId,
     );
 
     let isLikedStatus;
@@ -169,7 +169,7 @@ export const toggleSongLikeInLibrary = async (req, res, next) => {
 
     if (exists) {
       library.likedSongs = library.likedSongs.filter(
-        (s) => s.songId?.toString() !== songId
+        (s) => s.songId?.toString() !== songId,
       );
       isLikedStatus = false;
     } else {
@@ -230,7 +230,7 @@ export const getPlaylistsInLibrary = async (req, res, next) => {
         addedAt: item.addedAt,
       }))
       .sort(
-        (a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime()
+        (a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime(),
       );
 
     res.json({ playlists });
@@ -260,7 +260,7 @@ export const togglePlaylistInLibrary = async (req, res, next) => {
     const library = await Library.findOneAndUpdate(
       { userId },
       {},
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
 
     if (!library.playlists) {
@@ -268,7 +268,7 @@ export const togglePlaylistInLibrary = async (req, res, next) => {
     }
 
     const exists = library.playlists.some(
-      (p) => p.playlistId?.toString() === playlistId
+      (p) => p.playlistId?.toString() === playlistId,
     );
 
     let message;
@@ -276,7 +276,7 @@ export const togglePlaylistInLibrary = async (req, res, next) => {
 
     if (exists) {
       library.playlists = library.playlists.filter(
-        (p) => p.playlistId?.toString() !== playlistId
+        (p) => p.playlistId?.toString() !== playlistId,
       );
       message = "Playlist removed from library";
       isAdded = false;
@@ -319,7 +319,7 @@ export const toggleArtistInLibrary = async (req, res, next) => {
     const library = await Library.findOneAndUpdate(
       { userId },
       {},
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
 
     if (!library.followedArtists) {
@@ -327,14 +327,14 @@ export const toggleArtistInLibrary = async (req, res, next) => {
     }
 
     const exists = library.followedArtists.some(
-      (a) => a.artistId?.toString() === artistId
+      (a) => a.artistId?.toString() === artistId,
     );
 
     let isFollowedStatus;
 
     if (exists) {
       library.followedArtists = library.followedArtists.filter(
-        (a) => a.artistId?.toString() !== artistId
+        (a) => a.artistId?.toString() !== artistId,
       );
       isFollowedStatus = false;
     } else {
@@ -376,14 +376,14 @@ export const getFollowedArtists = async (req, res, next) => {
 
     if (!library.followedArtists) {
       console.log(
-        "library.followedArtists is undefined. Initializing to empty array."
+        "library.followedArtists is undefined. Initializing to empty array.",
       );
       library.followedArtists = [];
     }
 
     console.log(
       "Fetched library.followedArtists before filter:",
-      JSON.stringify(library.followedArtists, null, 2)
+      JSON.stringify(library.followedArtists, null, 2),
     );
 
     const artists = library.followedArtists
@@ -399,7 +399,7 @@ export const getFollowedArtists = async (req, res, next) => {
         return true;
       })
       .sort(
-        (a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime()
+        (a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime(),
       )
       .map((item) => {
         console.log("Processing artist item:", JSON.stringify(item, null, 2));
@@ -432,19 +432,19 @@ export const toggleMixInLibrary = async (req, res, next) => {
     const library = await Library.findOneAndUpdate(
       { userId },
       {},
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
 
     if (!library.savedMixes) library.savedMixes = [];
 
     const exists = library.savedMixes.some(
-      (m) => m.mixId?.toString() === mixId
+      (m) => m.mixId?.toString() === mixId,
     );
     let isSaved;
 
     if (exists) {
       library.savedMixes = library.savedMixes.filter(
-        (m) => m.mixId?.toString() !== mixId
+        (m) => m.mixId?.toString() !== mixId,
       );
       isSaved = false;
     } else {
@@ -477,19 +477,19 @@ export const togglePersonalMixInLibrary = async (req, res, next) => {
     const library = await Library.findOneAndUpdate(
       { userId },
       {},
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
 
     if (!library.savedPersonalMixes) library.savedPersonalMixes = [];
 
     const exists = library.savedPersonalMixes.some(
-      (m) => m.personalMixId?.toString() === personalMixId
+      (m) => m.personalMixId?.toString() === personalMixId,
     );
     let isSaved;
 
     if (exists) {
       library.savedPersonalMixes = library.savedPersonalMixes.filter(
-        (m) => m.personalMixId?.toString() !== personalMixId
+        (m) => m.personalMixId?.toString() !== personalMixId,
       );
       isSaved = false;
     } else {
@@ -547,6 +547,7 @@ export const getOwnedPlaylists = async (req, res) => {
       path: "playlists",
       populate: {
         path: "songs",
+        select: "-lyrics",
         model: "Song",
       },
     });
@@ -602,19 +603,19 @@ export const toggleGeneratedPlaylistInLibrary = async (req, res, next) => {
     const library = await Library.findOneAndUpdate(
       { userId },
       {},
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
 
     if (!library.savedGeneratedPlaylists) library.savedGeneratedPlaylists = [];
 
     const exists = library.savedGeneratedPlaylists.some(
-      (p) => p.playlistId?.toString() === playlistId
+      (p) => p.playlistId?.toString() === playlistId,
     );
     let isSaved;
 
     if (exists) {
       library.savedGeneratedPlaylists = library.savedGeneratedPlaylists.filter(
-        (p) => p.playlistId?.toString() !== playlistId
+        (p) => p.playlistId?.toString() !== playlistId,
       );
       isSaved = false;
     } else {
@@ -683,7 +684,7 @@ export const getLibrarySummary = async (req, res, next) => {
         .find({ _id: { $in: likedSongIds } })
         .populate("artist", "name")
         .select(
-          "title imageUrl artist duration playCount albumId createdAt albumTitle"
+          "title imageUrl artist duration playCount albumId createdAt albumTitle",
         )
         .lean(),
       mongoose
@@ -702,8 +703,9 @@ export const getLibrarySummary = async (req, res, next) => {
         .find({ _id: { $in: mixIds } })
         .populate({
           path: "songs",
+          select: "-lyrics",
           select:
-            "title duration imageUrl artist albumId hlsUrl playCount genres moods lyrics",
+            "title duration imageUrl artist albumId hlsUrl playCount genres moods",
           populate: { path: "artist", select: "name imageUrl" },
         })
         .select("name imageUrl sourceName type generatedOn songs")
@@ -713,8 +715,9 @@ export const getLibrarySummary = async (req, res, next) => {
         .find({ _id: { $in: personalMixIds } })
         .populate({
           path: "songs",
+          select: "-lyrics",
           select:
-            "title duration imageUrl artist albumId hlsUrl playCount genres moods lyrics",
+            "title duration imageUrl artist albumId hlsUrl playCount genres moods",
           populate: { path: "artist", select: "name imageUrl" },
         })
         .select("name imageUrl generatedOn songs")
@@ -728,7 +731,7 @@ export const getLibrarySummary = async (req, res, next) => {
 
     const addAddedAt = (items, libraryField) => {
       const lookup = new Map(
-        libraryField.map((i) => [i[Object.keys(i)[0]].toString(), i.addedAt])
+        libraryField.map((i) => [i[Object.keys(i)[0]].toString(), i.addedAt]),
       );
       return items.map((item) => ({
         ...item,
@@ -739,7 +742,7 @@ export const getLibrarySummary = async (req, res, next) => {
     // Special handling for liked songs to ensure proper sorting
     const addAddedAtAndSort = (items, libraryField) => {
       const lookup = new Map(
-        libraryField.map((i) => [i[Object.keys(i)[0]].toString(), i.addedAt])
+        libraryField.map((i) => [i[Object.keys(i)[0]].toString(), i.addedAt]),
       );
       return items
         .map((item) => ({
@@ -748,7 +751,7 @@ export const getLibrarySummary = async (req, res, next) => {
         }))
         .sort(
           (a, b) =>
-            new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime()
+            new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime(),
         );
     };
 
@@ -760,11 +763,11 @@ export const getLibrarySummary = async (req, res, next) => {
       savedMixes: addAddedAt(savedMixes, library.savedMixes),
       savedPersonalMixes: addAddedAt(
         savedPersonalMixes,
-        library.savedPersonalMixes
+        library.savedPersonalMixes,
       ),
       generatedPlaylists: addAddedAt(
         generatedPlaylists,
-        library.savedGeneratedPlaylists
+        library.savedGeneratedPlaylists,
       ),
     });
   } catch (err) {

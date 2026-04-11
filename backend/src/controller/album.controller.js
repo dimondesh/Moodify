@@ -7,6 +7,7 @@ export const getAllAlbums = async (req, res, next) => {
       .populate("artist", "name imageUrl")
       .populate({
         path: "songs",
+        select: "-lyrics",
         populate: {
           path: "artist",
           model: "Artist",
@@ -29,6 +30,7 @@ export const getAlbumById = async (req, res, next) => {
       .populate("artist", "name imageUrl")
       .populate({
         path: "songs",
+        select: "-lyrics",
         populate: {
           path: "artist",
           model: "Artist",
@@ -53,7 +55,7 @@ export const getTrendingAlbums = async (
   res,
   next,
   returnInternal = false,
-  limit = 12
+  limit = 12,
 ) => {
   try {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -83,6 +85,7 @@ export const getTrendingAlbums = async (
       .populate("artist", "name imageUrl")
       .populate({
         path: "songs",
+        select: "-lyrics",
         populate: {
           path: "artist",
           model: "Artist",
@@ -140,6 +143,7 @@ export const getTrendingAlbums = async (
         .populate("artist", "name imageUrl")
         .populate({
           path: "songs",
+          select: "-lyrics",
           populate: {
             path: "artist",
             model: "Artist",

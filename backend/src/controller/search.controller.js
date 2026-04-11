@@ -27,8 +27,9 @@ export const searchSongs = async (req, res, next) => {
     const matchingArtists = await Artist.find({ name: regex })
       .populate({
         path: "songs",
+        select: "-lyrics",
         select:
-          "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics",
+          "title artist albumId imageUrl hlsUrl duration playCount genres moods",
         populate: {
           path: "artist",
           select: "name imageUrl",
@@ -45,7 +46,7 @@ export const searchSongs = async (req, res, next) => {
           $or: [{ title: regex }, { artist: { $in: matchingArtistIds } }],
         })
           .select(
-            "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics"
+            "title artist albumId imageUrl hlsUrl duration playCount genres moods",
           )
           .populate("artist", "name imageUrl")
           .populate("albumId", "title imageUrl")
@@ -58,8 +59,9 @@ export const searchSongs = async (req, res, next) => {
           .populate("artist", "name imageUrl")
           .populate({
             path: "songs",
+            select: "-lyrics",
             select:
-              "title duration imageUrl artist albumId hlsUrl playCount genres moods lyrics",
+              "title duration imageUrl artist albumId hlsUrl playCount genres moods",
             populate: { path: "artist", select: "name imageUrl" },
           })
           .limit(50)
@@ -72,8 +74,9 @@ export const searchSongs = async (req, res, next) => {
           .populate("owner", "fullName")
           .populate({
             path: "songs",
+            select: "-lyrics",
             select:
-              "title duration imageUrl artist albumId hlsUrl playCount genres moods lyrics",
+              "title duration imageUrl artist albumId hlsUrl playCount genres moods",
             populate: { path: "artist", select: "name imageUrl" },
           })
           .limit(50)
@@ -87,8 +90,9 @@ export const searchSongs = async (req, res, next) => {
         Mix.find({ searchableNames: regex })
           .populate({
             path: "songs",
+            select: "-lyrics",
             select:
-              "title duration imageUrl artist albumId hlsUrl playCount genres moods lyrics",
+              "title duration imageUrl artist albumId hlsUrl playCount genres moods",
             populate: { path: "artist", select: "name imageUrl" },
           })
           .limit(50)

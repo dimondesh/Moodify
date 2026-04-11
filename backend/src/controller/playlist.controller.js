@@ -20,7 +20,7 @@ const uploadImageToBunny = async (file) => {
     const result = await uploadToBunny(
       file.tempFilePath,
       "playlist_covers",
-      fileName
+      fileName,
     );
     return result.url;
   } catch (error) {
@@ -45,7 +45,7 @@ export const createPlaylist = async (req, res, next) => {
       const imageUpload = await optimizeAndUploadImage(
         req.files.image,
         req.files.image.name,
-        "playlist_covers"
+        "playlist_covers",
       );
       imageUrl = imageUpload.url;
       imagePublicId = imageUpload.path;
@@ -82,6 +82,7 @@ export const getMyPlaylists = async (req, res, next) => {
       .populate("owner", "fullName imageUrl")
       .populate({
         path: "songs",
+        select: "-lyrics",
         populate: {
           path: "artist",
           model: "Artist",
@@ -101,6 +102,7 @@ export const getMyPlaylists = async (req, res, next) => {
           },
           {
             path: "songs",
+            select: "-lyrics",
             populate: {
               path: "artist",
               model: "Artist",
@@ -146,6 +148,7 @@ export const getPlaylistById = async (req, res, next) => {
       .populate("owner", "fullName imageUrl")
       .populate({
         path: "songs",
+        select: "-lyrics",
         populate: {
           path: "artist",
           model: "Artist",
@@ -202,7 +205,7 @@ export const updatePlaylist = async (req, res, next) => {
       const imageUpload = await optimizeAndUploadImage(
         req.files.image,
         req.files.image.name,
-        "playlist_covers"
+        "playlist_covers",
       );
       playlist.imageUrl = imageUpload.url;
       playlist.imagePublicId = imageUpload.path;
@@ -214,6 +217,7 @@ export const updatePlaylist = async (req, res, next) => {
       .populate("owner", "fullName imageUrl")
       .populate({
         path: "songs",
+        select: "-lyrics",
         populate: {
           path: "artist",
           model: "Artist",
@@ -300,11 +304,12 @@ export const addSongToPlaylist = async (req, res, next) => {
       .populate("owner", "fullName imageUrl")
       .populate({
         path: "songs",
+        select: "-lyrics",
         populate: { path: "artist", model: "Artist", select: "name imageUrl" },
       })
       .lean();
     console.log(
-      `[SOCKET EMIT] Sending 'playlist_updated' to room 'playlist-${playlistId}' after adding a song.`
+      `[SOCKET EMIT] Sending 'playlist_updated' to room 'playlist-${playlistId}' after adding a song.`,
     );
     req.io
       .to(`playlist-${playlistId}`)
@@ -335,7 +340,7 @@ export const removeSongFromPlaylist = async (req, res, next) => {
 
     const initialSongCount = playlist.songs.length;
     playlist.songs = playlist.songs.filter(
-      (song) => song.toString() !== songId
+      (song) => song.toString() !== songId,
     );
 
     if (playlist.songs.length === initialSongCount) {
@@ -347,14 +352,15 @@ export const removeSongFromPlaylist = async (req, res, next) => {
       .populate("owner", "fullName imageUrl")
       .populate({
         path: "songs",
+        select: "-lyrics",
         populate: { path: "artist", model: "Artist", select: "name imageUrl" },
       })
       .lean();
     console.log(
-      `[BACKEND] Emitting 'playlist_updated' to room 'playlist-${playlistId}' after removing a song. New song count: ${updatedPlaylist.songs.length}`
+      `[BACKEND] Emitting 'playlist_updated' to room 'playlist-${playlistId}' after removing a song. New song count: ${updatedPlaylist.songs.length}`,
     );
     console.log(
-      `[SOCKET EMIT] Sending 'playlist_updated' to room 'playlist-${playlistId}' after removing a song.`
+      `[SOCKET EMIT] Sending 'playlist_updated' to room 'playlist-${playlistId}' after removing a song.`,
     );
     req.io
       .to(`playlist-${playlistId}`)
@@ -428,13 +434,14 @@ export const getPublicPlaylists = async (
   req,
   res,
   next,
-  returnInternal = false
+  returnInternal = false,
 ) => {
   try {
     const publicPlaylists = await Playlist.find({ isPublic: true })
       .populate("owner", "fullName imageUrl")
       .populate({
         path: "songs",
+        select: "-lyrics",
         populate: {
           path: "artist",
           model: "Artist",
@@ -613,7 +620,7 @@ export const createPlaylistWithAI = async (req, res, next) => {
 
     const selectedSongsByAI = await selectSongsFromCandidates(
       prompt,
-      formattedCandidates
+      formattedCandidates,
     );
 
     const finalSongIds = selectedSongsByAI.map((s) => s.id);
@@ -652,6 +659,7 @@ export const createPlaylistWithAI = async (req, res, next) => {
       .populate("owner", "fullName imageUrl")
       .populate({
         path: "songs",
+        select: "-lyrics",
         populate: { path: "artist", model: "Artist", select: "name imageUrl" },
       })
       .lean();

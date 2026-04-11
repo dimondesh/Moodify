@@ -6,14 +6,15 @@ export const getMyGeneratedPlaylists = async (
   req,
   res,
   next,
-  returnInternal = false
+  returnInternal = false,
 ) => {
   try {
     const userId = req.user.id;
     const playlists = await GeneratedPlaylist.find({ user: userId }).populate({
       path: "songs",
+      select: "-lyrics",
       select:
-        "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics",
+        "title artist albumId imageUrl hlsUrl duration playCount genres moods",
       populate: { path: "artist", model: "Artist", select: "name imageUrl" },
     });
 
@@ -31,14 +32,15 @@ export const getGeneratedPlaylistById = async (req, res, next) => {
   try {
     const playlist = await GeneratedPlaylist.findById(req.params.id).populate({
       path: "songs",
+      select: "-lyrics",
       select:
-        "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics",
+        "title artist albumId imageUrl hlsUrl duration playCount genres moods",
       populate: { path: "artist", model: "Artist", select: "name imageUrl" },
     });
 
     if (!playlist) {
       console.log(
-        `[DEBUG] Playlist with ID ${req.params.id} NOT FOUND in database.`
+        `[DEBUG] Playlist with ID ${req.params.id} NOT FOUND in database.`,
       );
       return res.status(404).json({ message: "Generated playlist not found." });
     }

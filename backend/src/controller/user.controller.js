@@ -75,8 +75,9 @@ export const getUserProfile = async (req, res, next) => {
           },
           {
             path: "songs",
+            select: "-lyrics",
             select:
-              "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics",
+              "title artist albumId imageUrl hlsUrl duration playCount genres moods",
             populate: {
               path: "artist",
               select: "name imageUrl",
@@ -153,21 +154,21 @@ export const followUser = async (req, res, next) => {
     if (isFollowing) {
       await User.updateOne(
         { _id: currentUserMongoId },
-        { $pull: { followingUsers: userToFollowId } }
+        { $pull: { followingUsers: userToFollowId } },
       );
       await User.updateOne(
         { _id: userToFollowId },
-        { $pull: { followers: currentUserMongoId } }
+        { $pull: { followers: currentUserMongoId } },
       );
       res.status(200).json({ message: "Unfollowed successfully" });
     } else {
       await User.updateOne(
         { _id: currentUserMongoId },
-        { $addToSet: { followingUsers: userToFollowId } }
+        { $addToSet: { followingUsers: userToFollowId } },
       );
       await User.updateOne(
         { _id: userToFollowId },
-        { $addToSet: { followers: currentUserMongoId } }
+        { $addToSet: { followers: currentUserMongoId } },
       );
       res.status(200).json({ message: "Followed successfully" });
     }
@@ -206,7 +207,7 @@ export const updateUserProfile = async (req, res, next) => {
         file.name,
         "profile_pictures",
         400,
-        85
+        85,
       );
       updateDataMongo.imageUrl = result.url;
       updateDataFirebase.photoURL = result.url;
@@ -215,7 +216,7 @@ export const updateUserProfile = async (req, res, next) => {
     const updatedUser = await User.findByIdAndUpdate(userId, updateDataMongo, {
       new: true,
     }).select(
-      "-email -firebaseUid -followers -followingUsers -followingArtists"
+      "-email -firebaseUid -followers -followingUsers -followingArtists",
     );
 
     if (Object.keys(updateDataFirebase).length > 0) {
@@ -259,7 +260,7 @@ export const updateUserPrivacy = async (req, res, next) => {
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { isAnonymous },
-      { new: true }
+      { new: true },
     );
 
     const { io, userSockets, userActivities } = req;
@@ -271,7 +272,7 @@ export const updateUserPrivacy = async (req, res, next) => {
       io.emit("user_disconnected", userIdStr);
     } else {
       const socket = Array.from(io.sockets.sockets.values()).find(
-        (s) => s.userId === userIdStr
+        (s) => s.userId === userIdStr,
       );
       if (socket) {
         userSockets.set(userIdStr, socket.id);
@@ -286,7 +287,7 @@ export const updateUserPrivacy = async (req, res, next) => {
     }).select("_id");
     io.emit(
       "users_online",
-      visibleOnlineUsers.map((u) => u._id.toString())
+      visibleOnlineUsers.map((u) => u._id.toString()),
     );
     io.emit("activities", Array.from(userActivities.entries()));
 
@@ -302,9 +303,8 @@ export const updateUserPrivacy = async (req, res, next) => {
 export const getMutualFollowers = async (req, res, next) => {
   try {
     const currentUserMongoId = req.user.id;
-    const currentUser = await User.findById(currentUserMongoId).select(
-      "followingUsers"
-    );
+    const currentUser =
+      await User.findById(currentUserMongoId).select("followingUsers");
 
     if (!currentUser)
       return res.status(404).json({ message: "Current user not found." });
@@ -314,7 +314,9 @@ export const getMutualFollowers = async (req, res, next) => {
     }).select("fullName imageUrl followers");
 
     const mutuals = followedUsers.filter((user) =>
-      user.followers.some((followerId) => followerId.equals(currentUserMongoId))
+      user.followers.some((followerId) =>
+        followerId.equals(currentUserMongoId),
+      ),
     );
 
     res.status(200).json({ users: mutuals });
@@ -341,8 +343,9 @@ export const getFollowing = async (req, res, next) => {
         select: "name imageUrl",
         populate: {
           path: "songs",
+          select: "-lyrics",
           select:
-            "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics",
+            "title artist albumId imageUrl hlsUrl duration playCount genres moods",
           populate: {
             path: "artist",
             select: "name imageUrl",
@@ -529,7 +532,7 @@ export const addRecentSearch = async (req, res, next) => {
     await RecentSearch.findOneAndUpdate(
       { user: userId, item: itemId, itemType: itemType },
       { updatedAt: new Date() },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+      { upsert: true, new: true, setDefaultsOnInsert: true },
     );
 
     const searches = await RecentSearch.find({ user: userId })
@@ -583,7 +586,7 @@ export const getFavoriteArtists = async (
   req,
   res,
   next,
-  returnInternal = false
+  returnInternal = false,
 ) => {
   try {
     const userId = req.user.id;
@@ -652,7 +655,7 @@ export const getFavoriteArtists = async (
     for (const artist of favoriteArtists) {
       const songs = await Song.find({ artist: artist._id })
         .select(
-          "title duration imageUrl artist albumId hlsUrl playCount genres moods lyrics"
+          "title duration imageUrl artist albumId hlsUrl playCount genres moods",
         )
         .populate({
           path: "artist",
@@ -679,7 +682,7 @@ export const getNewReleases = async (
   req,
   res,
   next,
-  returnInternal = false
+  returnInternal = false,
 ) => {
   try {
     const userId = req.user.id;
@@ -693,8 +696,9 @@ export const getNewReleases = async (
         { path: "artist", model: "Artist", select: "name imageUrl" },
         {
           path: "songs",
+          select: "-lyrics",
           select:
-            "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics",
+            "title artist albumId imageUrl hlsUrl duration playCount genres moods",
           populate: {
             path: "artist",
             select: "name imageUrl",
@@ -717,7 +721,7 @@ export const getPlaylistRecommendations = async (
   req,
   res,
   next,
-  returnInternal = false
+  returnInternal = false,
 ) => {
   try {
     const userId = req.user.id;
@@ -731,8 +735,9 @@ export const getPlaylistRecommendations = async (
         { path: "owner", model: "User", select: "fullName" },
         {
           path: "songs",
+          select: "-lyrics",
           select:
-            "title artist albumId imageUrl hlsUrl duration playCount genres moods lyrics",
+            "title artist albumId imageUrl hlsUrl duration playCount genres moods",
           populate: {
             path: "artist",
             select: "name imageUrl",
@@ -758,7 +763,7 @@ export const getRecentlyListenedArtists = async (req, res, next) => {
 
     // Проверяем, что пользователь существует и настройки приватности
     const user = await User.findById(userId).select(
-      "showRecentlyListenedArtists"
+      "showRecentlyListenedArtists",
     );
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -851,7 +856,7 @@ export const getRecentlyListenedArtists = async (req, res, next) => {
     for (const artist of recentlyListenedArtists) {
       const songs = await Song.find({ artist: artist._id })
         .select(
-          "title duration imageUrl artist albumId hlsUrl playCount genres moods lyrics"
+          "title duration imageUrl artist albumId hlsUrl playCount genres moods",
         )
         .populate({
           path: "artist",
@@ -983,7 +988,7 @@ export const updateRecentlyListenedArtistsPrivacy = async (req, res, next) => {
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { showRecentlyListenedArtists },
-      { new: true }
+      { new: true },
     ).select("showRecentlyListenedArtists");
 
     res.status(200).json({
@@ -1079,7 +1084,6 @@ export const getTopTracksThisMonth = async (req, res, next) => {
             playCount: "$songDetails.playCount",
             genres: "$songDetails.genres",
             moods: "$songDetails.moods",
-            lyrics: "$songDetails.lyrics",
             listenCount: "$listenCount",
             lastListened: "$lastListened",
             artist: "$artist",
@@ -1184,7 +1188,6 @@ export const getAllTopTracksThisMonth = async (req, res, next) => {
             playCount: "$songDetails.playCount",
             genres: "$songDetails.genres",
             moods: "$songDetails.moods",
-            lyrics: "$songDetails.lyrics",
             listenCount: "$listenCount",
             lastListened: "$lastListened",
             artist: "$artist",

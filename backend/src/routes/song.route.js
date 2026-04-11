@@ -9,6 +9,7 @@ import {
   recordListen,
   getQuickPicks,
   getSongById,
+  getSongLyrics,
 } from "../controller/song.controller.js";
 
 const router = Router();
@@ -17,6 +18,7 @@ router.get("/", protectRoute, getAllSongs);
 router.get("/featured", protectRoute, getQuickPicks);
 router.get("/made-for-you", protectRoute, getMadeForYouSongs);
 router.get("/trending", getTrendingSongs);
+router.get("/:id/lyrics", getSongLyrics);
 router.post("/:id/listen", protectRoute, recordListen);
 router.get("/history", protectRoute, getListenHistory);
 router.get("/image-proxy", getImageForColorAnalysis);

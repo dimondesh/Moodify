@@ -24,7 +24,7 @@ const groupMixes = (mixes) => {
       }
       return acc;
     },
-    { genreMixes: [], moodMixes: [] }
+    { genreMixes: [], moodMixes: [] },
   );
 };
 
@@ -85,7 +85,7 @@ export const updateDailyMixes = async () => {
             generatedOn: today,
           },
         },
-        { upsert: true }
+        { upsert: true },
       );
       updatePromises.push(updatePromise);
     }
@@ -99,7 +99,7 @@ export const updateDailyMixes = async () => {
       const updatedMixIds = upsertedMixes.map((m) => m._id.toString());
 
       console.log(
-        `CRON JOB: Successfully updated ${updatedMixIds.length} mixes.`
+        `CRON JOB: Successfully updated ${updatedMixIds.length} mixes.`,
       );
 
       updatedMixIds.forEach((mixId) => {
@@ -120,12 +120,12 @@ export const getDailyMixes = async (req, res, next, returnInternal = false) => {
 
     if (mixes.length === 0) {
       console.log(
-        "No mixes found for today. Triggering on-demand generation..."
+        "No mixes found for today. Triggering on-demand generation...",
       );
       await updateDailyMixes();
       mixes = await Mix.find({ generatedOn: { $gte: today } }).lean();
       console.log(
-        `On-demand generation complete. Found ${mixes.length} new mixes.`
+        `On-demand generation complete. Found ${mixes.length} new mixes.`,
       );
     }
 
@@ -159,8 +159,9 @@ export const getDailyMixes = async (req, res, next, returnInternal = false) => {
 
     const populatedMixes = await Mix.populate(mixes, {
       path: "songs",
+      select: "-lyrics",
       select:
-        "title duration imageUrl artist albumId hlsUrl playCount genres moods lyrics",
+        "title duration imageUrl artist albumId hlsUrl playCount genres moods",
       populate: { path: "artist", select: "name imageUrl" },
     });
 
@@ -183,8 +184,9 @@ export const getMixById = async (req, res, next) => {
   try {
     const mix = await Mix.findById(req.params.id).populate({
       path: "songs",
+      select: "-lyrics",
       select:
-        "title duration imageUrl artist albumId hlsUrl playCount genres moods lyrics",
+        "title duration imageUrl artist albumId hlsUrl playCount genres moods",
       populate: { path: "artist", model: "Artist", select: "name imageUrl" },
     });
 
