@@ -522,7 +522,7 @@ const PlaybackControls = () => {
                   </div>
 
                   <div className="flex-1 flex flex-col items-center overflow-y-auto w-full hide-scrollbar">
-                    <div className="flex flex-col items-center justify-center px-4 py-8 pb-0 flex-shrink-0 w-full">
+                    <div className="flex flex-col items-center justify-center px-4 py-4 pb-0 flex-shrink-0 w-full">
                       {currentSong ? (
                         <img
                           src={
