@@ -7,6 +7,7 @@ import { ScrollArea } from "../../components/ui/scroll-area";
 import { Button } from "../../components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 interface LyricLine {
   time: number;
@@ -53,7 +54,8 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
 
   const lyricsScrollAreaRef = useRef<HTMLDivElement>(null);
   const [isUserScrolling, setIsUserScrolling] = useState(false);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const scrollTimeoutRef = useRef<number | null>(null);
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
   const lyrics = useMemo(() => {
     return currentSong?.lyrics ? parseLrc(currentSong.lyrics) : [];
@@ -226,10 +228,12 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
           className="flex-1 w-full max-w-4xl text-center h-full relative z-10 overflow-hidden"
           ref={lyricsScrollAreaRef}
           style={{
-            maskImage:
-              "linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)",
-            WebkitMaskImage:
-              "linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)",
+            maskImage: isMobile
+              ? "linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)"
+              : "none",
+            WebkitMaskImage: isMobile
+              ? "linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)"
+              : "none",
           }}
         >
           <div className="h-[8vh] w-full pointer-events-none"></div>
@@ -241,8 +245,8 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
                 realCurrentTime >= line.time &&
                 (index === lyrics.length - 1 ||
                   realCurrentTime < lyrics[index + 1].time)
-                  ? "text-violet-400 scale-105"
-                  : "text-zinc-400/80 hover:text-zinc-200"
+                  ? "text-white"
+                  : "text-white/20 hover:text-zinc-200"
               }`}
               onClick={() => handleLyricLineClick(line.time)}
             >

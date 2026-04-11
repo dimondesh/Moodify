@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { Drawer } from "vaul";
+import { useDominantColor } from "@/hooks/useDominantColor";
 import { usePlayerStore } from "../stores/usePlayerStore";
 import { useLibraryStore } from "../stores/useLibraryStore";
 import { Button } from "../components/ui/button";
 import { useAudioSettingsStore } from "../lib/webAudio";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Share } from "lucide-react";
+import { Maximize, Share } from "lucide-react";
 import { ShareDialog } from "@/components/ui/ShareDialog";
 import { AddToPlaylistControl } from "./AddToPlaylistControl";
 
@@ -144,6 +145,23 @@ const PlaybackControls = () => {
   const [bgQueue, setBgQueue] = useState<
     { id: string; url: string; loaded: boolean }[]
   >([]);
+  const { extractColor } = useDominantColor();
+  const [lyricsBgColor, setLyricsBgColor] = useState<string>("#27272a");
+
+  // Подтягиваем доминантный цвет при смене трека
+  useEffect(() => {
+    let isMounted = true;
+    const fetchColor = async () => {
+      if (currentSong?.imageUrl) {
+        const color = await extractColor(currentSong.imageUrl);
+        if (isMounted) setLyricsBgColor(color);
+      }
+    };
+    fetchColor();
+    return () => {
+      isMounted = false;
+    };
+  }, [currentSong?.imageUrl, extractColor]);
 
   useEffect(() => {
     if ("mediaSession" in navigator) {
@@ -504,7 +522,7 @@ const PlaybackControls = () => {
                   </div>
 
                   <div className="flex-1 flex flex-col items-center overflow-y-auto w-full hide-scrollbar">
-                    <div className="flex flex-col items-center justify-center px-4 py-8 flex-shrink-0 w-full">
+                    <div className="flex flex-col items-center justify-center px-4 py-8 pb-0 flex-shrink-0 w-full">
                       {currentSong ? (
                         <img
                           src={
@@ -751,51 +769,60 @@ const PlaybackControls = () => {
                         </div>
                       </div>
                     </div>
-                    {currentSong.lyrics && (
-                      <div className="w-full  mx-auto mt-8 flex flex-col items-center flex-shrink-0">
-                        <h3 className="text-xl font-bold mb-4 text-white">
-                          {t("player.lyricsPreview")}
-                        </h3>
-                        <div className="w-full text-center relative cursor-pointer">
-                          {(() => {
-                            const { playbackRateEnabled, playbackRate } =
-                              useAudioSettingsStore.getState();
-                            const currentRate = playbackRateEnabled
-                              ? playbackRate
-                              : 1.0;
-                            const realCurrentTime = currentTime / currentRate;
+                    {currentSong.lyrics && lyrics.length > 0 && (
+                      <div
+                        className="w-full px-4 mx-auto mt-4 mb-4 flex-shrink-0 cursor-pointer animate-in slide-in-from-bottom-8 fade-in duration-700 ease-out"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsMobileLyricsFullScreen(true);
+                          setIsFullScreenPlayerOpen(false);
+                        }}
+                      >
+                        <div
+                          className="w-full rounded-2xl p-5 sm:p-6 shadow-xl transition-colors duration-1000 relative overflow-hidden"
+                          style={{
+                            backgroundColor: lyricsBgColor,
+                            // Слегка затемняем фон, чтобы белый текст всегда читался
+                            backgroundImage:
+                              "linear-gradient(rgba(0,0,0,0.25), rgba(0,0,0,0.25))",
+                          }}
+                        >
+                          <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-base font-bold text-white">
+                              {t("player.lyricsPreview", "Lyrics")}
+                            </h3>
+                            <div className="text-[10px] font-bold px-1.5 py-1.5 bg-black/20 rounded-full text-white uppercase tracking-wider border border-white/10">
+                              <Maximize className="size-5" />
+                            </div>
+                          </div>
 
-                            return lyrics.slice(0, 5).map((line, index) => (
-                              <p
-                                key={index}
-                                className={`py-0.5 text-base font-bold transition-colors duration-100
-                                ${
+                          <div className="w-full text-left relative">
+                            {(() => {
+                              const { playbackRateEnabled, playbackRate } =
+                                useAudioSettingsStore.getState();
+                              const currentRate = playbackRateEnabled
+                                ? playbackRate
+                                : 1.0;
+                              const realCurrentTime = currentTime / currentRate;
+
+                              return lyrics.slice(0, 5).map((line, index) => {
+                                const isActive =
                                   realCurrentTime >= line.time &&
                                   (index === lyrics.length - 1 ||
-                                    realCurrentTime < lyrics[index + 1].time)
-                                    ? "text-violet-400"
-                                    : "text-zinc-400"
-                                }`}
-                              >
-                                {line.text}
-                              </p>
-                            ));
-                          })()}
-                          {lyrics.length > 5 && (
-                            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-zinc-950/50 to-transparent flex items-end justify-center pb-2">
-                              <Button
-                                variant="ghost"
-                                className="text-violet-400 hover:text-violet-300 text-sm font-bold"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setIsMobileLyricsFullScreen(true);
-                                  setIsFullScreenPlayerOpen(false);
-                                }}
-                              >
-                                {t("player.showFullLyrics")}
-                              </Button>
-                            </div>
-                          )}
+                                    realCurrentTime < lyrics[index + 1].time);
+
+                                return (
+                                  <p
+                                    key={index}
+                                    className={`py-1 text-lg sm:text-xl font-bold transition-all duration-300
+                                    ${isActive ? "text-white" : "text-white mix-blend-overlay"}`}
+                                  >
+                                    {line.text}
+                                  </p>
+                                );
+                              });
+                            })()}
+                          </div>
                         </div>
                       </div>
                     )}
