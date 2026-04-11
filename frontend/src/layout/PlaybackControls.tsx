@@ -499,7 +499,7 @@ const PlaybackControls = () => {
                       [],
                     )}
                   </Drawer.Title>
-                  <div className="flex justify-between items-center mb-4 flex-shrink-0 mt-2">
+                  <div className="flex justify-between items-center mb-4 flex-shrink-0 mt-2 px-2">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -522,7 +522,7 @@ const PlaybackControls = () => {
                   </div>
 
                   <div className="flex-1 flex flex-col items-center overflow-y-auto w-full hide-scrollbar">
-                    <div className="flex flex-col items-center justify-center px-4 py-4 pb-0 flex-shrink-0 w-full">
+                    <div className="flex flex-col items-center justify-center px-4 py-8 pb-0 flex-shrink-0 w-full">
                       {currentSong ? (
                         <img
                           src={
@@ -537,7 +537,7 @@ const PlaybackControls = () => {
                         </div>
                       )}
 
-                      <div className="flex justify-between items-center w-full mb-4 px-2">
+                      <div className="flex justify-between items-center w-full mb-2 px-2">
                         <div className="flex flex-col text-left min-w-0 flex-1">
                           <button
                             onClick={() => {
@@ -545,7 +545,7 @@ const PlaybackControls = () => {
                                 handleAlbumClick(currentSong.albumId);
                               }
                             }}
-                            className="text-2xl font-bold text-white mb-1 text-left hover:underline focus:outline-none focus:underline truncate"
+                            className="text-2xl font-bold text-white mb-0 text-left hover:underline focus:outline-none focus:underline truncate"
                           >
                             {currentSong?.title || t("player.noSong")}
                           </button>
@@ -580,7 +580,7 @@ const PlaybackControls = () => {
                         )}
                       </div>
 
-                      <div className="w-full flex flex-col gap-2 mb-8 px-2">
+                      <div className="w-full flex flex-col gap-2 mb-2 px-2">
                         <Slider
                           value={[currentTime]}
                           max={duration || 100}
@@ -771,7 +771,7 @@ const PlaybackControls = () => {
                     </div>
                     {currentSong.lyrics && lyrics.length > 0 && (
                       <div
-                        className="w-full px-4 mx-auto mt-4 mb-4 flex-shrink-0 cursor-pointer animate-in slide-in-from-bottom-8 fade-in duration-700 ease-out"
+                        className="w-full px-4 mx-auto mt-0 mb-4 flex-shrink-0 cursor-pointer animate-in slide-in-from-bottom-8 fade-in duration-700 ease-out"
                         onClick={(e) => {
                           e.stopPropagation();
                           setIsMobileLyricsFullScreen(true);
