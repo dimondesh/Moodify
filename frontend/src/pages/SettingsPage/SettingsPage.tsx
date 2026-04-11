@@ -9,7 +9,7 @@ import {
   ReverbRoomSize,
   reverbIRPaths,
   useAudioSettingsStore,
-  AnalyzerSmoothness, // <-- Импорт типа
+  AnalyzerSmoothness,
 } from "../../lib/webAudio";
 import { RefreshCw } from "lucide-react";
 import { Label } from "../../components/ui/label";
@@ -30,6 +30,13 @@ import { Helmet } from "react-helmet-async";
 import { useOfflineStore } from "../../stores/useOfflineStore";
 import toast from "react-hot-toast";
 import { useUIStore } from "@/stores/useUIStore";
+import {
+  reauthenticateWithCredential,
+  updatePassword,
+  EmailAuthProvider,
+} from "firebase/auth";
+import { auth } from "../../lib/firebase";
+import { Input } from "@/components/ui/input";
 
 const SettingsPage: React.FC = () => {
   const {
@@ -37,7 +44,7 @@ const SettingsPage: React.FC = () => {
     equalizerGains,
     normalizationMode,
     waveAnalyzerEnabled,
-    analyzerSmoothness, // <-- Получаем значение
+    analyzerSmoothness,
     activePresetName,
     reverbEnabled,
     reverbMix,
@@ -49,7 +56,7 @@ const SettingsPage: React.FC = () => {
     setEqualizerGain,
     setNormalizationMode,
     setWaveAnalyzerEnabled,
-    setAnalyzerSmoothness, // <-- Получаем сеттер
+    setAnalyzerSmoothness,
     applyPreset,
     resetAudioSettings,
     setReverbEnabled,
@@ -61,6 +68,9 @@ const SettingsPage: React.FC = () => {
   } = useAudioSettingsStore();
 
   const { isIosDevice } = useUIStore();
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState(""); // Добавлено состояние подтверждения
 
   const { t, i18n } = useTranslation();
   const {
@@ -111,6 +121,49 @@ const SettingsPage: React.FC = () => {
     }
   };
 
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Проверка на совпадение паролей
+    if (newPassword !== confirmPassword) {
+      toast.error(t("settings.passwordsMismatch", "Новые пароли не совпадают"));
+      return;
+    }
+
+    const user = auth.currentUser;
+
+    if (!user || !user.email) return;
+
+    try {
+      const credential = EmailAuthProvider.credential(user.email, oldPassword);
+      await reauthenticateWithCredential(user, credential);
+
+      await updatePassword(user, newPassword);
+
+      toast.success(
+        t(
+          "settings.passwordChanged",
+          "Пароль успешно изменен! Другие сессии будут закрыты.",
+        ),
+      );
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      if (
+        error.code === "auth/wrong-password" ||
+        error.code === "auth/invalid-credential"
+      ) {
+        toast.error(
+          t("settings.wrongCurrentPassword", "Неверный текущий пароль"),
+        );
+      } else {
+        toast.error("Ошибка при смене пароля: " + error.message);
+      }
+    }
+  };
+
   const handlePresetChange = (presetName: string) => {
     const selectedPreset = equalizerPresets.find((p) => p.name === presetName);
     if (selectedPreset) {
@@ -145,7 +198,6 @@ const SettingsPage: React.FC = () => {
   const [storageUsage, setStorageUsage] = useState({ usage: 0, quota: 0 });
   const [isCalculatingStorage, setIsCalculatingStorage] = useState(false);
 
-  // Update storage usage when downloaded items change (with debouncing)
   useEffect(() => {
     const calculateStorage = async () => {
       setIsCalculatingStorage(true);
@@ -159,7 +211,6 @@ const SettingsPage: React.FC = () => {
       }
     };
 
-    // Debounce the calculation to avoid excessive calls
     const timeoutId = setTimeout(calculateStorage, 500);
     return () => clearTimeout(timeoutId);
   }, [getDownloadedContentSize, downloadedItemIds, downloadingItemIds]);
@@ -200,6 +251,7 @@ const SettingsPage: React.FC = () => {
           <h1 className="text-3xl font-bold text-white mb-6">
             {t("settings.title")}
           </h1>
+
           <Card className="bg-[#1a1a1a] border-[#2a2a2a] text-white shadow-lg p-6 space-y-8 mb-8">
             <div>
               <Label className="text-xl font-semibold mb-4 block">
@@ -238,7 +290,7 @@ const SettingsPage: React.FC = () => {
                 {t("settings.privacy.anonymousModeDesc")}
               </p>
             </div>
-            <div className="border-b border-zinc-700 pb-8">
+            <div className="border-t border-[#2a2a2a] pt-8">
               <div className="flex items-center justify-between mb-4">
                 <Label className="text-xl font-semibold">
                   {t("settings.reduceMotion")}
@@ -251,7 +303,7 @@ const SettingsPage: React.FC = () => {
                 />
               </div>
             </div>
-            <div className="border-b border-zinc-700 pb-8">
+            <div className="border-t border-[#2a2a2a] pt-8">
               <div className="flex items-center justify-between">
                 <Label
                   htmlFor="recently-listened-artists-toggle"
@@ -271,6 +323,76 @@ const SettingsPage: React.FC = () => {
               </p>
             </div>
           </Card>
+
+          <h1 className="text-3xl font-bold text-white mb-6 mt-8">
+            {t("settings.securityTitle", "Безопасность")}
+          </h1>
+          <Card className="bg-[#1a1a1a] gap-0 py-4 border-[#2a2a2a] text-white shadow-lg mb-8 overflow-hidden">
+            <div className="p-6 py-2 border-[#2a2a2a]">
+              <h2 className="text-xl font-semibold">
+                {t("settings.changePassword", "Смена пароля")}
+              </h2>
+            </div>
+
+            <form onSubmit={handleChangePassword}>
+              <div className="p-6 space-y-4">
+                <div className="space-y-2 max-w-md">
+                  <Label htmlFor="oldPassword" className="text-gray-300">
+                    {t("settings.oldPassword", "Текущий пароль")}
+                  </Label>
+                  <Input
+                    id="oldPassword"
+                    type="password"
+                    value={oldPassword}
+                    onChange={(e) => setOldPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    className="bg-[#2a2a2a] focus:ring-0! border-[#3a3a3a] text-white focus-visible:ring-violet-500"
+                  />
+                </div>
+
+                <div className="space-y-2 max-w-md">
+                  <Label htmlFor="newPassword" className="text-gray-300">
+                    {t("settings.newPassword", "Новый пароль")}
+                  </Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    minLength={6}
+                    className="bg-[#2a2a2a] border-[#3a3a3a] focus:ring-0! text-white focus-visible:ring-violet-500"
+                  />
+                </div>
+
+                <div className="space-y-2 max-w-md">
+                  <Label htmlFor="confirmPassword" className="text-gray-300">
+                    {t("settings.confirmPassword", "Подтверждение пароля")}
+                  </Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    minLength={6}
+                    className="bg-[#2a2a2a] border-[#3a3a3a] focus:ring-0! text-white focus-visible:ring-violet-500"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  disabled={!oldPassword || !newPassword || !confirmPassword}
+                  className="bg-violet-600 w-full hover:bg-violet-700 text-white min-w-[150px]"
+                >
+                  {t("settings.updatePasswordButton", "Сохранить пароль")}
+                </Button>
+              </div>
+            </form>
+          </Card>
+
           <h1 className="text-3xl font-bold text-white mb-6">
             {t("settings.audioTitle")}
           </h1>
@@ -278,7 +400,7 @@ const SettingsPage: React.FC = () => {
             {!isIosDevice && (
               <>
                 {/* Equalizer Section */}
-                <div className="border-b border-zinc-700 pb-8">
+                <div className="border-b border-[#2a2a2a] pb-8">
                   <div className="flex items-center justify-between mb-4">
                     <Label className="text-xl font-semibold">
                       {t("settings.equalizer")}
@@ -298,12 +420,12 @@ const SettingsPage: React.FC = () => {
                           onValueChange={handlePresetChange}
                           value={activePresetName}
                         >
-                          <SelectTrigger className="w-full bg-zinc-700 border-zinc-600 text-white">
+                          <SelectTrigger className="w-full bg-[#2a2a2a] border-[#3a3a3a] text-white">
                             <SelectValue
                               placeholder={t("settings.selectPreset")}
                             />
                           </SelectTrigger>
-                          <SelectContent className="bg-zinc-800 border-zinc-700 text-white max-h-60 overflow-y-auto">
+                          <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a] text-white max-h-60 overflow-y-auto">
                             {equalizerPresets.map((preset) => (
                               <SelectItem key={preset.name} value={preset.name}>
                                 {t(`equalizerPresets.${preset.name}`)}
@@ -346,7 +468,7 @@ const SettingsPage: React.FC = () => {
                 </div>
 
                 {/* Reverb Section */}
-                <div className="border-b border-zinc-700 pb-8">
+                <div className="border-b border-[#2a2a2a] pb-8">
                   <div className="flex items-center justify-between mb-4">
                     <Label className="text-xl font-semibold">
                       {t("settings.reverb")}
@@ -372,12 +494,12 @@ const SettingsPage: React.FC = () => {
                           value={reverbRoomSize}
                           onValueChange={handleReverbRoomSizeChange}
                         >
-                          <SelectTrigger className="w-full bg-zinc-700 border-zinc-600 text-white">
+                          <SelectTrigger className="w-full bg-[#2a2a2a] border-[#3a3a3a] text-white">
                             <SelectValue
                               placeholder={t("settings.selectRoomSize")}
                             />
                           </SelectTrigger>
-                          <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
+                          <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a] text-white">
                             {Object.keys(reverbIRPaths).map((size) => (
                               <SelectItem key={size} value={size}>
                                 {t(
@@ -428,7 +550,7 @@ const SettingsPage: React.FC = () => {
             )}
 
             {/* --- Playback Speed --- */}
-            <div className="border-b border-zinc-700 pb-8">
+            <div className="border-b border-[#2a2a2a] pb-8">
               <div className="flex items-center justify-between mb-4">
                 <Label className="text-xl font-semibold">
                   {t("settings.playbackSpeed")}
@@ -464,7 +586,7 @@ const SettingsPage: React.FC = () => {
             {/* Normalization & Wave Analyzer (conditionally rendered) */}
             {!isIosDevice && (
               <>
-                <div className="border-b border-zinc-700 pb-8">
+                <div className="border-b border-[#2a2a2a] pb-8">
                   <Label
                     htmlFor="normalization-mode-select"
                     className="text-xl font-semibold mb-4 block"
@@ -477,10 +599,10 @@ const SettingsPage: React.FC = () => {
                       setNormalizationMode(value)
                     }
                   >
-                    <SelectTrigger className="w-full bg-zinc-700 border-zinc-600 text-white">
+                    <SelectTrigger className="w-full bg-[#2a2a2a] border-[#3a3a3a] text-white">
                       <SelectValue placeholder={t("settings.selectMode")} />
                     </SelectTrigger>
-                    <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
+                    <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a] text-white">
                       <SelectItem value="off">{t("settings.off")}</SelectItem>
                       <SelectItem value="loud">{t("settings.loud")}</SelectItem>
                       <SelectItem value="normal">
@@ -496,7 +618,7 @@ const SettingsPage: React.FC = () => {
                   </p>
                 </div>
 
-                <div className="border-b border-zinc-700 pb-8">
+                <div className="border-b border-[#2a2a2a] pb-8">
                   <div className="flex items-center justify-between">
                     <Label
                       htmlFor="wave-analyzer-toggle"
@@ -533,11 +655,11 @@ const SettingsPage: React.FC = () => {
                                   ${
                                     analyzerSmoothness === mode
                                       ? "bg-violet-600 text-white"
-                                      : "bg-zinc-800 text-gray-400 hover:bg-zinc-700"
+                                      : "bg-[#2a2a2a] text-gray-400 hover:bg-[#3a3a3a]"
                                   }
                                   ${index === 0 ? "rounded-l-md" : ""}
                                   ${index === arr.length - 1 ? "rounded-r-md" : ""}
-                                  border-r border-zinc-700 last:border-r-0
+                                  border-r border-[#1a1a1a] last:border-r-0
                                 `}
                           >
                             {t(`settings.smoothness.${mode}`)}
@@ -559,7 +681,7 @@ const SettingsPage: React.FC = () => {
                 <Button
                   onClick={resetAudioSettings}
                   variant="outline"
-                  className="w-full bg-red-600 hover:bg-red-700 text-white border-red-700 hover:border-red-800"
+                  className="w-full bg-red-600/10 hover:bg-red-600/20 text-red-500 border-red-900/50 hover:border-red-800"
                 >
                   {t("settings.resetAudio")}
                 </Button>
@@ -569,7 +691,7 @@ const SettingsPage: React.FC = () => {
               </div>
             )}
           </Card>
-          {/* ... Rest of the component (Storage Management) ... */}
+
           <h1 className="text-3xl font-bold text-white mb-6 mt-8">
             {" "}
             {t("settings.downloads")}
@@ -594,7 +716,7 @@ const SettingsPage: React.FC = () => {
                   />
                 </Button>
               </div>
-              <div className="bg-zinc-700/50 p-4 rounded-md">
+              <div className="bg-[#2a2a2a]/50 p-4 rounded-md">
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-gray-400">
                     {t("settings.downloadedContent")}
@@ -609,7 +731,7 @@ const SettingsPage: React.FC = () => {
                     )}
                   </span>
                 </div>
-                <div className="w-full bg-zinc-600 rounded-full h-2.5 mt-2">
+                <div className="w-full bg-[#1a1a1a] rounded-full h-2.5 mt-2 border border-[#3a3a3a]">
                   <div
                     className="bg-violet-600 h-2.5 rounded-full"
                     style={{
