@@ -138,7 +138,7 @@ const PlaylistDetailsPage = () => {
     { key: 0, color: "#18181b" },
   ]);
   const [selectedSongForMenu, setSelectedSongForMenu] = useState<Song | null>(
-    null
+    null,
   );
   const { hasFriends } = useHasFriends();
   const {
@@ -186,12 +186,12 @@ const PlaylistDetailsPage = () => {
               .then(() =>
                 toast.success("Downloaded playlist updated!", {
                   id: "playlist-sync",
-                })
+                }),
               )
               .catch(() =>
                 toast.error("Could not update downloaded playlist.", {
                   id: "playlist-sync",
-                })
+                }),
               );
           }
         }
@@ -320,7 +320,7 @@ const PlaylistDetailsPage = () => {
     try {
       await removeSongFromPlaylist(
         songToRemoveFromPlaylist.playlistId,
-        songToRemoveFromPlaylist.songId
+        songToRemoveFromPlaylist.songId,
       );
       toast.success("Song successfully removed from playlist!");
     } catch (e) {
@@ -349,7 +349,7 @@ const PlaylistDetailsPage = () => {
       toast.success(
         isInLibrary
           ? "Playlist removed from library!"
-          : "Playlist added to library!"
+          : "Playlist added to library!",
       );
     } catch (e) {
       toast.error("Failed to change playlist status in library.");
@@ -368,7 +368,7 @@ const PlaylistDetailsPage = () => {
           onClick={() =>
             handlePlaySong(
               song,
-              currentPlaylist.songs.findIndex((s) => s._id === song._id)
+              currentPlaylist.songs.findIndex((s) => s._id === song._id),
             )
           }
           className={`flex items-center justify-between gap-4 p-2 rounded-md group cursor-pointer ${
@@ -379,7 +379,7 @@ const PlaylistDetailsPage = () => {
             <img
               src={getOptimizedImageUrl(
                 song.imageUrl || "/default-song-cover.png",
-                100
+                100,
               )}
               alt={song.title}
               className="size-12 object-cover rounded-md flex-shrink-0"
@@ -424,7 +424,7 @@ const PlaylistDetailsPage = () => {
     return currentPlaylist.songs.map((song, index) => {
       const isCurrentlyPlaying = currentSong?._id === song._id;
       const songIsLiked = likedSongs.some(
-        (likedSong) => likedSong._id === song._id
+        (likedSong) => likedSong._id === song._id,
       );
       return (
         <div
@@ -462,7 +462,7 @@ const PlaylistDetailsPage = () => {
               <img
                 src={getOptimizedImageUrl(
                   song.imageUrl || "/default-song-cover.png",
-                  80
+                  80,
                 )}
                 alt={song.title}
                 className="size-10 object-cover rounded-md"
@@ -626,238 +626,174 @@ const PlaylistDetailsPage = () => {
         <meta name="description" content={metaDescription.substring(0, 160)} />
       </Helmet>
       <div className="h-full">
-        <ScrollArea className="h-full rounded-md">
-          <div className="relative min-h-screen max-w-screen pb-30 lg:pb-0">
-            {backgrounds
-              .slice(0, 2)
-              .reverse()
-              .map((bg, index) => (
-                <div
-                  key={bg.key}
-                  className={`absolute inset-0 pointer-events-none ${
-                    index === 1 ? "animate-fade-in" : ""
-                  }`}
-                  aria-hidden="true"
-                  style={{
-                    background: `linear-gradient(to bottom, ${bg.color} 0%, rgba(20, 20, 20, 0.8) 50%, #0f0f0f 100%)`,
-                  }}
-                />
-              ))}
-            <div className="relative z-10 w-full">
-              <div className="flex flex-col sm:flex-row p-4 sm:p-6 gap-4 sm:gap-6 pb-8 sm:pb-8 items-center sm:items-end w-full">
-                <img
-                  src={getOptimizedImageUrl(
-                    currentPlaylist.imageUrl ||
-                      "https://moodify.b-cdn.net/default-album-cover.png",
-                    500
-                  )}
-                  alt={currentPlaylist.title}
-                  className="w-64 h-64 sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px] shadow-xl rounded-md object-cover flex-shrink-0 mx-auto sm:mx-0"
-                />
-                <div className="flex flex-col justify-end text-center sm:text-left min-w-0 w-full">
-                  <p className="text-xs sm:text-sm font-medium">
-                    {t("pages.playlist.type")}
+        <div className="relative min-h-screen max-w-screen pb-30 lg:pb-0">
+          {backgrounds
+            .slice(0, 2)
+            .reverse()
+            .map((bg, index) => (
+              <div
+                key={bg.key}
+                className={`absolute inset-0 pointer-events-none ${
+                  index === 1 ? "animate-fade-in" : ""
+                }`}
+                aria-hidden="true"
+                style={{
+                  background: `linear-gradient(to bottom, ${bg.color} 0%, rgba(20, 20, 20, 0.8) 50%, #0f0f0f 100%)`,
+                }}
+              />
+            ))}
+          <div className="relative z-10 w-full">
+            <div className="flex flex-col sm:flex-row p-4 sm:p-6 gap-4 sm:gap-6 pb-8 sm:pb-8 items-center sm:items-end w-full">
+              <img
+                src={getOptimizedImageUrl(
+                  currentPlaylist.imageUrl ||
+                    "https://moodify.b-cdn.net/default-album-cover.png",
+                  500,
+                )}
+                alt={currentPlaylist.title}
+                className="w-64 h-64 sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px] shadow-xl rounded-md object-cover flex-shrink-0 mx-auto sm:mx-0"
+              />
+              <div className="flex flex-col justify-end text-center sm:text-left min-w-0 w-full">
+                <p className="text-xs sm:text-sm font-medium">
+                  {t("pages.playlist.type")}
+                </p>
+                <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold mt-2 mb-2 sm:my-4 break-words">
+                  {currentPlaylist.title}
+                </h1>
+                {currentPlaylist.description && (
+                  <p className="text-gray-400 text-base mt-2 break-words">
+                    {currentPlaylist.description}
                   </p>
-                  <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold mt-2 mb-2 sm:my-4 break-words">
-                    {currentPlaylist.title}
-                  </h1>
-                  {currentPlaylist.description && (
-                    <p className="text-gray-400 text-base mt-2 break-words">
-                      {currentPlaylist.description}
-                    </p>
-                  )}
-                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 text-xs sm:text-sm text-gray-100 mt-2">
-                    {isOwner &&
-                      (currentPlaylist.isPublic ? (
-                        <Unlock className="size-3.5" />
-                      ) : (
-                        <Lock className="size-3.5" />
-                      ))}
-                    <button
-                      onClick={handleOwnerClick}
-                      className="font-semibold text-white flex items-center hover:underline focus:outline-none focus:underline"
-                    >
-                      <img
-                        src={currentPlaylist.owner.imageUrl}
-                        className="size-4 rounded-full mr-1"
-                        alt={currentPlaylist.owner.fullName}
-                      />
-                      {currentPlaylist.owner?.fullName ||
-                        t("common.unknownArtist")}
-                    </button>
+                )}
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 text-xs sm:text-sm text-gray-100 mt-2">
+                  {isOwner &&
+                    (currentPlaylist.isPublic ? (
+                      <Unlock className="size-3.5" />
+                    ) : (
+                      <Lock className="size-3.5" />
+                    ))}
+                  <button
+                    onClick={handleOwnerClick}
+                    className="font-semibold text-white flex items-center hover:underline focus:outline-none focus:underline"
+                  >
+                    <img
+                      src={currentPlaylist.owner.imageUrl}
+                      className="size-4 rounded-full mr-1"
+                      alt={currentPlaylist.owner.fullName}
+                    />
+                    {currentPlaylist.owner?.fullName ||
+                      t("common.unknownArtist")}
+                  </button>
+                  <span className="hidden lg:inline">
+                    • {(currentPlaylist.songs || []).length}{" "}
+                    {(currentPlaylist.songs || []).length !== 1
+                      ? t("pages.playlist.songs")
+                      : t("pages.playlist.song")}
+                  </span>
+                  {(currentPlaylist.songs || []).length > 0 && (
                     <span className="hidden lg:inline">
-                      • {(currentPlaylist.songs || []).length}{" "}
-                      {(currentPlaylist.songs || []).length !== 1
-                        ? t("pages.playlist.songs")
-                        : t("pages.playlist.song")}
+                      • {formattedDuration}
                     </span>
-                    {(currentPlaylist.songs || []).length > 0 && (
-                      <span className="hidden lg:inline">
-                        • {formattedDuration}
-                      </span>
-                    )}
-                    {currentPlaylist.likes > 0 && (
-                      <span className="hidden lg:inline">
-                        • {currentPlaylist.likes} {t("pages.playlist.saved")}
-                      </span>
-                    )}
-                  </div>
+                  )}
+                  {currentPlaylist.likes > 0 && (
+                    <span className="hidden lg:inline">
+                      • {currentPlaylist.likes} {t("pages.playlist.saved")}
+                    </span>
+                  )}
                 </div>
               </div>
+            </div>
 
-              <div className="px-4 sm:px-6 pb-4 flex flex-wrap sm:justify-start items-center gap-1">
-                {currentPlaylist.songs.length > 0 && (
-                  <Button
-                    size="icon"
-                    className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white hover:bg-white/90 transition-all duration-100 shadow-lg flex-shrink-0 hover:scale-105"
-                    onClick={handlePlayPlaylist}
-                  >
-                    {isCurrentPlaylistPlaying ? (
-                      <Pause className="w-6 h-6 sm:w-8 sm:h-8 text-black fill-current" />
-                    ) : (
-                      <Play className="w-6 h-6 sm:w-8 sm:h-8 text-black fill-current" />
-                    )}
-                  </Button>
-                )}
-                {!isOwner && (
-                  <Button
-                    onClick={handleTogglePlaylistInLibrary}
-                    disabled={isTogglingLibrary || !user}
-                    variant="ghost2"
-                    size="icon"
-                    className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full p-2 transition-colors group ${
-                      !user ? "opacity-50 cursor-not-allowed" : ""
-                    }`}
-                    title={
-                      !user
-                        ? t("auth.loginRequired")
-                        : isInLibrary
+            <div className="px-4 sm:px-6 pb-4 flex flex-wrap sm:justify-start items-center gap-1">
+              {currentPlaylist.songs.length > 0 && (
+                <Button
+                  size="icon"
+                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white hover:bg-white/90 transition-all duration-100 shadow-lg flex-shrink-0 hover:scale-105"
+                  onClick={handlePlayPlaylist}
+                >
+                  {isCurrentPlaylistPlaying ? (
+                    <Pause className="w-6 h-6 sm:w-8 sm:h-8 text-black fill-current" />
+                  ) : (
+                    <Play className="w-6 h-6 sm:w-8 sm:h-8 text-black fill-current" />
+                  )}
+                </Button>
+              )}
+              {!isOwner && (
+                <Button
+                  onClick={handleTogglePlaylistInLibrary}
+                  disabled={isTogglingLibrary || !user}
+                  variant="ghost2"
+                  size="icon"
+                  className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full p-2 transition-colors group ${
+                    !user ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                  title={
+                    !user
+                      ? t("auth.loginRequired")
+                      : isInLibrary
                         ? t("pages.playlist.actions.removeFromLibrary")
                         : t("pages.playlist.actions.addToLibrary")
-                    }
-                  >
-                    {isInLibrary ? (
-                      <CheckedIcon className="size-8 text-[#8b5cf6]" />
-                    ) : (
-                      <PlusCircle className="size-8 text-white/80 group-hover:text-white transition-colors" />
-                    )}
-                  </Button>
-                )}
-                {isOwner && (
-                  <Button
-                    variant="ghost2"
-                    size="icon"
-                    className="w-12 h-12 sm:w-14 sm:h-14 rounded-full p-2 transition-colors group"
-                    onClick={openSearchAndAddDialog}
-                  >
-                    <Plus className="size-8 text-white/80 group-hover:text-white transition-colors" />
-                  </Button>
-                )}
-                <DownloadButton
-                  itemId={currentPlaylist._id}
-                  itemType="playlists"
-                  itemTitle={currentPlaylist.title}
-                  disabled={!user}
-                />
-                {isMobile ? (
-                  <Drawer>
-                    <DrawerTrigger asChild>
-                      <Button
-                        variant="ghost2"
-                        size="icon"
-                        disabled={!user}
-                        className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full p-2 transition-colors group ${
-                          !user ? "opacity-50 cursor-not-allowed" : ""
-                        }`}
-                        title={!user ? t("auth.loginRequired") : ""}
-                      >
-                        <MoreHorizontal className="size-8 text-white/80 group-hover:text-white transition-colors" />
-                      </Button>
-                    </DrawerTrigger>
-                    <DrawerContent
-                      className="bg-[#0f0f0f] border-[#2a2a2a] text-white p-4"
-                      aria-describedby={undefined}
+                  }
+                >
+                  {isInLibrary ? (
+                    <CheckedIcon className="size-8 text-[#8b5cf6]" />
+                  ) : (
+                    <PlusCircle className="size-8 text-white/80 group-hover:text-white transition-colors" />
+                  )}
+                </Button>
+              )}
+              {isOwner && (
+                <Button
+                  variant="ghost2"
+                  size="icon"
+                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-full p-2 transition-colors group"
+                  onClick={openSearchAndAddDialog}
+                >
+                  <Plus className="size-8 text-white/80 group-hover:text-white transition-colors" />
+                </Button>
+              )}
+              <DownloadButton
+                itemId={currentPlaylist._id}
+                itemType="playlists"
+                itemTitle={currentPlaylist.title}
+                disabled={!user}
+              />
+              {isMobile ? (
+                <Drawer>
+                  <DrawerTrigger asChild>
+                    <Button
+                      variant="ghost2"
+                      size="icon"
+                      disabled={!user}
+                      className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full p-2 transition-colors group ${
+                        !user ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
+                      title={!user ? t("auth.loginRequired") : ""}
                     >
-                      <DrawerHeaderComponent className="p-0 text-center mb-4">
-                        <DrawerTitleComponent className="sr-only">
-                          Playlist Options
-                        </DrawerTitleComponent>
-                      </DrawerHeaderComponent>
-                      <div className="flex flex-col gap-2">
-                        <Button
-                          variant="ghost"
-                          className={`justify-start p-3 h-auto text-base ${
-                            !hasFriends ? "opacity-50 cursor-not-allowed" : ""
-                          }`}
-                          onClick={() => {
-                            openShareDialog({
-                              type: "playlist",
-                              id: currentPlaylist._id,
-                            });
-                          }}
-                          disabled={!hasFriends}
-                          title={
-                            !hasFriends
-                              ? t("common.noFriendsToShare")
-                              : t("admin.albums.share")
-                          }
-                        >
-                          <Share className="mr-4 h-5 w-5" />
-                          {t("admin.albums.share")}
-                        </Button>
-                        {isOwner && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              className="justify-start p-3 h-auto text-base"
-                              onClick={() =>
-                                openEditPlaylistDialog(currentPlaylist)
-                              }
-                            >
-                              <Edit className="mr-4 h-5 w-5" />
-                              {t("pages.playlist.actions.edit")}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              className="justify-start p-3 h-auto text-base text-red-400 hover:text-red-400"
-                              onClick={() =>
-                                openDeletePlaylistDialog(currentPlaylist)
-                              }
-                            >
-                              <Trash2 className="mr-4 h-5 w-5" />
-                              {t("pages.playlist.actions.delete")}
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </DrawerContent>
-                  </Drawer>
-                ) : (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+                      <MoreHorizontal className="size-8 text-white/80 group-hover:text-white transition-colors" />
+                    </Button>
+                  </DrawerTrigger>
+                  <DrawerContent
+                    className="bg-[#0f0f0f] border-[#2a2a2a] text-white p-4"
+                    aria-describedby={undefined}
+                  >
+                    <DrawerHeaderComponent className="p-0 text-center mb-4">
+                      <DrawerTitleComponent className="sr-only">
+                        Playlist Options
+                      </DrawerTitleComponent>
+                    </DrawerHeaderComponent>
+                    <div className="flex flex-col gap-2">
                       <Button
-                        variant="ghost2"
-                        size="icon"
-                        disabled={!user}
-                        className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full p-2 transition-colors group ${
-                          !user ? "opacity-50 cursor-not-allowed" : ""
-                        }`}
-                        title={!user ? t("auth.loginRequired") : ""}
-                      >
-                        <MoreHorizontal className="size-8 text-white/80 group-hover:text-white transition-colors" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-48 bg-zinc-800 text-white border-zinc-700">
-                      <DropdownMenuItem
-                        className={`cursor-pointer hover:bg-zinc-700 ${
+                        variant="ghost"
+                        className={`justify-start p-3 h-auto text-base ${
                           !hasFriends ? "opacity-50 cursor-not-allowed" : ""
                         }`}
-                        onSelect={() =>
+                        onClick={() => {
                           openShareDialog({
                             type: "playlist",
                             id: currentPlaylist._id,
-                          })
-                        }
+                          });
+                        }}
                         disabled={!hasFriends}
                         title={
                           !hasFriends
@@ -865,61 +801,121 @@ const PlaylistDetailsPage = () => {
                             : t("admin.albums.share")
                         }
                       >
-                        <Share className="mr-2 h-4 w-4" />
+                        <Share className="mr-4 h-5 w-5" />
                         {t("admin.albums.share")}
-                      </DropdownMenuItem>
+                      </Button>
                       {isOwner && (
                         <>
-                          <DropdownMenuSeparator className="bg-zinc-700" />
-                          <DropdownMenuItem
-                            className="cursor-pointer hover:bg-zinc-700"
-                            onSelect={() =>
+                          <Button
+                            variant="ghost"
+                            className="justify-start p-3 h-auto text-base"
+                            onClick={() =>
                               openEditPlaylistDialog(currentPlaylist)
                             }
                           >
-                            <Edit className="mr-2 h-4 w-4" />
+                            <Edit className="mr-4 h-5 w-5" />
                             {t("pages.playlist.actions.edit")}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="cursor-pointer text-red-400 hover:bg-zinc-700 hover:text-red-300"
-                            onSelect={(e) => {
-                              e.preventDefault();
-                              openDeletePlaylistDialog(currentPlaylist);
-                            }}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            className="justify-start p-3 h-auto text-base text-red-400 hover:text-red-400"
+                            onClick={() =>
+                              openDeletePlaylistDialog(currentPlaylist)
+                            }
                           >
-                            <Trash2 className="mr-2 h-4 w-4" />
+                            <Trash2 className="mr-4 h-5 w-5" />
                             {t("pages.playlist.actions.delete")}
-                          </DropdownMenuItem>
+                          </Button>
                         </>
                       )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-              </div>
+                    </div>
+                  </DrawerContent>
+                </Drawer>
+              ) : (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost2"
+                      size="icon"
+                      disabled={!user}
+                      className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full p-2 transition-colors group ${
+                        !user ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
+                      title={!user ? t("auth.loginRequired") : ""}
+                    >
+                      <MoreHorizontal className="size-8 text-white/80 group-hover:text-white transition-colors" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-48 bg-zinc-800 text-white border-zinc-700">
+                    <DropdownMenuItem
+                      className={`cursor-pointer hover:bg-zinc-700 ${
+                        !hasFriends ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
+                      onSelect={() =>
+                        openShareDialog({
+                          type: "playlist",
+                          id: currentPlaylist._id,
+                        })
+                      }
+                      disabled={!hasFriends}
+                      title={
+                        !hasFriends
+                          ? t("common.noFriendsToShare")
+                          : t("admin.albums.share")
+                      }
+                    >
+                      <Share className="mr-2 h-4 w-4" />
+                      {t("admin.albums.share")}
+                    </DropdownMenuItem>
+                    {isOwner && (
+                      <>
+                        <DropdownMenuSeparator className="bg-zinc-700" />
+                        <DropdownMenuItem
+                          className="cursor-pointer hover:bg-zinc-700"
+                          onSelect={() =>
+                            openEditPlaylistDialog(currentPlaylist)
+                          }
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          {t("pages.playlist.actions.edit")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer text-red-400 hover:bg-zinc-700 hover:text-red-300"
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            openDeletePlaylistDialog(currentPlaylist);
+                          }}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          {t("pages.playlist.actions.delete")}
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
 
-              <div className="bg-black/20 backdrop-blur-sm">
-                <div className="hidden md:grid md:grid-cols-[16px_4fr_2fr_1fr_0.6fr] gap-4 px-4 sm:px-6 md:px-10 py-2 text-sm text-zinc-400 border-b border-white/5">
-                  <div>#</div>
-                  <div>{t("pages.playlist.headers.title")}</div>
-                  <div className="hidden md:block">
-                    {t("pages.playlist.headers.dateAdded")}
-                  </div>
-                  <div className="flex items-center justify-end md:mr-10">
-                    <Clock className="h-4 w-4" />
-                  </div>
-                  <div className="w-8"></div>
+            <div className="bg-black/20 backdrop-blur-sm">
+              <div className="hidden md:grid md:grid-cols-[16px_4fr_2fr_1fr_0.6fr] gap-4 px-4 sm:px-6 md:px-10 py-2 text-sm text-zinc-400 border-b border-white/5">
+                <div>#</div>
+                <div>{t("pages.playlist.headers.title")}</div>
+                <div className="hidden md:block">
+                  {t("pages.playlist.headers.dateAdded")}
                 </div>
-                <div className="px-2 sm:px-6">
-                  <div className="space-y-1 py-4">
-                    {isMobile
-                      ? renderMobileSongList()
-                      : renderDesktopSongList()}
-                  </div>
+                <div className="flex items-center justify-end md:mr-10">
+                  <Clock className="h-4 w-4" />
+                </div>
+                <div className="w-8"></div>
+              </div>
+              <div className="px-2 sm:px-6">
+                <div className="space-y-1 py-4">
+                  {isMobile ? renderMobileSongList() : renderDesktopSongList()}
                 </div>
               </div>
             </div>
           </div>
-        </ScrollArea>
+        </div>
         {currentPlaylist && (
           <EditPlaylistDialog
             isOpen={!!editingPlaylist}
@@ -1003,7 +999,7 @@ const PlaylistDetailsPage = () => {
             <div className="py-4">
               <Input
                 placeholder={t(
-                  "pages.playlist.addSongDialog.searchPlaceholder"
+                  "pages.playlist.addSongDialog.searchPlaceholder",
                 )}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -1058,11 +1054,11 @@ const PlaylistDetailsPage = () => {
                               onClick={() => handleAddSongToPlaylist(song._id)}
                               className="bg-violet-500 hover:bg-violet-400 text-white ml-4 flex-shrink-0"
                               disabled={currentPlaylist?.songs.some(
-                                (s) => s._id === song._id
+                                (s) => s._id === song._id,
                               )}
                             >
                               {currentPlaylist?.songs.some(
-                                (s) => s._id === song._id
+                                (s) => s._id === song._id,
                               )
                                 ? t("pages.playlist.addSongDialog.added")
                                 : t("pages.playlist.addSongDialog.add")}
@@ -1116,11 +1112,11 @@ const PlaylistDetailsPage = () => {
                               onClick={() => handleAddSongToPlaylist(song._id)}
                               className="bg-violet-500 hover:bg-violet-400 text-white ml-4 flex-shrink-0"
                               disabled={currentPlaylist?.songs.some(
-                                (s) => s._id === song._id
+                                (s) => s._id === song._id,
                               )}
                             >
                               {currentPlaylist?.songs.some(
-                                (s) => s._id === song._id
+                                (s) => s._id === song._id,
                               )
                                 ? t("pages.playlist.addSongDialog.added")
                                 : t("pages.playlist.addSongDialog.add")}

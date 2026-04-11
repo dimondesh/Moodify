@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useSearchStore } from "../../stores/useSearchStore";
 import AlbumGrid from "./AlbumGrid";
-import { ScrollArea } from "../../components/ui/scroll-area";
 import SongGrid from "./SongGrid";
 import PlaylistGrid from "./PlaylistGrid";
 import ArtistGrid from "./ArtistGrid";
@@ -108,120 +107,116 @@ const SearchPage = () => {
         <title>{`${title}`}</title>
         <meta name="description" content={description} />
       </Helmet>
-      <main className="overflow-hidden h-full bg-[#0f0f0f]">
-        <ScrollArea className="h-[90vh] w-full pb-20 md:pb-20 lg:pb-10">
-          <div className="py-6 px-4 sm:px-6">
-            {isMobile && (
-              <div className="mb-6">
-                <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-                  <PopoverTrigger asChild>
-                    <div onClick={handleTriggerClick} className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
-                      <input
-                        type="text"
-                        placeholder={t("topbar.searchPlaceholder")}
-                        value={query}
-                        onChange={handleChange}
-                        className="w-full bg-[#2a2a2a] rounded-full py-2 pl-10 pr-4 text-base text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#8b5cf6] transition duration-150 ease-in-out"
-                        spellCheck={false}
-                        autoComplete="off"
-                      />
-                    </div>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    className="w-[var(--radix-popover-trigger-width)] mt-2 p-0 bg-[#1a1a1a] border-[#2a2a2a]"
-                    align="start"
-                    onOpenAutoFocus={(e) => e.preventDefault()}
-                  >
-                    <RecentSearchesList
-                      onItemClick={handleItemClickInPopover}
+      <main className="min-h-screen pb-40 lg:pb-0 bg-[#0f0f0f]">
+        <div className="py-6 px-4 sm:px-6">
+          {isMobile && (
+            <div className="mb-6">
+              <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <div onClick={handleTriggerClick} className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder={t("topbar.searchPlaceholder")}
+                      value={query}
+                      onChange={handleChange}
+                      className="w-full bg-[#2a2a2a] rounded-full py-2 pl-10 pr-4 text-base text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#8b5cf6] transition duration-150 ease-in-out"
+                      spellCheck={false}
+                      autoComplete="off"
                     />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            )}
-            {queryParam ? (
-              <h1 className="hidden md:block text-2xl sm:text-3xl font-bold mb-6 text-center text-white">
-                {t("searchpage.resultsFor")} "{queryParam}"
+                  </div>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-[var(--radix-popover-trigger-width)] mt-2 p-0 bg-[#1a1a1a] border-[#2a2a2a]"
+                  align="start"
+                  onOpenAutoFocus={(e) => e.preventDefault()}
+                >
+                  <RecentSearchesList onItemClick={handleItemClickInPopover} />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+          {queryParam ? (
+            <h1 className="hidden md:block text-2xl sm:text-3xl font-bold mb-6 text-center text-white">
+              {t("searchpage.resultsFor")} "{queryParam}"
+            </h1>
+          ) : (
+            <>
+              <h1 className="hidden md:block text-2xl sm:text-3xl font-bold mb-6 text-left text-white">
+                {t("searchpage.findYourFavorites")}
               </h1>
-            ) : (
-              <>
-                <h1 className="hidden md:block text-2xl sm:text-3xl font-bold mb-6 text-left text-white">
-                  {t("searchpage.findYourFavorites")}
-                </h1>
-                <BrowseMixes />
-              </>
+              <BrowseMixes />
+            </>
+          )}
+
+          {loading && (
+            <div className="flex justify-center">
+              <StandardLoader size="lg" />
+            </div>
+          )}
+          {error && <p className="text-red-500">{error}</p>}
+
+          {!loading &&
+            !error &&
+            queryParam &&
+            songs.length === 0 &&
+            albums.length === 0 &&
+            playlists.length === 0 &&
+            artists.length === 0 &&
+            users.length === 0 &&
+            mixes.length === 0 && (
+              <p className="text-gray-400 text-center">
+                {t("searchpage.noResults")}
+              </p>
             )}
 
-            {loading && (
-              <div className="flex justify-center">
-                <StandardLoader size="lg" />
-              </div>
-            )}
-            {error && <p className="text-red-500">{error}</p>}
-
-            {!loading &&
-              !error &&
-              queryParam &&
-              songs.length === 0 &&
-              albums.length === 0 &&
-              playlists.length === 0 &&
-              artists.length === 0 &&
-              users.length === 0 &&
-              mixes.length === 0 && (
-                <p className="text-gray-400 text-center">
-                  {t("searchpage.noResults")}
-                </p>
+          {!loading && !error && queryParam && (
+            <>
+              {artists.length > 0 && (
+                <ArtistGrid
+                  title={t("searchpage.artists")}
+                  artists={artists}
+                  isLoading={loading}
+                />
               )}
-
-            {!loading && !error && queryParam && (
-              <>
-                {artists.length > 0 && (
-                  <ArtistGrid
-                    title={t("searchpage.artists")}
-                    artists={artists}
-                    isLoading={loading}
-                  />
-                )}
-                {songs.length > 0 && (
-                  <SongGrid
-                    title={t("searchpage.songs")}
-                    songs={songs}
-                    isLoading={loading}
-                  />
-                )}
-                {albums.length > 0 && (
-                  <AlbumGrid
-                    title={t("searchpage.albums")}
-                    albums={albums}
-                    isLoading={loading}
-                  />
-                )}
-                {playlists.length > 0 && (
-                  <PlaylistGrid
-                    title={t("searchpage.playlists")}
-                    playlists={playlists}
-                    isLoading={loading}
-                  />
-                )}
-                {mixes.length > 0 && (
-                  <MixGrid
-                    title={t("common.mixes")}
-                    mixes={mixes}
-                    isLoading={loading}
-                  />
-                )}
-                {users.length > 0 && (
-                  <UserGrid
-                    title={t("searchpage.users")}
-                    users={users}
-                    isLoading={loading}
-                  />
-                )}
-              </>
-            )}
-          </div>
-        </ScrollArea>
+              {songs.length > 0 && (
+                <SongGrid
+                  title={t("searchpage.songs")}
+                  songs={songs}
+                  isLoading={loading}
+                />
+              )}
+              {albums.length > 0 && (
+                <AlbumGrid
+                  title={t("searchpage.albums")}
+                  albums={albums}
+                  isLoading={loading}
+                />
+              )}
+              {playlists.length > 0 && (
+                <PlaylistGrid
+                  title={t("searchpage.playlists")}
+                  playlists={playlists}
+                  isLoading={loading}
+                />
+              )}
+              {mixes.length > 0 && (
+                <MixGrid
+                  title={t("common.mixes")}
+                  mixes={mixes}
+                  isLoading={loading}
+                />
+              )}
+              {users.length > 0 && (
+                <UserGrid
+                  title={t("searchpage.users")}
+                  users={users}
+                  isLoading={loading}
+                />
+              )}
+            </>
+          )}
+        </div>
       </main>
     </>
   );

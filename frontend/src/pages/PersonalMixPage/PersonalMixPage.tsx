@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ScrollArea } from "../../components/ui/scroll-area";
 import PlaylistDetailsSkeleton from "../../components/ui/skeletons/PlaylistDetailsSkeleton";
 import { format } from "date-fns";
 import { Button } from "../../components/ui/button";
@@ -54,7 +53,7 @@ const PersonalMixPage = () => {
   const { playAlbum, togglePlay, isPlaying, currentSong, queue } =
     usePlayerStore();
   const [selectedSongForMenu, setSelectedSongForMenu] = useState<Song | null>(
-    null
+    null,
   );
 
   const [isTogglingLibrary, setIsTogglingLibrary] = useState(false);
@@ -245,7 +244,7 @@ const PersonalMixPage = () => {
       toast.success(
         isInLibrary
           ? t("common.mixRemovedFromLibrary")
-          : t("common.mixAddedToLibrary")
+          : t("common.mixAddedToLibrary"),
       );
     } catch (e) {
       toast.error("Failed to update library.");
@@ -310,7 +309,7 @@ const PersonalMixPage = () => {
 
   const totalDurationSeconds = personalMix.songs.reduce(
     (acc: number, song: Song) => acc + (song.duration || 0),
-    0
+    0,
   );
   const formattedDuration = formatDuration(totalDurationSeconds);
   const isCurrentMixPlaying =
@@ -321,7 +320,7 @@ const PersonalMixPage = () => {
     personalMix.songs.map((song: Song, index: number) => {
       const isCurrentlyPlaying = currentSong?._id === song._id;
       const songIsLiked = likedSongs.some(
-        (likedSong) => likedSong._id === song._id
+        (likedSong) => likedSong._id === song._id,
       );
       return (
         <div
@@ -435,7 +434,7 @@ const PersonalMixPage = () => {
           onClick={() =>
             handlePlaySong(
               song,
-              personalMix.songs.findIndex((s: Song) => s._id === song._id)
+              personalMix.songs.findIndex((s: Song) => s._id === song._id),
             )
           }
           className={`flex items-center justify-between gap-4 p-2 rounded-md group cursor-pointer ${
@@ -492,119 +491,115 @@ const PersonalMixPage = () => {
         />
       </Helmet>
       <div className="h-full">
-        <ScrollArea className="h-full rounded-md">
-          <div className="relative min-h-screen pb-30 lg:pb-0">
-            {backgrounds
-              .slice(0, 2)
-              .reverse()
-              .map((bg, index) => (
-                <div
-                  key={bg.key}
-                  className={`absolute inset-0 pointer-events-none  ${
-                    index === 1 ? "animate-fade-in" : ""
-                  }`}
-                  aria-hidden="true"
-                  style={{
-                    background: `linear-gradient(to bottom, ${bg.color} 0%, rgba(20, 20, 20, 0.8) 50%, #0f0f0f 100%)`,
-                  }}
-                />
-              ))}
-            <div className="relative z-10">
-              <div className="flex flex-col sm:flex-row p-4 sm:p-6 gap-4 sm:gap-6 pb-8 sm:pb-8 items-center sm:items-end text-center sm:text-left">
-                <img
-                  src={
-                    personalMix.imageUrl ||
-                    "https://moodify.b-cdn.net/artist.jpeg"
-                  }
-                  alt={personalMix.name}
-                  className="w-64 h-64 sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px] shadow-xl rounded-md object-cover flex-shrink-0 mx-auto sm:mx-0"
-                />
-                <div className="flex flex-col justify-end flex-grow">
-                  <p className="text-xs sm:text-sm font-medium">
-                    {t("personalMix.title")}
-                  </p>
-                  <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold mt-2 mb-2 sm:my-4">
-                    {t("personalMix.title")} {personalMix.name.split(" ")[2]}
-                  </h1>
-                  <p className="text-gray-400 text-base mt-2">
-                    {t("personalMix.desc")}
-                  </p>
-                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 text-xs sm:text-sm text-gray-100 mt-2">
-                    <img src="/Moodify.svg" alt="Moodify" className="size-4" />
-                    <span className="font-semibold text-white">Moodify</span>
+        <div className="relative min-h-screen pb-30 lg:pb-0">
+          {backgrounds
+            .slice(0, 2)
+            .reverse()
+            .map((bg, index) => (
+              <div
+                key={bg.key}
+                className={`absolute inset-0 pointer-events-none  ${
+                  index === 1 ? "animate-fade-in" : ""
+                }`}
+                aria-hidden="true"
+                style={{
+                  background: `linear-gradient(to bottom, ${bg.color} 0%, rgba(20, 20, 20, 0.8) 50%, #0f0f0f 100%)`,
+                }}
+              />
+            ))}
+          <div className="relative z-10">
+            <div className="flex flex-col sm:flex-row p-4 sm:p-6 gap-4 sm:gap-6 pb-8 sm:pb-8 items-center sm:items-end text-center sm:text-left">
+              <img
+                src={
+                  personalMix.imageUrl ||
+                  "https://moodify.b-cdn.net/artist.jpeg"
+                }
+                alt={personalMix.name}
+                className="w-64 h-64 sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px] shadow-xl rounded-md object-cover flex-shrink-0 mx-auto sm:mx-0"
+              />
+              <div className="flex flex-col justify-end flex-grow">
+                <p className="text-xs sm:text-sm font-medium">
+                  {t("personalMix.title")}
+                </p>
+                <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold mt-2 mb-2 sm:my-4">
+                  {t("personalMix.title")} {personalMix.name.split(" ")[2]}
+                </h1>
+                <p className="text-gray-400 text-base mt-2">
+                  {t("personalMix.desc")}
+                </p>
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 text-xs sm:text-sm text-gray-100 mt-2">
+                  <img src="/Moodify.svg" alt="Moodify" className="size-4" />
+                  <span className="font-semibold text-white">Moodify</span>
+                  <span className="hidden lg:inline">
+                    • {personalMix.songs.length} {t("pages.playlist.songs")}
+                  </span>
+                  {personalMix.songs.length > 0 && (
                     <span className="hidden lg:inline">
-                      • {personalMix.songs.length} {t("pages.playlist.songs")}
+                      • {formattedDuration}
                     </span>
-                    {personalMix.songs.length > 0 && (
-                      <span className="hidden lg:inline">
-                        • {formattedDuration}
-                      </span>
-                    )}
-                  </div>
+                  )}
                 </div>
               </div>
+            </div>
 
-              <div className="px-4 sm:px-6 pb-4 flex flex-wrap sm:justify-start items-center gap-1">
-                {personalMix.songs.length > 0 && (
-                  <Button
-                    size="icon"
-                    className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white hover:bg-white/90 transition-all duration-100 shadow-lg flex-shrink-0 hover:scale-105"
-                    onClick={handlePlayMix}
-                    title={
-                      isCurrentMixPlaying
-                        ? t("pages.playlist.actions.pause")
-                        : t("pages.playlist.actions.play")
-                    }
-                  >
-                    {isCurrentMixPlaying ? (
-                      <Pause className="w-6 h-6 sm:w-8 sm:h-8 text-black fill-current" />
-                    ) : (
-                      <Play className="w-6 h-6 sm:w-8 sm:h-8 text-black fill-current" />
-                    )}
-                  </Button>
-                )}
+            <div className="px-4 sm:px-6 pb-4 flex flex-wrap sm:justify-start items-center gap-1">
+              {personalMix.songs.length > 0 && (
                 <Button
-                  onClick={handleToggleMixInLibrary}
-                  disabled={isTogglingLibrary || !user}
-                  variant="ghost2"
                   size="icon"
-                  className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full border border-transparent p-2 transition-colors flex-shrink-0 group ${
-                    !user ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
+                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white hover:bg-white/90 transition-all duration-100 shadow-lg flex-shrink-0 hover:scale-105"
+                  onClick={handlePlayMix}
                   title={
-                    !user
-                      ? t("auth.loginRequired")
-                      : isInLibrary
-                      ? t("pages.playlist.actions.removeFromLibrary")
-                      : t("pages.playlist.actions.addToLibrary")
+                    isCurrentMixPlaying
+                      ? t("pages.playlist.actions.pause")
+                      : t("pages.playlist.actions.play")
                   }
                 >
-                  {isInLibrary ? (
-                    <CheckedIcon className="size-8 text-[#8b5cf6]" />
+                  {isCurrentMixPlaying ? (
+                    <Pause className="w-6 h-6 sm:w-8 sm:h-8 text-black fill-current" />
                   ) : (
-                    <PlusCircle className="size-8 text-white/80 group-hover:text-white transition-colors" />
+                    <Play className="w-6 h-6 sm:w-8 sm:h-8 text-black fill-current" />
                   )}
                 </Button>
-                <DownloadButton
-                  itemId={personalMix._id}
-                  itemType="personal-mixes"
-                  itemTitle={personalMix.name}
-                  disabled={!user}
-                />
-              </div>
+              )}
+              <Button
+                onClick={handleToggleMixInLibrary}
+                disabled={isTogglingLibrary || !user}
+                variant="ghost2"
+                size="icon"
+                className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full border border-transparent p-2 transition-colors flex-shrink-0 group ${
+                  !user ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+                title={
+                  !user
+                    ? t("auth.loginRequired")
+                    : isInLibrary
+                      ? t("pages.playlist.actions.removeFromLibrary")
+                      : t("pages.playlist.actions.addToLibrary")
+                }
+              >
+                {isInLibrary ? (
+                  <CheckedIcon className="size-8 text-[#8b5cf6]" />
+                ) : (
+                  <PlusCircle className="size-8 text-white/80 group-hover:text-white transition-colors" />
+                )}
+              </Button>
+              <DownloadButton
+                itemId={personalMix._id}
+                itemType="personal-mixes"
+                itemTitle={personalMix.name}
+                disabled={!user}
+              />
+            </div>
 
-              <div className="bg-black/20 backdrop-blur-sm">
-                <div className="px-2 sm:px-6">
-                  <div className="space-y-1 py-4">
-                    {isMobile
-                      ? renderMobileSongList()
-                      : renderDesktopSongList()}
-                  </div>
+            <div className="bg-black/20 backdrop-blur-sm">
+              <div className="px-2 sm:px-6">
+                <div className="space-y-1 py-4">
+                  {isMobile ? renderMobileSongList() : renderDesktopSongList()}
                 </div>
               </div>
             </div>
           </div>
-        </ScrollArea>
+        </div>
       </div>
       <SongOptionsDrawer
         song={selectedSongForMenu}

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ScrollArea, ScrollBar } from "../../components/ui/scroll-area";
 import SectionGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton";
 import type { Mix } from "../../types/index";
 import { useTranslation } from "react-i18next";
@@ -49,8 +48,9 @@ const AllMixesPage = () => {
   }
 
   return (
-    <ScrollArea className="h-[calc(100vh-120px)] w-full rounded-md pr-4 bg-zinc-950">
-      <div className="p-4 pt-0">
+    <div className="min-h-screen">
+      {" "}
+      <div className="p-4 pt-4 pb-40 lg:pb-0">
         <h2 className="text-2xl font-bold mb-6">{pageTitle}</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
           {mixes.map((mix) => (
@@ -83,8 +83,7 @@ const AllMixesPage = () => {
           ))}
         </div>
       </div>
-      <ScrollBar orientation="vertical" />
-    </ScrollArea>
+    </div>
   );
 };
 

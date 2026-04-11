@@ -17,6 +17,7 @@ import { useEffect, useState, useRef } from "react";
 import { usePlayerStore } from "../stores/usePlayerStore";
 import LyricsPage from "@/pages/LyricsPage/LyricsPage";
 import DynamicTitleUpdater from "@/components/DynamicTitleUpdater";
+import { useContainerScroll } from "../hooks/useContainerScroll";
 import { useUIStore } from "../stores/useUIStore";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { cn } from "../lib/utils";
@@ -27,6 +28,7 @@ const MainLayout = () => {
   const location = useLocation();
   const prevLocationPathname = useRef(location.pathname);
   const { t } = useTranslation();
+  const scrollContainerRef = useContainerScroll();
 
   const getMobileHeaderTitle = (pathname: string) => {
     const hour = new Date().getHours();
@@ -230,17 +232,22 @@ const MainLayout = () => {
         <ResizablePanel
           id="main-content-panel"
           order={2}
-          className="overflow-y-auto flex-1 bg-[#0f0f0f]"
+          className="flex-1 bg-[#0f0f0f]"
         >
-          {isMobileLyricsFullScreen ? (
-            <div className="fixed inset-0 z-[80] bg-[#0f0f0f]">
-              <LyricsPage isMobileFullScreen={true} />
-            </div>
-          ) : !isCompactView && isDesktopLyricsOpen ? (
-            <LyricsPage isMobileFullScreen={false} />
-          ) : (
-            <Outlet />
-          )}
+          <div
+            ref={scrollContainerRef}
+            className="h-full w-full overflow-y-auto hide-scrollbar "
+          >
+            {isMobileLyricsFullScreen ? (
+              <div className="fixed inset-0 z-[80] bg-[#0f0f0f]">
+                <LyricsPage isMobileFullScreen={true} />
+              </div>
+            ) : !isCompactView && isDesktopLyricsOpen ? (
+              <LyricsPage isMobileFullScreen={false} />
+            ) : (
+              <Outlet />
+            )}
+          </div>
         </ResizablePanel>
 
         {!isMobile && isFriendsActivityOpen && (

@@ -63,7 +63,7 @@ const RecentSearchesList: React.FC<RecentSearchesListProps> = ({
 
   const getDisplayData = (item: any) => {
     const title = String(
-      item.isTranslatable ? t(item.title, item.title) : item.title
+      item.isTranslatable ? t(item.title, item.title) : item.title,
     );
     const subtitleKey =
       item.itemType === "Mix"

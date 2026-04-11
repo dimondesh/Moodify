@@ -3,7 +3,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
-import { ScrollArea } from "../../components/ui/scroll-area";
 import { useLibraryStore } from "../../stores/useLibraryStore";
 import { usePlaylistStore } from "../../stores/usePlaylistStore";
 import { useMusicStore } from "../../stores/useMusicStore";
@@ -369,348 +368,342 @@ const LibraryPage = () => {
         />
       </Helmet>
       <div className="h-full">
-        <ScrollArea className="h-full rounded-md">
-          <div className="relative min-h-screen p-4 sm:p-6 pb-40 sm:pb-50 lg:pb-10 ">
-            <div
-              className="absolute inset-0 bg-[#0f0f0f] pointer-events-none"
-              aria-hidden="true"
-            />
-            <div className="relative z-10">
-              <div className="flex justify-between items-baseline">
-                <h1 className="hidden md:block text-4xl sm:text-5xl lg:text-7xl font-bold mt-2 mb-6 text-white">
-                  {t("sidebar.library")}
-                </h1>
-                {user && !isOffline && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="hover:bg-[#2a2a2a] hidden md:flex"
-                    onClick={openCreatePlaylistDialog}
-                    title={t("sidebar.createPlaylist")}
+        <div className="relative min-h-screen p-4 sm:p-6 pb-40 sm:pb-50 lg:pb-10 ">
+          <div
+            className="absolute inset-0 bg-[#0f0f0f] pointer-events-none"
+            aria-hidden="true"
+          />
+          <div className="relative z-10">
+            <div className="flex justify-between items-baseline">
+              <h1 className="hidden md:block text-4xl sm:text-5xl lg:text-7xl font-bold mt-2 mb-6 text-white">
+                {t("sidebar.library")}
+              </h1>
+              {user && !isOffline && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hover:bg-[#2a2a2a] hidden md:flex"
+                  onClick={openCreatePlaylistDialog}
+                  title={t("sidebar.createPlaylist")}
+                >
+                  <Plus className="size-6" />
+                </Button>
+              )}
+            </div>
+
+            <div className="mb-6">
+              <EntityTypeFilter
+                currentFilter={entityTypeFilter}
+                onFilterChange={(filter) => setEntityTypeFilter(filter as any)}
+                hasDownloaded={!!user}
+                className="w-full"
+              />
+            </div>
+
+            <div className="mb-6 space-y-4">
+              {/* Search and toggle controls */}
+              <div className="flex items-center gap-4 max-w-screen">
+                {/* Search button and input container */}
+                <div className="flex-1">
+                  <div
+                    className="relative"
+                    onClick={() =>
+                      setIsLibraryPageSearchOpen(!isLibraryPageSearchOpen)
+                    }
                   >
-                    <Plus className="size-6" />
-                  </Button>
-                )}
-              </div>
-
-              <div className="mb-6">
-                <EntityTypeFilter
-                  currentFilter={entityTypeFilter}
-                  onFilterChange={(filter) =>
-                    setEntityTypeFilter(filter as any)
-                  }
-                  hasDownloaded={!!user}
-                  className="w-full"
-                />
-              </div>
-
-              <div className="mb-6 space-y-4">
-                {/* Search and toggle controls */}
-                <div className="flex items-center gap-4 max-w-screen">
-                  {/* Search button and input container */}
-                  <div className="flex-1">
-                    <div
-                      className="relative"
+                    {/* Search button - always visible and clickable */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() =>
                         setIsLibraryPageSearchOpen(!isLibraryPageSearchOpen)
                       }
+                      className={cn(
+                        "text-gray-400 hover:text-white hover:bg-[#2a2a2a] h-12 w-12 p-0 transition-all duration-300 ease-in-out z-20",
+                        isLibraryPageSearchOpen
+                          ? "opacity-0 pointer-events-none"
+                          : "opacity-100",
+                      )}
                     >
-                      {/* Search button - always visible and clickable */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                          setIsLibraryPageSearchOpen(!isLibraryPageSearchOpen)
-                        }
-                        className={cn(
-                          "text-gray-400 hover:text-white hover:bg-[#2a2a2a] h-12 w-12 p-0 transition-all duration-300 ease-in-out z-20",
-                          isLibraryPageSearchOpen
-                            ? "opacity-0 pointer-events-none"
-                            : "opacity-100",
-                        )}
-                      >
-                        <Search className="size-5" />
-                      </Button>
+                      <Search className="size-5" />
+                    </Button>
 
-                      {/* Search input - appears in place of button */}
-                      <div
-                        className={cn(
-                          "absolute top-0 left-0 transition-all duration-300 ease-in-out overflow-hidden z-10",
-                          isLibraryPageSearchOpen
-                            ? "w-full opacity-100"
-                            : "w-12 opacity-0",
-                        )}
-                      >
-                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
-                        <input
-                          ref={librarySearchInputRef}
-                          type="text"
-                          placeholder={t("sidebar.searchLibrary")}
-                          value={librarySearchQuery}
-                          onChange={(e) =>
-                            setLibrarySearchQuery(e.target.value)
-                          }
-                          onBlur={() => setIsLibraryPageSearchOpen(false)}
-                          className="w-full bg-[#2a2a2a] rounded-md py-3 pl-12 pr-4 text-base text-white placeholder:text-gray-400 focus:outline-none transition duration-150 ease-in-out"
-                          spellCheck={false}
-                          autoComplete="off"
-                        />
-                      </div>
+                    {/* Search input - appears in place of button */}
+                    <div
+                      className={cn(
+                        "absolute top-0 left-0 transition-all duration-300 ease-in-out overflow-hidden z-10",
+                        isLibraryPageSearchOpen
+                          ? "w-full opacity-100"
+                          : "w-12 opacity-0",
+                      )}
+                    >
+                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
+                      <input
+                        ref={librarySearchInputRef}
+                        type="text"
+                        placeholder={t("sidebar.searchLibrary")}
+                        value={librarySearchQuery}
+                        onChange={(e) => setLibrarySearchQuery(e.target.value)}
+                        onBlur={() => setIsLibraryPageSearchOpen(false)}
+                        className="w-full bg-[#2a2a2a] rounded-md py-3 pl-12 pr-4 text-base text-white placeholder:text-gray-400 focus:outline-none transition duration-150 ease-in-out"
+                        spellCheck={false}
+                        autoComplete="off"
+                      />
                     </div>
                   </div>
-
-                  {/* Single toggle button */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      setLibraryPageViewMode(
-                        libraryPageViewMode === "grid" ? "list" : "grid",
-                      )
-                    }
-                    className="text-gray-400 hover:text-white hover:bg-[#2a2a2a] h-12 w-12 p-0 flex-shrink-0"
-                  >
-                    {libraryPageViewMode === "grid" ? (
-                      <List className="w-5 h-5" />
-                    ) : (
-                      <Grid3X3 className="w-5 h-5" />
-                    )}
-                  </Button>
                 </div>
+
+                {/* Single toggle button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    setLibraryPageViewMode(
+                      libraryPageViewMode === "grid" ? "list" : "grid",
+                    )
+                  }
+                  className="text-gray-400 hover:text-white hover:bg-[#2a2a2a] h-12 w-12 p-0 flex-shrink-0"
+                >
+                  {libraryPageViewMode === "grid" ? (
+                    <List className="w-5 h-5" />
+                  ) : (
+                    <Grid3X3 className="w-5 h-5" />
+                  )}
+                </Button>
               </div>
+            </div>
 
-              <div className="flex flex-col gap-2">
-                {filteredLibraryItems.length === 0 ? (
-                  <p className="text-gray-400 px-2">
-                    {librarySearchQuery.trim()
-                      ? t("sidebar.noSearchResults")
-                      : entityTypeFilter === "downloaded"
-                        ? "You have no downloaded content yet."
-                        : t("sidebar.emptyLibrary")}
-                  </p>
-                ) : libraryPageViewMode === "grid" ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
-                    {filteredLibraryItems.map((item) => {
-                      let linkPath: string = "#";
-                      let subtitle: string = "";
-                      let coverImageUrl: string | null | undefined =
-                        item.imageUrl;
+            <div className="flex flex-col gap-2">
+              {filteredLibraryItems.length === 0 ? (
+                <p className="text-gray-400 px-2">
+                  {librarySearchQuery.trim()
+                    ? t("sidebar.noSearchResults")
+                    : entityTypeFilter === "downloaded"
+                      ? "You have no downloaded content yet."
+                      : t("sidebar.emptyLibrary")}
+                </p>
+              ) : libraryPageViewMode === "grid" ? (
+                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+                  {filteredLibraryItems.map((item) => {
+                    let linkPath: string = "#";
+                    let subtitle: string = "";
+                    let coverImageUrl: string | null | undefined =
+                      item.imageUrl;
 
-                      switch (item.type) {
-                        case "album": {
-                          const albumItem = item as AlbumItem;
-                          linkPath = `/albums/${albumItem._id}`;
-                          subtitle = `${
-                            t(`sidebar.subtitle.${albumItem.albumType}`) ||
-                            t("sidebar.subtitle.album")
-                          } • ${getArtistNames(albumItem.artist)}`;
-                          break;
-                        }
-                        case "playlist": {
-                          const playlistItem = item as PlaylistItem;
-                          linkPath = `/playlists/${playlistItem._id}`;
-                          subtitle = `${t("sidebar.subtitle.playlist")} • ${
-                            playlistItem.owner?.fullName ||
-                            t("common.unknownArtist")
-                          }`;
-                          break;
-                        }
-                        case "generated-playlist": {
-                          linkPath = `/generated-playlists/${item._id}`;
-                          subtitle = t("sidebar.subtitle.playlist");
-                          break;
-                        }
-                        case "liked-songs": {
-                          const likedItem = item as LikedSongsItem;
-                          linkPath = "/liked-songs";
-                          subtitle = `${t("sidebar.subtitle.playlist")} • ${
-                            likedItem.songsCount
-                          } ${
-                            likedItem.songsCount !== 1
-                              ? t("sidebar.subtitle.songs")
-                              : t("sidebar.subtitle.song")
-                          }`;
-                          coverImageUrl = item.imageUrl;
-                          break;
-                        }
-                        case "artist": {
-                          const artistItem = item as FollowedArtistItem;
-                          linkPath = `/artists/${artistItem._id}`;
-                          subtitle = t("sidebar.subtitle.artist");
-                          break;
-                        }
-                        case "mix": {
-                          const mixItem = item as MixItem;
-                          linkPath = `/mixes/${mixItem._id}`;
-                          subtitle = t("sidebar.subtitle.dailyMix");
-                          coverImageUrl =
-                            item.imageUrl ||
-                            "https://moodify.b-cdn.net/default-album-cover.png";
-                          break;
-                        }
-                        case "personal-mix": {
-                          const personalMixItem = item as PersonalMixItem;
-                          linkPath = `/personal-mixes/${personalMixItem._id}`;
-                          subtitle = "Personal Mix";
-                          coverImageUrl =
-                            item.imageUrl ||
-                            "https://moodify.b-cdn.net/default-album-cover.png";
-                          break;
-                        }
+                    switch (item.type) {
+                      case "album": {
+                        const albumItem = item as AlbumItem;
+                        linkPath = `/albums/${albumItem._id}`;
+                        subtitle = `${
+                          t(`sidebar.subtitle.${albumItem.albumType}`) ||
+                          t("sidebar.subtitle.album")
+                        } • ${getArtistNames(albumItem.artist)}`;
+                        break;
                       }
-
-                      return (
-                        <Link
-                          key={`${item.type}-${item._id}`}
-                          to={linkPath}
-                          className="bg-transparent p-0 rounded-md hover:bg-[#2a2a2a]/50 transition-all group cursor-pointer flex flex-col items-center text-center"
-                        >
-                          <div className="relative mb-2 w-full">
-                            <div
-                              className={cn(
-                                "relative aspect-square w-full overflow-hidden shadow-lg",
-                                item.type === "artist"
-                                  ? "rounded-full"
-                                  : "rounded-md",
-                              )}
-                            >
-                              <img
-                                src={
-                                  coverImageUrl ||
-                                  "https://moodify.b-cdn.net/default-album-cover.png"
-                                }
-                                alt={item.title}
-                                className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src =
-                                    "https://moodify.b-cdn.net/default-album-cover.png";
-                                }}
-                              />
-                            </div>
-                          </div>
-                          <div className="px-1 w-full">
-                            <h3 className="font-semibold text-sm truncate text-white">
-                              {item.title}
-                            </h3>
-                            <div className="flex items-center gap-1.5 justify-center">
-                              {isDownloaded(item._id) && (
-                                <Download className="size-3 text-[#8b5cf6] flex-shrink-0" />
-                              )}
-                              <p className="text-xs text-gray-400 truncate">
-                                {subtitle}
-                              </p>
-                            </div>
-                          </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {filteredLibraryItems.map((item) => {
-                      let linkPath: string = "#";
-                      let subtitle: string = "";
-                      let fallbackImage: string =
-                        "https://moodify.b-cdn.net/default-album-cover.png";
-                      let imageClass = "rounded-md";
-
-                      switch (item.type) {
-                        case "album": {
-                          const albumItem = item as AlbumItem;
-                          linkPath = `/albums/${albumItem._id}`;
-                          subtitle = `${
-                            t(`pages.album.${albumItem.albumType}`) ||
-                            t("sidebar.subtitle.album")
-                          } • ${getArtistNames(albumItem.artist)}`;
-                          break;
-                        }
-                        case "playlist": {
-                          const playlistItem = item as PlaylistItem;
-                          linkPath = `/playlists/${playlistItem._id}`;
-                          subtitle = `${t("sidebar.subtitle.playlist")} • ${
-                            playlistItem.owner?.fullName ||
-                            t("common.unknownArtist")
-                          }`;
-                          break;
-                        }
-                        case "generated-playlist": {
-                          linkPath = `/generated-playlists/${item._id}`;
-                          subtitle = t("sidebar.subtitle.playlist");
-                          break;
-                        }
-                        case "liked-songs": {
-                          const likedItem = item as LikedSongsItem;
-                          linkPath = "/liked-songs";
-                          subtitle = `${t("sidebar.subtitle.playlist")} • ${
-                            likedItem.songsCount
-                          } ${
-                            likedItem.songsCount !== 1
-                              ? t("sidebar.subtitle.songs")
-                              : t("sidebar.subtitle.song")
-                          }`;
-                          fallbackImage = "/liked.png";
-                          break;
-                        }
-                        case "artist": {
-                          const artistItem = item as FollowedArtistItem;
-                          linkPath = `/artists/${artistItem._id}`;
-                          subtitle = t("sidebar.subtitle.artist");
-                          imageClass = "rounded-full";
-                          break;
-                        }
-                        case "mix": {
-                          const mixItem = item as MixItem;
-                          linkPath = `/mixes/${mixItem._id}`;
-                          subtitle = t("sidebar.subtitle.dailyMix");
-                          break;
-                        }
-                        case "personal-mix": {
-                          const personalMixItem = item as PersonalMixItem;
-                          linkPath = `/personal-mixes/${personalMixItem._id}`;
-                          subtitle = "Personal Mix";
-                          break;
-                        }
+                      case "playlist": {
+                        const playlistItem = item as PlaylistItem;
+                        linkPath = `/playlists/${playlistItem._id}`;
+                        subtitle = `${t("sidebar.subtitle.playlist")} • ${
+                          playlistItem.owner?.fullName ||
+                          t("common.unknownArtist")
+                        }`;
+                        break;
                       }
+                      case "generated-playlist": {
+                        linkPath = `/generated-playlists/${item._id}`;
+                        subtitle = t("sidebar.subtitle.playlist");
+                        break;
+                      }
+                      case "liked-songs": {
+                        const likedItem = item as LikedSongsItem;
+                        linkPath = "/liked-songs";
+                        subtitle = `${t("sidebar.subtitle.playlist")} • ${
+                          likedItem.songsCount
+                        } ${
+                          likedItem.songsCount !== 1
+                            ? t("sidebar.subtitle.songs")
+                            : t("sidebar.subtitle.song")
+                        }`;
+                        coverImageUrl = item.imageUrl;
+                        break;
+                      }
+                      case "artist": {
+                        const artistItem = item as FollowedArtistItem;
+                        linkPath = `/artists/${artistItem._id}`;
+                        subtitle = t("sidebar.subtitle.artist");
+                        break;
+                      }
+                      case "mix": {
+                        const mixItem = item as MixItem;
+                        linkPath = `/mixes/${mixItem._id}`;
+                        subtitle = t("sidebar.subtitle.dailyMix");
+                        coverImageUrl =
+                          item.imageUrl ||
+                          "https://moodify.b-cdn.net/default-album-cover.png";
+                        break;
+                      }
+                      case "personal-mix": {
+                        const personalMixItem = item as PersonalMixItem;
+                        linkPath = `/personal-mixes/${personalMixItem._id}`;
+                        subtitle = "Personal Mix";
+                        coverImageUrl =
+                          item.imageUrl ||
+                          "https://moodify.b-cdn.net/default-album-cover.png";
+                        break;
+                      }
+                    }
 
-                      return (
-                        <Link
-                          key={`${item.type}-${item._id}`}
-                          to={linkPath}
-                          className="bg-transparent p-3 rounded-md hover:bg-[#2a2a2a]/50 transition-all group cursor-pointer flex items-center gap-4 hover-scale"
-                        >
-                          <div className="relative flex-shrink-0">
+                    return (
+                      <Link
+                        key={`${item.type}-${item._id}`}
+                        to={linkPath}
+                        className="bg-transparent p-0 rounded-md hover:bg-[#2a2a2a]/50 transition-all group cursor-pointer flex flex-col items-center text-center"
+                      >
+                        <div className="relative mb-2 w-full">
+                          <div
+                            className={cn(
+                              "relative aspect-square w-full overflow-hidden shadow-lg",
+                              item.type === "artist"
+                                ? "rounded-full"
+                                : "rounded-md",
+                            )}
+                          >
                             <img
-                              src={item.imageUrl || fallbackImage}
+                              src={
+                                coverImageUrl ||
+                                "https://moodify.b-cdn.net/default-album-cover.png"
+                              }
                               alt={item.title}
-                              className={`size-16 object-cover ${imageClass} transition-opacity group-hover:opacity-50`}
+                              className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                               onError={(e) => {
                                 (e.target as HTMLImageElement).src =
-                                  fallbackImage;
+                                  "https://moodify.b-cdn.net/default-album-cover.png";
                               }}
                             />
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-lg truncate text-white mb-1">
-                              {item.title}
-                            </h3>
-                            <div className="flex items-center gap-2">
-                              {isDownloaded(item._id) && (
-                                <Download className="size-4 text-[#8b5cf6] flex-shrink-0" />
-                              )}
-                              <p className="text-sm text-gray-400 truncate">
-                                {subtitle}
-                              </p>
-                            </div>
+                        </div>
+                        <div className="px-1 w-full">
+                          <h3 className="font-semibold text-sm truncate text-white">
+                            {item.title}
+                          </h3>
+                          <div className="flex items-center gap-1.5 justify-center">
+                            {isDownloaded(item._id) && (
+                              <Download className="size-3 text-[#8b5cf6] flex-shrink-0" />
+                            )}
+                            <p className="text-xs text-gray-400 truncate">
+                              {subtitle}
+                            </p>
                           </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredLibraryItems.map((item) => {
+                    let linkPath: string = "#";
+                    let subtitle: string = "";
+                    let fallbackImage: string =
+                      "https://moodify.b-cdn.net/default-album-cover.png";
+                    let imageClass = "rounded-md";
+
+                    switch (item.type) {
+                      case "album": {
+                        const albumItem = item as AlbumItem;
+                        linkPath = `/albums/${albumItem._id}`;
+                        subtitle = `${
+                          t(`pages.album.${albumItem.albumType}`) ||
+                          t("sidebar.subtitle.album")
+                        } • ${getArtistNames(albumItem.artist)}`;
+                        break;
+                      }
+                      case "playlist": {
+                        const playlistItem = item as PlaylistItem;
+                        linkPath = `/playlists/${playlistItem._id}`;
+                        subtitle = `${t("sidebar.subtitle.playlist")} • ${
+                          playlistItem.owner?.fullName ||
+                          t("common.unknownArtist")
+                        }`;
+                        break;
+                      }
+                      case "generated-playlist": {
+                        linkPath = `/generated-playlists/${item._id}`;
+                        subtitle = t("sidebar.subtitle.playlist");
+                        break;
+                      }
+                      case "liked-songs": {
+                        const likedItem = item as LikedSongsItem;
+                        linkPath = "/liked-songs";
+                        subtitle = `${t("sidebar.subtitle.playlist")} • ${
+                          likedItem.songsCount
+                        } ${
+                          likedItem.songsCount !== 1
+                            ? t("sidebar.subtitle.songs")
+                            : t("sidebar.subtitle.song")
+                        }`;
+                        fallbackImage = "/liked.png";
+                        break;
+                      }
+                      case "artist": {
+                        const artistItem = item as FollowedArtistItem;
+                        linkPath = `/artists/${artistItem._id}`;
+                        subtitle = t("sidebar.subtitle.artist");
+                        imageClass = "rounded-full";
+                        break;
+                      }
+                      case "mix": {
+                        const mixItem = item as MixItem;
+                        linkPath = `/mixes/${mixItem._id}`;
+                        subtitle = t("sidebar.subtitle.dailyMix");
+                        break;
+                      }
+                      case "personal-mix": {
+                        const personalMixItem = item as PersonalMixItem;
+                        linkPath = `/personal-mixes/${personalMixItem._id}`;
+                        subtitle = "Personal Mix";
+                        break;
+                      }
+                    }
+
+                    return (
+                      <Link
+                        key={`${item.type}-${item._id}`}
+                        to={linkPath}
+                        className="bg-transparent p-3 rounded-md hover:bg-[#2a2a2a]/50 transition-all group cursor-pointer flex items-center gap-4 hover-scale"
+                      >
+                        <div className="relative flex-shrink-0">
+                          <img
+                            src={item.imageUrl || fallbackImage}
+                            alt={item.title}
+                            className={`size-16 object-cover ${imageClass} transition-opacity group-hover:opacity-50`}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src =
+                                fallbackImage;
+                            }}
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-lg truncate text-white mb-1">
+                            {item.title}
+                          </h3>
+                          <div className="flex items-center gap-2">
+                            {isDownloaded(item._id) && (
+                              <Download className="size-4 text-[#8b5cf6] flex-shrink-0" />
+                            )}
+                            <p className="text-sm text-gray-400 truncate">
+                              {subtitle}
+                            </p>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
-        </ScrollArea>
+        </div>
         <CreatePlaylistDialog
           isOpen={isCreatePlaylistDialogOpen}
           onClose={closeAllDialogs}

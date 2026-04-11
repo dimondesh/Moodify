@@ -8,7 +8,6 @@ import { useLibraryStore } from "../../stores/useLibraryStore";
 import { axiosInstance } from "../../lib/axios";
 import Equalizer from "../../components/ui/equalizer";
 import { getOptimizedImageUrl } from "../../lib/utils";
-import { ScrollArea, ScrollBar } from "../../components/ui/scroll-area";
 import { Helmet } from "react-helmet-async";
 import type { Song } from "../../types";
 
@@ -38,7 +37,7 @@ const TopTracksPage = () => {
         setIsLoading(true);
         setError(null);
         const response = await axiosInstance.get(
-          `/users/${userId}/all-top-tracks-this-month`
+          `/users/${userId}/all-top-tracks-this-month`,
         );
         setTracks(response.data.tracks);
       } catch (err: any) {
@@ -68,7 +67,7 @@ const TopTracksPage = () => {
 
   if (isLoading) {
     return (
-      <div className="p-4 sm:p-6 bg-zinc-900 min-h-screen text-white">
+      <div className="p-4 sm:p-6 min-h-screen text-white">
         <h1 className="text-2xl sm:text-3xl mb-6 font-bold">{pageTitle}</h1>
         <div className="flex flex-col gap-2">
           {[...Array(10)].map((_, index) => (
@@ -119,79 +118,76 @@ const TopTracksPage = () => {
       <Helmet>
         <title>{pageTitle}</title>
       </Helmet>
-      <ScrollArea className="h-[calc(100vh-120px)] w-full rounded-md pr-4 bg-zinc-950">
-        <div className="p-4 pt-4 pb-14 md:pb-16">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-6">{pageTitle}</h1>
-          <div className="flex flex-col gap-2">
-            {tracks.map((track, index) => {
-              const isCurrentSong = currentSong?._id === track._id;
-              const isLiked = isSongLiked(track._id);
+      <div className="p-4 pt-4 pb-40 lg:pb-0">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-6">{pageTitle}</h1>
+        <div className="flex flex-col gap-2">
+          {tracks.map((track, index) => {
+            const isCurrentSong = currentSong?._id === track._id;
+            const isLiked = isSongLiked(track._id);
 
-              return (
-                <div
-                  key={`${track._id}-${index}`}
-                  className="flex items-center gap-3 sm:gap-4 p-2 rounded-md hover:bg-zinc-800/50 cursor-pointer group"
-                  onClick={() => handlePlaySpecificSong(track, index)}
-                >
-                  <div className="flex items-center justify-center w-4 text-zinc-400 flex-shrink-0">
-                    {isCurrentSong && isPlaying ? (
-                      <Equalizer />
-                    ) : (
-                      <span className="group-hover:hidden text-sm sm:text-base">
-                        {index + 1}
-                      </span>
-                    )}
-                    {!isCurrentSong && (
-                      <Play className="h-3 w-3 sm:h-4 sm:w-4 hidden group-hover:block" />
-                    )}
-                  </div>
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0">
-                    <img
-                      src={getOptimizedImageUrl(
-                        track.imageUrl || "/default-song-cover.png",
-                        100
-                      )}
-                      alt={track.title}
-                      className="w-full h-full object-cover rounded-md"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-white truncate text-sm sm:text-base">
-                      {track.title}
-                    </h3>
-                    <p className="text-xs sm:text-sm text-zinc-400 truncate">
-                      {Array.isArray(track.artist) && track.artist.length > 0
-                        ? track.artist[0]?.name || t("common.unknownArtist")
-                        : t("common.unknownArtist")}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-zinc-400">
-                    <span className="hidden sm:block">
-                      {formatTime(track.duration)}
+            return (
+              <div
+                key={`${track._id}-${index}`}
+                className="flex items-center gap-3 sm:gap-4 p-2 rounded-md hover:bg-zinc-800/50 cursor-pointer group"
+                onClick={() => handlePlaySpecificSong(track, index)}
+              >
+                <div className="flex items-center justify-center w-4 text-zinc-400 flex-shrink-0">
+                  {isCurrentSong && isPlaying ? (
+                    <Equalizer />
+                  ) : (
+                    <span className="group-hover:hidden text-sm sm:text-base">
+                      {index + 1}
                     </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleSongLike(track._id);
-                      }}
-                      className="p-2 sm:p-1 hover:bg-zinc-700 rounded-full transition-colors"
-                    >
-                      <Heart
-                        className={`h-4 w-4 sm:h-4 sm:w-4 ${
-                          isLiked
-                            ? "text-violet-600 fill-violet-600"
-                            : "text-zinc-400"
-                        }`}
-                      />
-                    </button>
-                  </div>
+                  )}
+                  {!isCurrentSong && (
+                    <Play className="h-3 w-3 sm:h-4 sm:w-4 hidden group-hover:block" />
+                  )}
                 </div>
-              );
-            })}
-          </div>
+                <div className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0">
+                  <img
+                    src={getOptimizedImageUrl(
+                      track.imageUrl || "/default-song-cover.png",
+                      100,
+                    )}
+                    alt={track.title}
+                    className="w-full h-full object-cover rounded-md"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-white truncate text-sm sm:text-base">
+                    {track.title}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-zinc-400 truncate">
+                    {Array.isArray(track.artist) && track.artist.length > 0
+                      ? track.artist[0]?.name || t("common.unknownArtist")
+                      : t("common.unknownArtist")}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-zinc-400">
+                  <span className="hidden sm:block">
+                    {formatTime(track.duration)}
+                  </span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSongLike(track._id);
+                    }}
+                    className="p-2 sm:p-1 hover:bg-zinc-700 rounded-full transition-colors"
+                  >
+                    <Heart
+                      className={`h-4 w-4 sm:h-4 sm:w-4 ${
+                        isLiked
+                          ? "text-violet-600 fill-violet-600"
+                          : "text-zinc-400"
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
-        <ScrollBar orientation="vertical" />
-      </ScrollArea>
+      </div>
     </>
   );
 };

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, Link } from "react-router-dom";
 import { axiosInstance } from "@/lib/axios";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SectionGridSkeleton from "@/components/ui/skeletons/PlaylistSkeleton";
 import { useTranslation } from "react-i18next";
@@ -93,7 +92,7 @@ const DisplayListPage = () => {
       item.type.charAt(0).toUpperCase() + item.type.slice(1);
     const typeName = t(
       `sidebar.subtitle.${itemTypeCapitalized}`,
-      item.type.charAt(0).toUpperCase() + item.type.slice(1)
+      item.type.charAt(0).toUpperCase() + item.type.slice(1),
     );
 
     if (item.type === "album" && item.artist) {
@@ -110,7 +109,7 @@ const DisplayListPage = () => {
   if (isLoading) return <SectionGridSkeleton />;
 
   return (
-    <ScrollArea className="h-full w-full rounded-md pr-4">
+    <div className="pb-40 lg:pb:0">
       <div className="p-4 sm:p-6">
         <h2 className="text-2xl sm:text-3xl font-bold mb-6">{title}</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
@@ -163,7 +162,7 @@ const DisplayListPage = () => {
           ))}
         </div>
       </div>
-    </ScrollArea>
+    </div>
   );
 };
 

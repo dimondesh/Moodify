@@ -6,7 +6,6 @@ import PlayButton from "../../pages/HomePage/PlayButton";
 import SectionGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton";
 import type { Song } from "../../types/index";
 import axios from "axios";
-import { ScrollArea, ScrollBar } from "../../components/ui/scroll-area";
 import { useMusicStore } from "../../stores/useMusicStore";
 import { useTranslation } from "react-i18next";
 import AlbumCoverImage from "../../components/AlbumCoverImage";
@@ -78,45 +77,42 @@ const AllSongsPage = () => {
   }
 
   return (
-    <ScrollArea className="h-[calc(100vh-120px)] w-full rounded-md pr-4 bg-zinc-950">
-      <div className="p-4 pt-4 pb-14 md:pb-16">
-        <h2 className="text-2xl font-bold mb-6">{pageTitle}</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
-          {songs.map((song, index) => (
-            <div
-              key={song._id}
-              className=" p-3 rounded-md hover:bg-zinc-700/40 transition-all group cursor-pointer flex flex-col"
-              onClick={() => handleNavigateToAlbum(song.albumId)}
-            >
-              <div className="relative mb-3">
-                <div className="aspect-square rounded-md shadow-lg overflow-hidden">
-                  <AlbumCoverImage
-                    src={getOptimizedImageUrl(
-                      song.imageUrl || "/default-song-cover.png",
-                      300
-                    )}
-                    alt={song.title || t("common.noTitle")}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    albumId={song.albumId || undefined}
-                    fallbackSrc="/default-song-cover.png"
-                  />
-                </div>
-                <PlayButton song={song} songs={songs} songIndex={index} />
+    <div className="p-4 pt-4 pb-14 md:pb-16">
+      <h2 className="text-2xl font-bold mb-6">{pageTitle}</h2>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+        {songs.map((song, index) => (
+          <div
+            key={song._id}
+            className=" p-3 rounded-md hover:bg-zinc-700/40 transition-all group cursor-pointer flex flex-col"
+            onClick={() => handleNavigateToAlbum(song.albumId)}
+          >
+            <div className="relative mb-3">
+              <div className="aspect-square rounded-md shadow-lg overflow-hidden">
+                <AlbumCoverImage
+                  src={getOptimizedImageUrl(
+                    song.imageUrl || "/default-song-cover.png",
+                    300,
+                  )}
+                  alt={song.title || t("common.noTitle")}
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  albumId={song.albumId || undefined}
+                  fallbackSrc="/default-song-cover.png"
+                />
               </div>
-              <div className="px-1 flex flex-col">
-                <h3 className="font-semibold text-sm truncate text-white">
-                  {song.title || t("common.noTitle")}
-                </h3>
-                <p className="text-xs text-zinc-400 truncate">
-                  {getArtistNames(song.artist, artists)}
-                </p>
-              </div>
+              <PlayButton song={song} songs={songs} songIndex={index} />
             </div>
-          ))}
-        </div>
+            <div className="px-1 flex flex-col">
+              <h3 className="font-semibold text-sm truncate text-white">
+                {song.title || t("common.noTitle")}
+              </h3>
+              <p className="text-xs text-zinc-400 truncate">
+                {getArtistNames(song.artist, artists)}
+              </p>
+            </div>
+          </div>
+        ))}
       </div>
-      <ScrollBar orientation="vertical" />
-    </ScrollArea>
+    </div>
   );
 };
 

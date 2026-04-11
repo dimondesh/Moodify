@@ -66,7 +66,7 @@ const HomePageComponent = () => {
 
       setCurrentBgColor(color);
     },
-    [isMobile, currentBgColor]
+    [isMobile, currentBgColor],
   );
 
   useEffect(() => {
@@ -112,7 +112,7 @@ const HomePageComponent = () => {
       const allSongs = [...featuredSongs, ...madeForYouSongs];
       // Добавляем песни из трендовых альбомов
       const trendingSongsFromAlbums = trendingAlbums.flatMap(
-        (album) => album.songs || []
+        (album) => album.songs || [],
       );
       allSongs.push(...trendingSongsFromAlbums);
 
@@ -173,7 +173,7 @@ const HomePageComponent = () => {
         });
       }, 50);
     },
-    [extractColor, changeBackgroundColor, isMobile]
+    [extractColor, changeBackgroundColor, isMobile],
   );
 
   const handleSongLeave = useCallback(() => {
@@ -212,12 +212,12 @@ const HomePageComponent = () => {
         ...pl,
         itemType: "playlist" as const,
       })),
-    [recommendedPlaylists]
+    [recommendedPlaylists],
   );
   const newReleasesItems = useMemo(
     () =>
       newReleases.map((album) => ({ ...album, itemType: "album" as const })),
-    [newReleases]
+    [newReleases],
   );
   const favoriteArtistsItems = useMemo(
     () =>
@@ -225,12 +225,12 @@ const HomePageComponent = () => {
         ...artist,
         itemType: "artist" as const,
       })),
-    [favoriteArtists]
+    [favoriteArtists],
   );
   const trendingAlbumsItems = useMemo(
     () =>
       trendingAlbums.map((album) => ({ ...album, itemType: "album" as const })),
-    [trendingAlbums]
+    [trendingAlbums],
   );
   const recentlyListenedItems = useMemo(
     () =>
@@ -238,20 +238,20 @@ const HomePageComponent = () => {
         ...entity,
         itemType: entity.itemType,
       })),
-    [recentlyListenedEntities]
+    [recentlyListenedEntities],
   );
   const genreMixesItems = useMemo(
     () => genreMixes.map((mix) => ({ ...mix, itemType: "mix" as const })),
-    [genreMixes]
+    [genreMixes],
   );
   const moodMixesItems = useMemo(
     () => moodMixes.map((mix) => ({ ...mix, itemType: "mix" as const })),
-    [moodMixes]
+    [moodMixes],
   );
   const publicPlaylistsItems = useMemo(
     () =>
       publicPlaylists.map((pl) => ({ ...pl, itemType: "playlist" as const })),
-    [publicPlaylists]
+    [publicPlaylists],
   );
   const generatedPlaylistsItems = useMemo(
     () =>
@@ -259,7 +259,7 @@ const HomePageComponent = () => {
         ...pl,
         itemType: "generated-playlist" as const,
       })),
-    [allGeneratedPlaylists]
+    [allGeneratedPlaylists],
   );
 
   const personalMixesItems = useMemo(
@@ -269,7 +269,7 @@ const HomePageComponent = () => {
         itemType: "personal-mix" as const,
         name: t("personalMix.title") + " " + mix.name.split(" ")[2],
       })),
-    [personalMixes]
+    [personalMixes],
   );
 
   // Комбинируем персональные миксы и генеративные плейлисты для секции Made For You
@@ -277,7 +277,7 @@ const HomePageComponent = () => {
     const items = [
       ...personalMixesItems,
       ...generatedPlaylistsItems.filter(
-        (pl) => pl.type === "ON_REPEAT" || pl.type === "DISCOVER_WEEKLY"
+        (pl) => pl.type === "ON_REPEAT" || pl.type === "DISCOVER_WEEKLY",
       ),
     ];
     return items;
@@ -288,7 +288,7 @@ const HomePageComponent = () => {
       navigate("/all-items/made-for-you", {
         state: { items: madeForYouItems, title: t("homepage.madeForYou") },
       }),
-    [navigate, madeForYouItems, t]
+    [navigate, madeForYouItems, t],
   );
   const handleShowAllRecentlyListened = useCallback(
     () =>
@@ -298,28 +298,28 @@ const HomePageComponent = () => {
           title: t("homepage.recentlyListened"),
         },
       }),
-    [navigate, recentlyListenedSongs, t]
+    [navigate, recentlyListenedSongs, t],
   );
   const handleShowAllGenreMixes = useCallback(
     () =>
       navigate(`/all-mixes/genres`, {
         state: { mixes: genreMixes, title: t("homepage.genreMixes") },
       }),
-    [navigate, genreMixes, t]
+    [navigate, genreMixes, t],
   );
   const handleShowAllMoodMixes = useCallback(
     () =>
       navigate(`/all-mixes/moods`, {
         state: { mixes: moodMixes, title: t("homepage.moodMixes") },
       }),
-    [navigate, moodMixes, t]
+    [navigate, moodMixes, t],
   );
   const handleShowAllTrending = useCallback(
     () =>
       navigate("/all-albums/trending", {
         state: { albums: trendingAlbums, title: t("homepage.trending") },
       }),
-    [navigate, trendingAlbums, t]
+    [navigate, trendingAlbums, t],
   );
 
   return (
@@ -331,7 +331,7 @@ const HomePageComponent = () => {
           content="Listen to trending music, discover personal mixes, and explore public playlists. Moodify - your ultimate guide in the world of music."
         />
       </Helmet>
-      <main className="overflow-y-auto h-full bg-[#0f0f0f] hide-scrollbar pb-30 lg:pb-0">
+      <main className="min-h-full bg-[#0f0f0f] pb-30 lg:pb-0">
         <div className="relative min-h-screen">
           <div className="absolute hidden lg:block inset-0 h-[50vh] w-full pointer-events-none z-0">
             <div

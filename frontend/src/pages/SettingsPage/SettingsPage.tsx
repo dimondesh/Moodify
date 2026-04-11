@@ -24,7 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../stores/useAuthStore";
 import { Helmet } from "react-helmet-async";
@@ -196,347 +195,340 @@ const SettingsPage: React.FC = () => {
           content="Manage your language preferences and audio settings, including equalizer, reverb, and normalization, on Moodify."
         />
       </Helmet>
-      <div className="h-full relative">
-        <div className="absolute inset-0 bg-[#0f0f0f] animate-fade-in" />
-        <ScrollArea className="h-full pb-35 lg:pb-0">
-          <div className="container mx-auto p-4 sm:p-6 md:p-8 max-w-2xl">
-            <h1 className="text-3xl font-bold text-white mb-6">
-              {t("settings.title")}
-            </h1>
-            <Card className="bg-[#1a1a1a] border-[#2a2a2a] text-white shadow-lg p-6 space-y-8 mb-8">
-              <div>
-                <Label className="text-xl font-semibold mb-4 block">
-                  {t("settings.language")}
-                </Label>
-                <Select
-                  value={i18n.language}
-                  onValueChange={handleLanguageChange}
+      <div className="min-h-screen relative pb-40 lg:pb-0">
+        <div className="container mx-auto p-4 sm:p-6 md:p-8 max-w-2xl">
+          <h1 className="text-3xl font-bold text-white mb-6">
+            {t("settings.title")}
+          </h1>
+          <Card className="bg-[#1a1a1a] border-[#2a2a2a] text-white shadow-lg p-6 space-y-8 mb-8">
+            <div>
+              <Label className="text-xl font-semibold mb-4 block">
+                {t("settings.language")}
+              </Label>
+              <Select
+                value={i18n.language}
+                onValueChange={handleLanguageChange}
+              >
+                <SelectTrigger className="w-full bg-[#2a2a2a] border-[#2a2a2a] text-white">
+                  <SelectValue placeholder={t("settings.language")} />
+                </SelectTrigger>
+                <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a] text-white">
+                  <SelectItem value="ru">Русский</SelectItem>
+                  <SelectItem value="uk">Українська</SelectItem>
+                  <SelectItem value="en">English</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="border-t border-[#2a2a2a] pt-8">
+              <div className="flex items-center justify-between">
+                <Label
+                  htmlFor="anonymous-mode-toggle"
+                  className="text-xl font-semibold"
                 >
-                  <SelectTrigger className="w-full bg-[#2a2a2a] border-[#2a2a2a] text-white">
-                    <SelectValue placeholder={t("settings.language")} />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a] text-white">
-                    <SelectItem value="ru">Русский</SelectItem>
-                    <SelectItem value="uk">Українська</SelectItem>
-                    <SelectItem value="en">English</SelectItem>
-                  </SelectContent>
-                </Select>
+                  {t("settings.privacy.anonymousMode")}
+                </Label>
+                <Switch
+                  id="anonymous-mode-toggle"
+                  checked={isAnonymous}
+                  onCheckedChange={handleAnonymousToggle}
+                  className="data-[state=checked]:bg-violet-600"
+                />
               </div>
-              <div className="border-t border-[#2a2a2a] pt-8">
-                <div className="flex items-center justify-between">
-                  <Label
-                    htmlFor="anonymous-mode-toggle"
-                    className="text-xl font-semibold"
-                  >
-                    {t("settings.privacy.anonymousMode")}
-                  </Label>
-                  <Switch
-                    id="anonymous-mode-toggle"
-                    checked={isAnonymous}
-                    onCheckedChange={handleAnonymousToggle}
-                    className="data-[state=checked]:bg-violet-600"
-                  />
-                </div>
-                <p className="text-gray-400 text-sm mt-2">
-                  {t("settings.privacy.anonymousModeDesc")}
-                </p>
+              <p className="text-gray-400 text-sm mt-2">
+                {t("settings.privacy.anonymousModeDesc")}
+              </p>
+            </div>
+            <div className="border-b border-zinc-700 pb-8">
+              <div className="flex items-center justify-between mb-4">
+                <Label className="text-xl font-semibold">
+                  {t("settings.reduceMotion")}
+                </Label>
+                <Switch
+                  id="reduceMotion-enabled"
+                  checked={isReduceMotionEnabled}
+                  onCheckedChange={setIsReduceMotionEnabled}
+                  className="data-[state=checked]:bg-violet-600"
+                />
               </div>
-              <div className="border-b border-zinc-700 pb-8">
-                <div className="flex items-center justify-between mb-4">
-                  <Label className="text-xl font-semibold">
-                    {t("settings.reduceMotion")}
-                  </Label>
-                  <Switch
-                    id="reduceMotion-enabled"
-                    checked={isReduceMotionEnabled}
-                    onCheckedChange={setIsReduceMotionEnabled}
-                    className="data-[state=checked]:bg-violet-600"
-                  />
-                </div>
+            </div>
+            <div className="border-b border-zinc-700 pb-8">
+              <div className="flex items-center justify-between">
+                <Label
+                  htmlFor="recently-listened-artists-toggle"
+                  className="text-xl font-semibold"
+                >
+                  {t("settings.privacy.showRecentlyListenedArtists")}
+                </Label>
+                <Switch
+                  id="recently-listened-artists-toggle"
+                  checked={showRecentlyListenedArtists}
+                  onCheckedChange={handleRecentlyListenedArtistsToggle}
+                  className="data-[state=checked]:bg-violet-600"
+                />
               </div>
-              <div className="border-b border-zinc-700 pb-8">
-                <div className="flex items-center justify-between">
-                  <Label
-                    htmlFor="recently-listened-artists-toggle"
-                    className="text-xl font-semibold"
-                  >
-                    {t("settings.privacy.showRecentlyListenedArtists")}
-                  </Label>
-                  <Switch
-                    id="recently-listened-artists-toggle"
-                    checked={showRecentlyListenedArtists}
-                    onCheckedChange={handleRecentlyListenedArtistsToggle}
-                    className="data-[state=checked]:bg-violet-600"
-                  />
-                </div>
-                <p className="text-gray-400 text-sm mt-2">
-                  {t("settings.privacy.showRecentlyListenedArtistsDesc")}
-                </p>
-              </div>
-            </Card>
-            <h1 className="text-3xl font-bold text-white mb-6">
-              {t("settings.audioTitle")}
-            </h1>
-            <Card className="bg-[#1a1a1a] border-[#2a2a2a] text-white shadow-lg p-6 space-y-8">
-              {!isIosDevice && (
-                <>
-                  {/* Equalizer Section */}
-                  <div className="border-b border-zinc-700 pb-8">
-                    <div className="flex items-center justify-between mb-4">
-                      <Label className="text-xl font-semibold">
-                        {t("settings.equalizer")}
-                      </Label>
-                      <Switch
-                        id="equalizer-mode"
-                        checked={equalizerEnabled}
-                        onCheckedChange={setEqualizerEnabled}
-                        className="data-[state=checked]:bg-violet-600"
-                      />
-                    </div>
-
-                    {equalizerEnabled && (
-                      <>
-                        <div className="mb-4">
-                          <Select
-                            onValueChange={handlePresetChange}
-                            value={activePresetName}
-                          >
-                            <SelectTrigger className="w-full bg-zinc-700 border-zinc-600 text-white">
-                              <SelectValue
-                                placeholder={t("settings.selectPreset")}
-                              />
-                            </SelectTrigger>
-                            <SelectContent className="bg-zinc-800 border-zinc-700 text-white max-h-60 overflow-y-auto">
-                              {equalizerPresets.map((preset) => (
-                                <SelectItem
-                                  key={preset.name}
-                                  value={preset.name}
-                                >
-                                  {t(`equalizerPresets.${preset.name}`)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="grid grid-cols-6 gap-2 sm:gap-3 md:gap-4 mt-4 justify-items-center">
-                          {frequencies.map((freq) => (
-                            <div
-                              key={freq}
-                              className="flex flex-col items-center gap-1 sm:gap-2 w-full"
-                            >
-                              <Label
-                                htmlFor={`slider-${freq}`}
-                                className="text-gray-400 text-[0.65rem] sm:text-xs whitespace-nowrap"
-                              >
-                                {freq} Hz
-                              </Label>
-                              <Slider
-                                id={`slider-${freq}`}
-                                min={-12}
-                                max={12}
-                                step={0.5}
-                                value={[equalizerGains[freq] || 0]}
-                                onValueChange={handleSliderChange(freq)}
-                                className="h-24 w-2 vertical-slider relative"
-                                orientation="vertical"
-                              />
-                              <span className="text-xs sm:text-sm text-zinc-300 whitespace-nowrap">
-                                {equalizerGains[freq]?.toFixed(1)} dB
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </>
-                    )}
+              <p className="text-gray-400 text-sm mt-2">
+                {t("settings.privacy.showRecentlyListenedArtistsDesc")}
+              </p>
+            </div>
+          </Card>
+          <h1 className="text-3xl font-bold text-white mb-6">
+            {t("settings.audioTitle")}
+          </h1>
+          <Card className="bg-[#1a1a1a] border-[#2a2a2a] text-white shadow-lg p-6 space-y-8">
+            {!isIosDevice && (
+              <>
+                {/* Equalizer Section */}
+                <div className="border-b border-zinc-700 pb-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <Label className="text-xl font-semibold">
+                      {t("settings.equalizer")}
+                    </Label>
+                    <Switch
+                      id="equalizer-mode"
+                      checked={equalizerEnabled}
+                      onCheckedChange={setEqualizerEnabled}
+                      className="data-[state=checked]:bg-violet-600"
+                    />
                   </div>
 
-                  {/* Reverb Section */}
-                  <div className="border-b border-zinc-700 pb-8">
-                    <div className="flex items-center justify-between mb-4">
-                      <Label className="text-xl font-semibold">
-                        {t("settings.reverb")}
-                      </Label>
-                      <Switch
-                        id="reverb-enabled"
-                        checked={reverbEnabled}
-                        onCheckedChange={setReverbEnabled}
-                        className="data-[state=checked]:bg-violet-600"
-                      />
-                    </div>
-
-                    {reverbEnabled && (
-                      <>
-                        <div className="mb-4">
-                          <Label
-                            htmlFor="reverb-room-size"
-                            className="text-sm font-medium text-gray-400 mb-2 block"
-                          >
-                            {t("settings.roomSize")}
-                          </Label>
-                          <Select
-                            value={reverbRoomSize}
-                            onValueChange={handleReverbRoomSizeChange}
-                          >
-                            <SelectTrigger className="w-full bg-zinc-700 border-zinc-600 text-white">
-                              <SelectValue
-                                placeholder={t("settings.selectRoomSize")}
-                              />
-                            </SelectTrigger>
-                            <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
-                              {Object.keys(reverbIRPaths).map((size) => (
-                                <SelectItem key={size} value={size}>
-                                  {t(
-                                    `settings.${
-                                      size as "small" | "medium" | "large"
-                                    }`,
-                                  )}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="mb-4">
-                          <Label
-                            htmlFor="reverb-mix"
-                            className="text-sm font-medium text-gray-400 mb-2 block"
-                          >
-                            {t("settings.dryWetMix")}
-                          </Label>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-400">
-                              {t("settings.dry")}
-                            </span>
-                            <Slider
-                              id="reverb-mix"
-                              min={0}
-                              max={100}
-                              step={1}
-                              value={[reverbMix * 100]}
-                              onValueChange={(value) =>
-                                setReverbMix(value[0] / 100)
-                              }
-                              className="flex-1 hover:cursor-grab active:cursor-grabbing"
+                  {equalizerEnabled && (
+                    <>
+                      <div className="mb-4">
+                        <Select
+                          onValueChange={handlePresetChange}
+                          value={activePresetName}
+                        >
+                          <SelectTrigger className="w-full bg-zinc-700 border-zinc-600 text-white">
+                            <SelectValue
+                              placeholder={t("settings.selectPreset")}
                             />
-                            <span className="text-xs text-gray-400">
-                              {t("settings.wet")}
-                            </span>
+                          </SelectTrigger>
+                          <SelectContent className="bg-zinc-800 border-zinc-700 text-white max-h-60 overflow-y-auto">
+                            {equalizerPresets.map((preset) => (
+                              <SelectItem key={preset.name} value={preset.name}>
+                                {t(`equalizerPresets.${preset.name}`)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="grid grid-cols-6 gap-2 sm:gap-3 md:gap-4 mt-4 justify-items-center">
+                        {frequencies.map((freq) => (
+                          <div
+                            key={freq}
+                            className="flex flex-col items-center gap-1 sm:gap-2 w-full"
+                          >
+                            <Label
+                              htmlFor={`slider-${freq}`}
+                              className="text-gray-400 text-[0.65rem] sm:text-xs whitespace-nowrap"
+                            >
+                              {freq} Hz
+                            </Label>
+                            <Slider
+                              id={`slider-${freq}`}
+                              min={-12}
+                              max={12}
+                              step={0.5}
+                              value={[equalizerGains[freq] || 0]}
+                              onValueChange={handleSliderChange(freq)}
+                              className="h-24 w-2 vertical-slider relative"
+                              orientation="vertical"
+                            />
                             <span className="text-xs sm:text-sm text-zinc-300 whitespace-nowrap">
-                              {(reverbMix * 100).toFixed(0)}%
+                              {equalizerGains[freq]?.toFixed(1)} dB
                             </span>
                           </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </>
-              )}
-
-              {/* --- Playback Speed --- */}
-              <div className="border-b border-zinc-700 pb-8">
-                <div className="flex items-center justify-between mb-4">
-                  <Label className="text-xl font-semibold">
-                    {t("settings.playbackSpeed")}
-                  </Label>
-                  <Switch
-                    id="playback-rate-enabled"
-                    checked={playbackRateEnabled}
-                    onCheckedChange={setPlaybackRateEnabled}
-                    className="data-[state=checked]:bg-violet-600"
-                  />
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
-                <p className="text-gray-400 text-sm mt-2 mb-4">
-                  {t("settings.playbackSpeedDesc")}
-                </p>
 
-                <div className="flex items-center gap-4">
-                  <Slider
-                    id="playback-rate-slider"
-                    min={0.5}
-                    max={1.5}
-                    step={0.05}
-                    value={[playbackRate]}
-                    onValueChange={(value) => setPlaybackRate(value[0])}
-                    className="flex-1"
-                    disabled={!playbackRateEnabled}
-                  />
-                  <span className="text-sm text-zinc-300 w-16 text-center">
-                    {playbackRate.toFixed(2)}x
-                  </span>
-                </div>
-              </div>
-
-              {/* Normalization & Wave Analyzer (conditionally rendered) */}
-              {!isIosDevice && (
-                <>
-                  <div className="border-b border-zinc-700 pb-8">
-                    <Label
-                      htmlFor="normalization-mode-select"
-                      className="text-xl font-semibold mb-4 block"
-                    >
-                      {t("settings.normalization")}
+                {/* Reverb Section */}
+                <div className="border-b border-zinc-700 pb-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <Label className="text-xl font-semibold">
+                      {t("settings.reverb")}
                     </Label>
-                    <Select
-                      value={normalizationMode}
-                      onValueChange={(value: NormalizationMode) =>
-                        setNormalizationMode(value)
-                      }
-                    >
-                      <SelectTrigger className="w-full bg-zinc-700 border-zinc-600 text-white">
-                        <SelectValue placeholder={t("settings.selectMode")} />
-                      </SelectTrigger>
-                      <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
-                        <SelectItem value="off">{t("settings.off")}</SelectItem>
-                        <SelectItem value="loud">
-                          {t("settings.loud")}
-                        </SelectItem>
-                        <SelectItem value="normal">
-                          {t("settings.normal")}
-                        </SelectItem>
-                        <SelectItem value="quiet">
-                          {t("settings.quiet")}
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-gray-400 text-sm mt-2">
-                      {t("settings.normalizationDesc")}
-                    </p>
+                    <Switch
+                      id="reverb-enabled"
+                      checked={reverbEnabled}
+                      onCheckedChange={setReverbEnabled}
+                      className="data-[state=checked]:bg-violet-600"
+                    />
                   </div>
 
-                  <div className="border-b border-zinc-700 pb-8">
-                    <div className="flex items-center justify-between">
-                      <Label
-                        htmlFor="wave-analyzer-toggle"
-                        className="text-xl font-semibold"
-                      >
-                        {t("settings.waveAnalyzer")}
-                      </Label>
-                      <Switch
-                        id="wave-analyzer-toggle"
-                        checked={waveAnalyzerEnabled}
-                        onCheckedChange={setWaveAnalyzerEnabled}
-                        className="data-[state=checked]:bg-violet-600"
-                      />
-                    </div>
-                    <p className="text-gray-400 text-sm mt-2 mb-4">
-                      {t("settings.waveAnalyzerDesc")}
-                    </p>
-
-                    {/* --- Analyzer Smoothness Control --- */}
-                    {waveAnalyzerEnabled && (
-                      <div className="mt-4">
-                        <Label className="text-sm font-medium text-gray-300 mb-3 block">
-                          {t("settings.waveAnalyzerSmoothness")}
+                  {reverbEnabled && (
+                    <>
+                      <div className="mb-4">
+                        <Label
+                          htmlFor="reverb-room-size"
+                          className="text-sm font-medium text-gray-400 mb-2 block"
+                        >
+                          {t("settings.roomSize")}
                         </Label>
-                        <div className="flex">
-                          {(
-                            ["low", "medium", "high"] as AnalyzerSmoothness[]
-                          ).map((mode, index, arr) => (
-                            <button
-                              key={mode}
-                              onClick={() => setAnalyzerSmoothness(mode)}
-                              className={`
+                        <Select
+                          value={reverbRoomSize}
+                          onValueChange={handleReverbRoomSizeChange}
+                        >
+                          <SelectTrigger className="w-full bg-zinc-700 border-zinc-600 text-white">
+                            <SelectValue
+                              placeholder={t("settings.selectRoomSize")}
+                            />
+                          </SelectTrigger>
+                          <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
+                            {Object.keys(reverbIRPaths).map((size) => (
+                              <SelectItem key={size} value={size}>
+                                {t(
+                                  `settings.${
+                                    size as "small" | "medium" | "large"
+                                  }`,
+                                )}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="mb-4">
+                        <Label
+                          htmlFor="reverb-mix"
+                          className="text-sm font-medium text-gray-400 mb-2 block"
+                        >
+                          {t("settings.dryWetMix")}
+                        </Label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-400">
+                            {t("settings.dry")}
+                          </span>
+                          <Slider
+                            id="reverb-mix"
+                            min={0}
+                            max={100}
+                            step={1}
+                            value={[reverbMix * 100]}
+                            onValueChange={(value) =>
+                              setReverbMix(value[0] / 100)
+                            }
+                            className="flex-1 hover:cursor-grab active:cursor-grabbing"
+                          />
+                          <span className="text-xs text-gray-400">
+                            {t("settings.wet")}
+                          </span>
+                          <span className="text-xs sm:text-sm text-zinc-300 whitespace-nowrap">
+                            {(reverbMix * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* --- Playback Speed --- */}
+            <div className="border-b border-zinc-700 pb-8">
+              <div className="flex items-center justify-between mb-4">
+                <Label className="text-xl font-semibold">
+                  {t("settings.playbackSpeed")}
+                </Label>
+                <Switch
+                  id="playback-rate-enabled"
+                  checked={playbackRateEnabled}
+                  onCheckedChange={setPlaybackRateEnabled}
+                  className="data-[state=checked]:bg-violet-600"
+                />
+              </div>
+              <p className="text-gray-400 text-sm mt-2 mb-4">
+                {t("settings.playbackSpeedDesc")}
+              </p>
+
+              <div className="flex items-center gap-4">
+                <Slider
+                  id="playback-rate-slider"
+                  min={0.5}
+                  max={1.5}
+                  step={0.05}
+                  value={[playbackRate]}
+                  onValueChange={(value) => setPlaybackRate(value[0])}
+                  className="flex-1"
+                  disabled={!playbackRateEnabled}
+                />
+                <span className="text-sm text-zinc-300 w-16 text-center">
+                  {playbackRate.toFixed(2)}x
+                </span>
+              </div>
+            </div>
+
+            {/* Normalization & Wave Analyzer (conditionally rendered) */}
+            {!isIosDevice && (
+              <>
+                <div className="border-b border-zinc-700 pb-8">
+                  <Label
+                    htmlFor="normalization-mode-select"
+                    className="text-xl font-semibold mb-4 block"
+                  >
+                    {t("settings.normalization")}
+                  </Label>
+                  <Select
+                    value={normalizationMode}
+                    onValueChange={(value: NormalizationMode) =>
+                      setNormalizationMode(value)
+                    }
+                  >
+                    <SelectTrigger className="w-full bg-zinc-700 border-zinc-600 text-white">
+                      <SelectValue placeholder={t("settings.selectMode")} />
+                    </SelectTrigger>
+                    <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
+                      <SelectItem value="off">{t("settings.off")}</SelectItem>
+                      <SelectItem value="loud">{t("settings.loud")}</SelectItem>
+                      <SelectItem value="normal">
+                        {t("settings.normal")}
+                      </SelectItem>
+                      <SelectItem value="quiet">
+                        {t("settings.quiet")}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-gray-400 text-sm mt-2">
+                    {t("settings.normalizationDesc")}
+                  </p>
+                </div>
+
+                <div className="border-b border-zinc-700 pb-8">
+                  <div className="flex items-center justify-between">
+                    <Label
+                      htmlFor="wave-analyzer-toggle"
+                      className="text-xl font-semibold"
+                    >
+                      {t("settings.waveAnalyzer")}
+                    </Label>
+                    <Switch
+                      id="wave-analyzer-toggle"
+                      checked={waveAnalyzerEnabled}
+                      onCheckedChange={setWaveAnalyzerEnabled}
+                      className="data-[state=checked]:bg-violet-600"
+                    />
+                  </div>
+                  <p className="text-gray-400 text-sm mt-2 mb-4">
+                    {t("settings.waveAnalyzerDesc")}
+                  </p>
+
+                  {/* --- Analyzer Smoothness Control --- */}
+                  {waveAnalyzerEnabled && (
+                    <div className="mt-4">
+                      <Label className="text-sm font-medium text-gray-300 mb-3 block">
+                        {t("settings.waveAnalyzerSmoothness")}
+                      </Label>
+                      <div className="flex">
+                        {(
+                          ["low", "medium", "high"] as AnalyzerSmoothness[]
+                        ).map((mode, index, arr) => (
+                          <button
+                            key={mode}
+                            onClick={() => setAnalyzerSmoothness(mode)}
+                            className={`
                                   flex-1 py-2 px-4 text-sm font-medium transition-colors
                                   ${
                                     analyzerSmoothness === mode
@@ -547,108 +539,107 @@ const SettingsPage: React.FC = () => {
                                   ${index === arr.length - 1 ? "rounded-r-md" : ""}
                                   border-r border-zinc-700 last:border-r-0
                                 `}
-                            >
-                              {t(`settings.smoothness.${mode}`)}
-                            </button>
-                          ))}
-                        </div>
-                        <p className="text-yellow-500/80 text-xs mt-2">
-                          {t("settings.smoothnessPerformance")}
-                        </p>
+                          >
+                            {t(`settings.smoothness.${mode}`)}
+                          </button>
+                        ))}
                       </div>
-                    )}
-                  </div>
-                </>
-              )}
-
-              {/* Reset Settings */}
-              {!isIosDevice && (
-                <div>
-                  <Button
-                    onClick={resetAudioSettings}
-                    variant="outline"
-                    className="w-full bg-red-600 hover:bg-red-700 text-white border-red-700 hover:border-red-800"
-                  >
-                    {t("settings.resetAudio")}
-                  </Button>
-                  <p className="text-gray-400 text-sm mt-2 text-center">
-                    {t("settings.resetAudioDesc")}
-                  </p>
+                      <p className="text-yellow-500/80 text-xs mt-2">
+                        {t("settings.smoothnessPerformance")}
+                      </p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </Card>
-            {/* ... Rest of the component (Storage Management) ... */}
-            <h1 className="text-3xl font-bold text-white mb-6 mt-8">
-              {" "}
-              {t("settings.downloads")}
-            </h1>
-            <Card className="bg-[#1a1a1a] border-[#2a2a2a] text-white shadow-lg p-6 space-y-8">
+              </>
+            )}
+
+            {/* Reset Settings */}
+            {!isIosDevice && (
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <Label className="text-xl font-semibold">
-                    {t("settings.storage")}
-                  </Label>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleRefreshStorage}
-                    disabled={isCalculatingStorage}
-                    className="text-gray-400 hover:text-white"
-                  >
-                    <RefreshCw
-                      className={`size-4 ${
-                        isCalculatingStorage ? "animate-spin" : ""
-                      }`}
-                    />
-                  </Button>
-                </div>
-                <div className="bg-zinc-700/50 p-4 rounded-md">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-400">
-                      {t("settings.downloadedContent")}
-                    </span>
-                    <span className="font-semibold">
-                      {isCalculatingStorage ? (
-                        <span className="text-gray-400">
-                          {t("settings.calculating")}
-                        </span>
-                      ) : (
-                        formatBytes(storageUsage.usage)
-                      )}
-                    </span>
-                  </div>
-                  <div className="w-full bg-zinc-600 rounded-full h-2.5 mt-2">
-                    <div
-                      className="bg-violet-600 h-2.5 rounded-full"
-                      style={{
-                        width: `${
-                          (storageUsage.usage / storageUsage.quota) * 100
-                        }%`,
-                      }}
-                    ></div>
-                  </div>
-                  <p className="text-xs text-zinc-500 mt-2 text-right">
-                    {t("settings.totalAvailable") + " "}
-                    {formatBytes(storageUsage.quota)}
-                  </p>
-                </div>
-
-                <div className="mt-6">
-                  <Button
-                    onClick={clearAllDownloads}
-                    variant="destructive"
-                    className="w-full"
-                  >
-                    {t("settings.clearAllDownloads")}
-                  </Button>
-                  <p className="text-gray-400 text-sm mt-2 text-center">
-                    {t("settings.clearLabel")}
-                  </p>
-                </div>
+                <Button
+                  onClick={resetAudioSettings}
+                  variant="outline"
+                  className="w-full bg-red-600 hover:bg-red-700 text-white border-red-700 hover:border-red-800"
+                >
+                  {t("settings.resetAudio")}
+                </Button>
+                <p className="text-gray-400 text-sm mt-2 text-center">
+                  {t("settings.resetAudioDesc")}
+                </p>
               </div>
-            </Card>
-          </div>
-        </ScrollArea>
+            )}
+          </Card>
+          {/* ... Rest of the component (Storage Management) ... */}
+          <h1 className="text-3xl font-bold text-white mb-6 mt-8">
+            {" "}
+            {t("settings.downloads")}
+          </h1>
+          <Card className="bg-[#1a1a1a] border-[#2a2a2a] text-white shadow-lg p-6 space-y-8">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <Label className="text-xl font-semibold">
+                  {t("settings.storage")}
+                </Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRefreshStorage}
+                  disabled={isCalculatingStorage}
+                  className="text-gray-400 hover:text-white"
+                >
+                  <RefreshCw
+                    className={`size-4 ${
+                      isCalculatingStorage ? "animate-spin" : ""
+                    }`}
+                  />
+                </Button>
+              </div>
+              <div className="bg-zinc-700/50 p-4 rounded-md">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-400">
+                    {t("settings.downloadedContent")}
+                  </span>
+                  <span className="font-semibold">
+                    {isCalculatingStorage ? (
+                      <span className="text-gray-400">
+                        {t("settings.calculating")}
+                      </span>
+                    ) : (
+                      formatBytes(storageUsage.usage)
+                    )}
+                  </span>
+                </div>
+                <div className="w-full bg-zinc-600 rounded-full h-2.5 mt-2">
+                  <div
+                    className="bg-violet-600 h-2.5 rounded-full"
+                    style={{
+                      width: `${
+                        (storageUsage.usage / storageUsage.quota) * 100
+                      }%`,
+                    }}
+                  ></div>
+                </div>
+                <p className="text-xs text-zinc-500 mt-2 text-right">
+                  {t("settings.totalAvailable") + " "}
+                  {formatBytes(storageUsage.quota)}
+                </p>
+              </div>
+
+              <div className="mt-6">
+                <Button
+                  onClick={clearAllDownloads}
+                  variant="destructive"
+                  className="w-full"
+                >
+                  {t("settings.clearAllDownloads")}
+                </Button>
+                <p className="text-gray-400 text-sm mt-2 text-center">
+                  {t("settings.clearLabel")}
+                </p>
+              </div>
+            </div>
+          </Card>
+        </div>
       </div>
     </>
   );
