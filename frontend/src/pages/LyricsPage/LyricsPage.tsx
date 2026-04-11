@@ -54,7 +54,7 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
 
   const lyricsScrollAreaRef = useRef<HTMLDivElement>(null);
   const [isUserScrolling, setIsUserScrolling] = useState(false);
-  const scrollTimeoutRef = useRef<number | null>(null);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMobile = useMediaQuery("(max-width: 768px)");
 
   const lyrics = useMemo(() => {
