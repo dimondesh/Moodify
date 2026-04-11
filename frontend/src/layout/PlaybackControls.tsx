@@ -549,7 +549,7 @@ const PlaybackControls = () => {
                           >
                             {currentSong?.title || t("player.noSong")}
                           </button>
-                          <p className="text-zinc-400 text-base truncate">
+                          <p className="text-zinc-400 text-base truncate mb-1">
                             {Array.isArray(currentSong.artist)
                               ? currentSong.artist.map((artist, index) => (
                                   <span key={artist._id}>
