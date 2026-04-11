@@ -1,54 +1,34 @@
-// src/App.tsx - Оптимизированная версия
-
 import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import { useEffect, useRef, useCallback, lazy, Suspense } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useAuthStore } from "./stores/useAuthStore";
 import { useOfflineStore } from "./stores/useOfflineStore";
 import { Helmet } from "react-helmet-async";
 import { useUIStore } from "./stores/useUIStore";
 import ErrorBoundary from "./components/ErrorBoundary";
-import StandardLoader from "./components/ui/StandardLoader";
 
 import HomePage from "./pages/HomePage/HomePage";
 import MainLayout from "./layout/MainLayout";
 import AuthPage from "./pages/AuthPage/AuthPage";
 import TrackRedirect from "./pages/TrackRedirect";
-
-const AlbumPage = lazy(() => import("./pages/AlbumPage/AlbumPage"));
-const NotFoundPage = lazy(() => import("./pages/NotFoundPage/NotFoundPage"));
-const AllSongsPage = lazy(() => import("./pages/AllSongs/AllSongsPage"));
-const PlaylistDetailsPage = lazy(
-  () => import("./pages/PlaylistPage/PlaylistDetailsPage"),
-);
-const ArtistPage = lazy(() => import("./pages/ArtistPage/ArtistPage"));
-const ProfilePage = lazy(() => import("./pages/ProfilePage/ProfilePage"));
-const DisplayListPage = lazy(
-  () => import("./pages/DisplayListPage/DisplayListPage"),
-);
-const MixDetailsPage = lazy(
-  () => import("./pages/MixDetailsPage/MixDetailsPage"),
-);
-const PersonalMixPage = lazy(
-  () => import("./pages/PersonalMixPage/PersonalMixPage"),
-);
-const AllMixesPage = lazy(() => import("./pages/AllMixesPage/AllMixesPage"));
-const GeneratedPlaylistPage = lazy(
-  () => import("./pages/GeneratedPlaylistPage/GeneratedPlaylistPage"),
-);
-const TopTracksPage = lazy(() => import("./pages/TopTracksPage/TopTracksPage"));
-const OfflinePage = lazy(() => import("./pages/OfflinePage/OfflinePage"));
-const LibraryPage = lazy(() => import("./pages/LibraryPage/LibraryPage"));
-const SettingsPage = lazy(() => import("./pages/SettingsPage/SettingsPage"));
-const SearchPage = lazy(() => import("./pages/SearchPage/SearchPage"));
-const LikedSongs = lazy(() => import("./pages/LikedSongs/LikedSongs"));
-const ChatPage = lazy(() => import("./pages/ChatPage/ChatPage"));
-
-const LoadingFallback = () => (
-  <div className="h-screen w-full bg-[#0f0f0f] flex items-center justify-center">
-    <StandardLoader size="lg" showText={false} />
-  </div>
-);
+import AlbumPage from "./pages/AlbumPage/AlbumPage";
+import NotFoundPage from "./pages/NotFoundPage/NotFoundPage";
+import AllSongsPage from "./pages/AllSongs/AllSongsPage";
+import PlaylistDetailsPage from "./pages/PlaylistPage/PlaylistDetailsPage";
+import ArtistPage from "./pages/ArtistPage/ArtistPage";
+import ProfilePage from "./pages/ProfilePage/ProfilePage";
+import DisplayListPage from "./pages/DisplayListPage/DisplayListPage";
+import MixDetailsPage from "./pages/MixDetailsPage/MixDetailsPage";
+import PersonalMixPage from "./pages/PersonalMixPage/PersonalMixPage";
+import AllMixesPage from "./pages/AllMixesPage/AllMixesPage";
+import GeneratedPlaylistPage from "./pages/GeneratedPlaylistPage/GeneratedPlaylistPage";
+import TopTracksPage from "./pages/TopTracksPage/TopTracksPage";
+import OfflinePage from "./pages/OfflinePage/OfflinePage";
+import LibraryPage from "./pages/LibraryPage/LibraryPage";
+import SettingsPage from "./pages/SettingsPage/SettingsPage";
+import SearchPage from "./pages/SearchPage/SearchPage";
+import LikedSongs from "./pages/LikedSongs/LikedSongs";
+import ChatPage from "./pages/ChatPage/ChatPage";
 
 function App() {
   const user = useAuthStore((state) => state.user);
@@ -173,45 +153,42 @@ function App() {
         />
         <link rel="canonical" href={canonicalUrl} />
       </Helmet>
-
       <ErrorBoundary>
-        <Suspense fallback={<LoadingFallback />}>
-          <Routes>
-            <Route path="sitemap.xml" element={"sitemap.xml"} />
-            <Route path="login" element={<AuthPage />} />
-            <Route element={<MainLayout />}>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/all-songs/:category?" element={<AllSongsPage />} />
-              <Route path="/chat" element={<ChatPage />} />
-              <Route path="/albums/:albumId" element={<AlbumPage />} />
-              <Route path="*" element={<NotFoundPage />} />
-              <Route path="/search" element={<SearchPage />} />
-              <Route path="/liked-songs" element={<LikedSongs />} />
-              <Route path="/library" element={<LibraryPage />} />
-              <Route
-                path="/playlists/:playlistId"
-                element={<PlaylistDetailsPage />}
-              />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/artists/:id" element={<ArtistPage />} />
-              <Route path="/users/:userId" element={<ProfilePage />} />
-              <Route path="/list" element={<DisplayListPage />} />
-              <Route path="/mixes/:mixId" element={<MixDetailsPage />} />
-              <Route path="/personal-mixes/:id" element={<PersonalMixPage />} />
-              <Route path="/all-mixes/:category" element={<AllMixesPage />} />
-              <Route path="/offline" element={<OfflinePage />} />
-              <Route path="/track/:id" element={<TrackRedirect />} />
-              <Route
-                path="/generated-playlists/:id"
-                element={<GeneratedPlaylistPage />}
-              />
-              <Route
-                path="/users/:userId/top-tracks"
-                element={<TopTracksPage />}
-              />
-            </Route>
-          </Routes>
-        </Suspense>
+        <Routes>
+          <Route path="sitemap.xml" element={"sitemap.xml"} />
+          <Route path="login" element={<AuthPage />} />
+          <Route element={<MainLayout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/all-songs/:category?" element={<AllSongsPage />} />
+            <Route path="/chat" element={<ChatPage />} />
+            <Route path="/albums/:albumId" element={<AlbumPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+            <Route path="/search" element={<SearchPage />} />
+            <Route path="/liked-songs" element={<LikedSongs />} />
+            <Route path="/library" element={<LibraryPage />} />
+            <Route
+              path="/playlists/:playlistId"
+              element={<PlaylistDetailsPage />}
+            />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/artists/:id" element={<ArtistPage />} />
+            <Route path="/users/:userId" element={<ProfilePage />} />
+            <Route path="/list" element={<DisplayListPage />} />
+            <Route path="/mixes/:mixId" element={<MixDetailsPage />} />
+            <Route path="/personal-mixes/:id" element={<PersonalMixPage />} />
+            <Route path="/all-mixes/:category" element={<AllMixesPage />} />
+            <Route path="/offline" element={<OfflinePage />} />
+            <Route path="/track/:id" element={<TrackRedirect />} />
+            <Route
+              path="/generated-playlists/:id"
+              element={<GeneratedPlaylistPage />}
+            />
+            <Route
+              path="/users/:userId/top-tracks"
+              element={<TopTracksPage />}
+            />
+          </Route>
+        </Routes>
       </ErrorBoundary>
       <Toaster
         toastOptions={{
