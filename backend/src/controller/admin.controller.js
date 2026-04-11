@@ -767,7 +767,6 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
       .status(400)
       .json({ success: false, message: "ZIP file or uploadId is required." });
   }
-  // -------------------------------------
 
   const tempUnzipDir = path.join(
     process.cwd(),
@@ -787,6 +786,14 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
     const spotifyAlbumData = await getAlbumDataFromSpotify(spotifyAlbumUrl);
     if (!spotifyAlbumData) {
       throw new Error("Could not get album data from Spotify.");
+    }
+
+    const existingAlbum = await Album.findOne({ title: spotifyAlbumData.name });
+    if (existingAlbum) {
+      return res.status(409).json({
+        success: false,
+        message: `Альбом с названием "${spotifyAlbumData.name}" уже существует.`,
+      });
     }
 
     const extractedFilePaths = await extractZip(zipFilePath, tempUnzipDir);
