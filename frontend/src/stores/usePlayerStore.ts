@@ -21,6 +21,7 @@ interface PlayerStore {
   currentTime: number;
   duration: number;
   isDesktopLyricsOpen: boolean;
+  isFetchingLyrics: boolean;
   isMobileLyricsFullScreen: boolean;
   originalDuration: number;
   seekVersion: number;
@@ -43,7 +44,7 @@ interface PlayerStore {
   playAlbum: (
     songs: Song[],
     startIndex?: number,
-    context?: { type: string; entityId?: string; entityTitle?: string }
+    context?: { type: string; entityId?: string; entityTitle?: string },
   ) => void;
   setCurrentSong: (song: Song | null) => void;
   togglePlay: () => void;
@@ -57,7 +58,7 @@ interface PlayerStore {
   setIsMobileLyricsFullScreen: (isOpen: boolean) => void;
   seekToTime: (time: number) => void;
   setPlaybackContext: (
-    context: { type: string; entityId?: string; entityTitle?: string } | null
+    context: { type: string; entityId?: string; entityTitle?: string } | null,
   ) => void;
   removeFromQueue: (songId: string) => void;
   moveSongInQueue: (fromIndex: number, toIndex: number) => void;
@@ -100,17 +101,70 @@ export const usePlayerStore = create<PlayerStore>()(
         } catch (error) {
           console.warn(
             `Could not fetch album title for song ${song._id}`,
-            error
+            error,
           );
         }
       };
 
-      // Lyrics уже должны быть в объекте песни
-      // Не делаем дополнительный запрос, чтобы избежать 404 ошибок
+      // 1. Добавляем переменную для хранения таймера на уровне замыкания
+      let lyricsFetchTimeout: ReturnType<typeof setTimeout> | null = null;
+
+      const enrichSongWithLyricsIfNeeded = async (song: Song) => {
+        // Если текст уже есть или мы оффлайн — ничего не делаем
+        if (song.lyrics !== undefined || useOfflineStore.getState().isOffline) {
+          return;
+        }
+
+        // 2. Отменяем предыдущий таймер, если трек быстро переключили
+        if (lyricsFetchTimeout) {
+          clearTimeout(lyricsFetchTimeout);
+        }
+
+        // 3. Заводим новый таймер на 500мс
+        lyricsFetchTimeout = setTimeout(async () => {
+          // Если спустя полсекунды песня уже сменилась — отменяем запрос
+          if (get().currentSong?._id !== song._id) {
+            return;
+          }
+
+          set({ isFetchingLyrics: true });
+
+          try {
+            const response = await axiosInstance.get(
+              `/songs/${song._id}/lyrics`,
+            );
+            const lyrics = response.data.lyrics || "";
+
+            // Еще одна проверка: пока летел запрос, юзер мог переключить трек
+            if (get().currentSong?._id === song._id) {
+              set((state) => ({
+                currentSong: { ...state.currentSong!, lyrics },
+                queue: state.queue.map((s) =>
+                  s._id === song._id ? { ...s, lyrics } : s,
+                ),
+                isFetchingLyrics: false,
+              }));
+            } else {
+              set({ isFetchingLyrics: false });
+            }
+          } catch (error) {
+            console.warn(`Could not fetch lyrics for song ${song._id}`, error);
+            if (get().currentSong?._id === song._id) {
+              set((state) => ({
+                currentSong: { ...state.currentSong!, lyrics: "" },
+                isFetchingLyrics: false,
+              }));
+            } else {
+              set({ isFetchingLyrics: false });
+            }
+          }
+        }, 500);
+      };
 
       return {
         currentSong: null,
         isPlaying: false,
+        isFetchingLyrics: false,
         queue: [],
         currentIndex: -1,
         repeatMode: "off",
@@ -136,8 +190,8 @@ export const usePlayerStore = create<PlayerStore>()(
               newQueue.some((s) => s._id === state.currentSong!._id)
                 ? state.currentSong
                 : newQueue.length > 0
-                ? newQueue[0]
-                : null;
+                  ? newQueue[0]
+                  : null;
 
             const currentIndex = currentSong
               ? newQueue.findIndex((s) => s._id === currentSong._id)
@@ -185,7 +239,7 @@ export const usePlayerStore = create<PlayerStore>()(
         playAlbum: (
           songs: Song[],
           startIndex = 0,
-          context?: { type: string; entityId?: string; entityTitle?: string }
+          context?: { type: string; entityId?: string; entityTitle?: string },
         ) => {
           if (songs.length === 0) {
             console.log("No songs, stopping playback");
@@ -205,7 +259,7 @@ export const usePlayerStore = create<PlayerStore>()(
           if (!songs[0]?.hlsUrl) {
             console.error(
               "First song has no hlsUrl, cannot start playback:",
-              songs[0]
+              songs[0],
             );
             toast.error("Cannot start playback: missing audio file");
             return;
@@ -244,6 +298,7 @@ export const usePlayerStore = create<PlayerStore>()(
             }
 
             enrichSongWithAlbumTitleIfNeeded(songToPlay);
+            enrichSongWithLyricsIfNeeded(songToPlay);
 
             return {
               queue: songs,
@@ -318,6 +373,7 @@ export const usePlayerStore = create<PlayerStore>()(
             }
 
             enrichSongWithAlbumTitleIfNeeded(song);
+            enrichSongWithLyricsIfNeeded(song);
 
             return {
               currentSong: song,
@@ -488,6 +544,7 @@ export const usePlayerStore = create<PlayerStore>()(
           });
 
           enrichSongWithAlbumTitleIfNeeded(nextSong);
+          enrichSongWithLyricsIfNeeded(nextSong);
         },
 
         playPrevious: () => {
@@ -560,7 +617,7 @@ export const usePlayerStore = create<PlayerStore>()(
 
           if (prevIndex === -1) {
             toast(
-              isOffline ? "No previous downloaded songs." : "Start of queue."
+              isOffline ? "No previous downloaded songs." : "Start of queue.",
             );
             get().seekToTime(0);
             return;
@@ -577,6 +634,7 @@ export const usePlayerStore = create<PlayerStore>()(
           });
 
           enrichSongWithAlbumTitleIfNeeded(prevSong);
+          enrichSongWithLyricsIfNeeded(prevSong);
         },
 
         setRepeatMode: (mode) => set({ repeatMode: mode }),
@@ -619,7 +677,7 @@ export const usePlayerStore = create<PlayerStore>()(
             type: string;
             entityId?: string;
             entityTitle?: string;
-          } | null
+          } | null,
         ) => {
           set({
             currentPlaybackContext: context
@@ -643,12 +701,12 @@ export const usePlayerStore = create<PlayerStore>()(
             console.log("removeFromQueue called with songId:", songId);
             console.log(
               "Current queue before removal:",
-              state.queue.map((s) => s._id)
+              state.queue.map((s) => s._id),
             );
 
             // Проверяем, что песня существует в очереди
             const songIndex = state.queue.findIndex(
-              (song) => song._id === songId
+              (song) => song._id === songId,
             );
             if (songIndex === -1) {
               console.warn(`Song with id ${songId} not found in queue`);
@@ -686,7 +744,7 @@ export const usePlayerStore = create<PlayerStore>()(
                 } else {
                   newCurrentIndex = Math.min(
                     newCurrentIndex,
-                    newQueue.length - 1
+                    newQueue.length - 1,
                   );
                 }
               }
@@ -702,7 +760,7 @@ export const usePlayerStore = create<PlayerStore>()(
                 newShuffleHistory.splice(removedIndex, 1);
                 // Корректируем индексы в shuffle history
                 newShuffleHistory = newShuffleHistory.map((idx) =>
-                  idx > songIndex ? idx - 1 : idx
+                  idx > songIndex ? idx - 1 : idx,
                 );
                 if (removedIndex < newShufflePointer) {
                   newShufflePointer--;
@@ -727,7 +785,7 @@ export const usePlayerStore = create<PlayerStore>()(
             console.log("Current queue length:", state.queue.length);
             console.log(
               "Current queue:",
-              state.queue.map((s) => s._id)
+              state.queue.map((s) => s._id),
             );
 
             if (
@@ -750,7 +808,7 @@ export const usePlayerStore = create<PlayerStore>()(
 
             console.log(
               "New queue after move:",
-              newQueue.map((s) => s._id)
+              newQueue.map((s) => s._id),
             );
 
             let newCurrentIndex = state.currentIndex;
@@ -942,6 +1000,6 @@ export const usePlayerStore = create<PlayerStore>()(
           }
         };
       },
-    }
-  )
+    },
+  ),
 );
