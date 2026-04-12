@@ -248,7 +248,7 @@ export const AddToPlaylistControl: React.FC<AddToPlaylistControlProps> = ({
       size="icon"
       variant="ghost"
       className={cn(
-        "hover:text-white",
+        "hover:text-white hover:bg-transparent!",
         isAdded ? "text-violet-500" : "text-zinc-400",
         disabled && "opacity-50 cursor-not-allowed",
         className,
