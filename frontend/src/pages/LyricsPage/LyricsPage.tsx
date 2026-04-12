@@ -1,6 +1,6 @@
 // frontend/src/pages/LyricsPage/LyricsPage.tsx
 
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { usePlayerStore } from "../../stores/usePlayerStore";
 import { getArtistNames } from "@/lib/utils";
 import { ScrollArea } from "../../components/ui/scroll-area";

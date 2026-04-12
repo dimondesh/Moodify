@@ -168,11 +168,13 @@ export const toggleSongLikeInLibrary = async (req, res, next) => {
     const currentTime = new Date();
 
     if (exists) {
+      // Если трек уже лайкнут — удаляем его
       library.likedSongs = library.likedSongs.filter(
         (s) => s.songId?.toString() !== songId,
       );
       isLikedStatus = false;
     } else {
+      // Если не лайкнут — добавляем с текущей датой
       library.likedSongs.push({
         songId: new mongoose.Types.ObjectId(songId),
         addedAt: currentTime,
@@ -180,12 +182,7 @@ export const toggleSongLikeInLibrary = async (req, res, next) => {
       isLikedStatus = true;
     }
 
-    // Update addedAt for all remaining liked songs to current time
-    // This ensures the liked songs collection is always sorted by the latest activity
-    library.likedSongs.forEach((song) => {
-      song.addedAt = currentTime;
-    });
-
+    // Сохраняем обновленную библиотеку без перезаписи остальных дат
     await library.save();
 
     res.json({ success: true, isLiked: isLikedStatus });

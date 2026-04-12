@@ -93,7 +93,7 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
           likedSongs: songs,
           followedArtists: [],
           generatedPlaylists: playlists.filter(
-            (p: any) => p.isGenerated
+            (p: any) => p.isGenerated,
           ) as unknown as GeneratedPlaylist[],
         });
       } catch (err: any) {
@@ -145,12 +145,12 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
     try {
       const response = await axiosInstance.post(
         "/library/generated-playlists/toggle",
-        { playlistId }
+        { playlistId },
       );
       toast.success(
         response.data.isSaved
           ? i18n.t("toasts.savedToLibrary")
-          : i18n.t("toasts.removedFromLibrary")
+          : i18n.t("toasts.removedFromLibrary"),
       );
       await get().fetchLibrary();
     } catch (err) {
@@ -177,7 +177,7 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
         return;
       }
       console.log(
-        "[Offline] Fetching liked songs (all downloaded songs) from IndexedDB."
+        "[Offline] Fetching liked songs (all downloaded songs) from IndexedDB.",
       );
       try {
         const allDownloadedSongs = await getAllUserSongs(userId);
