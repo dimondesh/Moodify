@@ -352,10 +352,10 @@ const PlaybackControls = () => {
   };
 
   const renderVolumeIcon = () => {
-    if (masterVolume === 0) return <VolumeX className="size-5 md:size-4" />;
-    if (masterVolume <= 33) return <Volume className="size-5 md:size-4" />;
-    if (masterVolume <= 66) return <Volume1 className="size-5 md:size-4" />;
-    return <Volume2 className="size-5 md:size-4" />;
+    if (masterVolume === 0) return <VolumeX className="size-5 md:size-4.5" />;
+    if (masterVolume <= 33) return <Volume className="size-5 md:size-4.5" />;
+    if (masterVolume <= 66) return <Volume1 className="size-5 md:size-4.5" />;
+    return <Volume2 className="size-5 md:size-4.5" />;
   };
 
   const handleArtistClick = (artistId: string) => {
@@ -626,7 +626,7 @@ const PlaybackControls = () => {
                         </Button>
                         <Button
                           size="icon"
-                          className="bg-violet-500 hover:bg-violet-400 text-black rounded-full h-16 w-16"
+                          className="bg-white hover:bg-white/90 text-black rounded-full h-16 w-16"
                           onClick={togglePlay}
                         >
                           {isPlaying ? (
@@ -891,7 +891,7 @@ const PlaybackControls = () => {
                 <Button
                   size="icon"
                   variant="ghost"
-                  className={`hover:text-white hover:bg-[#2a2a2a] h-8 w-8 ${
+                  className={`hover:text-white hover:bg-transparent! h-8 w-8 ${
                     isShuffle ? "text-[#8b5cf6]" : "text-gray-400"
                   }`}
                   onClick={toggleShuffle}
@@ -902,7 +902,7 @@ const PlaybackControls = () => {
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="hover:text-white hover:bg-[#2a2a2a] text-gray-400 h-8 w-8"
+                  className="hover:text-white hover:bg-transparent! text-gray-400 h-8 w-8"
                   onClick={() => {
                     if (currentTime > 3) {
                       seekToTime(0);
@@ -912,11 +912,11 @@ const PlaybackControls = () => {
                   }}
                   disabled={!currentSong}
                 >
-                  <SkipBack className="h-4 w-4 fill-current" />
+                  <SkipBack className="size-5 fill-current" />
                 </Button>
                 <Button
                   size="icon"
-                  className="bg-violet-500 hover:bg-violet-400 text-black rounded-full h-10 w-10"
+                  className="bg-white hover:bg-white/90 text-black rounded-full h-10 w-10"
                   onClick={togglePlay}
                   disabled={!currentSong}
                 >
@@ -929,16 +929,16 @@ const PlaybackControls = () => {
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="hover:text-white hover:bg-[#2a2a2a] text-gray-400 h-8 w-8"
+                  className="hover:text-white hover:bg-transparent! text-gray-400 h-8 w-8"
                   onClick={playNext}
                   disabled={!currentSong}
                 >
-                  <SkipForward className="h-4 w-4 fill-current" />
+                  <SkipForward className="size-5 fill-current" />
                 </Button>
                 <Button
                   size="icon"
                   variant="ghost"
-                  className={`hover:text-white hover:bg-[#2a2a2a] h-8 w-8 ${
+                  className={`hover:text-white hover:bg-transparent! h-8 w-8 ${
                     repeatMode !== "off" ? "text-[#8b5cf6]" : "text-gray-400"
                   }`}
                   onClick={toggleRepeatMode}
@@ -959,7 +959,7 @@ const PlaybackControls = () => {
                   value={[currentTime]}
                   max={duration || 100}
                   step={1}
-                  className="w-full hover:cursor-grab active:cursor-grabbing"
+                  className="w-full hover:cursor-pointer"
                   onValueChange={(value) => seekToTime(value[0])}
                 />
                 <div className="text-xs text-gray-400 font-mono">
@@ -968,17 +968,18 @@ const PlaybackControls = () => {
               </div>
             </div>
             <div className="flex items-center gap-4 min-w-[180px] w-[30%] justify-end">
-              {currentSong.lyrics && !isIosDevice && (
+              {!isIosDevice && (
                 <Button
                   size="icon"
                   variant="ghost"
-                  className={`hover:text-white hover:bg-[#2a2a2a] h-8 w-8 ${
+                  disabled={!currentSong.lyrics}
+                  className={`hover:text-white hover:bg-transparent! h-5 w-5 text-gray-400 ${
                     isDesktopLyricsOpen ? "text-[#8b5cf6]" : "text-gray-400"
                   }`}
                   onClick={() => setIsDesktopLyricsOpen(!isDesktopLyricsOpen)}
                   title={t("player.lyrics")}
                 >
-                  <Mic2 className="h-4 w-4" />
+                  <Mic2 className="size-4.5" />
                 </Button>
               )}
 
@@ -988,16 +989,14 @@ const PlaybackControls = () => {
                     <Button
                       size="icon"
                       variant="ghost"
-                      className={`hover:text-white hover:bg-[#2a2a2a] h-8 w-8 ${
-                        reverbEnabled ? "text-[#8b5cf6]" : "text-gray-400"
-                      }`}
+                      className={`hover:text-white hover:bg-transparent! h-5 w-5 text-gray-400`}
                       title={t("player.reverb")}
                       disabled={!currentSong || !reverbEnabled}
                       onClick={() => {
                         if (!reverbEnabled) setReverbEnabled(true);
                       }}
                     >
-                      <Waves className="h-4 w-4" />
+                      <Waves className="size-4.5" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
@@ -1029,7 +1028,7 @@ const PlaybackControls = () => {
               <Button
                 size="icon"
                 variant="ghost"
-                className={`hover:text-white hover:bg-[#2a2a2a] text-gray-400 h-8 w-8 ${
+                className={`hover:text-white hover:bg-transparent! text-gray-400 h-5 w-5 ${
                   !user || !hasFriends ? "opacity-50 cursor-not-allowed" : ""
                 }`}
                 onClick={() =>
@@ -1044,23 +1043,13 @@ const PlaybackControls = () => {
                       : t("player.share")
                 }
               >
-                <Share className="h-4 w-4" />
+                <Share className="size-4.5" />
               </Button>
               <div className="flex items-center gap-3">
-                <QueueDropdown>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="hover:text-white hover:bg-[#2a2a2a] text-gray-400 h-8 w-8"
-                    title={t("player.queue.title")}
-                  >
-                    <List className="h-4 w-4" />
-                  </Button>
-                </QueueDropdown>
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="hover:text-white hover:bg-[#2a2a2a] text-gray-400 h-8 w-8"
+                  className="hover:text-white hover:bg-transparent! text-gray-400 h-4 w-4"
                   onClick={toggleMute}
                 >
                   {renderVolumeIcon()}
@@ -1076,6 +1065,16 @@ const PlaybackControls = () => {
                     if (newVolume > 0) setPreviousMasterVolume(newVolume);
                   }}
                 />
+                <QueueDropdown>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="hover:text-white hover:bg-transparent! text-gray-400 h-5 w-5"
+                    title={t("player.queue.title")}
+                  >
+                    <List className="size-4.5" />
+                  </Button>
+                </QueueDropdown>
               </div>
             </div>
           </div>
