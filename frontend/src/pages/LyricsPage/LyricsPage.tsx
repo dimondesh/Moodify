@@ -57,10 +57,38 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMobile = useMediaQuery("(max-width: 768px)");
 
-  const lyrics = useMemo(() => {
-    return currentSong?.lyrics ? parseLrc(currentSong.lyrics) : [];
-  }, [currentSong?.lyrics]);
+  // Создаем локальное состояние для хранения отображаемой песни и текста
+  const [displayState, setDisplayState] = useState<{
+    song: typeof currentSong;
+    lyrics: LyricLine[];
+  }>({
+    song: currentSong,
+    lyrics: currentSong?.lyrics ? parseLrc(currentSong.lyrics) : [],
+  });
 
+  // Синхронизируем глобальное состояние с локальным, защищаясь от undefined (загрузки)
+  useEffect(() => {
+    setDisplayState((prev) => {
+      if (!currentSong) {
+        return { song: null, lyrics: [] };
+      }
+
+      // Если lyrics !== undefined, значит загрузка завершена (либо текст есть, либо пустая строка)
+      if (currentSong.lyrics !== undefined) {
+        return { song: currentSong, lyrics: parseLrc(currentSong.lyrics) };
+      }
+
+      // Если это самая первая песня и предыдущей нет — показываем её без текста
+      if (!prev.song) {
+        return { song: currentSong, lyrics: [] };
+      }
+
+      // Если идет загрузка (undefined) и есть предыдущая песня — оставляем предыдущую (предотвращаем мерцание)
+      return prev;
+    });
+  }, [currentSong]);
+
+  const { song: displaySong, lyrics } = displayState;
   const realCurrentTime = currentTime;
 
   useEffect(() => {
@@ -73,7 +101,7 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
         viewport.scrollTo({ top: 0, behavior: "smooth" });
       }
     }
-  }, [currentSong?._id]);
+  }, [displaySong?._id]); // Изменили зависимость на displaySong
 
   useEffect(() => {
     if (lyricsScrollAreaRef.current && lyrics.length > 0 && !isUserScrolling) {
@@ -159,7 +187,10 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
     seekToTime(time);
   };
 
-  if (!currentSong || !lyrics.length) {
+  const isLoading = displaySong?.lyrics === undefined;
+
+  // Показываем заглушку только если загрузка завершена, а текста так и нет
+  if (!displaySong || (!isLoading && !lyrics.length)) {
     return (
       <div
         className={`flex flex-col items-center justify-center min-h-[100dvh] text-zinc-400 ${
@@ -184,11 +215,11 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
           : "relative min-h-[100dvh] w-full"
       }`}
     >
-      {currentSong?.imageUrl && (
+      {displaySong?.imageUrl && (
         <div
           className="absolute inset-0 z-0 pointer-events-none transition-all duration-700 ease-in-out origin-center transform-gpu"
           style={{
-            backgroundImage: `url(${currentSong.imageUrl})`,
+            backgroundImage: `url(${displaySong.imageUrl})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
             filter: "blur(80px)",
@@ -217,10 +248,10 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
 
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold mb-1 drop-shadow-lg">
-            {currentSong.title}
+            {displaySong.title}
           </h2>
           <p className="text-zinc-300 text-lg drop-shadow-md">
-            {getArtistNames(currentSong.artist, [])}
+            {getArtistNames(displaySong.artist, [])}
           </p>
         </div>
 
