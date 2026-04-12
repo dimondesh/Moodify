@@ -69,7 +69,7 @@ const Topbar = () => {
   const { unreadMessages } = useChatStore();
   const totalUnread = Array.from(unreadMessages.values()).reduce(
     (acc, count) => acc + count,
-    0
+    0,
   );
 
   const [user, setUser] = useState<null | {
@@ -206,12 +206,12 @@ const Topbar = () => {
               variant: "ghost",
               size: "sm",
               className: cn(
-                "h-8 rounded-full transition-colors hover:bg-[#2a2a2a]",
+                "h-8 rounded-full transition-colors hover:bg-transparent! ",
                 location.pathname === "/"
                   ? "text-white"
-                  : "text-gray-300 hover:text-white"
+                  : "text-gray-300 hover:text-white",
               ),
-            })
+            }),
           )}
         >
           {location.pathname === "/" ? (
@@ -245,7 +245,7 @@ const Topbar = () => {
                   "absolute right-3 top-1/2 -translate-y-1/2 hover:text-white transition-colors",
                   location.pathname === "/search"
                     ? "text-[#8b5cf6]"
-                    : "text-gray-400"
+                    : "text-gray-400",
                 )}
                 title={t("sidebar.search")}
               >
@@ -292,7 +292,7 @@ const Topbar = () => {
             <Button
               size="icon"
               variant="ghost"
-              className="md:hidden hover:bg-[#2a2a2a]"
+              className="md:hidden hover:bg-transparent!"
               onClick={() => setIsSearchVisible(true)}
             >
               <Search className="w-4 h-4" />
@@ -303,7 +303,7 @@ const Topbar = () => {
               to={"/admin"}
               className={cn(
                 buttonVariants({ variant: "outline", size: "sm" }),
-                "hidden sm:inline-flex bg-[#2a2a2a] border-[#2a2a2a] hover:bg-[#3a3a3a]"
+                "hidden sm:inline-flex bg-[#2a2a2a] border-[#2a2a2a] hover:bg-[#3a3a3a]",
               )}
             >
               <LayoutDashboardIcon className="w-4 h-4 mr-2" />
@@ -314,7 +314,7 @@ const Topbar = () => {
             <Button
               size="icon"
               variant="ghost"
-              className={`hover:bg-[#2a2a2a] h-8 w-8 ${
+              className={`hover:bg-transparent! h-8 w-8 ${
                 isFriendsActivityOpen ? "text-[#8b5cf6]" : "text-gray-400"
               }`}
               onClick={() => setIsFriendsActivityOpen(!isFriendsActivityOpen)}
@@ -335,12 +335,12 @@ const Topbar = () => {
                   variant: "ghost",
                   size: "icon",
                   className: cn(
-                    "hover:bg-[#2a2a2a] h-8 w-8 relative",
+                    "hover:bg-transparent! h-8 w-8 relative",
                     location.pathname === "/chat"
                       ? "text-[#8b5cf6]"
-                      : "text-gray-400"
+                      : "text-gray-400",
                   ),
-                })
+                }),
               )}
               title={t("sidebar.messages")}
             >
@@ -367,7 +367,7 @@ const Topbar = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="relative h-8 w-8 rounded-full hover:bg-[#2a2a2a]"
+                    className="relative h-8 w-8 rounded-full hover:bg-transparent!"
                   >
                     <Avatar className="w-8 h-8 object-cover">
                       <AvatarImage
@@ -412,7 +412,7 @@ const Topbar = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="relative h-8 w-8 rounded-full hover:bg-[#2a2a2a]"
+                    className="relative h-8 w-8 rounded-full hover:bg-transparent! hover:cursor-pointer"
                   >
                     <Avatar className="w-8 h-8 object-cover">
                       <AvatarImage

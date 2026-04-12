@@ -131,7 +131,7 @@ const LeftSidebar = () => {
 
       return names.join(", ") || t("common.unknownArtist");
     },
-    [artists, t]
+    [artists, t],
   );
 
   const libraryItems = useMemo(() => {
@@ -146,7 +146,7 @@ const LeftSidebar = () => {
         | "generated-playlist"
         | "mix"
         | "personal-mix"
-        | "artist"
+        | "artist",
     ) => {
       if (!isOffline) return true; // Include all items when online
 
@@ -183,7 +183,7 @@ const LeftSidebar = () => {
             title: isGenerated ? t((playlist as any).nameKey) : playlist.title,
             imageUrl: playlist.imageUrl,
             createdAt: new Date(
-              (playlist as any).addedAt || playlist.updatedAt || new Date()
+              (playlist as any).addedAt || playlist.updatedAt || new Date(),
             ),
             owner: playlist.owner,
             isGenerated: isGenerated,
@@ -253,14 +253,14 @@ const LeftSidebar = () => {
         title: t("sidebar.likedSongs"),
         imageUrl: "/liked.png",
         createdAt: new Date(
-          likedSongs[0]?.addedAt || likedSongs[0]?.likedAt || Date.now()
+          likedSongs[0]?.addedAt || likedSongs[0]?.likedAt || Date.now(),
         ),
         songsCount: likedSongs.length,
       } as LikedSongsItem);
     }
 
     return Array.from(libraryItemsMap.values()).sort(
-      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
     );
   }, [
     albums,
@@ -286,7 +286,7 @@ const LeftSidebar = () => {
             (item) =>
               item.type === "playlist" ||
               item.type === "generated-playlist" ||
-              item.type === "liked-songs"
+              item.type === "liked-songs",
           );
           break;
         case "albums":
@@ -309,7 +309,7 @@ const LeftSidebar = () => {
       filtered = filtered.filter((item) => {
         const title = item.title.toLowerCase();
         const subtitle = getArtistNames(
-          item.type === "album" ? (item as AlbumItem).artist : undefined
+          item.type === "album" ? (item as AlbumItem).artist : undefined,
         ).toLowerCase();
 
         return title.includes(query) || subtitle.includes(query);
@@ -336,7 +336,7 @@ const LeftSidebar = () => {
           <Button
             variant="ghost"
             size="icon"
-            className="hover:bg-[#2a2a2a] h-6 w-6"
+            className="hover:bg-transparent! text-gray-300 hover:text-white! h-6 w-6"
             onClick={openCreatePlaylistDialog}
             title={t("sidebar.createPlaylist")}
           >
@@ -351,7 +351,7 @@ const LeftSidebar = () => {
               currentFilter={entityTypeFilter}
               onFilterChange={(filter) => setEntityTypeFilter(filter as any)}
               hasDownloaded={libraryItems.some((item) =>
-                isDownloaded(item._id)
+                isDownloaded(item._id),
               )}
               className="w-full"
             />
@@ -378,10 +378,10 @@ const LeftSidebar = () => {
                       setIsLeftSidebarSearchOpen(!isLeftSidebarSearchOpen)
                     }
                     className={cn(
-                      "text-gray-400 hover:text-white hover:bg-[#2a2a2a] mt-0.5 h-8 w-8 p-0 transition-all duration-300 ease-in-out z-20",
+                      "text-gray-400 hover:text-white hover:bg-transparent! mt-0.5 h-8 w-8 p-0 transition-all duration-300 ease-in-out z-20",
                       isLeftSidebarSearchOpen
                         ? "opacity-0 pointer-events-none"
-                        : "opacity-100"
+                        : "opacity-100",
                     )}
                   >
                     <Search className="w-4 h-4" />
@@ -393,7 +393,7 @@ const LeftSidebar = () => {
                       "absolute top-0 left-0 transition-all duration-300 ease-in-out overflow-hidden z-10",
                       isLeftSidebarSearchOpen
                         ? "w-full opacity-100"
-                        : "w-8 opacity-0"
+                        : "w-8 opacity-0",
                     )}
                   >
                     <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
@@ -418,10 +418,10 @@ const LeftSidebar = () => {
                 size="sm"
                 onClick={() =>
                   setLeftSidebarViewMode(
-                    leftSidebarViewMode === "list" ? "grid" : "list"
+                    leftSidebarViewMode === "list" ? "grid" : "list",
                   )
                 }
-                className="text-gray-400 hover:text-white mt-0.5 hover:bg-[#2a2a2a] h-8 w-8 p-0 flex-shrink-0"
+                className="text-gray-400 hover:text-white mt-0.5 hover:bg-transparent! h-8 w-8 p-0 flex-shrink-0"
               >
                 {leftSidebarViewMode === "list" ? (
                   <Grid3X3 className="w-4 h-4" />
@@ -527,7 +527,7 @@ const LeftSidebar = () => {
                         <img
                           src={getOptimizedImageUrl(
                             item.imageUrl || fallbackImage,
-                            100
+                            100,
                           )}
                           alt={item.title}
                           className={`size-10 object-cover ${imageClass} transition-opacity group-hover:opacity-50`}
@@ -543,7 +543,7 @@ const LeftSidebar = () => {
                             // Находим UniversalPlayButton и вызываем его onClick
                             const playButton =
                               e.currentTarget.parentElement?.querySelector(
-                                "button"
+                                "button",
                               );
                             if (playButton) {
                               playButton.click();
@@ -663,7 +663,7 @@ const LeftSidebar = () => {
                         <img
                           src={getOptimizedImageUrl(
                             item.imageUrl || fallbackImage,
-                            100
+                            100,
                           )}
                           alt={item.title}
                           className={`h-20 w-20 object-cover ${imageClass} transition-opacity group-hover:opacity-50`}
@@ -679,7 +679,7 @@ const LeftSidebar = () => {
                             // Находим UniversalPlayButton и вызываем его onClick
                             const playButton =
                               e.currentTarget.parentElement?.querySelector(
-                                "button"
+                                "button",
                               );
                             if (playButton) {
                               playButton.click();
@@ -742,7 +742,7 @@ const LoginPrompt = ({ className }: { className?: string }) => {
     <div
       className={cn(
         "flex flex-col items-center justify-center p-6 text-center space-y-4",
-        className
+        className,
       )}
     >
       <div className="relative">

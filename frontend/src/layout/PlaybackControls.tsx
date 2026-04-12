@@ -317,10 +317,12 @@ const PlaybackControls = () => {
   }, []);
 
   useEffect(() => {
-    if (currentSong?.lyrics) {
-      setLyrics(parseLrc(currentSong.lyrics));
-    } else {
+    if (!currentSong) {
       setLyrics([]);
+      return;
+    }
+    if (typeof currentSong.lyrics === "string") {
+      setLyrics(currentSong.lyrics ? parseLrc(currentSong.lyrics) : []);
     }
   }, [currentSong]);
 
@@ -769,7 +771,7 @@ const PlaybackControls = () => {
                         </div>
                       </div>
                     </div>
-                    {currentSong.lyrics && lyrics.length > 0 && (
+                    {currentSong?.lyrics !== "" && lyrics.length > 0 && (
                       <div
                         className="w-full px-4 mx-auto mt-0 mb-4 flex-shrink-0 cursor-pointer animate-in slide-in-from-bottom-8 fade-in duration-700 ease-out"
                         onClick={(e) => {
@@ -972,7 +974,7 @@ const PlaybackControls = () => {
                 <Button
                   size="icon"
                   variant="ghost"
-                  disabled={!currentSong.lyrics}
+                  disabled={currentSong?.lyrics === ""}
                   className={`hover:text-white hover:bg-transparent! h-5 w-5 text-gray-400 ${
                     isDesktopLyricsOpen ? "text-[#8b5cf6]" : "text-gray-400"
                   }`}
