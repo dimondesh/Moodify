@@ -292,7 +292,9 @@ app.use((err, req, res, next) => {
 
 httpServer.listen(PORT, async () => {
   connectDB();
-  await connectRedis();
+  {
+    process.env.NODE_ENV === "production" ? await connectRedis() : "";
+  }
   console.log(
     `Server on port ${PORT} in ${process.env.NODE_ENV || "development"} mode`,
   );
