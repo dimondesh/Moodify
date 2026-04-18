@@ -247,209 +247,201 @@ const AuthPage: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-b from-violet-900/10 to-zinc-950 text-white flex flex-col justify-center items-center p-4">
         <div className="w-full max-w-md">
           <header className="text-center mb-8"></header>
-          <motion.main
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="rounded-lg"
-          >
-            <main className="rounded-lg p-8 shadow-lg glass-card">
-              <Link to="/" className="flex justify-center mb-6">
-                <div className="auth-logo-container">
-                  <MoodifyLogo />
-                </div>
-              </Link>
-              <h1 className="text-2xl font-bold text-center mb-6">
-                {isLoginView
-                  ? t("auth.loginTitle", "Вход")
-                  : t("auth.signupTitle", "Регистрация")}
-              </h1>
 
-              <Button
-                onClick={handleGoogleSignIn}
-                variant="outline"
-                type="button"
-                className="w-full h-12 border-zinc-700 hover:bg-zinc-800"
-                disabled={isLoading}
-              >
-                <img
-                  src="/google.svg"
-                  alt={t("common.google")}
-                  className="w-5 h-5 mr-3"
-                />
-                {t("auth.continueWithGoogle", "Продолжить с Google")}
-              </Button>
-
-              <div className="flex items-center my-6">
-                <div className="flex-grow border-t border-zinc-700"></div>
-                <span className="mx-4 text-zinc-500 text-sm">
-                  {t("auth.or", "или")}
-                </span>
-                <div className="flex-grow border-t border-zinc-700"></div>
+          <main className="rounded-lg p-8 shadow-lg glass-card">
+            <Link to="/" className="flex justify-center mb-6">
+              <div className="auth-logo-container">
+                <MoodifyLogo />
               </div>
+            </Link>
+            <h1 className="text-2xl font-bold text-center mb-6">
+              {isLoginView
+                ? t("auth.loginTitle", "Вход")
+                : t("auth.signupTitle", "Регистрация")}
+            </h1>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {!isLoginView && (
-                  <div>
-                    <Label htmlFor="fullName">
-                      {t("auth.fullNameLabel", "Полное имя")}
-                    </Label>
-                    <Input
-                      id="fullName"
-                      name="fullName"
-                      type="text"
-                      value={formData.fullName}
-                      onChange={handleChange}
-                      placeholder={t("auth.fullNamePlaceholder", "Иван Иванов")}
-                      required
-                      className="mt-1"
-                    />
-                  </div>
-                )}
+            <Button
+              onClick={handleGoogleSignIn}
+              variant="outline"
+              type="button"
+              className="w-full h-12 border-zinc-700 hover:bg-zinc-800"
+              disabled={isLoading}
+            >
+              <img
+                src="/google.svg"
+                alt={t("common.google")}
+                className="w-5 h-5 mr-3"
+              />
+              {t("auth.continueWithGoogle", "Продолжить с Google")}
+            </Button>
+
+            <div className="flex items-center my-6">
+              <div className="flex-grow border-t border-zinc-700"></div>
+              <span className="mx-4 text-zinc-500 text-sm">
+                {t("auth.or", "или")}
+              </span>
+              <div className="flex-grow border-t border-zinc-700"></div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {!isLoginView && (
                 <div>
-                  <Label htmlFor="email">{t("auth.emailLabel", "Email")}</Label>
+                  <Label htmlFor="fullName">
+                    {t("auth.fullNameLabel", "Полное имя")}
+                  </Label>
                   <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={formData.email}
+                    id="fullName"
+                    name="fullName"
+                    type="text"
+                    value={formData.fullName}
                     onChange={handleChange}
-                    placeholder={t("auth.emailPlaceholder", "your@email.com")}
+                    placeholder={t("auth.fullNamePlaceholder", "Иван Иванов")}
                     required
-                    maxLength={42}
                     className="mt-1"
                   />
-                  {errors.email && (
-                    <p className="text-red-500 text-xs mt-1">{errors.email}</p>
-                  )}
                 </div>
+              )}
+              <div>
+                <Label htmlFor="email">{t("auth.emailLabel", "Email")}</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder={t("auth.emailPlaceholder", "your@email.com")}
+                  required
+                  maxLength={42}
+                  className="mt-1"
+                />
+                {errors.email && (
+                  <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+                )}
+              </div>
 
+              <div>
+                <Label htmlFor="password">
+                  {t("auth.passwordLabel", "Пароль")}
+                </Label>
+                <div className="relative mt-1">
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder={t("auth.passwordPlaceholder", "••••••••")}
+                    required
+                    minLength={6}
+                    maxLength={42}
+                    className="pr-10" // Отступ справа, чтобы текст не залезал на иконку
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-zinc-400 hover:text-white transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+                )}
+              </div>
+
+              {!isLoginView && (
                 <div>
-                  <Label htmlFor="password">
-                    {t("auth.passwordLabel", "Пароль")}
+                  <Label htmlFor="confirmPassword">
+                    {t("auth.confirmPasswordLabel", "Подтвердите пароль")}
                   </Label>
                   <div className="relative mt-1">
                     <Input
-                      id="password"
-                      name="password"
-                      type={showPassword ? "text" : "password"}
-                      value={formData.password}
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={formData.confirmPassword}
                       onChange={handleChange}
-                      placeholder={t("auth.passwordPlaceholder", "••••••••")}
-                      required
+                      placeholder={t(
+                        "auth.confirmPasswordPlaceholder",
+                        "••••••••",
+                      )}
+                      required={!isLoginView}
                       minLength={6}
                       maxLength={42}
-                      className="pr-10" // Отступ справа, чтобы текст не залезал на иконку
+                      className="pr-10"
                     />
                     <button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
                       className="absolute right-3 top-1/2 transform -translate-y-1/2 text-zinc-400 hover:text-white transition-colors"
                       tabIndex={-1}
                     >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      {showConfirmPassword ? (
+                        <EyeOff size={18} />
+                      ) : (
+                        <Eye size={18} />
+                      )}
                     </button>
                   </div>
-                  {errors.password && (
+                  {errors.confirmPassword && (
                     <p className="text-red-500 text-xs mt-1">
-                      {errors.password}
+                      {errors.confirmPassword}
                     </p>
                   )}
                 </div>
+              )}
 
-                {!isLoginView && (
-                  <div>
-                    <Label htmlFor="confirmPassword">
-                      {t("auth.confirmPasswordLabel", "Подтвердите пароль")}
-                    </Label>
-                    <div className="relative mt-1">
-                      <Input
-                        id="confirmPassword"
-                        name="confirmPassword"
-                        type={showConfirmPassword ? "text" : "password"}
-                        value={formData.confirmPassword}
-                        onChange={handleChange}
-                        placeholder={t(
-                          "auth.confirmPasswordPlaceholder",
-                          "••••••••",
-                        )}
-                        required={!isLoginView}
-                        minLength={6}
-                        maxLength={42}
-                        className="pr-10"
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setShowConfirmPassword(!showConfirmPassword)
-                        }
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-zinc-400 hover:text-white transition-colors"
-                        tabIndex={-1}
-                      >
-                        {showConfirmPassword ? (
-                          <EyeOff size={18} />
-                        ) : (
-                          <Eye size={18} />
-                        )}
-                      </button>
-                    </div>
-                    {errors.confirmPassword && (
-                      <p className="text-red-500 text-xs mt-1">
-                        {errors.confirmPassword}
-                      </p>
-                    )}
-                  </div>
-                )}
+              {isLoginView && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleForgotPassword}
+                    className="text-sm text-[#8b5cf6] hover:underline"
+                  >
+                    {t("auth.forgotPassword", "Забыли пароль?")}
+                  </button>
+                </div>
+              )}
 
-                {isLoginView && (
-                  <div className="flex justify-end">
-                    <button
-                      type="button"
-                      onClick={handleForgotPassword}
-                      className="text-sm text-[#8b5cf6] hover:underline"
-                    >
-                      {t("auth.forgotPassword", "Забыли пароль?")}
-                    </button>
-                  </div>
-                )}
+              <Button
+                type="submit"
+                className="w-full h-12 bg-violet-600 hover:bg-violet-700"
+                disabled={isLoading}
+              >
+                {isLoading && <StandardLoader size="sm" className="mr-2" />}
+                {isLoginView
+                  ? t("auth.loginButton", "Войти")
+                  : t("auth.signupButton", "Зарегистрироваться")}
+              </Button>
+            </form>
 
-                <Button
-                  type="submit"
-                  className="w-full h-12 bg-violet-600 hover:bg-violet-700"
-                  disabled={isLoading}
-                >
-                  {isLoading && <StandardLoader size="sm" className="mr-2" />}
-                  {isLoginView
-                    ? t("auth.loginButton", "Войти")
-                    : t("auth.signupButton", "Зарегистрироваться")}
-                </Button>
-              </form>
-
-              <div className="text-center mt-6 text-sm text-gray-400">
-                {isLoginView ? (
-                  <span>
-                    {t("auth.promptSignup", "Нет аккаунта?")}{" "}
-                    <button
-                      onClick={() => setIsLoginView(false)}
-                      className="text-[#8b5cf6] hover:underline"
-                    >
-                      {t("auth.signupLink", "Зарегистрироваться")}
-                    </button>
-                  </span>
-                ) : (
-                  <span>
-                    {t("auth.promptLogin", "Уже есть аккаунт?")}{" "}
-                    <button
-                      onClick={() => setIsLoginView(true)}
-                      className="text-[#8b5cf6] hover:underline"
-                    >
-                      {t("auth.loginLink", "Войти")}
-                    </button>
-                  </span>
-                )}
-              </div>
-            </main>
-          </motion.main>
+            <div className="text-center mt-6 text-sm text-gray-400">
+              {isLoginView ? (
+                <span>
+                  {t("auth.promptSignup", "Нет аккаунта?")}{" "}
+                  <button
+                    onClick={() => setIsLoginView(false)}
+                    className="text-[#8b5cf6] hover:underline"
+                  >
+                    {t("auth.signupLink", "Зарегистрироваться")}
+                  </button>
+                </span>
+              ) : (
+                <span>
+                  {t("auth.promptLogin", "Уже есть аккаунт?")}{" "}
+                  <button
+                    onClick={() => setIsLoginView(true)}
+                    className="text-[#8b5cf6] hover:underline"
+                  >
+                    {t("auth.loginLink", "Войти")}
+                  </button>
+                </span>
+              )}
+            </div>
+          </main>
         </div>
       </div>
     </>
