@@ -258,7 +258,6 @@ export const usePlayerStore = create<PlayerStore>()(
             return;
           }
 
-          // Проверяем, что у первой песни есть hlsUrl
           if (!songs[0]?.hlsUrl) {
             console.error(
               "First song has no hlsUrl, cannot start playback:",
@@ -271,7 +270,7 @@ export const usePlayerStore = create<PlayerStore>()(
           silentAudioService.play();
 
           set((state) => {
-            const isShuffle = state.isShuffle;
+            const isShuffle = state.shuffleMode !== "off";
             let songToPlay: Song;
             let targetIndexInQueue: number;
             let newShuffleHistory: number[] = [];
@@ -326,6 +325,10 @@ export const usePlayerStore = create<PlayerStore>()(
                 : null,
             };
           });
+
+          if (get().shuffleMode === "smart") {
+            get().generateSmartTracks();
+          }
         },
 
         setCurrentSong: (song: Song | null) => {
@@ -355,7 +358,7 @@ export const usePlayerStore = create<PlayerStore>()(
             let newShufflePointer = state.shufflePointer;
             let newShuffleHistory = state.shuffleHistory;
 
-            if (state.isShuffle) {
+            if (state.shuffleMode !== "off") {
               if (songIndex !== -1) {
                 newShuffleHistory = shuffleQueue(state.queue.length);
                 const currentPos = newShuffleHistory.indexOf(songIndex);
@@ -387,6 +390,9 @@ export const usePlayerStore = create<PlayerStore>()(
               currentTime: 0,
             };
           });
+          if (get().shuffleMode === "smart") {
+            get().generateSmartTracks();
+          }
         },
 
         togglePlay: () => {
@@ -591,6 +597,12 @@ export const usePlayerStore = create<PlayerStore>()(
 
           enrichSongWithAlbumTitleIfNeeded(nextSong);
           enrichSongWithLyricsIfNeeded(nextSong);
+          if (
+            get().shuffleMode === "smart" &&
+            tempShufflePointer >= tempShuffleHistory.length - 2
+          ) {
+            get().generateSmartTracks();
+          }
         },
 
         playPrevious: () => {
