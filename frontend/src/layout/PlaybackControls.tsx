@@ -9,10 +9,9 @@ import { Button } from "../components/ui/button";
 import { useAudioSettingsStore } from "../lib/webAudio";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Maximize, Share } from "lucide-react";
+import { Maximize, Share, Shuffle } from "lucide-react";
 import { ShareDialog } from "@/components/ui/ShareDialog";
 import { AddToPlaylistControl } from "./AddToPlaylistControl";
-import { LuShuffle } from "react-icons/lu";
 import Repeat from "@/components/ui/repeat-icon";
 
 import {
@@ -613,7 +612,7 @@ const PlaybackControls = () => {
                           title={t("player.toggleShuffle")}
                         >
                           <div className="relative flex flex-col items-center justify-center">
-                            <LuShuffle className="size-5.5" />
+                            <Shuffle className="size-5.5" />
                             {shuffleMode === "smart" && (
                               <div className="absolute right-3 -bottom-1 w-1 h-1 rounded-full bg-violet-500" />
                             )}
@@ -907,7 +906,7 @@ const PlaybackControls = () => {
                   title={t("player.toggleShuffle")}
                 >
                   <div className="relative flex flex-col items-center justify-center">
-                    <LuShuffle className="size-4.5" />
+                    <Shuffle className="size-4.5" />
                     {shuffleMode === "smart" && (
                       <div className="absolute -bottom-1 right-2 w-1 h-1 rounded-full bg-[#8b5cf6] " />
                     )}
