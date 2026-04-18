@@ -3,24 +3,16 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
-import { visualizer } from "rollup-plugin-visualizer";
 
 export default defineConfig({
   base: "/",
 
   plugins: [
     react(),
-    visualizer({
-      template: "treemap",
-      open: true,
-      gzipSize: true,
-      brotliSize: true,
-      filename: "bundle-analysis.html",
-    }),
     VitePWA({
       registerType: "autoUpdate",
       devOptions: {
-        enabled: true,
+        enabled: false,
       },
 
       workbox: {

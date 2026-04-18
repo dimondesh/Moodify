@@ -23,7 +23,6 @@ import MoodifyLogo from "../../components/MoodifyLogo";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import "./AuthPage.css";
-import { motion } from "framer-motion";
 
 const AuthPage: React.FC = () => {
   const { t } = useTranslation();
