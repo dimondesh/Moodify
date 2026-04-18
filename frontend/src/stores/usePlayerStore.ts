@@ -467,7 +467,7 @@ export const usePlayerStore = create<PlayerStore>()(
 
             if (vibeTracks && vibeTracks.length > 0) {
               set((currentState) => {
-                // 1. Физически добавляем новые треки в конец массива queue
+                // 1. Физически добавляем новые треки в конец очереди
                 const newQueue = [...currentState.queue, ...vibeTracks];
 
                 // 2. Генерируем индексы для этих новых треков
@@ -477,33 +477,15 @@ export const usePlayerStore = create<PlayerStore>()(
                   (_, i) => startIndex + i,
                 );
 
-                // 3. Разделяем историю шафла: то что уже сыграло, и то что осталось
+                // 3. Берем историю только до текущего момента
                 const playedHistory = currentState.shuffleHistory.slice(
                   0,
                   currentState.shufflePointer + 1,
                 );
-                const remainingHistory = currentState.shuffleHistory.slice(
-                  currentState.shufflePointer + 1,
-                );
 
-                // 4. Сливаем остаток альбома (очереди) с новыми смарт-треками
-                const combinedRemaining = [...remainingHistory, ...newIndices];
-
-                // 5. Тщательно перемешиваем этот остаток (Алгоритм Фишера-Йетса)
-                // Теперь смарт-треки и треки альбома будут чередоваться!
-                for (let i = combinedRemaining.length - 1; i > 0; i--) {
-                  const j = Math.floor(Math.random() * (i + 1));
-                  [combinedRemaining[i], combinedRemaining[j]] = [
-                    combinedRemaining[j],
-                    combinedRemaining[i],
-                  ];
-                }
-
-                // 6. Склеиваем то, что уже послушали, с новым перемешанным будущим
-                const newShuffleHistory = [
-                  ...playedHistory,
-                  ...combinedRemaining,
-                ];
+                // 4. ЖЕСТКАЯ ЗАМЕНА: Игнорируем всё, что было дальше в альбоме,
+                // и ставим сразу вайб-треки. (Похуй на очередь).
+                const newShuffleHistory = [...playedHistory, ...newIndices];
 
                 return {
                   queue: newQueue,
@@ -520,14 +502,18 @@ export const usePlayerStore = create<PlayerStore>()(
             set({ repeatMode: "off" });
           }
 
+          const state = get();
           const {
             queue,
-            isShuffle,
             shuffleHistory,
             shufflePointer,
             currentIndex,
-          } = get();
-          const repeatMode = get().repeatMode;
+            shuffleMode,
+            repeatMode,
+          } = state;
+
+          // ИСПРАВЛЕНИЕ БАГА: Явно проверяем режим
+          const isShuffle = shuffleMode !== "off";
 
           const { isOffline } = useOfflineStore.getState();
           const { isSongDownloaded } = useOfflineStore.getState().actions;
@@ -615,8 +601,10 @@ export const usePlayerStore = create<PlayerStore>()(
 
           enrichSongWithAlbumTitleIfNeeded(nextSong);
           enrichSongWithLyricsIfNeeded(nextSong);
+
+          // ДОЗАГРУЗКА: Когда до конца сгенерированного вайба остается 3 трека
           if (
-            get().shuffleMode === "smart" &&
+            shuffleMode === "smart" &&
             tempShufflePointer >= tempShuffleHistory.length - 3
           ) {
             get().generateSmartTracks();
@@ -634,14 +622,19 @@ export const usePlayerStore = create<PlayerStore>()(
             set({ repeatMode: "off" });
           }
 
+          const state = get();
+          // УБРАЛИ isShuffle из деструктуризации
           const {
             currentIndex,
             queue,
-            isShuffle,
             shuffleHistory,
             shufflePointer,
-          } = get();
-          const repeatMode = get().repeatMode;
+            shuffleMode,
+            repeatMode,
+          } = state;
+
+          // ИСПРАВЛЕНИЕ БАГА
+          const isShuffle = shuffleMode !== "off";
 
           const { isOffline } = useOfflineStore.getState();
           const { isSongDownloaded } = useOfflineStore.getState().actions;
@@ -961,13 +954,13 @@ export const usePlayerStore = create<PlayerStore>()(
           if (state.queue.length === 0) return [];
 
           const {
-            isShuffle,
             repeatMode,
             currentIndex,
             queue,
             shuffleHistory,
             shufflePointer,
           } = state;
+          const isShuffle = state.shuffleMode !== "off";
 
           // Если режим повтора "one", возвращаем только текущий трек
           if (repeatMode === "one") {
@@ -1059,6 +1052,7 @@ export const usePlayerStore = create<PlayerStore>()(
         })),
         currentIndex: state.currentIndex,
         repeatMode: state.repeatMode,
+        shuffleMode: state.shuffleMode,
         isShuffle: state.isShuffle,
         shuffleHistory: state.shuffleHistory,
         shufflePointer: state.shufflePointer,
