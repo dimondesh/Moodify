@@ -95,7 +95,7 @@ const PlaybackControls = () => {
     playPrevious,
     repeatMode,
     setRepeatMode,
-    isShuffle,
+    shuffleMode,
     toggleShuffle,
     isFullScreenPlayerOpen,
     setIsFullScreenPlayerOpen,
@@ -605,12 +605,19 @@ const PlaybackControls = () => {
                           size="icon"
                           variant="ghost"
                           className={`hover:text-white ${
-                            isShuffle ? "text-violet-500" : "text-zinc-400"
+                            shuffleMode !== "off"
+                              ? "text-violet-500"
+                              : "text-zinc-400"
                           }`}
                           onClick={toggleShuffle}
                           title={t("player.toggleShuffle")}
                         >
-                          <LuShuffle className="size-5.5" />
+                          <div className="relative flex flex-col items-center justify-center">
+                            <LuShuffle className="size-5.5" />
+                            {shuffleMode === "smart" && (
+                              <div className="absolute -bottom-2 w-1.5 h-1.5 rounded-full bg-violet-500 shadow-[0_0_6px_rgba(139,92,246,0.8)]" />
+                            )}
+                          </div>
                         </Button>
                         <Button
                           size="icon"
@@ -894,12 +901,17 @@ const PlaybackControls = () => {
                   size="icon"
                   variant="ghost"
                   className={`hover:text-white hover:bg-transparent! h-8 w-8 ${
-                    isShuffle ? "text-[#8b5cf6]" : "text-gray-400"
+                    shuffleMode !== "off" ? "text-[#8b5cf6]" : "text-gray-400"
                   }`}
                   onClick={toggleShuffle}
                   title={t("player.toggleShuffle")}
                 >
-                  <LuShuffle className="size-4.5" />
+                  <div className="relative flex flex-col items-center justify-center">
+                    <LuShuffle className="size-4.5" />
+                    {shuffleMode === "smart" && (
+                      <div className="absolute -bottom-2 w-1 h-1 rounded-full bg-[#8b5cf6] shadow-[0_0_5px_#8b5cf6]" />
+                    )}
+                  </div>
                 </Button>
                 <Button
                   size="icon"

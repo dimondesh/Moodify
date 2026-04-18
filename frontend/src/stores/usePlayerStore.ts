@@ -37,10 +37,12 @@ interface PlayerStore {
     entityId?: string;
     entityTitle?: string;
   } | null;
+  shuffleMode: "off" | "regular" | "smart";
 
   setRepeatMode: (mode: "off" | "all" | "one") => void;
   toggleShuffle: () => void;
   initializeQueue: (songs: Song[]) => void;
+  generateSmartTracks: () => Promise<void>;
   playAlbum: (
     songs: Song[],
     startIndex?: number,
@@ -178,6 +180,7 @@ export const usePlayerStore = create<PlayerStore>()(
         duration: 0,
         originalDuration: 0,
         seekVersion: 0,
+        shuffleMode: "off",
 
         isDesktopLyricsOpen: false,
         isMobileLyricsFullScreen: false,
@@ -400,26 +403,18 @@ export const usePlayerStore = create<PlayerStore>()(
 
         toggleShuffle: () => {
           set((state) => {
-            const newShuffleMode = !state.isShuffle;
-            if (!newShuffleMode) {
-              return {
-                isShuffle: false,
-                shuffleHistory: [],
-                shufflePointer: -1,
-              };
-            } else {
+            if (state.shuffleMode === "off") {
+              // 1. Включаем обычный шаффл
               const queueLength = state.queue.length;
               if (queueLength === 0) {
                 return {
-                  isShuffle: true,
+                  shuffleMode: "regular",
                   shuffleHistory: [],
                   shufflePointer: -1,
                 };
               }
-
               const newShuffleHistory = shuffleQueue(queueLength);
               const currentIndex = state.currentIndex;
-
               if (currentIndex !== -1) {
                 const currentPosInShuffle =
                   newShuffleHistory.indexOf(currentIndex);
@@ -437,14 +432,65 @@ export const usePlayerStore = create<PlayerStore>()(
                 }
               }
               return {
-                isShuffle: true,
+                shuffleMode: "regular",
                 shuffleHistory: newShuffleHistory,
                 shufflePointer: currentIndex !== -1 ? 0 : -1,
+              };
+            } else if (state.shuffleMode === "regular") {
+              get().generateSmartTracks();
+              return { shuffleMode: "smart" };
+            } else {
+              return {
+                shuffleMode: "off",
+                shuffleHistory: [],
+                shufflePointer: -1,
               };
             }
           });
         },
 
+        generateSmartTracks: async () => {
+          const state = get();
+          if (!state.currentSong) return;
+
+          try {
+            const response = await axiosInstance.get(
+              `/songs/${state.currentSong._id}/radio`,
+            );
+            const vibeTracks = response.data;
+
+            if (vibeTracks && vibeTracks.length > 0) {
+              set((currentState) => {
+                const newQueue = [...currentState.queue, ...vibeTracks];
+
+                const startIndex = currentState.queue.length;
+                const newIndices = Array.from(
+                  { length: vibeTracks.length },
+                  (_, i) => startIndex + i,
+                );
+
+                const shuffledNewIndices = shuffleQueue(vibeTracks.length).map(
+                  (i) => newIndices[i],
+                );
+
+                const newShuffleHistory = [...currentState.shuffleHistory];
+                newShuffleHistory.splice(
+                  currentState.shufflePointer + 1,
+                  0,
+                  ...shuffledNewIndices,
+                );
+
+                return {
+                  queue: newQueue,
+                  shuffleHistory: newShuffleHistory,
+                };
+              });
+            }
+          } catch (error) {
+            console.error("Smart shuffle error:", error);
+            toast.error("Smart shuffle error");
+          }
+        },
         playNext: () => {
           if (get().repeatMode === "one") {
             set({ repeatMode: "off" });

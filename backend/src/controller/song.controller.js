@@ -8,6 +8,7 @@ import { Playlist } from "../models/playlist.model.js";
 import { Mix } from "../models/mix.model.js";
 import { Artist } from "../models/artist.model.js";
 import { GeneratedPlaylist } from "../models/generatedPlaylist.model.js";
+import { getVibeMatchTracks } from "../lib/recommendation.service.js";
 import axios from "axios";
 
 export const getAllSongs = async (req, res, next) => {
@@ -567,5 +568,25 @@ export const getSongLyrics = async (req, res, next) => {
     res.status(200).json({ lyrics: song.lyrics });
   } catch (error) {
     next(error);
+  }
+};
+
+export const getRecommendedSongs = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { limit = 10 } = req.query;
+
+    const recommendations = await getVibeMatchTracks(id, parseInt(limit));
+
+    if (!recommendations || recommendations.length === 0) {
+      return res.status(404).json({ message: "No similar tracks found" });
+    }
+
+    res.json(recommendations);
+  } catch (error) {
+    console.error("Error in getRecommendedSongs controller:", error);
+    res
+      .status(500)
+      .json({ message: "Server error while fetching recommendations" });
   }
 };

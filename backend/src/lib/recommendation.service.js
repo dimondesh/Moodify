@@ -8,6 +8,103 @@ import { Playlist } from "../models/playlist.model.js";
 import { Song } from "../models/song.model.js";
 import { ListenHistory } from "../models/listenHistory.model.js";
 
+// Вспомогательная функция для расчета разницы (чем меньше, тем лучше)
+const calculateFeatureDistance = (target, candidate) => {
+  let distance = 0;
+
+  // 1. Сравниваем Energy (вес: 40%) - очень важно для сохранения настроения
+  if (target.energy !== null && candidate.energy !== null) {
+    distance += Math.abs(target.energy - candidate.energy) * 0.4;
+  }
+
+  // 2. Сравниваем Danceability (вес: 30%)
+  if (target.danceability !== null && candidate.danceability !== null) {
+    distance += Math.abs(target.danceability - candidate.danceability) * 0.3;
+  }
+
+  // 3. Сравниваем BPM (вес: 30%)
+  if (target.bpm !== null && candidate.bpm !== null) {
+    // Нормализуем BPM (предположим, максимум 200) чтобы значения были от 0 до 1
+    const bpmDiff = Math.abs(target.bpm - candidate.bpm);
+    // Если разница кратна ~половине (например 70 и 140), это тоже хорошо (half-time/double-time)
+    const isDoubleTime = Math.abs(target.bpm * 2 - candidate.bpm) < 5;
+    const isHalfTime = Math.abs(target.bpm / 2 - candidate.bpm) < 5;
+
+    if (isDoubleTime || isHalfTime) {
+      distance += 0.05; // Небольшой штраф, но допустимо
+    } else {
+      distance += (Math.min(bpmDiff, 50) / 50) * 0.3;
+    }
+  }
+
+  return distance;
+};
+
+// Функция проверки гармонической совместимости (упрощенная)
+const isHarmonicallyCompatible = (target, candidate) => {
+  if (!target.key || !candidate.key || !target.scale || !candidate.scale)
+    return false;
+
+  // Точное совпадение тональности и лада (например, C minor -> C minor)
+  if (target.key === candidate.key && target.scale === candidate.scale)
+    return true;
+
+  // Здесь можно расширить логику до полноценного Camelot Wheel (соседние тональности)
+  return false;
+};
+
+export const getVibeMatchTracks = async (currentSongId, limit = 10) => {
+  const currentSong = await Song.findById(currentSongId).lean();
+  if (!currentSong) return [];
+
+  const { genres, moods, audioFeatures } = currentSong;
+
+  // 1. Грубый фильтр: берем кандидатов из базы, у которых совпадает ХОТЯ БЫ один жанр или настроение
+  // Ограничиваем выборку (например, 200 треков), чтобы не перегружать память расчетами
+  const candidates = await Song.find({
+    _id: { $ne: currentSongId },
+    $or: [{ genres: { $in: genres } }, { moods: { $in: moods } }],
+    // Обязательно наличие аудио-фичей для сравнения
+    "audioFeatures.bpm": { $ne: null },
+  })
+    .populate("artist", "name imageUrl")
+    .limit(200)
+    .lean();
+
+  if (!audioFeatures || audioFeatures.bpm === null) {
+    // Fallback: Если у текущего трека нет анализа, просто мешаем по тегам
+    return candidates.sort(() => 0.5 - Math.random()).slice(0, limit);
+  }
+
+  // 2. Оцениваем каждого кандидата
+  const scoredCandidates = candidates.map((candidate) => {
+    let score = calculateFeatureDistance(
+      audioFeatures,
+      candidate.audioFeatures,
+    );
+
+    // Бонус за гармоническое сведение (уменьшаем дистанцию, если тональность подходит)
+    if (isHarmonicallyCompatible(audioFeatures, candidate.audioFeatures)) {
+      score -= 0.1; // Делаем трек "ближе"
+    }
+
+    // Бонус за совпадение ИИ-настроений (moods) - семантический вайб
+    const sharedMoods = candidate.moods.filter((m) =>
+      moods.some((tm) => tm.toString() === m.toString()),
+    ).length;
+    score -= sharedMoods * 0.05;
+
+    return { ...candidate, score };
+  });
+
+  // 3. Сортируем: чем МЕНЬШЕ score (дистанция), тем ЛУЧШЕ совпадает вайб
+  scoredCandidates.sort((a, b) => a.score - b.score);
+
+  // 4. Берем топ N. Можно добавить каплю рандома среди топ-30, чтобы радио не зацикливалось
+  const topMatches = scoredCandidates.slice(0, limit * 2);
+  return topMatches.sort(() => 0.5 - Math.random()).slice(0, limit);
+};
+
 export const generateNewReleasesForUser = async (userId) => {
   try {
     const library = await Library.findOne({ userId }).select(
