@@ -12,12 +12,12 @@ import { useTranslation } from "react-i18next";
 import { Maximize, Share } from "lucide-react";
 import { ShareDialog } from "@/components/ui/ShareDialog";
 import { AddToPlaylistControl } from "./AddToPlaylistControl";
+import { LuShuffle } from "react-icons/lu";
+import Repeat from "@/components/ui/repeat-icon";
 
 import {
   Pause,
   Play,
-  Repeat,
-  Repeat1,
   Shuffle,
   SkipBack,
   SkipForward,
@@ -47,6 +47,7 @@ import { auth } from "../lib/firebase";
 import { useHasFriends } from "@/hooks/useHasFriends";
 import { QueueDropdown } from "../components/QueueDropdown";
 import { QueueDrawer } from "../components/QueueDrawer";
+import Repeat1 from "@/components/ui/repeat-one-icon";
 
 const formatTime = (seconds: number) => {
   if (isNaN(seconds) || seconds < 0) return "0:00";
@@ -899,7 +900,7 @@ const PlaybackControls = () => {
                   onClick={toggleShuffle}
                   title={t("player.toggleShuffle")}
                 >
-                  <Shuffle className="h-4 w-4" />
+                  <LuShuffle className="h-4 w-4" />
                 </Button>
                 <Button
                   size="icon"
