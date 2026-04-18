@@ -899,7 +899,7 @@ const PlaybackControls = () => {
                   onClick={toggleShuffle}
                   title={t("player.toggleShuffle")}
                 >
-                  <LuShuffle className="h-4 w-4" />
+                  <LuShuffle className="size-4.5" />
                 </Button>
                 <Button
                   size="icon"
@@ -947,9 +947,9 @@ const PlaybackControls = () => {
                   title={t("player.toggleRepeat")}
                 >
                   {repeatMode === "one" ? (
-                    <Repeat1 className="h-4 w-4" />
+                    <Repeat1 className="size-5" />
                   ) : (
-                    <Repeat className="h-4 w-4" />
+                    <Repeat className="size-5" />
                   )}
                 </Button>
               </div>
