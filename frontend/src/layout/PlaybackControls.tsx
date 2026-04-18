@@ -610,7 +610,7 @@ const PlaybackControls = () => {
                           onClick={toggleShuffle}
                           title={t("player.toggleShuffle")}
                         >
-                          <LuShuffle className="size-6" />
+                          <LuShuffle className="size-5.5" />
                         </Button>
                         <Button
                           size="icon"
