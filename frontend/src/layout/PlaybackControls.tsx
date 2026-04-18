@@ -18,7 +18,6 @@ import Repeat from "@/components/ui/repeat-icon";
 import {
   Pause,
   Play,
-  Shuffle,
   SkipBack,
   SkipForward,
   Volume,
@@ -611,7 +610,7 @@ const PlaybackControls = () => {
                           onClick={toggleShuffle}
                           title={t("player.toggleShuffle")}
                         >
-                          <Shuffle className="size-6" />
+                          <LuShuffle className="size-6" />
                         </Button>
                         <Button
                           size="icon"
