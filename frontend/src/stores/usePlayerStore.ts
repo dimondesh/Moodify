@@ -467,24 +467,43 @@ export const usePlayerStore = create<PlayerStore>()(
 
             if (vibeTracks && vibeTracks.length > 0) {
               set((currentState) => {
+                // 1. Физически добавляем новые треки в конец массива queue
                 const newQueue = [...currentState.queue, ...vibeTracks];
 
+                // 2. Генерируем индексы для этих новых треков
                 const startIndex = currentState.queue.length;
                 const newIndices = Array.from(
                   { length: vibeTracks.length },
                   (_, i) => startIndex + i,
                 );
 
-                const shuffledNewIndices = shuffleQueue(vibeTracks.length).map(
-                  (i) => newIndices[i],
+                // 3. Разделяем историю шафла: то что уже сыграло, и то что осталось
+                const playedHistory = currentState.shuffleHistory.slice(
+                  0,
+                  currentState.shufflePointer + 1,
+                );
+                const remainingHistory = currentState.shuffleHistory.slice(
+                  currentState.shufflePointer + 1,
                 );
 
-                const newShuffleHistory = [...currentState.shuffleHistory];
-                newShuffleHistory.splice(
-                  currentState.shufflePointer + 1,
-                  0,
-                  ...shuffledNewIndices,
-                );
+                // 4. Сливаем остаток альбома (очереди) с новыми смарт-треками
+                const combinedRemaining = [...remainingHistory, ...newIndices];
+
+                // 5. Тщательно перемешиваем этот остаток (Алгоритм Фишера-Йетса)
+                // Теперь смарт-треки и треки альбома будут чередоваться!
+                for (let i = combinedRemaining.length - 1; i > 0; i--) {
+                  const j = Math.floor(Math.random() * (i + 1));
+                  [combinedRemaining[i], combinedRemaining[j]] = [
+                    combinedRemaining[j],
+                    combinedRemaining[i],
+                  ];
+                }
+
+                // 6. Склеиваем то, что уже послушали, с новым перемешанным будущим
+                const newShuffleHistory = [
+                  ...playedHistory,
+                  ...combinedRemaining,
+                ];
 
                 return {
                   queue: newQueue,
@@ -494,7 +513,6 @@ export const usePlayerStore = create<PlayerStore>()(
             }
           } catch (error) {
             console.error("Smart shuffle error:", error);
-            toast.error("Smart shuffle error");
           }
         },
         playNext: () => {
@@ -599,7 +617,7 @@ export const usePlayerStore = create<PlayerStore>()(
           enrichSongWithLyricsIfNeeded(nextSong);
           if (
             get().shuffleMode === "smart" &&
-            tempShufflePointer >= tempShuffleHistory.length - 2
+            tempShufflePointer >= tempShuffleHistory.length - 3
           ) {
             get().generateSmartTracks();
           }
