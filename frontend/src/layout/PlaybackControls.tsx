@@ -615,7 +615,7 @@ const PlaybackControls = () => {
                           <div className="relative flex flex-col items-center justify-center">
                             <LuShuffle className="size-5.5" />
                             {shuffleMode === "smart" && (
-                              <div className="absolute -bottom-2 w-1.5 h-1.5 rounded-full bg-violet-500 shadow-[0_0_6px_rgba(139,92,246,0.8)]" />
+                              <div className="absolute right-3 -bottom-1 w-1 h-1 rounded-full bg-violet-500" />
                             )}
                           </div>
                         </Button>
@@ -909,7 +909,7 @@ const PlaybackControls = () => {
                   <div className="relative flex flex-col items-center justify-center">
                     <LuShuffle className="size-4.5" />
                     {shuffleMode === "smart" && (
-                      <div className="absolute -bottom-2 w-1 h-1 rounded-full bg-[#8b5cf6] shadow-[0_0_5px_#8b5cf6]" />
+                      <div className="absolute -bottom-1 right-2 w-1 h-1 rounded-full bg-[#8b5cf6] " />
                     )}
                   </div>
                 </Button>
