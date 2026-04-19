@@ -371,7 +371,7 @@ const AlbumPage = () => {
         <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
       <div className="h-full">
-        <div className="relative min-h-screen">
+        <div className="relative min-h-screen pb-36 lg:pb-0">
           {backgrounds
             .slice(0, 2)
             .reverse()
