@@ -59,33 +59,93 @@ export const getVibeMatchTracks = async (currentSongId, limit = 10) => {
 
   const { genres, moods, audioFeatures } = currentSong;
 
-  // 1. Грубый фильтр с РАНДОМИЗАЦИЕЙ на уровне MongoDB
-  // Используем агрегацию, чтобы вытащить 300 случайных треков из всего твоего трэпа (или другого жанра)
-  const candidatesAgg = await Song.aggregate([
+  // Если у трека нет анализа аудио, падаем на строгий поиск по жанрам
+  if (
+    !audioFeatures ||
+    audioFeatures.bpm === null ||
+    audioFeatures.energy === null
+  ) {
+    const fallbackAgg = await Song.aggregate([
+      {
+        $match: {
+          _id: { $ne: currentSong._id },
+          genres: { $in: genres }, // Только тот же жанр! Никаких $or с настроением
+        },
+      },
+      { $sample: { size: limit } },
+    ]);
+    const populated = await Song.populate(fallbackAgg, {
+      path: "artist",
+      select: "name imageUrl",
+    });
+    return populated.sort(() => 0.5 - Math.random());
+  }
+
+  const minEnergy = Math.max(0, audioFeatures.energy - 0.25);
+  const maxEnergy = Math.min(1, audioFeatures.energy + 0.25);
+  const targetBpm = audioFeatures.bpm;
+  const bpmTolerance = 20;
+
+  // 1. ПЕРВИЧНЫЙ ПОИСК: ЖЕСТКО требуем совпадения жанра
+  let candidatesAgg = await Song.aggregate([
     {
       $match: {
-        _id: { $ne: currentSong._id }, // currentSong._id здесь уже ObjectId
-        $or: [{ genres: { $in: genres } }, { moods: { $in: moods } }],
-        "audioFeatures.bpm": { $ne: null },
+        _id: { $ne: currentSong._id },
+        "audioFeatures.energy": { $gte: minEnergy, $lte: maxEnergy },
+        $and: [
+          // ГЛАВНОЕ ИЗМЕНЕНИЕ 1: Жанр обязан совпадать. Moods убраны из $or
+          { genres: { $in: genres } },
+          {
+            $or: [
+              {
+                "audioFeatures.bpm": {
+                  $gte: targetBpm - bpmTolerance,
+                  $lte: targetBpm + bpmTolerance,
+                },
+              },
+              {
+                "audioFeatures.bpm": {
+                  $gte: targetBpm * 2 - bpmTolerance,
+                  $lte: targetBpm * 2 + bpmTolerance,
+                },
+              },
+              {
+                "audioFeatures.bpm": {
+                  $gte: targetBpm / 2 - bpmTolerance,
+                  $lte: targetBpm / 2 + bpmTolerance,
+                },
+              },
+            ],
+          },
+        ],
       },
     },
-    // Вот эта штука решает проблему: она берет 300 случайных документов
-    { $sample: { size: 300 } },
+    { $sample: { size: 100 } },
   ]);
 
-  // Агрегация не делает populate автоматически (как find), поэтому подтягиваем артистов вручную
+  // 2. Fallback: Если в этом жанре с таким BPM/Energy треков не нашлось,
+  // расширяем поиск до настроений, чтобы очередь не остановилась
+  if (candidatesAgg.length < limit) {
+    candidatesAgg = await Song.aggregate([
+      {
+        $match: {
+          _id: { $ne: currentSong._id },
+          $or: [{ genres: { $in: genres } }, { moods: { $in: moods } }],
+          "audioFeatures.bpm": { $ne: null },
+        },
+      },
+      { $sample: { size: 100 } },
+    ]);
+  }
+
   const candidates = await Song.populate(candidatesAgg, {
     path: "artist",
     select: "name imageUrl",
   });
 
-  if (!audioFeatures || audioFeatures.bpm === null) {
-    // Fallback: Если нет аудио-фичей, просто отдаем случайные треки из нашей выборки
-    return candidates.slice(0, limit);
-  }
-
-  // 2. Оцениваем каждого кандидата (эта часть остается твоей, она работает отлично)
+  // 3. Оценка кандидатов: применяем ЖАНРОВЫЙ ШТРАФ
   const scoredCandidates = candidates.map((candidate) => {
+    // Базовая оценка по физике звука (чем меньше, тем лучше)
     let score = calculateFeatureDistance(
       audioFeatures,
       candidate.audioFeatures,
@@ -100,15 +160,27 @@ export const getVibeMatchTracks = async (currentSongId, limit = 10) => {
     ).length;
     score -= sharedMoods * 0.05;
 
+    // ГЛАВНОЕ ИЗМЕНЕНИЕ 2: Проверяем жанры
+    const sharedGenres = candidate.genres.filter((g) =>
+      genres.some((tg) => tg.toString() === g.toString()),
+    ).length;
+
+    if (sharedGenres === 0) {
+      // МАССИВНЫЙ ШТРАФ: Если жанры вообще не пересекаются (Метал попал к Трэпу)
+      // Мы прибавляем 10 к score. Этот трек гарантированно улетит в самый конец списка.
+      score += 10;
+    } else {
+      // Бонус за каждый совпадающий жанр
+      score -= sharedGenres * 0.1;
+    }
+
     return { ...candidate, score };
   });
 
-  // 3. Сортируем: чем МЕНЬШЕ score, тем ЛУЧШЕ совпадает вайб
+  // 4. Сортируем: треки с нулевым sharedGenres будут иметь score > 10 и окажутся внизу
   scoredCandidates.sort((a, b) => a.score - b.score);
 
-  // 4. Финальный штрих: берем топ-30 (limit * 3) лучших по вайбу из этих случайных 300
-  // и перемешиваем их, чтобы радио было еще более непредсказуемым
-  const topMatches = scoredCandidates.slice(0, limit * 3);
+  const topMatches = scoredCandidates.slice(0, limit * 2);
   return topMatches.sort(() => 0.5 - Math.random()).slice(0, limit);
 };
 

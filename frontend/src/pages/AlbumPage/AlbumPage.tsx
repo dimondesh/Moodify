@@ -31,7 +31,6 @@ import SongOptionsDrawer from "./SongOptionsDrawer";
 import { Song } from "@/types";
 import EqualizerTitle from "@/components/ui/equalizer-title";
 import { getOptimizedImageUrl } from "@/lib/utils";
-import { useHasFriends } from "@/hooks/useHasFriends";
 import { useSearchParams } from "react-router-dom";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 

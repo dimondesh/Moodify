@@ -13,7 +13,6 @@ import { useOfflineStore } from "../../stores/useOfflineStore";
 import EqualizerTitle from "@/components/ui/equalizer-title";
 import SongOptionsDrawer from "./SongOptionsDrawer";
 import { getArtistNames, getOptimizedImageUrl } from "@/lib/utils";
-import { useHasFriends } from "@/hooks/useHasFriends";
 
 import {
   Play,

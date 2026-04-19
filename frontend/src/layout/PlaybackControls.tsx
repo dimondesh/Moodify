@@ -42,7 +42,6 @@ import { useUIStore } from "@/stores/useUIStore";
 import { CreatePlaylistDialog } from "../pages/PlaylistPage/CreatePlaylistDialog";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../lib/firebase";
-import { useHasFriends } from "@/hooks/useHasFriends";
 import { QueueDropdown } from "../components/QueueDropdown";
 import { QueueDrawer } from "../components/QueueDrawer";
 import Repeat1 from "@/components/ui/repeat-one-icon";

@@ -16,7 +16,6 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getArtistNames } from "@/lib/utils";
 import AddToPlaylistSheet from "./AddToPlaylistSheet";
-import { useHasFriends } from "@/hooks/useHasFriends";
 
 interface SongOptionsDrawerProps {
   song: Song | null;

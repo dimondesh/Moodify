@@ -33,7 +33,6 @@ import { useUIStore } from "@/stores/useUIStore";
 import { ShareDialog } from "@/components/ui/ShareDialog";
 import SongOptionsDrawer from "../PlaylistPage/SongOptionsDrawer";
 import { getArtistNames } from "@/lib/utils";
-import { useHasFriends } from "@/hooks/useHasFriends";
 
 const formatDuration = (seconds: number): string => {
   const minutes = Math.floor(seconds / 60);
