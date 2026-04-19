@@ -16,6 +16,8 @@ import {
   CompassIcon,
   MessageCircle,
   MessageCircleIcon,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useAuthStore } from "../../stores/useAuthStore";
 import { cn } from "../../lib/utils";
@@ -47,6 +49,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import { useSearchStore } from "../../stores/useSearchStore";
 import { useChatStore } from "../../stores/useChatStore";
 import RecentSearchesList from "@/pages/SearchPage/RecentSearchesList";
+import { useAudioSettingsStore } from "../../lib/webAudio";
+import { usePlayerStore } from "@/stores/usePlayerStore";
 
 const Topbar = () => {
   const { t } = useTranslation();
@@ -57,6 +61,9 @@ const Topbar = () => {
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const { isAdmin, user: authUser } = useAuthStore();
   const isMobile = useMediaQuery("(max-width: 768px)");
+  const { waveAnalyzerEnabled } = useAudioSettingsStore();
+  const { isPlaying } = usePlayerStore();
+
   const {
     isUserSheetOpen,
     setUserSheetOpen,
@@ -133,7 +140,6 @@ const Topbar = () => {
     setQuery("");
     setIsSearchVisible(false);
   };
-
   const handleLogout = async () => {
     await signOut(auth);
   };
@@ -193,8 +199,55 @@ const Topbar = () => {
           <Link to="/" className="hover-brightness">
             <MoodifyLogo />
           </Link>
-          <div className="hidden lg:block">
-            <WaveAnalyzer width={100} height={24} />
+
+          {/* Navigation & WaveAnalyzer */}
+          <div className="hidden lg:flex items-center h-8">
+            {waveAnalyzerEnabled && isPlaying ? (
+              <div className="relative w-[100px] h-full group flex items-center justify-center">
+                {/* WaveAnalyzer disappears on hover */}
+                <div className="absolute inset-0 flex items-center justify-center transition-opacity duration-300 group-hover:opacity-0 pointer-events-none">
+                  <WaveAnalyzer width={100} height={24} />
+                </div>
+                {/* Navigation buttons appear on hover */}
+                <div className="absolute inset-0 flex items-center justify-center gap-1 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full hover:bg-transparent! text-zinc-400 hover:text-white"
+                    onClick={() => navigate(-1)}
+                  >
+                    <ChevronLeft className="size-7" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full hover:bg-transparent! text-zinc-400 hover:text-white"
+                    onClick={() => navigate(1)}
+                  >
+                    <ChevronRight className="size-7" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 ml-4 transition-opacity duration-300">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full hover:bg-transparent! text-zinc-400 hover:text-white"
+                  onClick={() => navigate(-1)}
+                >
+                  <ChevronLeft className="size-7" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full hover:bg-transparent! text-zinc-400 hover:text-white"
+                  onClick={() => navigate(1)}
+                >
+                  <ChevronRight className="size-7" />
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
