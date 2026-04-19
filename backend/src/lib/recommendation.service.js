@@ -59,36 +59,42 @@ export const getVibeMatchTracks = async (currentSongId, limit = 10) => {
 
   const { genres, moods, audioFeatures } = currentSong;
 
-  // 1. Грубый фильтр: берем кандидатов из базы, у которых совпадает ХОТЯ БЫ один жанр или настроение
-  // Ограничиваем выборку (например, 200 треков), чтобы не перегружать память расчетами
-  const candidates = await Song.find({
-    _id: { $ne: currentSongId },
-    $or: [{ genres: { $in: genres } }, { moods: { $in: moods } }],
-    // Обязательно наличие аудио-фичей для сравнения
-    "audioFeatures.bpm": { $ne: null },
-  })
-    .populate("artist", "name imageUrl")
-    .limit(200)
-    .lean();
+  // 1. Грубый фильтр с РАНДОМИЗАЦИЕЙ на уровне MongoDB
+  // Используем агрегацию, чтобы вытащить 300 случайных треков из всего твоего трэпа (или другого жанра)
+  const candidatesAgg = await Song.aggregate([
+    {
+      $match: {
+        _id: { $ne: currentSong._id }, // currentSong._id здесь уже ObjectId
+        $or: [{ genres: { $in: genres } }, { moods: { $in: moods } }],
+        "audioFeatures.bpm": { $ne: null },
+      },
+    },
+    // Вот эта штука решает проблему: она берет 300 случайных документов
+    { $sample: { size: 300 } },
+  ]);
+
+  // Агрегация не делает populate автоматически (как find), поэтому подтягиваем артистов вручную
+  const candidates = await Song.populate(candidatesAgg, {
+    path: "artist",
+    select: "name imageUrl",
+  });
 
   if (!audioFeatures || audioFeatures.bpm === null) {
-    // Fallback: Если у текущего трека нет анализа, просто мешаем по тегам
-    return candidates.sort(() => 0.5 - Math.random()).slice(0, limit);
+    // Fallback: Если нет аудио-фичей, просто отдаем случайные треки из нашей выборки
+    return candidates.slice(0, limit);
   }
 
-  // 2. Оцениваем каждого кандидата
+  // 2. Оцениваем каждого кандидата (эта часть остается твоей, она работает отлично)
   const scoredCandidates = candidates.map((candidate) => {
     let score = calculateFeatureDistance(
       audioFeatures,
       candidate.audioFeatures,
     );
 
-    // Бонус за гармоническое сведение (уменьшаем дистанцию, если тональность подходит)
     if (isHarmonicallyCompatible(audioFeatures, candidate.audioFeatures)) {
-      score -= 0.1; // Делаем трек "ближе"
+      score -= 0.1;
     }
 
-    // Бонус за совпадение ИИ-настроений (moods) - семантический вайб
     const sharedMoods = candidate.moods.filter((m) =>
       moods.some((tm) => tm.toString() === m.toString()),
     ).length;
@@ -97,11 +103,12 @@ export const getVibeMatchTracks = async (currentSongId, limit = 10) => {
     return { ...candidate, score };
   });
 
-  // 3. Сортируем: чем МЕНЬШЕ score (дистанция), тем ЛУЧШЕ совпадает вайб
+  // 3. Сортируем: чем МЕНЬШЕ score, тем ЛУЧШЕ совпадает вайб
   scoredCandidates.sort((a, b) => a.score - b.score);
 
-  // 4. Берем топ N. Можно добавить каплю рандома среди топ-30, чтобы радио не зацикливалось
-  const topMatches = scoredCandidates.slice(0, limit * 2);
+  // 4. Финальный штрих: берем топ-30 (limit * 3) лучших по вайбу из этих случайных 300
+  // и перемешиваем их, чтобы радио было еще более непредсказуемым
+  const topMatches = scoredCandidates.slice(0, limit * 3);
   return topMatches.sort(() => 0.5 - Math.random()).slice(0, limit);
 };
 
