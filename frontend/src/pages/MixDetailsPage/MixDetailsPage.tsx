@@ -58,7 +58,6 @@ const MixDetailsPage = () => {
   const [selectedSongForMenu, setSelectedSongForMenu] = useState<Song | null>(
     null,
   );
-  const { hasFriends } = useHasFriends();
 
   const [isTogglingLibrary, setIsTogglingLibrary] = useState(false);
   const { extractColor } = useDominantColor();
@@ -515,19 +514,13 @@ const MixDetailsPage = () => {
                 variant="ghost2"
                 size="icon"
                 className={`w-12 h-12 sm:w-14 sm:h-14 rounded-md p-2 transition-colors group ${
-                  !user || !hasFriends ? "opacity-50 cursor-not-allowed" : ""
+                  !user ? "opacity-50 cursor-not-allowed" : ""
                 }`}
-                title={
-                  !user
-                    ? t("auth.loginRequired")
-                    : !hasFriends
-                      ? t("common.noFriendsToShare")
-                      : t("common.share")
-                }
+                title={!user ? t("auth.loginRequired") : t("common.share")}
                 onClick={() =>
                   openShareDialog({ type: "mix", id: currentMix._id })
                 }
-                disabled={!user || !hasFriends}
+                disabled={!user}
               >
                 <Share className="size-8 text-white/80 group-hover:text-white transition-colors" />
               </Button>

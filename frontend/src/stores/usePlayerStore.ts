@@ -7,6 +7,13 @@ import { useOfflineStore } from "./useOfflineStore";
 import { silentAudioService } from "@/lib/silentAudioService";
 import { axiosInstance } from "@/lib/axios";
 
+const isMobileDevice = () => {
+  if (typeof window === "undefined") return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent,
+  );
+};
+
 interface PlayerStore {
   currentSong: Song | null;
   isPlaying: boolean;
@@ -108,23 +115,18 @@ export const usePlayerStore = create<PlayerStore>()(
         }
       };
 
-      // 1. Добавляем переменную для хранения таймера на уровне замыкания
       let lyricsFetchTimeout: ReturnType<typeof setTimeout> | null = null;
 
       const enrichSongWithLyricsIfNeeded = async (song: Song) => {
-        // Если текст уже есть или мы оффлайн — ничего не делаем
         if (song.lyrics !== undefined || useOfflineStore.getState().isOffline) {
           return;
         }
 
-        // 2. Отменяем предыдущий таймер, если трек быстро переключили
         if (lyricsFetchTimeout) {
           clearTimeout(lyricsFetchTimeout);
         }
 
-        // 3. Заводим новый таймер на 500мс
         lyricsFetchTimeout = setTimeout(async () => {
-          // Если спустя полсекунды песня уже сменилась — отменяем запрос
           if (get().currentSong?._id !== song._id) {
             return;
           }
@@ -137,7 +139,6 @@ export const usePlayerStore = create<PlayerStore>()(
             );
             const lyrics = response.data.lyrics || "";
 
-            // Еще одна проверка: пока летел запрос, юзер мог переключить трек
             if (get().currentSong?._id === song._id) {
               set((state) => ({
                 currentSong: { ...state.currentSong!, lyrics },
@@ -174,7 +175,7 @@ export const usePlayerStore = create<PlayerStore>()(
         shuffleHistory: [],
         shufflePointer: -1,
         isFullScreenPlayerOpen: false,
-        masterVolume: 75,
+        masterVolume: isMobileDevice() ? 100 : 75,
         currentPlaybackContext: null,
         currentTime: 0,
         duration: 0,
@@ -344,7 +345,6 @@ export const usePlayerStore = create<PlayerStore>()(
             return;
           }
 
-          // Проверяем, что у песни есть hlsUrl
           if (!song.hlsUrl) {
             console.error("Song has no hlsUrl, cannot start playback:", song);
             toast.error("Cannot start playback: missing audio file");
@@ -410,7 +410,6 @@ export const usePlayerStore = create<PlayerStore>()(
         toggleShuffle: () => {
           set((state) => {
             if (state.shuffleMode === "off") {
-              // 1. Включаем обычный шаффл
               const queueLength = state.queue.length;
               if (queueLength === 0) {
                 return {
@@ -467,24 +466,16 @@ export const usePlayerStore = create<PlayerStore>()(
 
             if (vibeTracks && vibeTracks.length > 0) {
               set((currentState) => {
-                // 1. Физически добавляем новые треки в конец очереди
                 const newQueue = [...currentState.queue, ...vibeTracks];
-
-                // 2. Генерируем индексы для этих новых треков
                 const startIndex = currentState.queue.length;
                 const newIndices = Array.from(
                   { length: vibeTracks.length },
                   (_, i) => startIndex + i,
                 );
-
-                // 3. Берем историю только до текущего момента
                 const playedHistory = currentState.shuffleHistory.slice(
                   0,
                   currentState.shufflePointer + 1,
                 );
-
-                // 4. ЖЕСТКАЯ ЗАМЕНА: Игнорируем всё, что было дальше в альбоме,
-                // и ставим сразу вайб-треки. (Похуй на очередь).
                 const newShuffleHistory = [...playedHistory, ...newIndices];
 
                 return {
@@ -512,7 +503,6 @@ export const usePlayerStore = create<PlayerStore>()(
             repeatMode,
           } = state;
 
-          // ИСПРАВЛЕНИЕ БАГА: Явно проверяем режим
           const isShuffle = shuffleMode !== "off";
 
           const { isOffline } = useOfflineStore.getState();
@@ -602,7 +592,6 @@ export const usePlayerStore = create<PlayerStore>()(
           enrichSongWithAlbumTitleIfNeeded(nextSong);
           enrichSongWithLyricsIfNeeded(nextSong);
 
-          // ДОЗАГРУЗКА: Когда до конца сгенерированного вайба остается 3 трека
           if (
             shuffleMode === "smart" &&
             tempShufflePointer >= tempShuffleHistory.length - 3
@@ -623,7 +612,6 @@ export const usePlayerStore = create<PlayerStore>()(
           }
 
           const state = get();
-          // УБРАЛИ isShuffle из деструктуризации
           const {
             currentIndex,
             queue,
@@ -633,7 +621,6 @@ export const usePlayerStore = create<PlayerStore>()(
             repeatMode,
           } = state;
 
-          // ИСПРАВЛЕНИЕ БАГА
           const isShuffle = shuffleMode !== "off";
 
           const { isOffline } = useOfflineStore.getState();
@@ -767,18 +754,10 @@ export const usePlayerStore = create<PlayerStore>()(
 
         removeFromQueue: (songId: string) => {
           set((state) => {
-            console.log("removeFromQueue called with songId:", songId);
-            console.log(
-              "Current queue before removal:",
-              state.queue.map((s) => s._id),
-            );
-
-            // Проверяем, что песня существует в очереди
             const songIndex = state.queue.findIndex(
               (song) => song._id === songId,
             );
             if (songIndex === -1) {
-              console.warn(`Song with id ${songId} not found in queue`);
               return state;
             }
 
@@ -788,10 +767,8 @@ export const usePlayerStore = create<PlayerStore>()(
             let newShuffleHistory = [...state.shuffleHistory];
             let newShufflePointer = state.shufflePointer;
 
-            // Если удаляемая песня была текущей
             if (songIndex === state.currentIndex) {
               if (newQueue.length === 0) {
-                // Если очередь пуста, останавливаем воспроизведение
                 silentAudioService.pause();
                 return {
                   queue: [],
@@ -802,7 +779,6 @@ export const usePlayerStore = create<PlayerStore>()(
                   shufflePointer: -1,
                 };
               } else {
-                // Переходим к следующей песне
                 if (state.isShuffle) {
                   if (newShufflePointer < newShuffleHistory.length - 1) {
                     newShufflePointer++;
@@ -818,16 +794,13 @@ export const usePlayerStore = create<PlayerStore>()(
                 }
               }
             } else if (songIndex < state.currentIndex) {
-              // Если удаляемая песня была до текущей, корректируем индекс
               newCurrentIndex = state.currentIndex - 1;
             }
 
-            // Обновляем shuffle history
             if (state.isShuffle) {
               const removedIndex = newShuffleHistory.indexOf(songIndex);
               if (removedIndex !== -1) {
                 newShuffleHistory.splice(removedIndex, 1);
-                // Корректируем индексы в shuffle history
                 newShuffleHistory = newShuffleHistory.map((idx) =>
                   idx > songIndex ? idx - 1 : idx,
                 );
@@ -850,24 +823,12 @@ export const usePlayerStore = create<PlayerStore>()(
 
         moveSongInQueue: (fromIndex: number, toIndex: number) => {
           set((state) => {
-            console.log("moveSongInQueue called with:", { fromIndex, toIndex });
-            console.log("Current queue length:", state.queue.length);
-            console.log(
-              "Current queue:",
-              state.queue.map((s) => s._id),
-            );
-
             if (
               fromIndex < 0 ||
               fromIndex >= state.queue.length ||
               toIndex < 0 ||
               toIndex >= state.queue.length
             ) {
-              console.warn("Invalid indices for moveSongInQueue:", {
-                fromIndex,
-                toIndex,
-                queueLength: state.queue.length,
-              });
               return state;
             }
 
@@ -875,16 +836,10 @@ export const usePlayerStore = create<PlayerStore>()(
             const [movedSong] = newQueue.splice(fromIndex, 1);
             newQueue.splice(toIndex, 0, movedSong);
 
-            console.log(
-              "New queue after move:",
-              newQueue.map((s) => s._id),
-            );
-
             let newCurrentIndex = state.currentIndex;
             let newShuffleHistory = [...state.shuffleHistory];
             const newShufflePointer = state.shufflePointer;
 
-            // Корректируем currentIndex
             if (state.currentIndex === fromIndex) {
               newCurrentIndex = toIndex;
             } else if (
@@ -899,12 +854,10 @@ export const usePlayerStore = create<PlayerStore>()(
               newCurrentIndex = state.currentIndex + 1;
             }
 
-            // Обновляем shuffle history
             if (state.isShuffle) {
               const fromShuffleIndex = newShuffleHistory.indexOf(fromIndex);
               if (fromShuffleIndex !== -1) {
                 newShuffleHistory[fromShuffleIndex] = toIndex;
-                // Корректируем остальные индексы
                 newShuffleHistory = newShuffleHistory.map((idx) => {
                   if (fromIndex < toIndex) {
                     if (idx > fromIndex && idx <= toIndex) return idx - 1;
@@ -962,15 +915,12 @@ export const usePlayerStore = create<PlayerStore>()(
           } = state;
           const isShuffle = state.shuffleMode !== "off";
 
-          // Если режим повтора "one", возвращаем только текущий трек
           if (repeatMode === "one") {
             return [queue[currentIndex]].filter(Boolean);
           }
 
           if (!isShuffle) {
-            // В обычном режиме
             if (repeatMode === "all") {
-              // При repeat all показываем треки циклически
               const nextSongs: Song[] = [];
               for (let i = 0; i < count; i++) {
                 const index = (currentIndex + 1 + i) % queue.length;
@@ -978,20 +928,17 @@ export const usePlayerStore = create<PlayerStore>()(
               }
               return nextSongs;
             } else {
-              // При repeat off показываем только оставшиеся треки
               return queue.slice(currentIndex + 1, currentIndex + 1 + count);
             }
           }
 
-          // В режиме shuffle
           const nextSongs: Song[] = [];
           const usedSongIds = new Set<string>();
 
           if (repeatMode === "all") {
-            // При repeat all показываем треки циклически в shuffle порядке
             let currentPointer = shufflePointer;
             let attempts = 0;
-            const maxAttempts = shuffleHistory.length * 2; // Предотвращаем бесконечный цикл
+            const maxAttempts = shuffleHistory.length * 2;
 
             while (nextSongs.length < count && attempts < maxAttempts) {
               currentPointer = (currentPointer + 1) % shuffleHistory.length;
@@ -1007,7 +954,6 @@ export const usePlayerStore = create<PlayerStore>()(
               attempts++;
             }
           } else {
-            // При repeat off показываем только оставшиеся треки в shuffle порядке
             let currentPointer = shufflePointer;
             let attempts = 0;
             const maxAttempts = shuffleHistory.length;
@@ -1067,6 +1013,12 @@ export const usePlayerStore = create<PlayerStore>()(
             persistedState.isPlaying = false;
             persistedState.isFullScreenPlayerOpen = false;
             persistedState.currentTime = 0;
+
+            // Если устройство мобильное, форсируем громкость 100%
+            // поверх того, что пользователь мог сохранить ранее
+            if (isMobileDevice()) {
+              persistedState.masterVolume = 100;
+            }
           }
         };
       },

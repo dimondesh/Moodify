@@ -84,7 +84,6 @@ const PlaybackControls = () => {
   const navigate = useNavigate();
   const { isIosDevice } = useUIStore();
   const [user] = useAuthState(auth);
-  const { hasFriends } = useHasFriends();
 
   const {
     currentSong,
@@ -672,31 +671,6 @@ const PlaybackControls = () => {
 
                       <div className="flex items-center justify-between w-full pb-4 px-2">
                         <div className="flex items-center justify-start gap-2">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className={`hover:text-white text-zinc-400 ${
-                              !user || !hasFriends
-                                ? "opacity-50 cursor-not-allowed"
-                                : ""
-                            }`}
-                            onClick={() =>
-                              openShareDialog({
-                                type: "song",
-                                id: currentSong._id,
-                              })
-                            }
-                            disabled={!user || !hasFriends}
-                            title={
-                              !user
-                                ? t("auth.loginRequired")
-                                : !hasFriends
-                                  ? t("common.noFriendsToShare")
-                                  : t("player.share")
-                            }
-                          >
-                            <Share className="size-5" />
-                          </Button>
                           {!isIosDevice && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -748,23 +722,24 @@ const PlaybackControls = () => {
                           <Button
                             size="icon"
                             variant="ghost"
-                            className="hover:text-white text-zinc-400"
-                            onClick={toggleMute}
+                            className={`hover:text-white text-zinc-400 ${
+                              !user ? "opacity-50 cursor-not-allowed" : ""
+                            }`}
+                            onClick={() =>
+                              openShareDialog({
+                                type: "song",
+                                id: currentSong._id,
+                              })
+                            }
+                            disabled={!user}
+                            title={
+                              !user
+                                ? t("auth.loginRequired")
+                                : t("player.share")
+                            }
                           >
-                            {renderVolumeIcon()}
+                            <Share className="size-5" />
                           </Button>
-                          <Slider
-                            value={[masterVolume]}
-                            max={100}
-                            step={1}
-                            className="w-24 hover:cursor-grab active:cursor-grabbing"
-                            onValueChange={(value) => {
-                              const newVolume = value[0];
-                              setMasterVolume(newVolume);
-                              if (newVolume > 0)
-                                setPreviousMasterVolume(newVolume);
-                            }}
-                          />
                           <Button
                             size="icon"
                             variant="ghost"
@@ -1042,19 +1017,13 @@ const PlaybackControls = () => {
                 size="icon"
                 variant="ghost"
                 className={`hover:text-white hover:bg-transparent! text-gray-400 h-5 w-5 ${
-                  !user || !hasFriends ? "opacity-50 cursor-not-allowed" : ""
+                  !user ? "opacity-50 cursor-not-allowed" : ""
                 }`}
                 onClick={() =>
                   openShareDialog({ type: "song", id: currentSong._id })
                 }
-                disabled={!user || !hasFriends}
-                title={
-                  !user
-                    ? t("auth.loginRequired")
-                    : !hasFriends
-                      ? t("common.noFriendsToShare")
-                      : t("player.share")
-                }
+                disabled={!user}
+                title={!user ? t("auth.loginRequired") : t("player.share")}
               >
                 <Share className="size-4.5" />
               </Button>

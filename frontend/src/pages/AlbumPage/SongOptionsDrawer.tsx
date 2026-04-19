@@ -33,7 +33,6 @@ const SongOptionsDrawer: React.FC<SongOptionsDrawerProps> = ({
   const navigate = useNavigate();
   const { openShareDialog } = useUIStore();
   const { isSongLiked, toggleSongLike } = useLibraryStore();
-  const { hasFriends } = useHasFriends();
   const [isAddToPlaylistOpen, setIsAddToPlaylistOpen] = useState(false);
 
   if (!song) return null;
@@ -88,16 +87,9 @@ const SongOptionsDrawer: React.FC<SongOptionsDrawerProps> = ({
             <div className="p-4 flex flex-col gap-2">
               <Button
                 variant="ghost"
-                className={`justify-start p-3 h-auto ${
-                  !hasFriends ? "opacity-50 cursor-not-allowed" : ""
-                }`}
+                className={`justify-start p-3 h-auto`}
                 onClick={handleShare}
-                disabled={!hasFriends}
-                title={
-                  !hasFriends
-                    ? t("common.noFriendsToShare")
-                    : t("albumPage.options.share", "Поделиться")
-                }
+                title={t("albumPage.options.share", "Поделиться")}
               >
                 <Share className="w-5 h-5 mr-4" />
                 <span className="text-base">
@@ -118,7 +110,7 @@ const SongOptionsDrawer: React.FC<SongOptionsDrawerProps> = ({
                   {songIsLiked
                     ? t(
                         "albumPage.options.removeFromLiked",
-                        "Удалить из любимых"
+                        "Удалить из любимых",
                       )
                     : t("albumPage.options.addToLiked", "Добавить в любимые")}
                 </span>

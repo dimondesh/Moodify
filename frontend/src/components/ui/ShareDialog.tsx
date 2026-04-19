@@ -118,23 +118,29 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
 
           <ScrollArea className="h-64">
             <div className="space-y-2">
-              {users.map((friend) => (
-                <div
-                  key={friend._id}
-                  className="flex items-center justify-between p-2 rounded-md hover:bg-zinc-800"
-                >
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarImage src={friend.imageUrl} />
-                      <AvatarFallback>{friend.fullName[0]}</AvatarFallback>
-                    </Avatar>
-                    <span>{friend.fullName}</span>
+              {users.length > 0 ? (
+                users.map((friend) => (
+                  <div
+                    key={friend._id}
+                    className="flex items-center justify-between p-2 rounded-md hover:bg-zinc-800"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Avatar>
+                        <AvatarImage src={friend.imageUrl} />
+                        <AvatarFallback>{friend.fullName[0]}</AvatarFallback>
+                      </Avatar>
+                      <span>{friend.fullName}</span>
+                    </div>
+                    <Button size="sm" onClick={() => handleSend(friend._id)}>
+                      {t("common.send")}
+                    </Button>
                   </div>
-                  <Button size="sm" onClick={() => handleSend(friend._id)}>
-                    {t("common.send")}
-                  </Button>
+                ))
+              ) : (
+                <div className="flex items-center justify-center h-full text-zinc-500 text-sm mt-10">
+                  {t("common.noFriendsFound", "Нет друзей для отправки")}
                 </div>
-              ))}
+              )}
             </div>
           </ScrollArea>
         </div>
