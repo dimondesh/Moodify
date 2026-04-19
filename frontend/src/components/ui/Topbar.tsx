@@ -84,6 +84,36 @@ const Topbar = () => {
     photoURL: string | null;
   }>(null);
 
+  // Состояния для кнопок навигации
+  const [canGoBack, setCanGoBack] = useState(false);
+  const [canGoForward, setCanGoForward] = useState(false);
+
+  useEffect(() => {
+    // Используем Navigation API (если доступно) для точного отслеживания истории Вперед/Назад
+    const updateNavState = () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const nav = (window as any).navigation;
+      if (nav) {
+        setCanGoBack(nav.canGoBack);
+        setCanGoForward(nav.canGoForward);
+      } else {
+        // Fallback для старых браузеров
+        setCanGoBack((window.history.state?.idx ?? 0) > 0);
+      }
+    };
+
+    updateNavState();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const nav = (window as any).navigation;
+    if (nav) {
+      nav.addEventListener("currententrychange", updateNavState);
+      return () => {
+        nav.removeEventListener("currententrychange", updateNavState);
+      };
+    }
+  }, [location]);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
@@ -201,39 +231,36 @@ const Topbar = () => {
           </Link>
 
           {/* Navigation & WaveAnalyzer */}
-          <div className="hidden lg:flex items-center h-8">
-            {waveAnalyzerEnabled && isPlaying ? (
-              <div className="relative w-[100px] h-full group flex items-center justify-center">
-                {/* WaveAnalyzer disappears on hover */}
-                <div className="absolute inset-0 flex items-center justify-center transition-opacity duration-300 group-hover:opacity-0 pointer-events-none">
+          <div className="hidden lg:flex items-center h-8 ml-2">
+            <div className="relative w-[100px] h-full group flex items-center justify-center">
+              {/* Контейнер Анализатора (скрывается при наведении или если не играет) */}
+              <div
+                className={cn(
+                  "absolute inset-0 flex items-center justify-center transition-all duration-300 pointer-events-none",
+                  waveAnalyzerEnabled && isPlaying
+                    ? "opacity-100 group-hover:opacity-0"
+                    : "opacity-0",
+                )}
+              >
+                {waveAnalyzerEnabled && (
                   <WaveAnalyzer width={100} height={24} />
-                </div>
-                {/* Navigation buttons appear on hover */}
-                <div className="absolute inset-0 flex items-center justify-center gap-1 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-full hover:bg-transparent! text-zinc-400 hover:text-white"
-                    onClick={() => navigate(-1)}
-                  >
-                    <ChevronLeft className="size-7" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-full hover:bg-transparent! text-zinc-400 hover:text-white"
-                    onClick={() => navigate(1)}
-                  >
-                    <ChevronRight className="size-7" />
-                  </Button>
-                </div>
+                )}
               </div>
-            ) : (
-              <div className="flex items-center gap-1 ml-4 transition-opacity duration-300">
+
+              {/* Контейнер Кнопок (появляется при наведении или если анализатор выключен/музыка на паузе) */}
+              <div
+                className={cn(
+                  "absolute inset-0 flex items-center justify-center gap-2 transition-all duration-300",
+                  waveAnalyzerEnabled && isPlaying
+                    ? "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
+                    : "opacity-100 pointer-events-auto",
+                )}
+              >
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 rounded-full hover:bg-transparent! text-zinc-400 hover:text-white"
+                  disabled={!canGoBack}
+                  className="h-8 w-8 rounded-full text-zinc-400 hover:text-white hover:bg-transparent! disabled:opacity-30 disabled:hover:bg-transparent! disabled:cursor-not-allowed"
                   onClick={() => navigate(-1)}
                 >
                   <ChevronLeft className="size-7" />
@@ -241,13 +268,14 @@ const Topbar = () => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 rounded-full hover:bg-transparent! text-zinc-400 hover:text-white"
+                  disabled={!canGoForward}
+                  className="h-8 w-8 rounded-full text-zinc-400 hover:text-white hover:bg-transparent! disabled:opacity-30 disabled:hover:bg-transparent! disabled:cursor-not-allowed"
                   onClick={() => navigate(1)}
                 >
                   <ChevronRight className="size-7" />
                 </Button>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
