@@ -81,8 +81,6 @@ export const getVibeMatchTracks = async (currentSongId, limit = 10) => {
     return populated.sort(() => 0.5 - Math.random());
   }
 
-  const minEnergy = Math.max(0, audioFeatures.energy - 0.25);
-  const maxEnergy = Math.min(1, audioFeatures.energy + 0.25);
   const targetBpm = audioFeatures.bpm;
   const bpmTolerance = 20;
 
@@ -91,7 +89,6 @@ export const getVibeMatchTracks = async (currentSongId, limit = 10) => {
     {
       $match: {
         _id: { $ne: currentSong._id },
-        "audioFeatures.energy": { $gte: minEnergy, $lte: maxEnergy },
         $and: [
           // ГЛАВНОЕ ИЗМЕНЕНИЕ 1: Жанр обязан совпадать. Moods убраны из $or
           { genres: { $in: genres } },

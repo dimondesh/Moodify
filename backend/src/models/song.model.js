@@ -63,49 +63,21 @@ const songSchema = new mongoose.Schema(
     ],
     // Audio features from analysis service
     audioFeatures: {
-      beatsConfidence: {
-        type: Number,
-        default: null,
-      },
-      beatsCount: {
-        type: Number,
-        default: null,
-      },
       bpm: {
         type: Number,
         default: null,
       },
-      danceability: {
-        type: Number,
-        default: null,
-      },
-      duration: {
-        type: Number,
-        default: null,
-      },
-      energy: {
-        type: Number,
-        default: null,
-      },
-      key: {
-        type: String,
-        default: null,
-      },
-      keyStrength: {
-        type: Number,
-        default: null,
-      },
-      rms: {
-        type: Number,
-        default: null,
-      },
-      scale: {
+      camelot: {
         type: String,
         default: null,
       },
     },
+    embedding: {
+      type: [Number],
+      default: null,
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 songSchema.index({ title: 1 });

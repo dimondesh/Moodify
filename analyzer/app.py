@@ -2,20 +2,34 @@
 import os 
 from flask import Flask, request, jsonify 
 import essentia.standard as es 
-import numpy as np
 
 # --- Инициализация приложения ---
 app = Flask(__name__)
 
+def get_camelot(key, scale):
+    """Конвертирует стандартную тональность в формат Camelot Wheel"""
+    camelot_map = {
+        "major": {
+            "B": "1B", "F#": "2B", "Gb": "2B", "C#": "3B", "Db": "3B",
+            "G#": "4B", "Ab": "4B", "D#": "5B", "Eb": "5B", "A#": "6B", "Bb": "6B",
+            "F": "7B", "C": "8B", "G": "9B", "D": "10B", "A": "11B", "E": "12B"
+        },
+        "minor": {
+            "G#": "1A", "Ab": "1A", "D#": "2A", "Eb": "2A", "A#": "3A", "Bb": "3A",
+            "F": "4A", "C": "5A", "G": "6A", "D": "7A", "A": "8A", "E": "9A",
+            "B": "10A", "F#": "11A", "Gb": "11A", "C#": "12A", "Db": "12A"
+        }
+    }
+    return camelot_map.get(scale, {}).get(key)
+
 # --- Тестовый роут ---
 @app.route('/', methods=['GET'])
 def health_check():
-    return jsonify({"status": "OK", "message": "Moodify Analysis Service is running", "features": "Basic audio features"}), 200
+    return jsonify({"status": "OK", "message": "Moodify Analysis Service is running", "features": "BPM and Camelot"}), 200
 
 # --- Роут (Endpoint) для анализа ---
 @app.route('/analyze', methods=['POST'])
 def analyze_audio():
-    # --- Валидация запроса ---
     if 'file' not in request.files:
         return jsonify({"error": "File part is missing"}), 400
 
@@ -24,61 +38,28 @@ def analyze_audio():
     if file.filename == '':
         return jsonify({"error": "No selected file"}), 400
 
-    # --- Сохранение и обработка файла ---
     temp_audio_path = f"/tmp/{file.filename}"
     
     try:
         file.save(temp_audio_path)
 
-        # --- Базовый анализ аудио с помощью Essentia ---
-        
         # 1. Загружаем аудиофайл
         loader = es.MonoLoader(filename=temp_audio_path)
         audio = loader()
 
-        # 2. Базовые дескрипторы
-        # BPM
+        # 2. Извлекаем только BPM
         rhythm_extractor = es.RhythmExtractor2013(method="multifeature")
-        bpm, beats, beats_confidence, _, beats_intervals = rhythm_extractor(audio)
+        bpm, _, _, _, _ = rhythm_extractor(audio)
         
-        # Тональность
+        # 3. Извлекаем тональность и конвертируем в Camelot
         key_extractor = es.KeyExtractor()
-        key, scale, key_strength = key_extractor(audio)
+        key, scale, _ = key_extractor(audio)
         
-        # Танцевальность
-        danceability_extractor = es.Danceability()
-        danceability_result, _ = danceability_extractor(audio)
-        
-        # Энергия
-        energy_extractor = es.Energy()
-        energy = energy_extractor(audio)
-        
-        # RMS (громкость)
-        try:
-            rms = es.RMS()
-            rms_value = rms(audio)
-        except:
-            rms_value = 0.0
-        
-        # --- Формируем расширенный ответ ---
+        camelot_key = get_camelot(key, scale)
+
         analysis_data = {
-            # Ритмические параметры
             "bpm": round(float(bpm), 2),
-            "beats_count": len(beats),
-            "beats_confidence": round(float(np.mean(beats_confidence)), 3),
-            
-            # Высокоуровневые параметры
-            "danceability": round(float(danceability_result), 3),
-            "energy": round(float(np.mean(energy)), 5),
-            "rms": round(float(rms_value), 5),
-            
-            # Тональные параметры
-            "key": key,
-            "scale": scale,
-            "key_strength": round(float(key_strength), 3),
-            
-            # Метаданные
-            "duration": len(audio) / 44100
+            "camelot": camelot_key
         }
 
         return jsonify(analysis_data), 200
@@ -90,6 +71,5 @@ def analyze_audio():
         if os.path.exists(temp_audio_path):
             os.remove(temp_audio_path)
 
-# --- Точка входа для запуска сервера ---
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True)
