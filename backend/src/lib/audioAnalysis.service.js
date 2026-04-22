@@ -7,51 +7,57 @@ const analyzeAudioFeatures = async (audioFilePath) => {
   try {
     const ANALYSIS_SERVICE_URL =
       process.env.ANALYSIS_SERVICE_URL || "http://localhost:5001";
+    const EMBEDDING_SERVICE_URL =
+      process.env.EMBEDDING_SERVICE_URL || "http://localhost:5006";
 
-    if (!process.env.ANALYSIS_SERVICE_URL) {
-      console.warn(
-        `[AudioAnalysisService] ANALYSIS_SERVICE_URL не установлен в .env, используется значение по умолчанию: ${ANALYSIS_SERVICE_URL}`,
-      );
-    } else {
-      console.log(
-        `[AudioAnalysisService] Используется URL из .env: ${ANALYSIS_SERVICE_URL}`,
-      );
-    }
-
-    const formData = new FormData();
-    const fileStream = createReadStream(audioFilePath);
-    formData.append("file", fileStream, {
+    const formDataForAnalysis = new FormData();
+    formDataForAnalysis.append("file", createReadStream(audioFilePath), {
       filename: path.basename(audioFilePath),
       contentType: "audio/mpeg",
     });
 
-    console.log(
-      `[AudioAnalysisService] Отправка файла на анализ: ${audioFilePath}`,
-    );
+    const formDataForEmbed = new FormData();
+    formDataForEmbed.append("file", createReadStream(audioFilePath), {
+      filename: path.basename(audioFilePath),
+      contentType: "audio/mpeg",
+    });
 
-    const response = await axios.post(
-      `${ANALYSIS_SERVICE_URL}/analyze`,
-      formData,
-      {
-        headers: { ...formData.getHeaders() },
+    // Запускаем оба запроса параллельно
+    const [analysisResponse, embedResponse] = await Promise.allSettled([
+      axios.post(`${ANALYSIS_SERVICE_URL}/analyze`, formDataForAnalysis, {
+        headers: { ...formDataForAnalysis.getHeaders() },
         timeout: 30000,
-      },
-    );
+      }),
+      axios.post(`${EMBEDDING_SERVICE_URL}/embed`, formDataForEmbed, {
+        headers: { ...formDataForEmbed.getHeaders() },
+        timeout: 30000,
+      }),
+    ]);
 
-    console.log(
-      `[AudioAnalysisService] Получены аудио-характеристики:`,
-      response.data,
-    );
+    let result = { bpm: null, camelot: null, embedding: null };
 
-    return {
-      bpm: response.data.bpm || null,
-      camelot: response.data.camelot || null,
-    };
+    if (analysisResponse.status === "fulfilled") {
+      result.bpm = analysisResponse.value.data.bpm || null;
+      result.camelot = analysisResponse.value.data.camelot || null;
+    } else {
+      console.error(
+        "[AudioAnalysisService] Ошибка анализа BPM:",
+        analysisResponse.reason.message,
+      );
+    }
+
+    if (embedResponse.status === "fulfilled") {
+      result.embedding = embedResponse.value.data.embedding || null;
+    } else {
+      console.error(
+        "[AudioAnalysisService] Ошибка получения эмбеддинга:",
+        embedResponse.reason.message,
+      );
+    }
+
+    return result;
   } catch (error) {
-    console.error(
-      `[AudioAnalysisService] Ошибка при анализе аудио:`,
-      error.message,
-    );
+    console.error(`[AudioAnalysisService] Критическая ошибка:`, error.message);
     throw new Error(`Failed to analyze audio: ${error.message}`);
   }
 };

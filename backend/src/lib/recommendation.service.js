@@ -9,50 +9,78 @@ import { Song } from "../models/song.model.js";
 import { ListenHistory } from "../models/listenHistory.model.js";
 
 // Вспомогательная функция для расчета разницы (чем меньше, тем лучше)
+
+const cosineSimilarity = (vecA, vecB) => {
+  if (!vecA || !vecB || vecA.length !== vecB.length) return 0;
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+  for (let i = 0; i < vecA.length; i++) {
+    dotProduct += vecA[i] * vecB[i];
+    normA += vecA[i] * vecA[i];
+    normB += vecB[i] * vecB[i];
+  }
+  if (normA === 0 || normB === 0) return 0;
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+};
+// Функция расчета дистанции по доступным признакам (теперь только BPM)
 const calculateFeatureDistance = (target, candidate) => {
   let distance = 0;
 
-  // 1. Сравниваем Energy (вес: 40%) - очень важно для сохранения настроения
-  if (target.energy !== null && candidate.energy !== null) {
-    distance += Math.abs(target.energy - candidate.energy) * 0.4;
-  }
-
-  // 2. Сравниваем Danceability (вес: 30%)
-  if (target.danceability !== null && candidate.danceability !== null) {
-    distance += Math.abs(target.danceability - candidate.danceability) * 0.3;
-  }
-
-  // 3. Сравниваем BPM (вес: 30%)
   if (target.bpm !== null && candidate.bpm !== null) {
-    // Нормализуем BPM (предположим, максимум 200) чтобы значения были от 0 до 1
     const bpmDiff = Math.abs(target.bpm - candidate.bpm);
-    // Если разница кратна ~половине (например 70 и 140), это тоже хорошо (half-time/double-time)
+
+    // Проверяем, не является ли трек в два раза быстрее/медленнее (half-time / double-time)
     const isDoubleTime = Math.abs(target.bpm * 2 - candidate.bpm) < 5;
     const isHalfTime = Math.abs(target.bpm / 2 - candidate.bpm) < 5;
 
     if (isDoubleTime || isHalfTime) {
-      distance += 0.05; // Небольшой штраф, но допустимо
+      // Даем небольшой штраф, но считаем такой переход допустимым
+      distance += 0.05;
     } else {
-      distance += (Math.min(bpmDiff, 50) / 50) * 0.3;
+      // Штрафуем за прямую разницу в BPM
+      distance += (Math.min(bpmDiff, 50) / 50) * 0.5;
     }
   }
 
   return distance;
 };
 
-// Функция проверки гармонической совместимости (упрощенная)
+// Функция проверки гармонической совместимости по колесу Камелота (Camelot Wheel)
 const isHarmonicallyCompatible = (target, candidate) => {
-  if (!target.key || !candidate.key || !target.scale || !candidate.scale)
-    return false;
+  if (!target.camelot || !candidate.camelot) return false;
+  if (target.camelot === candidate.camelot) return true;
 
-  // Точное совпадение тональности и лада (например, C minor -> C minor)
-  if (target.key === candidate.key && target.scale === candidate.scale)
-    return true;
+  // Парсим значения (например, "8A" -> число 8, буква "A")
+  const matchTarget = target.camelot.match(/(\d+)([AB])/);
+  const matchCandidate = candidate.camelot.match(/(\d+)([AB])/);
 
-  // Здесь можно расширить логику до полноценного Camelot Wheel (соседние тональности)
+  if (!matchTarget || !matchCandidate) return false;
+
+  const numT = parseInt(matchTarget[1], 10);
+  const letT = matchTarget[2];
+  const numC = parseInt(matchCandidate[1], 10);
+  const letC = matchCandidate[2];
+
+  // Правило 1: Изменение настроения (минор <-> мажор), та же цифра (например, 8A <-> 8B)
+  if (numT === numC && letT !== letC) return true;
+
+  // Правило 2: Идеальный переход (соседняя цифра, та же буква)
+  if (letT === letC) {
+    if (numT === numC + 1 || numT === numC - 1) return true;
+    // Учитываем кольцевой переход 12 <-> 1
+    if ((numT === 12 && numC === 1) || (numT === 1 && numC === 12)) return true;
+  }
+
+  // Правило 3 (опционально): Energy Boost (+2 цифры, та же буква). Хорошо звучит в миксах.
+  if (letT === letC) {
+    if (numT === numC + 2 || numT === numC - 2) return true;
+    if ((numT === 11 && numC === 1) || (numT === 1 && numC === 11)) return true;
+    if ((numT === 12 && numC === 2) || (numT === 2 && numC === 12)) return true;
+  }
+
   return false;
 };
-
 export const getVibeMatchTracks = async (currentSongId, limit = 10) => {
   const currentSong = await Song.findById(currentSongId).lean();
   if (!currentSong) return [];
@@ -60,11 +88,8 @@ export const getVibeMatchTracks = async (currentSongId, limit = 10) => {
   const { genres, moods, audioFeatures } = currentSong;
 
   // Если у трека нет анализа аудио, падаем на строгий поиск по жанрам
-  if (
-    !audioFeatures ||
-    audioFeatures.bpm === null ||
-    audioFeatures.energy === null
-  ) {
+  // Если у трека нет анализа аудио, падаем на строгий поиск по жанрам
+  if (!audioFeatures || audioFeatures.bpm === null) {
     const fallbackAgg = await Song.aggregate([
       {
         $match: {
@@ -140,9 +165,8 @@ export const getVibeMatchTracks = async (currentSongId, limit = 10) => {
     select: "name imageUrl",
   });
 
-  // 3. Оценка кандидатов: применяем ЖАНРОВЫЙ ШТРАФ
+  // 3. Оценка кандидатов: применяем ЖАНРОВЫЙ ШТРАФ И КОСИНУСНОЕ СХОДСТВО
   const scoredCandidates = candidates.map((candidate) => {
-    // Базовая оценка по физике звука (чем меньше, тем лучше)
     let score = calculateFeatureDistance(
       audioFeatures,
       candidate.audioFeatures,
@@ -157,18 +181,25 @@ export const getVibeMatchTracks = async (currentSongId, limit = 10) => {
     ).length;
     score -= sharedMoods * 0.05;
 
-    // ГЛАВНОЕ ИЗМЕНЕНИЕ 2: Проверяем жанры
     const sharedGenres = candidate.genres.filter((g) =>
       genres.some((tg) => tg.toString() === g.toString()),
     ).length;
 
     if (sharedGenres === 0) {
-      // МАССИВНЫЙ ШТРАФ: Если жанры вообще не пересекаются (Метал попал к Трэпу)
-      // Мы прибавляем 10 к score. Этот трек гарантированно улетит в самый конец списка.
       score += 10;
     } else {
-      // Бонус за каждый совпадающий жанр
       score -= sharedGenres * 0.1;
+    }
+
+    if (
+      currentSong.audioFeatures?.embedding &&
+      candidate.audioFeatures?.embedding
+    ) {
+      const similarity = cosineSimilarity(
+        currentSong.audioFeatures.embedding,
+        candidate.audioFeatures.embedding,
+      );
+      score -= similarity * 2.0;
     }
 
     return { ...candidate, score };

@@ -58,4 +58,4 @@ async def get_embedding(file: UploadFile = File(...)):
             os.remove(temp_path)
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=5002)
+    uvicorn.run(app, host="0.0.0.0", port=5006)

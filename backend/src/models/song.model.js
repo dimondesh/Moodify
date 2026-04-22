@@ -71,10 +71,10 @@ const songSchema = new mongoose.Schema(
         type: String,
         default: null,
       },
-    },
-    embedding: {
-      type: [Number],
-      default: null,
+      embedding: {
+        type: [Number],
+        default: null,
+      },
     },
   },
   { timestamps: true },
