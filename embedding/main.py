@@ -56,6 +56,13 @@ async def get_embedding(file: UploadFile = File(...)):
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
-
+@app.get("/")
+async def health_check():
+    return {
+        "status": "OK",
+        "message": "Moodify Embedding Service is running",
+        "dimensions": 39,
+        "model": "librosa-features"
+    }
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=5006)

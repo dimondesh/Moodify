@@ -68,3 +68,32 @@ export const checkAnalysisServiceHealth = async (req, res, next) => {
     res.status(status).json({ error: message });
   }
 };
+
+export const checkEmbeddingServiceHealth = async (req, res, next) => {
+  try {
+    // Используем URL из переменной окружения или дефолтный 5003
+    const EMBEDDING_SERVICE_URL =
+      process.env.EMBEDDING_SERVICE_URL || "http://localhost:5006";
+
+    const response = await axios.get(`${EMBEDDING_SERVICE_URL}/`, {
+      timeout: 5000,
+    });
+
+    if (response.status === 200) {
+      return res.status(200).json({ status: "OK", data: response.data });
+    }
+
+    res.status(503).json({
+      status: "Error",
+      message: "Embedding service returned non-200 status",
+    });
+  } catch (error) {
+    console.error(
+      "[StatController] Embedding Health Check Error:",
+      error.message,
+    );
+    res
+      .status(503)
+      .json({ status: "Error", message: "Embedding service is unreachable" });
+  }
+};
