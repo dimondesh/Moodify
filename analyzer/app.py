@@ -1,10 +1,19 @@
-# --- Импорты ---
-import os 
-from flask import Flask, request, jsonify 
-import essentia.standard as es 
+import os
+import tempfile
+from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.responses import JSONResponse
+import uvicorn
+import essentia.standard as es
+import numpy as np
 
-# --- Инициализация приложения ---
-app = Flask(__name__)
+np.float = float
+np.int = int
+np.bool = bool
+
+from madmom.features.beats import RNNBeatProcessor, DBNBeatTrackingProcessor
+from madmom.features.tempo import TempoEstimationProcessor
+
+app = FastAPI(title="Moodify Analysis Service")
 
 def get_camelot(key, scale):
     """Конвертирует стандартную тональность в формат Camelot Wheel"""
@@ -22,54 +31,76 @@ def get_camelot(key, scale):
     }
     return camelot_map.get(scale, {}).get(key)
 
-# --- Тестовый роут ---
-@app.route('/', methods=['GET'])
-def health_check():
-    return jsonify({"status": "OK", "message": "Moodify Analysis Service is running", "features": "BPM and Camelot"}), 200
+# Инициализируем нейросетевые модели Madmom при запуске сервера.
+# Это позволяет загрузить веса в память один раз, 
+# что ускоряет обработку каждого трека в несколько раз.
+print("Loading Madmom neural networks...")
+proc_beat = RNNBeatProcessor()
+proc_track = DBNBeatTrackingProcessor(fps=100)
+proc_tempo = TempoEstimationProcessor(fps=100)
+print("Models loaded successfully!")
 
-# --- Роут (Endpoint) для анализа ---
-@app.route('/analyze', methods=['POST'])
-def analyze_audio():
-    if 'file' not in request.files:
-        return jsonify({"error": "File part is missing"}), 400
+@app.get("/")
+async def health_check():
+    return {
+        "status": "OK", 
+        "message": "Moodify Analysis Service is running", 
+        "features": "Madmom RNN (Beats/BPM), Essentia Temperley (Camelot)"
+    }
 
-    file = request.files['file']
+@app.post("/analyze")
+async def analyze_audio(file: UploadFile = File(...)):
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No selected file")
 
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
+    # FastAPI работает с файлами иначе, используем tempfile
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_audio:
+        content = await file.read()
+        temp_audio.write(content)
+        temp_audio_path = temp_audio.name
 
-    temp_audio_path = f"/tmp/{file.filename}"
-    
     try:
-        file.save(temp_audio_path)
-
-        # 1. Загружаем аудиофайл
+        # === 1. Извлечение тональности (Essentia) ===
         loader = es.MonoLoader(filename=temp_audio_path)
-        audio = loader()
-
-        # 2. Извлекаем только BPM
-        rhythm_extractor = es.RhythmExtractor2013(method="multifeature")
-        bpm, _, _, _, _ = rhythm_extractor(audio)
+        audio_es = loader()
         
-        # 3. Извлекаем тональность и конвертируем в Camelot
-        key_extractor = es.KeyExtractor()
-        key, scale, _ = key_extractor(audio)
-        
+        # Используем профиль temperley для точного различия параллельных тональностей (4A/4B)
+        key_extractor = es.KeyExtractor(profileType="temperley")
+        key, scale, _ = key_extractor(audio_es)
         camelot_key = get_camelot(key, scale)
 
+        # === 2. Извлечение BPM и Beats (Madmom) ===
+        # Прогоняем аудио через рекуррентную нейросеть
+        act = proc_beat(temp_audio_path)
+        
+        # Достаем точную сетку ударов
+        beats = proc_track(act)
+        
+        # Вычисляем темп
+        tempos = proc_tempo(act)
+        
+        # TempoEstimationProcessor возвращает список вероятных темпов: [[bpm, уверенность], ...]
+        # Берем самый уверенный результат
+        bpm = float(tempos[0][0]) if len(tempos) > 0 else 0.0
+
+        # Форматируем данные для базы
+        beats_list = [round(float(b), 3) for b in beats]
+
         analysis_data = {
-            "bpm": round(float(bpm), 2),
-            "camelot": camelot_key
+            "bpm": round(bpm, 2),
+            "camelot": camelot_key,
+            "beats": beats_list
         }
 
-        return jsonify(analysis_data), 200
+        return JSONResponse(content=analysis_data, status_code=200)
 
     except Exception as e:
-        return jsonify({"error": f"Failed to analyze audio: {str(e)}"}), 500
+        raise HTTPException(status_code=500, detail=f"Failed to analyze audio: {str(e)}")
     
     finally:
         if os.path.exists(temp_audio_path):
             os.remove(temp_audio_path)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001, debug=True)
+    # Запуск сервера для локальной отладки
+    uvicorn.run("app:app", host="0.0.0.0", port=5001, reload=True)

@@ -34,11 +34,12 @@ const analyzeAudioFeatures = async (audioFilePath) => {
       }),
     ]);
 
-    let result = { bpm: null, camelot: null, embedding: null };
+    let result = { bpm: null, camelot: null, beats: [], embedding: null };
 
     if (analysisResponse.status === "fulfilled") {
       result.bpm = analysisResponse.value.data.bpm || null;
       result.camelot = analysisResponse.value.data.camelot || null;
+      result.beats = analysisResponse.value.data.beats || [];
     } else {
       console.error(
         "[AudioAnalysisService] Ошибка анализа BPM:",

@@ -71,6 +71,10 @@ const songSchema = new mongoose.Schema(
         type: String,
         default: null,
       },
+      beats: {
+        type: [Number],
+        default: [],
+      },
       embedding: {
         type: [Number],
         default: null,

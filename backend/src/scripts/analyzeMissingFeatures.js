@@ -126,6 +126,7 @@ async function runAnalysisMigration() {
 
         song.audioFeatures.bpm = features.bpm;
         song.audioFeatures.camelot = features.camelot;
+        song.audioFeatures.beats = features.beats || [];
 
         await song.save();
         updatedCount++;

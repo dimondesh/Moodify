@@ -1312,3 +1312,84 @@ export const getSongAudioFeatures = async (req, res, next) => {
     next(error);
   }
 };
+export const testAudioAnalysis = async (req, res, next) => {
+  try {
+    if (!req.user || !req.user.isAdmin) {
+      return res.status(403).json({ message: "Access denied." });
+    }
+    if (!req.files || !req.files.audioFile) {
+      return res
+        .status(400)
+        .json({ message: "Audio file is required for testing." });
+    }
+
+    const audioFile = req.files.audioFile;
+    const ANALYSIS_SERVICE_URL =
+      process.env.ANALYSIS_SERVICE_URL || "http://localhost:5001";
+
+    const fileBuffer = fsSync.readFileSync(audioFile.tempFilePath);
+    const fileBlob = new Blob([fileBuffer], {
+      type: audioFile.mimetype || "audio/mpeg",
+    });
+
+    const formData = new FormData();
+    formData.append("file", fileBlob, audioFile.name);
+
+    const response = await axios.post(
+      `${ANALYSIS_SERVICE_URL}/analyze`,
+      formData,
+      {
+        timeout: 60000,
+      },
+    );
+
+    res.status(200).json({ success: true, data: response.data });
+  } catch (error) {
+    console.error("Analysis test error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Failed to analyze audio",
+      error: error.response?.data || error.message,
+    });
+  }
+};
+
+export const testEmbeddingExtraction = async (req, res) => {
+  try {
+    if (!req.user || !req.user.isAdmin) {
+      return res.status(403).json({ message: "Access denied." });
+    }
+    if (!req.files || !req.files.audioFile) {
+      return res.status(400).json({ message: "Audio file is required." });
+    }
+
+    const audioFile = req.files.audioFile;
+    const EMBEDDING_SERVICE_URL =
+      process.env.EMBEDDING_SERVICE_URL || "http://localhost:5006";
+
+    const fileBuffer = fsSync.readFileSync(audioFile.tempFilePath);
+    const fileBlob = new Blob([fileBuffer], {
+      type: audioFile.mimetype || "audio/mpeg",
+    });
+
+    const formData = new FormData();
+    formData.append("file", fileBlob, audioFile.name);
+
+    const response = await axios.post(
+      `${EMBEDDING_SERVICE_URL}/embed`,
+      formData,
+      {
+        timeout: 60000,
+      },
+    );
+
+    res.status(200).json({ success: true, data: response.data });
+  } catch (error) {
+    console.error("Embedding test error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Embedding service error",
+      error: error.response?.data || error.message,
+    });
+  }
+};

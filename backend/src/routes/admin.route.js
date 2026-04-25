@@ -18,6 +18,8 @@ import {
   analyzeSongAudio,
   getSongAudioFeatures,
   uploadChunk,
+  testAudioAnalysis,
+  testEmbeddingExtraction,
 } from "../controller/admin.controller.js";
 import { protectRoute } from "../middleware/auth.middleware.js";
 
@@ -47,7 +49,9 @@ router.get("/albums/paginated", getPaginatedAlbums);
 router.get("/artists/paginated", getPaginatedArtists);
 
 // Audio analysis routes
+router.post("/test-analysis", testAudioAnalysis);
 router.post("/songs/:songId/analyze", analyzeSongAudio);
 router.get("/songs/:songId/audio-features", getSongAudioFeatures);
+router.post("/test-embedding", testEmbeddingExtraction);
 
 export default router;

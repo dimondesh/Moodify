@@ -1,4 +1,8 @@
-Flask
-gunicorn
+fastapi
+uvicorn[standard]
+python-multipart
 essentia
 numpy
+scipy
+cython
+madmom
