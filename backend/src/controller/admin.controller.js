@@ -1325,7 +1325,7 @@ export const testAudioAnalysis = async (req, res, next) => {
 
     const audioFile = req.files.audioFile;
     const ANALYSIS_SERVICE_URL =
-      process.env.ANALYSIS_SERVICE_URL || "http://localhost:5001";
+      process.env.ANALYSIS_SERVICE_URL || "http://127.0.0.1:5001";
 
     const fileBuffer = fsSync.readFileSync(audioFile.tempFilePath);
     const fileBlob = new Blob([fileBuffer], {
@@ -1339,7 +1339,9 @@ export const testAudioAnalysis = async (req, res, next) => {
       `${ANALYSIS_SERVICE_URL}/analyze`,
       formData,
       {
-        timeout: 60000,
+        timeout: 300000,
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
       },
     );
 
@@ -1365,7 +1367,7 @@ export const testEmbeddingExtraction = async (req, res) => {
 
     const audioFile = req.files.audioFile;
     const EMBEDDING_SERVICE_URL =
-      process.env.EMBEDDING_SERVICE_URL || "http://localhost:5006";
+      process.env.EMBEDDING_SERVICE_URL || "http://127.0.0.1:5006";
 
     const fileBuffer = fsSync.readFileSync(audioFile.tempFilePath);
     const fileBlob = new Blob([fileBuffer], {
@@ -1379,7 +1381,9 @@ export const testEmbeddingExtraction = async (req, res) => {
       `${EMBEDDING_SERVICE_URL}/embed`,
       formData,
       {
-        timeout: 60000,
+        timeout: 300000,
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
       },
     );
 

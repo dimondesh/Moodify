@@ -6,9 +6,9 @@ import path from "path";
 const analyzeAudioFeatures = async (audioFilePath) => {
   try {
     const ANALYSIS_SERVICE_URL =
-      process.env.ANALYSIS_SERVICE_URL || "http://localhost:5001";
+      process.env.ANALYSIS_SERVICE_URL || "http://127.0.0.1:5001";
     const EMBEDDING_SERVICE_URL =
-      process.env.EMBEDDING_SERVICE_URL || "http://localhost:5006";
+      process.env.EMBEDDING_SERVICE_URL || "http://127.0.0.1:5006";
 
     const formDataForAnalysis = new FormData();
     formDataForAnalysis.append("file", createReadStream(audioFilePath), {
@@ -22,15 +22,18 @@ const analyzeAudioFeatures = async (audioFilePath) => {
       contentType: "audio/mpeg",
     });
 
-    // Запускаем оба запроса параллельно
     const [analysisResponse, embedResponse] = await Promise.allSettled([
       axios.post(`${ANALYSIS_SERVICE_URL}/analyze`, formDataForAnalysis, {
         headers: { ...formDataForAnalysis.getHeaders() },
-        timeout: 30000,
+        timeout: 300000,
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
       }),
       axios.post(`${EMBEDDING_SERVICE_URL}/embed`, formDataForEmbed, {
         headers: { ...formDataForEmbed.getHeaders() },
-        timeout: 30000,
+        timeout: 300000,
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
       }),
     ]);
 
