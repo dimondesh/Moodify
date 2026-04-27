@@ -18,8 +18,7 @@ dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
 const MONGO_URL = process.env.MONGODB_URI || process.env.MONGO_URI;
 const EMBEDDING_SERVICE_URL =
-  process.env.EMBEDDING_SERVICE_URL || "http://localhost:5002";
-
+  process.env.EMBEDDING_SERVICE_URL || "http://127.0.0.1:5006";
 if (!MONGO_URL) {
   console.error(
     "❌ Ошибка: Не найдена переменная MONGODB_URI или MONGO_URI в файле .env",
@@ -77,6 +76,7 @@ async function runEmbeddingMigration() {
         { "audioFeatures.embedding": null },
         { "audioFeatures.embedding": { $exists: false } },
         { "audioFeatures.embedding": { $size: 0 } },
+        { "audioFeatures.embedding": { $size: 39 } },
       ],
     });
 

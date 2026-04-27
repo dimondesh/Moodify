@@ -14,30 +14,31 @@ musicnn = es.TensorflowPredictMusiCNN(graphFilename=MODEL_PATH)
 print("Model loaded successfully!")
 
 def extract_embedding(file_path: str):
+    # Загружаем аудио. Теперь мы не обрезаем 30 секунд, а берем трек целиком!
     loader = es.MonoLoader(filename=file_path, sampleRate=16000)
     audio = loader()
-    
-    sr = 16000
-    if len(audio) > sr * 60:
-        start = sr * 30
-        end = start + sr * 30
-        audio = audio[start:end]
         
     if len(audio) == 0:
-        return [0.0] * 200
+        return [0.0] * 50
 
-    # Исправлено: получаем один массив с семантическими признаками (50 измерений)
+    # Получаем массив предсказаний для каждого 3-секундного патча трека
     features = musicnn(audio)
     
-    # Усредняем значения всех 3-секундных патчей по времени
-    embedding_mean = np.mean(features, axis=0)
+    # Усредняем значения (чтобы понять общую, базовую картину трека)
+    mean_features = np.mean(features, axis=0)
+    
+    # Берем максимальные значения (чтобы засечь резкие срывы в другой жанр)
+    max_features = np.max(features, axis=0)
+    
+    # Смешиваем: 70% базы и 30% пиковых значений (Уровень 2)
+    embedding_hybrid = (mean_features * 0.7) + (max_features * 0.3)
     
     # L2-Нормализация
-    norm = np.linalg.norm(embedding_mean)
+    norm = np.linalg.norm(embedding_hybrid)
     if norm > 0:
-        embedding_mean = embedding_mean / norm
+        embedding_hybrid = embedding_hybrid / norm
         
-    return embedding_mean.tolist()
+    return embedding_hybrid.tolist()
 
 @app.post("/embed")
 async def get_embedding(file: UploadFile = File(...)):
@@ -61,7 +62,7 @@ async def health_check():
         "status": "OK",
         "message": "Moodify Deep Embedding Service is running",
         "dimensions": 50,
-        "model": "MusiCNN (Million Song Dataset Semantic Vector)"
+        "model": "MusiCNN (Hybrid Mean 70% + Max 30%)"
     }
 
 if __name__ == "__main__":
