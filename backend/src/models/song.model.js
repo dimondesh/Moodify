@@ -28,6 +28,14 @@ const songSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    canvasUrl: {
+      type: String,
+      default: null,
+    },
+    canvasPublicId: {
+      type: String,
+      default: null,
+    },
     hlsUrl: {
       type: String,
       required: true,

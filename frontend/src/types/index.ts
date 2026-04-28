@@ -61,6 +61,7 @@ export interface Song {
   likedAt?: string;
   addedAt?: string;
   lyrics?: string;
+  canvasUrl: string;
 }
 
 export interface RecentSearchItem {
