@@ -20,17 +20,17 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 15 * 1024 * 1024,
         navigateFallback: "/index.html",
         cleanupOutdatedCaches: true,
+        sourcemap: false,
 
         runtimeCaching: [
           {
-            // Этот кэш будет использоваться для явного скачивания HLS и обложек
             urlPattern: ({ url }) => url.hostname === "moodify-one.b-cdn.net",
             handler: "CacheFirst",
             options: {
-              cacheName: "moodify-hls-assets-cache", // Новое, более точное имя
+              cacheName: "moodify-hls-assets-cache",
               expiration: {
-                maxEntries: 1000, // Увеличим лимит для сегментов
-                maxAgeSeconds: 60 * 60 * 24 * 90, // 90 дней
+                maxEntries: 1000,
+                maxAgeSeconds: 60 * 60 * 24 * 90,
               },
               rangeRequests: true,
               cacheableResponse: {
@@ -40,7 +40,7 @@ export default defineConfig({
           },
           {
             urlPattern: ({ url }) =>
-              url.origin === "https://moodify-fpvm.onrender.com/api",
+              url.href.startsWith("https://moodify-music.com/api/albums"),
             handler: "NetworkFirst",
             options: {
               cacheName: "moodify-api-cache",
