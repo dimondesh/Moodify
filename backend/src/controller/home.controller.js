@@ -95,7 +95,6 @@ export const getBootstrapData = async (req, res, next) => {
   try {
     const userId = req.user?.id;
 
-    // 1. Эти данные грузим всегда (даже для неавторизованных)
     const commonPromises = [
       getQuickPicks(req, res, next, true, 8),
       getTrendingAlbums(req, res, next, true, HOME_SECTION_LIMIT),
@@ -103,7 +102,6 @@ export const getBootstrapData = async (req, res, next) => {
       getPublicPlaylists(req, res, next, true, HOME_SECTION_LIMIT),
     ];
 
-    // 2. Эти данные запрашиваем ТОЛЬКО если есть userId
     const userSpecificPromises = userId
       ? [
           getPersonalMixes(req, res, next, true),
@@ -120,7 +118,6 @@ export const getBootstrapData = async (req, res, next) => {
     const [featuredSongs, trendingAlbums, mixesData, publicPlaylists] =
       await Promise.all(commonPromises);
 
-    // 3. Базовая структура ответа (дефолтные пустые массивы для гостей)
     const bootstrapData = {
       featuredSongs,
       trendingAlbums,
@@ -145,7 +142,6 @@ export const getBootstrapData = async (req, res, next) => {
       },
     };
 
-    // 4. Если пользователь авторизован, подставляем его персональные данные
     if (userId && userSpecificPromises.length > 0) {
       const [
         personalMixes,
@@ -195,6 +191,18 @@ async function getOptimizedLibrarySummary(userId) {
         localField: "likedSongs.songId",
         foreignField: "_id",
         as: "songDetails",
+        pipeline: [
+          {
+            $project: {
+              title: 1,
+              artist: 1,
+              albumId: 1,
+              imageUrl: 1,
+              duration: 1,
+              playCount: 1,
+            },
+          },
+        ],
       },
     },
     {
@@ -252,11 +260,8 @@ async function getOptimizedLibrarySummary(userId) {
               artist: 1,
               albumId: 1,
               imageUrl: 1,
-              hlsUrl: 1,
               duration: 1,
               playCount: 1,
-              genres: 1,
-              moods: 1,
             },
           },
         ],
@@ -285,11 +290,8 @@ async function getOptimizedLibrarySummary(userId) {
               artist: 1,
               albumId: 1,
               imageUrl: 1,
-              hlsUrl: 1,
               duration: 1,
               playCount: 1,
-              genres: 1,
-              moods: 1,
             },
           },
         ],

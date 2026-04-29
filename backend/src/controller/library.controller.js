@@ -7,6 +7,9 @@ import { Mix } from "../models/mix.model.js";
 import { User } from "../models/user.model.js";
 import { GeneratedPlaylist } from "../models/generatedPlaylist.model.js";
 
+const SONG_MINIMAL_SELECT =
+  "_id title artist albumId imageUrl duration playCount";
+
 export const getLibraryAlbums = async (req, res, next) => {
   try {
     const userId = req.user?.id;
@@ -18,13 +21,8 @@ export const getLibraryAlbums = async (req, res, next) => {
       "albums.albumId",
     );
 
-    if (!library) {
-      return res.json({ albums: [] });
-    }
-
-    if (!library.albums) {
-      library.albums = [];
-    }
+    if (!library) return res.json({ albums: [] });
+    if (!library.albums) library.albums = [];
 
     const albums = library.albums
       .filter((a) => a.albumId && a.albumId._doc)
@@ -46,13 +44,12 @@ export const getLibraryAlbums = async (req, res, next) => {
 export const getLikedSongs = async (req, res, next) => {
   try {
     const userId = req.user?.id;
-    if (!userId) {
-      return;
-    }
+    if (!userId) return;
 
     const library = await Library.findOne({ userId })
       .populate({
         path: "likedSongs.songId",
+        select: SONG_MINIMAL_SELECT,
         model: "Song",
         populate: {
           path: "artist",
@@ -62,13 +59,8 @@ export const getLikedSongs = async (req, res, next) => {
       })
       .lean();
 
-    if (!library) {
-      return res.json({ songs: [] });
-    }
-
-    if (!library.likedSongs) {
-      library.likedSongs = [];
-    }
+    if (!library) return res.json({ songs: [] });
+    if (!library.likedSongs) library.likedSongs = [];
 
     const songs = library.likedSongs
       .filter((item) => item.songId)
@@ -89,19 +81,13 @@ export const getLikedSongs = async (req, res, next) => {
 
 export const toggleAlbumInLibrary = async (req, res, next) => {
   try {
-    console.log("▶️ toggleAlbumInLibrary called with:", req.body);
-
     const userId = req.user?.id;
-    console.log("UserId from req.user:", userId);
     const { albumId } = req.body;
 
-    if (!userId || !albumId) {
+    if (!userId || !albumId)
       return res.status(400).json({ message: "Missing userId or albumId" });
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(albumId)) {
+    if (!mongoose.Types.ObjectId.isValid(albumId))
       return res.status(400).json({ message: "Invalid albumId format" });
-    }
 
     const library = await Library.findOneAndUpdate(
       { userId },
@@ -109,9 +95,7 @@ export const toggleAlbumInLibrary = async (req, res, next) => {
       { upsert: true, new: true },
     );
 
-    if (!library.albums) {
-      library.albums = [];
-    }
+    if (!library.albums) library.albums = [];
 
     const exists = library.albums.some(
       (a) => a.albumId?.toString() === albumId,
@@ -129,7 +113,6 @@ export const toggleAlbumInLibrary = async (req, res, next) => {
     }
 
     await library.save();
-
     res.json({ success: true, isAdded: !exists });
   } catch (err) {
     console.error("❌ toggleAlbumInLibrary error:", err);
@@ -142,13 +125,10 @@ export const toggleSongLikeInLibrary = async (req, res, next) => {
     const userId = req.user?.id;
     const { songId } = req.body;
 
-    if (!userId || !songId) {
+    if (!userId || !songId)
       return res.status(400).json({ message: "Missing userId or songId" });
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(songId)) {
+    if (!mongoose.Types.ObjectId.isValid(songId))
       return res.status(400).json({ message: "Invalid songId format" });
-    }
 
     const library = await Library.findOneAndUpdate(
       { userId },
@@ -156,9 +136,7 @@ export const toggleSongLikeInLibrary = async (req, res, next) => {
       { upsert: true, new: true },
     );
 
-    if (!library.likedSongs) {
-      library.likedSongs = [];
-    }
+    if (!library.likedSongs) library.likedSongs = [];
 
     const exists = library.likedSongs.some(
       (s) => s.songId?.toString() === songId,
@@ -168,13 +146,11 @@ export const toggleSongLikeInLibrary = async (req, res, next) => {
     const currentTime = new Date();
 
     if (exists) {
-      // Если трек уже лайкнут — удаляем его
       library.likedSongs = library.likedSongs.filter(
         (s) => s.songId?.toString() !== songId,
       );
       isLikedStatus = false;
     } else {
-      // Если не лайкнут — добавляем с текущей датой
       library.likedSongs.push({
         songId: new mongoose.Types.ObjectId(songId),
         addedAt: currentTime,
@@ -182,9 +158,7 @@ export const toggleSongLikeInLibrary = async (req, res, next) => {
       isLikedStatus = true;
     }
 
-    // Сохраняем обновленную библиотеку без перезаписи остальных дат
     await library.save();
-
     res.json({ success: true, isLiked: isLikedStatus });
   } catch (err) {
     console.error("❌ toggleSongLikeInLibrary error:", err);
@@ -195,30 +169,17 @@ export const toggleSongLikeInLibrary = async (req, res, next) => {
 export const getPlaylistsInLibrary = async (req, res, next) => {
   try {
     const userId = req.user?.id;
-    console.log("UserId from req.user (in getPlaylistsInLibrary):", userId);
-
-    if (!userId) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
     const library = await Library.findOne({ userId }).populate({
       path: "playlists.playlistId",
       model: "Playlist",
       match: { isPublic: true },
-
-      populate: {
-        path: "owner",
-        select: "fullName imageUrl",
-      },
+      populate: { path: "owner", select: "fullName imageUrl" },
     });
 
-    if (!library) {
-      return res.json({ playlists: [] });
-    }
-
-    if (!library.playlists) {
-      library.playlists = [];
-    }
+    if (!library) return res.json({ playlists: [] });
+    if (!library.playlists) library.playlists = [];
 
     const playlists = library.playlists
       .filter((item) => item.playlistId && item.playlistId._doc)
@@ -239,20 +200,15 @@ export const getPlaylistsInLibrary = async (req, res, next) => {
 
 export const togglePlaylistInLibrary = async (req, res, next) => {
   try {
-    console.log("▶️ togglePlaylistInLibrary called with:", req.body);
-
     const userId = req.user?.id;
-    console.log("UserId from req.user:", userId);
     const { playlistId } = req.body;
-    const playlistToUpdate = await Playlist.findById(playlistId);
 
-    if (!userId || !playlistId) {
+    if (!userId || !playlistId)
       return res.status(400).json({ message: "Missing userId or playlistId" });
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(playlistId)) {
+    if (!mongoose.Types.ObjectId.isValid(playlistId))
       return res.status(400).json({ message: "Invalid playlistId format" });
-    }
+
+    const playlistToUpdate = await Playlist.findById(playlistId);
 
     const library = await Library.findOneAndUpdate(
       { userId },
@@ -260,9 +216,7 @@ export const togglePlaylistInLibrary = async (req, res, next) => {
       { upsert: true, new: true },
     );
 
-    if (!library.playlists) {
-      library.playlists = [];
-    }
+    if (!library.playlists) library.playlists = [];
 
     const exists = library.playlists.some(
       (p) => p.playlistId?.toString() === playlistId,
@@ -277,9 +231,8 @@ export const togglePlaylistInLibrary = async (req, res, next) => {
       );
       message = "Playlist removed from library";
       isAdded = false;
-      if (playlistToUpdate.likes > 0) {
+      if (playlistToUpdate && playlistToUpdate.likes > 0)
         playlistToUpdate.likes -= 1;
-      }
     } else {
       library.playlists.push({
         playlistId: new mongoose.Types.ObjectId(playlistId),
@@ -287,10 +240,10 @@ export const togglePlaylistInLibrary = async (req, res, next) => {
       });
       message = "Playlist added to library";
       isAdded = true;
-      playlistToUpdate.likes += 1;
+      if (playlistToUpdate) playlistToUpdate.likes += 1;
     }
 
-    await playlistToUpdate.save();
+    if (playlistToUpdate) await playlistToUpdate.save();
     await library.save();
 
     res.json({ success: true, isAdded, message });
@@ -305,13 +258,10 @@ export const toggleArtistInLibrary = async (req, res, next) => {
     const userId = req.user?.id;
     const { artistId } = req.body;
 
-    if (!userId || !artistId) {
+    if (!userId || !artistId)
       return res.status(400).json({ message: "Missing userId or artistId" });
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(artistId)) {
+    if (!mongoose.Types.ObjectId.isValid(artistId))
       return res.status(400).json({ message: "Invalid artistId format" });
-    }
 
     const library = await Library.findOneAndUpdate(
       { userId },
@@ -319,9 +269,7 @@ export const toggleArtistInLibrary = async (req, res, next) => {
       { upsert: true, new: true },
     );
 
-    if (!library.followedArtists) {
-      library.followedArtists = [];
-    }
+    if (!library.followedArtists) library.followedArtists = [];
 
     const exists = library.followedArtists.some(
       (a) => a.artistId?.toString() === artistId,
@@ -343,7 +291,6 @@ export const toggleArtistInLibrary = async (req, res, next) => {
     }
 
     await library.save();
-
     res.json({ success: true, isFollowed: isFollowedStatus });
   } catch (err) {
     console.error("❌ toggleArtistInLibrary error:", err);
@@ -354,9 +301,7 @@ export const toggleArtistInLibrary = async (req, res, next) => {
 export const getFollowedArtists = async (req, res, next) => {
   try {
     const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
     const library = await Library.findOne({ userId })
       .populate({
@@ -366,50 +311,26 @@ export const getFollowedArtists = async (req, res, next) => {
       })
       .lean();
 
-    if (!library) {
-      console.log("No library found for user:", userId);
-      return res.json({ artists: [] });
-    }
-
-    if (!library.followedArtists) {
-      console.log(
-        "library.followedArtists is undefined. Initializing to empty array.",
-      );
-      library.followedArtists = [];
-    }
-
-    console.log(
-      "Fetched library.followedArtists before filter:",
-      JSON.stringify(library.followedArtists, null, 2),
-    );
+    if (!library) return res.json({ artists: [] });
+    if (!library.followedArtists) library.followedArtists = [];
 
     const artists = library.followedArtists
-      .filter((item) => {
-        if (!item.artistId) {
-          console.log("Filtering out item with missing artistId:", item);
-          return false;
-        }
-        if (typeof item.artistId !== "object" || !item.artistId._id) {
-          console.log("Filtering out malformed artistId item:", item.artistId);
-          return false;
-        }
-        return true;
-      })
+      .filter(
+        (item) =>
+          item.artistId &&
+          typeof item.artistId === "object" &&
+          item.artistId._id,
+      )
       .sort(
         (a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime(),
       )
-      .map((item) => {
-        console.log("Processing artist item:", JSON.stringify(item, null, 2));
-        return {
-          _id: item.artistId._id,
-          name: item.artistId.name,
-          imageUrl: item.artistId.imageUrl,
-          createdAt: item.artistId.createdAt || new Date().toISOString(),
-          addedAt: item.addedAt,
-        };
-      });
-
-    console.log("Final processed artists:", JSON.stringify(artists, null, 2));
+      .map((item) => ({
+        _id: item.artistId._id,
+        name: item.artistId.name,
+        imageUrl: item.artistId.imageUrl,
+        createdAt: item.artistId.createdAt || new Date().toISOString(),
+        addedAt: item.addedAt,
+      }));
 
     res.json({ artists });
   } catch (err) {
@@ -417,14 +338,14 @@ export const getFollowedArtists = async (req, res, next) => {
     next(err);
   }
 };
+
 export const toggleMixInLibrary = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const { mixId } = req.body;
 
-    if (!mixId || !mongoose.Types.ObjectId.isValid(mixId)) {
+    if (!mixId || !mongoose.Types.ObjectId.isValid(mixId))
       return res.status(400).json({ message: "Valid Mix ID is required" });
-    }
 
     const library = await Library.findOneAndUpdate(
       { userId },
@@ -515,9 +436,7 @@ export const getSavedMixes = async (req, res, next) => {
       })
       .lean();
 
-    if (!library || !library.savedMixes) {
-      return res.json({ mixes: [] });
-    }
+    if (!library || !library.savedMixes) return res.json({ mixes: [] });
 
     const mixes = library.savedMixes
       .filter((item) => item.mixId)
@@ -536,22 +455,20 @@ export const getSavedMixes = async (req, res, next) => {
 export const getOwnedPlaylists = async (req, res) => {
   try {
     const userId = req.user.id;
-    if (!userId) {
+    if (!userId)
       return res.status(401).json({ message: "User not authenticated" });
-    }
 
     const userWithPlaylists = await User.findById(userId).populate({
       path: "playlists",
       populate: {
         path: "songs",
-        select: "-lyrics",
+        select: SONG_MINIMAL_SELECT,
         model: "Song",
       },
     });
 
-    if (!userWithPlaylists) {
+    if (!userWithPlaylists)
       return res.status(404).json({ message: "User not found" });
-    }
 
     res.status(200).json(userWithPlaylists.playlists || []);
   } catch (error) {
@@ -570,9 +487,8 @@ export const getSavedGeneratedPlaylists = async (req, res, next) => {
       })
       .lean();
 
-    if (!library || !library.savedGeneratedPlaylists) {
+    if (!library || !library.savedGeneratedPlaylists)
       return res.json({ playlists: [] });
-    }
 
     const playlists = library.savedGeneratedPlaylists
       .filter((item) => item.playlistId)
@@ -630,12 +546,11 @@ export const toggleGeneratedPlaylistInLibrary = async (req, res, next) => {
     next(err);
   }
 };
+
 export const getLibrarySummary = async (req, res, next) => {
   try {
     const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
     const library = await Library.findOne({ userId }).lean();
 
@@ -700,9 +615,7 @@ export const getLibrarySummary = async (req, res, next) => {
         .find({ _id: { $in: mixIds } })
         .populate({
           path: "songs",
-          select: "-lyrics",
-          select:
-            "title duration imageUrl artist albumId hlsUrl playCount genres moods",
+          select: SONG_MINIMAL_SELECT,
           populate: { path: "artist", select: "name imageUrl" },
         })
         .select("name imageUrl sourceName type generatedOn songs")
@@ -712,9 +625,7 @@ export const getLibrarySummary = async (req, res, next) => {
         .find({ _id: { $in: personalMixIds } })
         .populate({
           path: "songs",
-          select: "-lyrics",
-          select:
-            "title duration imageUrl artist albumId hlsUrl playCount genres moods",
+          select: SONG_MINIMAL_SELECT,
           populate: { path: "artist", select: "name imageUrl" },
         })
         .select("name imageUrl generatedOn songs")
@@ -736,16 +647,12 @@ export const getLibrarySummary = async (req, res, next) => {
       }));
     };
 
-    // Special handling for liked songs to ensure proper sorting
     const addAddedAtAndSort = (items, libraryField) => {
       const lookup = new Map(
         libraryField.map((i) => [i[Object.keys(i)[0]].toString(), i.addedAt]),
       );
       return items
-        .map((item) => ({
-          ...item,
-          addedAt: lookup.get(item._id.toString()),
-        }))
+        .map((item) => ({ ...item, addedAt: lookup.get(item._id.toString()) }))
         .sort(
           (a, b) =>
             new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime(),

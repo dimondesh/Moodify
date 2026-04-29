@@ -50,18 +50,18 @@ export interface Song {
   artist: Artist[];
   albumId: string | null;
   imageUrl: string;
-  hlsUrl: string;
+  hlsUrl?: string;
+  canvasUrl?: string;
   duration: number;
   playCount: number;
-  genres: Genre[];
-  moods: Mood[];
+  genres?: Genre[];
+  moods?: Mood[];
   createdAt: string;
   updatedAt: string;
   albumTitle?: string;
   likedAt?: string;
   addedAt?: string;
   lyrics?: string;
-  canvasUrl: string;
 }
 
 export interface RecentSearchItem {

@@ -1,6 +1,7 @@
-// backend/src/controller/generatedPlaylist.controller.js
-
 import { GeneratedPlaylist } from "../models/generatedPlaylist.model.js";
+
+const SONG_MINIMAL_SELECT =
+  "_id title artist albumId imageUrl duration playCount";
 
 export const getMyGeneratedPlaylists = async (
   req,
@@ -12,9 +13,7 @@ export const getMyGeneratedPlaylists = async (
     const userId = req.user.id;
     const playlists = await GeneratedPlaylist.find({ user: userId }).populate({
       path: "songs",
-      select: "-lyrics",
-      select:
-        "title artist albumId imageUrl hlsUrl duration playCount genres moods",
+      select: SONG_MINIMAL_SELECT,
       populate: { path: "artist", model: "Artist", select: "name imageUrl" },
     });
 
@@ -32,16 +31,11 @@ export const getGeneratedPlaylistById = async (req, res, next) => {
   try {
     const playlist = await GeneratedPlaylist.findById(req.params.id).populate({
       path: "songs",
-      select: "-lyrics",
-      select:
-        "title artist albumId imageUrl hlsUrl duration playCount genres moods",
+      select: SONG_MINIMAL_SELECT,
       populate: { path: "artist", model: "Artist", select: "name imageUrl" },
     });
 
     if (!playlist) {
-      console.log(
-        `[DEBUG] Playlist with ID ${req.params.id} NOT FOUND in database.`,
-      );
       return res.status(404).json({ message: "Generated playlist not found." });
     }
 

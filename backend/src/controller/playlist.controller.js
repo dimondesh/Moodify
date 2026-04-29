@@ -14,6 +14,8 @@ import {
 } from "../lib/ai.service.js";
 import { optimizeAndUploadImage } from "../lib/image.service.js";
 
+const SONG_MINIMAL_SELECT = "_id title imageUrl duration playCount albumId";
+
 const uploadImageToBunny = async (file) => {
   try {
     const fileName = `${uuidv4()}${path.extname(file.name)}`;
@@ -82,7 +84,7 @@ export const getMyPlaylists = async (req, res, next) => {
       .populate("owner", "fullName imageUrl")
       .populate({
         path: "songs",
-        select: "-lyrics",
+        select: SONG_MINIMAL_SELECT,
         populate: {
           path: "artist",
           model: "Artist",
@@ -102,7 +104,7 @@ export const getMyPlaylists = async (req, res, next) => {
           },
           {
             path: "songs",
-            select: "-lyrics",
+            select: SONG_MINIMAL_SELECT,
             populate: {
               path: "artist",
               model: "Artist",
@@ -148,7 +150,7 @@ export const getPlaylistById = async (req, res, next) => {
       .populate("owner", "fullName imageUrl")
       .populate({
         path: "songs",
-        select: "-lyrics",
+        select: SONG_MINIMAL_SELECT,
         populate: {
           path: "artist",
           model: "Artist",
@@ -217,7 +219,7 @@ export const updatePlaylist = async (req, res, next) => {
       .populate("owner", "fullName imageUrl")
       .populate({
         path: "songs",
-        select: "-lyrics",
+        select: SONG_MINIMAL_SELECT,
         populate: {
           path: "artist",
           model: "Artist",
@@ -252,7 +254,6 @@ export const deletePlaylist = async (req, res, next) => {
       });
     }
 
-    // Удаляем обложку плейлиста из Bunny CDN
     if (playlist.imagePublicId) {
       await deleteFromBunny(playlist.imagePublicId);
     }
@@ -304,7 +305,7 @@ export const addSongToPlaylist = async (req, res, next) => {
       .populate("owner", "fullName imageUrl")
       .populate({
         path: "songs",
-        select: "-lyrics",
+        select: SONG_MINIMAL_SELECT,
         populate: { path: "artist", model: "Artist", select: "name imageUrl" },
       })
       .lean();
@@ -352,7 +353,7 @@ export const removeSongFromPlaylist = async (req, res, next) => {
       .populate("owner", "fullName imageUrl")
       .populate({
         path: "songs",
-        select: "-lyrics",
+        select: SONG_MINIMAL_SELECT,
         populate: { path: "artist", model: "Artist", select: "name imageUrl" },
       })
       .lean();
@@ -441,7 +442,7 @@ export const getPublicPlaylists = async (
       .populate("owner", "fullName imageUrl")
       .populate({
         path: "songs",
-        select: "-lyrics",
+        select: SONG_MINIMAL_SELECT,
         populate: {
           path: "artist",
           model: "Artist",
@@ -659,7 +660,7 @@ export const createPlaylistWithAI = async (req, res, next) => {
       .populate("owner", "fullName imageUrl")
       .populate({
         path: "songs",
-        select: "-lyrics",
+        select: SONG_MINIMAL_SELECT,
         populate: { path: "artist", model: "Artist", select: "name imageUrl" },
       })
       .lean();

@@ -89,15 +89,19 @@ const getCanvasUrl = async (trackId) => {
     const canvases = data?.data?.canvasesList || data?.canvasesList;
 
     if (canvases && canvases.length > 0) {
-      return canvases[0].canvasUrl;
+      return { status: "FOUND", url: canvases[0].canvasUrl };
     }
+
+    if (canvases && canvases.length === 0) {
+      return { status: "EMPTY" }; // Официально пустой массив от микросервиса
+    }
+
+    return { status: "ERROR", message: "Неожиданный формат ответа" };
   } catch (e) {
     if (e.response && e.response.status === 429) throw e; // Пробрасываем 429 наверх для паузы
-    if (e.response && e.response.status !== 404) {
-      console.error(`   [Canvas API Error] Ошибка для ${trackId}:`, e.message);
-    }
+    console.error(`   [Canvas API Error] Ошибка для ${trackId}:`, e.message);
+    return { status: "ERROR", message: e.message };
   }
-  return null;
 };
 
 async function runCanvasMigration() {
@@ -147,16 +151,29 @@ async function runCanvasMigration() {
         }
 
         console.log(`   🔎 ID: ${trackId}. Поиск Canvas...`);
-        // 2. Ищем Canvas
-        const canvasSpotifyUrl = await getCanvasUrl(trackId);
 
-        if (!canvasSpotifyUrl) {
-          console.log(`   ⏭️ Canvas не найден. Пропускаем навсегда.`);
+        // 2. Ищем Canvas
+        const canvasResult = await getCanvasUrl(trackId);
+
+        if (canvasResult.status === "ERROR") {
+          console.log(
+            `   ⚠️ Ошибка микросервиса. Трек НЕ помечаем как пропущенный (повторим при следующем запуске).`,
+          );
+          await sleep(1000);
+          continue;
+        }
+
+        if (canvasResult.status === "EMPTY") {
+          console.log(
+            `   ⏭️ Микросервис вернул {"canvasesList":[]}. Пропускаем навсегда.`,
+          );
           saveSkippedId(song._id);
           skippedCount++;
           await sleep(300);
           continue;
         }
+
+        const canvasSpotifyUrl = canvasResult.url;
 
         console.log(`   ⬇️ Canvas загружается в CDN...`);
         // 3. Загружаем

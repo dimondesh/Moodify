@@ -1,13 +1,15 @@
 import { Album } from "../models/album.model.js";
 import { ListenHistory } from "../models/listenHistory.model.js";
 
+const SONG_MINIMAL_SELECT = "_id title imageUrl duration playCount albumId";
+
 export const getAllAlbums = async (req, res, next) => {
   try {
     const albums = await Album.find()
       .populate("artist", "name imageUrl")
       .populate({
         path: "songs",
-        select: "-lyrics",
+        select: SONG_MINIMAL_SELECT,
         populate: {
           path: "artist",
           model: "Artist",
@@ -30,7 +32,7 @@ export const getAlbumById = async (req, res, next) => {
       .populate("artist", "name imageUrl")
       .populate({
         path: "songs",
-        select: "-lyrics",
+        select: SONG_MINIMAL_SELECT,
         populate: {
           path: "artist",
           model: "Artist",
@@ -60,15 +62,13 @@ export const getTrendingAlbums = async (
   try {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-    // Получаем популярные песни за последние 7 дней с количеством прослушиваний
     const trendingSongIdsResult = await ListenHistory.aggregate([
       { $match: { listenedAt: { $gte: sevenDaysAgo } } },
       { $group: { _id: "$song", listenCount: { $sum: 1 } } },
       { $sort: { listenCount: -1 } },
-      { $limit: limit * 3 }, // Берем больше песен для лучшего покрытия альбомов
+      { $limit: limit * 3 },
     ]);
 
-    // Создаем Map для быстрого доступа к количеству прослушиваний
     const songPopularityMap = new Map();
     trendingSongIdsResult.forEach((item) => {
       songPopularityMap.set(item._id.toString(), item.listenCount);
@@ -78,14 +78,13 @@ export const getTrendingAlbums = async (
       .map((item) => item._id)
       .filter((id) => id);
 
-    // Получаем альбомы, содержащие эти популярные песни
     const albumsWithTrendingSongs = await Album.find({
       songs: { $in: trendingSongIds },
     })
       .populate("artist", "name imageUrl")
       .populate({
         path: "songs",
-        select: "-lyrics",
+        select: SONG_MINIMAL_SELECT,
         populate: {
           path: "artist",
           model: "Artist",
@@ -94,7 +93,6 @@ export const getTrendingAlbums = async (
       })
       .lean();
 
-    // Подсчитываем популярность альбомов на основе популярности их песен
     const albumPopularity = new Map();
 
     albumsWithTrendingSongs.forEach((album) => {
@@ -113,17 +111,15 @@ export const getTrendingAlbums = async (
       if (songCount > 0) {
         albumPopularity.set(album._id.toString(), {
           album,
-          totalListenCount, // Общее количество прослушиваний песен альбома
-          averageListenCount: totalListenCount / songCount, // Среднее количество прослушиваний
+          totalListenCount,
+          averageListenCount: totalListenCount / songCount,
           songCount,
         });
       }
     });
 
-    // Сортируем альбомы по популярности
     const sortedAlbums = Array.from(albumPopularity.values())
       .sort((a, b) => {
-        // Сначала по общему количеству прослушиваний, затем по среднему количеству прослушиваний
         if (b.totalListenCount !== a.totalListenCount) {
           return b.totalListenCount - a.totalListenCount;
         }
@@ -135,7 +131,6 @@ export const getTrendingAlbums = async (
       .slice(0, limit)
       .map((item) => item.album);
 
-    // Если недостаточно альбомов с трендовыми песнями, добавляем популярные альбомы
     if (sortedAlbums.length < limit) {
       const additionalAlbums = await Album.find({
         _id: { $nin: sortedAlbums.map((album) => album._id) },
@@ -143,14 +138,14 @@ export const getTrendingAlbums = async (
         .populate("artist", "name imageUrl")
         .populate({
           path: "songs",
-          select: "-lyrics",
+          select: SONG_MINIMAL_SELECT,
           populate: {
             path: "artist",
             model: "Artist",
             select: "name imageUrl",
           },
         })
-        .sort({ createdAt: -1 }) // Новые альбомы
+        .sort({ createdAt: -1 })
         .limit(limit - sortedAlbums.length)
         .lean();
 

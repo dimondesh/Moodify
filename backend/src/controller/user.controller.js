@@ -17,15 +17,16 @@ import { ListenHistory } from "../models/listenHistory.model.js";
 import { Song } from "../models/song.model.js";
 import { optimizeAndUploadImage } from "../lib/image.service.js";
 
+const SONG_MINIMAL_SELECT =
+  "_id title artist albumId imageUrl duration playCount";
+
 export const getAllUsers = async (req, res, next) => {
   try {
     const currentUserMongoId = req.user?.id;
-    if (!currentUserMongoId) {
+    if (!currentUserMongoId)
       return res.status(401).json({ message: "Unauthorized" });
-    }
 
     const users = await User.find({ _id: { $ne: currentUserMongoId } });
-
     res.status(200).json({ users });
   } catch (error) {
     next(error);
@@ -36,9 +37,7 @@ export const getMessages = async (req, res, next) => {
   try {
     const myId = req.user?.id;
     const { userId } = req.params;
-    if (!myId) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
+    if (!myId) return res.status(401).json({ message: "Unauthorized" });
 
     const messages = await Message.find({
       $or: [
@@ -54,9 +53,8 @@ export const getMessages = async (req, res, next) => {
 };
 
 export const getCurrentUser = (req, res) => {
-  if (!req.user) {
+  if (!req.user)
     return res.status(401).json({ message: "User not authenticated" });
-  }
   res.status(200).json(req.user);
 };
 
@@ -68,20 +66,11 @@ export const getUserProfile = async (req, res, next) => {
         path: "playlists",
         match: { isPublic: true },
         populate: [
-          {
-            path: "owner",
-            model: "User",
-            select: "fullName",
-          },
+          { path: "owner", model: "User", select: "fullName" },
           {
             path: "songs",
-            select: "-lyrics",
-            select:
-              "title artist albumId imageUrl hlsUrl duration playCount genres moods",
-            populate: {
-              path: "artist",
-              select: "name imageUrl",
-            },
+            select: SONG_MINIMAL_SELECT,
+            populate: { path: "artist", select: "name imageUrl" },
           },
         ],
         select: "title imageUrl isPublic owner songs",
@@ -90,9 +79,8 @@ export const getUserProfile = async (req, res, next) => {
 
     const library = await Library.findOne({ userId: userId }).lean();
 
-    if (!profileUser) {
+    if (!profileUser)
       return res.status(404).json({ message: "User not found" });
-    }
 
     const profileData = profileUser.toObject();
     profileData.followersCount = profileUser.followers.length;
@@ -110,15 +98,10 @@ export const getFollowers = async (req, res, next) => {
   try {
     const { userId } = req.params;
     const user = await User.findById(userId)
-      .populate({
-        path: "followers",
-        select: "fullName imageUrl",
-      })
+      .populate({ path: "followers", select: "fullName imageUrl" })
       .select("followers");
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    if (!user) return res.status(404).json({ message: "User not found" });
 
     const followers = user.followers.map((f) => ({
       _id: f._id,
@@ -145,9 +128,8 @@ export const followUser = async (req, res, next) => {
     const currentUser = await User.findById(currentUserMongoId);
     const userToFollow = await User.findById(userToFollowId);
 
-    if (!userToFollow) {
+    if (!userToFollow)
       return res.status(404).json({ message: "User to follow not found" });
-    }
 
     const isFollowing = currentUser.followingUsers.includes(userToFollowId);
 
@@ -194,14 +176,10 @@ export const updateUserProfile = async (req, res, next) => {
 
     if (req.files && req.files.imageUrl) {
       const file = req.files.imageUrl;
-
       if (currentUser.imageUrl) {
         const oldImagePath = getPathFromUrl(currentUser.imageUrl);
-        if (oldImagePath) {
-          await deleteFromBunny(oldImagePath);
-        }
+        if (oldImagePath) await deleteFromBunny(oldImagePath);
       }
-
       const result = await optimizeAndUploadImage(
         file,
         file.name,
@@ -221,7 +199,6 @@ export const updateUserProfile = async (req, res, next) => {
 
     if (Object.keys(updateDataFirebase).length > 0) {
       await firebaseAdmin.auth().updateUser(firebaseUid, updateDataFirebase);
-      console.log(`Firebase user ${firebaseUid} updated.`);
     }
 
     res
@@ -231,6 +208,7 @@ export const updateUserProfile = async (req, res, next) => {
     next(error);
   }
 };
+
 export const updateUserLanguage = async (req, res, next) => {
   try {
     const { language } = req.body;
@@ -241,7 +219,6 @@ export const updateUserLanguage = async (req, res, next) => {
     }
 
     await User.findByIdAndUpdate(userId, { language });
-
     res.status(200).json({ message: "Language updated successfully" });
   } catch (error) {
     next(error);
@@ -253,16 +230,14 @@ export const updateUserPrivacy = async (req, res, next) => {
     const { isAnonymous } = req.body;
     const userId = req.user.id;
 
-    if (typeof isAnonymous !== "boolean") {
+    if (typeof isAnonymous !== "boolean")
       return res.status(400).json({ message: "Invalid isAnonymous value" });
-    }
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { isAnonymous },
       { new: true },
     );
-
     const { io, userSockets, userActivities } = req;
     const userIdStr = userId.toString();
 
@@ -330,10 +305,7 @@ export const getFollowing = async (req, res, next) => {
     const { userId } = req.params;
 
     const user = await User.findById(userId)
-      .populate({
-        path: "followingUsers",
-        select: "fullName imageUrl",
-      })
+      .populate({ path: "followingUsers", select: "fullName imageUrl" })
       .select("followingUsers");
 
     const library = await Library.findOne({ userId })
@@ -343,21 +315,14 @@ export const getFollowing = async (req, res, next) => {
         select: "name imageUrl",
         populate: {
           path: "songs",
-          select: "-lyrics",
-          select:
-            "title artist albumId imageUrl hlsUrl duration playCount genres moods",
-          populate: {
-            path: "artist",
-            select: "name imageUrl",
-          },
+          select: SONG_MINIMAL_SELECT,
+          populate: { path: "artist", select: "name imageUrl" },
           options: { sort: { playCount: -1 }, limit: 5 },
         },
       })
       .select("followedArtists");
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    if (!user) return res.status(404).json({ message: "User not found" });
 
     const followingUsers = user.followingUsers.map((u) => ({
       _id: u._id,
@@ -378,10 +343,8 @@ export const getFollowing = async (req, res, next) => {
         })) || [];
 
     const combinedFollowing = [...followingUsers, ...followedArtists];
-
     res.status(200).json({ items: combinedFollowing });
   } catch (error) {
-    console.error("Error in getFollowing:", error);
     next(error);
   }
 };
@@ -394,23 +357,16 @@ export const getPublicPlaylists = async (req, res, next) => {
         path: "playlists",
         match: { isPublic: true },
         select: "title imageUrl owner",
-        populate: {
-          path: "owner",
-          model: "User",
-          select: "fullName",
-        },
+        populate: { path: "owner", model: "User", select: "fullName" },
       })
       .select("playlists");
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    if (!user) return res.status(404).json({ message: "User not found" });
 
     const playlists = user.playlists.map((p) => ({
       ...p.toObject(),
       type: "playlist",
     }));
-
     res.status(200).json({ items: playlists });
   } catch (error) {
     next(error);
@@ -420,30 +376,13 @@ export const getPublicPlaylists = async (req, res, next) => {
 export const getUnreadCounts = async (req, res, next) => {
   try {
     const currentUserId = req.user.id;
-    if (!currentUserId) {
+    if (!currentUserId)
       return res.status(401).json({ message: "Unauthorized" });
-    }
 
     const unreadCounts = await Message.aggregate([
-      {
-        $match: {
-          receiverId: currentUserId,
-          isRead: false,
-        },
-      },
-      {
-        $group: {
-          _id: "$senderId",
-          count: { $sum: 1 },
-        },
-      },
-      {
-        $project: {
-          _id: 0,
-          senderId: "$_id",
-          count: "$count",
-        },
-      },
+      { $match: { receiverId: currentUserId, isRead: false } },
+      { $group: { _id: "$senderId", count: { $sum: 1 } } },
+      { $project: { _id: 0, senderId: "$_id", count: "$count" } },
     ]);
 
     const countsMap = unreadCounts.reduce((acc, item) => {
@@ -467,7 +406,6 @@ export const getRecentSearches = async (req, res, next) => {
 
     const promises = searches.map(async (search) => {
       if (!search.itemType || !search.item) return null;
-
       const model = mongoose.model(search.itemType);
       let query = model.findById(search.item);
 
@@ -511,7 +449,6 @@ export const getRecentSearches = async (req, res, next) => {
     });
 
     const finalResults = (await Promise.all(promises)).filter(Boolean);
-
     res.status(200).json(finalResults);
   } catch (error) {
     next(error);
@@ -523,11 +460,10 @@ export const addRecentSearch = async (req, res, next) => {
     const userId = req.user.id;
     const { itemId, itemType } = req.body;
 
-    if (!itemId || !itemType) {
+    if (!itemId || !itemType)
       return res
         .status(400)
         .json({ message: "itemId and itemType are required" });
-    }
 
     await RecentSearch.findOneAndUpdate(
       { user: userId, item: itemId, itemType: itemType },
@@ -540,7 +476,6 @@ export const addRecentSearch = async (req, res, next) => {
       .skip(10)
       .select("_id")
       .lean();
-
     if (searches.length > 0) {
       const idsToDelete = searches.map((s) => s._id);
       await RecentSearch.deleteMany({ _id: { $in: idsToDelete } });
@@ -561,10 +496,8 @@ export const removeRecentSearch = async (req, res, next) => {
       _id: searchId,
       user: userId,
     });
-
-    if (!result) {
+    if (!result)
       return res.status(404).json({ message: "Search item not found" });
-    }
 
     res.status(200).json({ message: "Recent search removed" });
   } catch (error) {
@@ -590,8 +523,6 @@ export const getFavoriteArtists = async (
 ) => {
   try {
     const userId = req.user.id;
-
-    // Используем простой подход как в getRecentlyListenedArtists
     const listenHistory = await ListenHistory.find({
       user: new mongoose.Types.ObjectId(userId),
     })
@@ -611,24 +542,18 @@ export const getFavoriteArtists = async (
       return res.status(200).json([]);
     }
 
-    // Группируем по артистам и считаем прослушивания
     const artistMap = new Map();
-
     for (const record of listenHistory) {
       if (
         !record.song ||
         !record.song.artist ||
         record.song.artist.length === 0
-      ) {
+      )
         continue;
-      }
-
-      // Берем первого артиста из массива
       const artist = record.song.artist[0];
       if (!artist || !artist._id) continue;
 
       const artistId = artist._id.toString();
-
       if (!artistMap.has(artistId)) {
         artistMap.set(artistId, {
           _id: artist._id,
@@ -641,36 +566,24 @@ export const getFavoriteArtists = async (
           listenCount: 0,
         });
       }
-
-      const artistData = artistMap.get(artistId);
-      artistData.listenCount += 1;
+      artistMap.get(artistId).listenCount += 1;
     }
 
-    // Конвертируем Map в массив и сортируем по количеству прослушиваний
     const favoriteArtists = Array.from(artistMap.values())
       .sort((a, b) => b.listenCount - a.listenCount)
       .slice(0, 10);
 
-    // Получаем песни для каждого артиста
     for (const artist of favoriteArtists) {
       const songs = await Song.find({ artist: artist._id })
-        .select(
-          "title duration imageUrl artist albumId hlsUrl playCount genres moods",
-        )
-        .populate({
-          path: "artist",
-          select: "name imageUrl",
-        })
+        .select(SONG_MINIMAL_SELECT)
+        .populate({ path: "artist", select: "name imageUrl" })
         .sort({ playCount: -1 })
         .limit(5)
         .lean();
-
       artist.songs = songs;
     }
 
-    if (returnInternal) {
-      return favoriteArtists;
-    }
+    if (returnInternal) return favoriteArtists;
     return res.status(200).json(favoriteArtists);
   } catch (error) {
     if (returnInternal) return [];
@@ -696,19 +609,13 @@ export const getNewReleases = async (
         { path: "artist", model: "Artist", select: "name imageUrl" },
         {
           path: "songs",
-          select: "-lyrics",
-          select:
-            "title artist albumId imageUrl hlsUrl duration playCount genres moods",
-          populate: {
-            path: "artist",
-            select: "name imageUrl",
-          },
+          select: SONG_MINIMAL_SELECT,
+          populate: { path: "artist", select: "name imageUrl" },
         },
       ],
     });
 
     const result = recommendations ? recommendations.items : [];
-
     if (returnInternal) return result;
     return res.status(200).json(result);
   } catch (error) {
@@ -735,19 +642,13 @@ export const getPlaylistRecommendations = async (
         { path: "owner", model: "User", select: "fullName" },
         {
           path: "songs",
-          select: "-lyrics",
-          select:
-            "title artist albumId imageUrl hlsUrl duration playCount genres moods",
-          populate: {
-            path: "artist",
-            select: "name imageUrl",
-          },
+          select: SONG_MINIMAL_SELECT,
+          populate: { path: "artist", select: "name imageUrl" },
         },
       ],
     });
 
     const result = recommendations ? recommendations.items : [];
-
     if (returnInternal) return result;
     return res.status(200).json(result);
   } catch (error) {
@@ -760,19 +661,12 @@ export const getRecentlyListenedArtists = async (req, res, next) => {
   try {
     const { userId } = req.params;
     const currentUserId = req.user?.id;
-
-    // Проверяем, что пользователь существует и настройки приватности
     const user = await User.findById(userId).select(
       "showRecentlyListenedArtists",
     );
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Приводим currentUserId к строке для корректного сравнения
     const currentUserIdString = currentUserId.toString();
-
-    // Если это не профиль текущего пользователя, проверяем настройки приватности
     if (
       currentUserIdString !== userId &&
       user.showRecentlyListenedArtists === false
@@ -782,11 +676,9 @@ export const getRecentlyListenedArtists = async (req, res, next) => {
         .json({ message: "Recently listened artists are private" });
     }
 
-    // Получаем недавно прослушанных артистов за последние 30 дней
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    // Используем простой подход как в getListenHistory
     const listenHistory = await ListenHistory.find({
       user: new mongoose.Types.ObjectId(userId),
       listenedAt: { $gte: thirtyDaysAgo },
@@ -802,28 +694,21 @@ export const getRecentlyListenedArtists = async (req, res, next) => {
       })
       .lean();
 
-    if (!listenHistory || listenHistory.length === 0) {
+    if (!listenHistory || listenHistory.length === 0)
       return res.status(200).json({ artists: [] });
-    }
 
-    // Группируем по артистам и считаем прослушивания
     const artistMap = new Map();
-
     for (const record of listenHistory) {
       if (
         !record.song ||
         !record.song.artist ||
         record.song.artist.length === 0
-      ) {
+      )
         continue;
-      }
-
-      // Берем первого артиста из массива
       const artist = record.song.artist[0];
       if (!artist || !artist._id) continue;
 
       const artistId = artist._id.toString();
-
       if (!artistMap.has(artistId)) {
         artistMap.set(artistId, {
           _id: artist._id,
@@ -838,138 +723,28 @@ export const getRecentlyListenedArtists = async (req, res, next) => {
           songs: [],
         });
       }
-
       const artistData = artistMap.get(artistId);
       artistData.listenCount += 1;
-
-      if (record.listenedAt > artistData.lastListened) {
+      if (record.listenedAt > artistData.lastListened)
         artistData.lastListened = record.listenedAt;
-      }
     }
 
-    // Конвертируем Map в массив и сортируем по последнему прослушиванию
     const recentlyListenedArtists = Array.from(artistMap.values())
       .sort((a, b) => new Date(b.lastListened) - new Date(a.lastListened))
       .slice(0, 12);
 
-    // Получаем песни для каждого артиста
     for (const artist of recentlyListenedArtists) {
       const songs = await Song.find({ artist: artist._id })
-        .select(
-          "title duration imageUrl artist albumId hlsUrl playCount genres moods",
-        )
-        .populate({
-          path: "artist",
-          select: "name imageUrl",
-        })
+        .select(SONG_MINIMAL_SELECT)
+        .populate({ path: "artist", select: "name imageUrl" })
         .sort({ playCount: -1 })
         .limit(5)
         .lean();
-
       artist.songs = songs;
     }
 
     res.status(200).json({ artists: recentlyListenedArtists });
   } catch (error) {
-    console.error("Error in getRecentlyListenedArtists:", error);
-    next(error);
-  }
-};
-
-export const debugRecentlyListenedArtists = async (req, res, next) => {
-  try {
-    const { userId } = req.params;
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    // Проверяем, есть ли вообще записи в ListenHistory для этого пользователя
-    const totalHistory = await ListenHistory.countDocuments({
-      user: new mongoose.Types.ObjectId(userId),
-    });
-
-    const recentHistory = await ListenHistory.countDocuments({
-      user: new mongoose.Types.ObjectId(userId),
-      listenedAt: { $gte: thirtyDaysAgo },
-    });
-
-    // Получаем несколько последних записей
-    const recentRecords = await ListenHistory.find({
-      user: new mongoose.Types.ObjectId(userId),
-      listenedAt: { $gte: thirtyDaysAgo },
-    })
-      .populate({
-        path: "song",
-        populate: {
-          path: "artist",
-          select: "name imageUrl",
-        },
-      })
-      .limit(5)
-      .lean();
-
-    // Тестируем упрощенную агрегацию
-    const simpleAggregation = await ListenHistory.aggregate([
-      {
-        $match: {
-          user: new mongoose.Types.ObjectId(userId),
-          listenedAt: { $gte: thirtyDaysAgo },
-        },
-      },
-      { $sort: { listenedAt: -1 } },
-      { $limit: 10 },
-      {
-        $lookup: {
-          from: "songs",
-          localField: "song",
-          foreignField: "_id",
-          as: "songDetails",
-        },
-      },
-      { $unwind: "$songDetails" },
-      {
-        $lookup: {
-          from: "artists",
-          localField: "songDetails.artist",
-          foreignField: "_id",
-          as: "artists",
-        },
-      },
-      {
-        $addFields: {
-          artist: { $arrayElemAt: ["$artists", 0] },
-        },
-      },
-      {
-        $group: {
-          _id: "$artist._id",
-          name: { $first: "$artist.name" },
-          imageUrl: { $first: "$artist.imageUrl" },
-          listenCount: { $sum: 1 },
-          lastListened: { $max: "$listenedAt" },
-        },
-      },
-      { $match: { _id: { $ne: null } } },
-      { $sort: { lastListened: -1 } },
-      { $limit: 5 },
-    ]);
-
-    res.status(200).json({
-      userId,
-      thirtyDaysAgo,
-      totalHistory,
-      recentHistory,
-      recentRecords: recentRecords.map((record) => ({
-        songId: record.song?._id,
-        songTitle: record.song?.title,
-        artists: record.song?.artist,
-        artistsCount: record.song?.artist?.length || 0,
-        listenedAt: record.listenedAt,
-      })),
-      simpleAggregation,
-      simpleAggregationCount: simpleAggregation.length,
-    });
-  } catch (error) {
-    console.error("Error in debugRecentlyListenedArtists:", error);
     next(error);
   }
 };
@@ -978,12 +753,10 @@ export const updateRecentlyListenedArtistsPrivacy = async (req, res, next) => {
   try {
     const { showRecentlyListenedArtists } = req.body;
     const userId = req.user.id;
-
-    if (typeof showRecentlyListenedArtists !== "boolean") {
+    if (typeof showRecentlyListenedArtists !== "boolean")
       return res
         .status(400)
         .json({ message: "Invalid showRecentlyListenedArtists value" });
-    }
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
@@ -1005,7 +778,6 @@ export const getTopTracksThisMonth = async (req, res, next) => {
     const { userId } = req.params;
     const currentUserId = req.user?.id;
 
-    // Проверяем, что пользователь запрашивает свои собственные данные
     if (currentUserId.toString() !== userId) {
       return res.status(403).json({
         message: "Access denied. You can only view your own top tracks.",
@@ -1048,11 +820,7 @@ export const getTopTracksThisMonth = async (req, res, next) => {
           as: "artists",
         },
       },
-      {
-        $addFields: {
-          artist: "$artists",
-        },
-      },
+      { $addFields: { artist: "$artists" } },
       {
         $lookup: {
           from: "albums",
@@ -1079,11 +847,8 @@ export const getTopTracksThisMonth = async (req, res, next) => {
             _id: "$songDetails._id",
             title: "$songDetails.title",
             imageUrl: "$songDetails.imageUrl",
-            hlsUrl: "$songDetails.hlsUrl",
             duration: "$songDetails.duration",
             playCount: "$songDetails.playCount",
-            genres: "$songDetails.genres",
-            moods: "$songDetails.moods",
             listenCount: "$listenCount",
             lastListened: "$lastListened",
             artist: "$artist",
@@ -1099,7 +864,6 @@ export const getTopTracksThisMonth = async (req, res, next) => {
 
     res.status(200).json({ tracks: topTracks });
   } catch (error) {
-    console.error("Error in getTopTracksThisMonth:", error);
     next(error);
   }
 };
@@ -1109,7 +873,6 @@ export const getAllTopTracksThisMonth = async (req, res, next) => {
     const { userId } = req.params;
     const currentUserId = req.user?.id;
 
-    // Проверяем, что пользователь запрашивает свои собственные данные
     if (currentUserId.toString() !== userId) {
       return res.status(403).json({
         message: "Access denied. You can only view your own top tracks.",
@@ -1151,11 +914,7 @@ export const getAllTopTracksThisMonth = async (req, res, next) => {
           as: "artists",
         },
       },
-      {
-        $addFields: {
-          artist: "$artists",
-        },
-      },
+      { $addFields: { artist: "$artists" } },
       {
         $lookup: {
           from: "albums",
@@ -1183,11 +942,8 @@ export const getAllTopTracksThisMonth = async (req, res, next) => {
             _id: "$songDetails._id",
             title: "$songDetails.title",
             imageUrl: "$songDetails.imageUrl",
-            hlsUrl: "$songDetails.hlsUrl",
             duration: "$songDetails.duration",
             playCount: "$songDetails.playCount",
-            genres: "$songDetails.genres",
-            moods: "$songDetails.moods",
             listenCount: "$listenCount",
             lastListened: "$lastListened",
             artist: "$artist",
@@ -1203,7 +959,6 @@ export const getAllTopTracksThisMonth = async (req, res, next) => {
 
     res.status(200).json({ tracks: topTracks });
   } catch (error) {
-    console.error("Error in getAllTopTracksThisMonth:", error);
     next(error);
   }
 };

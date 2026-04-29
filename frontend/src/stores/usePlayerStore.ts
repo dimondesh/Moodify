@@ -1,4 +1,4 @@
-// src/stores/usePlayerStore.ts
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { Song } from "../types";
@@ -54,11 +54,11 @@ interface PlayerStore {
     songs: Song[],
     startIndex?: number,
     context?: { type: string; entityId?: string; entityTitle?: string },
-  ) => void;
-  setCurrentSong: (song: Song | null) => void;
+  ) => Promise<void>;
+  setCurrentSong: (song: Song | null) => Promise<void>;
   togglePlay: () => void;
-  playNext: () => void;
-  playPrevious: () => void;
+  playNext: () => Promise<void>;
+  playPrevious: () => Promise<void>;
   setIsFullScreenPlayerOpen: (isOpen: boolean) => void;
   setMasterVolume: (volume: number) => void;
   setCurrentTime: (time: number, isPlayerUpdate?: boolean) => void;
@@ -94,14 +94,11 @@ export const usePlayerStore = create<PlayerStore>()(
           song.albumTitle ||
           !song.albumId ||
           useOfflineStore.getState().isOffline
-        ) {
+        )
           return;
-        }
-
         try {
           const response = await axiosInstance.get(`/albums/${song.albumId}`);
           const albumTitle = response.data.album?.title;
-
           if (albumTitle && get().currentSong?._id === song._id) {
             set((state) => ({
               currentSong: { ...state.currentSong!, albumTitle },
@@ -115,53 +112,41 @@ export const usePlayerStore = create<PlayerStore>()(
         }
       };
 
-      let lyricsFetchTimeout: ReturnType<typeof setTimeout> | null = null;
+      // Умная функция подгрузки недостающих данных трека (HLS, Canvas, Lyrics)
+      const ensureSongData = async (song: Song): Promise<Song | null> => {
+        if (song.hlsUrl || useOfflineStore.getState().isOffline) return song;
 
-      const enrichSongWithLyricsIfNeeded = async (song: Song) => {
-        if (song.lyrics !== undefined || useOfflineStore.getState().isOffline) {
-          return;
+        set({ isFetchingLyrics: true });
+        try {
+          const response = await axiosInstance.get(`/songs/${song._id}`);
+          const fullData = response.data;
+
+          const completeSong = {
+            ...song,
+            hlsUrl: fullData.hlsUrl,
+            canvasUrl: fullData.canvasUrl,
+            lyrics: fullData.lyrics,
+            genres: fullData.genres,
+            moods: fullData.moods,
+          };
+
+          // Обновляем песню в очереди, чтобы данные закэшировались локально
+          set((state) => ({
+            queue: state.queue.map((s) =>
+              s._id === song._id ? completeSong : s,
+            ),
+            isFetchingLyrics: false,
+          }));
+
+          return completeSong;
+        } catch (error) {
+          console.error(
+            `Could not fetch full data for song ${song._id}`,
+            error,
+          );
+          set({ isFetchingLyrics: false });
+          return null;
         }
-
-        if (lyricsFetchTimeout) {
-          clearTimeout(lyricsFetchTimeout);
-        }
-
-        lyricsFetchTimeout = setTimeout(async () => {
-          if (get().currentSong?._id !== song._id) {
-            return;
-          }
-
-          set({ isFetchingLyrics: true });
-
-          try {
-            const response = await axiosInstance.get(
-              `/songs/${song._id}/lyrics`,
-            );
-            const lyrics = response.data.lyrics || "";
-
-            if (get().currentSong?._id === song._id) {
-              set((state) => ({
-                currentSong: { ...state.currentSong!, lyrics },
-                queue: state.queue.map((s) =>
-                  s._id === song._id ? { ...s, lyrics } : s,
-                ),
-                isFetchingLyrics: false,
-              }));
-            } else {
-              set({ isFetchingLyrics: false });
-            }
-          } catch (error) {
-            console.warn(`Could not fetch lyrics for song ${song._id}`, error);
-            if (get().currentSong?._id === song._id) {
-              set((state) => ({
-                currentSong: { ...state.currentSong!, lyrics: "" },
-                isFetchingLyrics: false,
-              }));
-            } else {
-              set({ isFetchingLyrics: false });
-            }
-          }
-        }, 500);
       };
 
       return {
@@ -200,7 +185,6 @@ export const usePlayerStore = create<PlayerStore>()(
             const currentIndex = currentSong
               ? newQueue.findIndex((s) => s._id === currentSong._id)
               : -1;
-
             let newShuffleHistory = state.shuffleHistory;
             let newShufflePointer = state.shufflePointer;
 
@@ -240,13 +224,8 @@ export const usePlayerStore = create<PlayerStore>()(
           });
         },
 
-        playAlbum: (
-          songs: Song[],
-          startIndex = 0,
-          context?: { type: string; entityId?: string; entityTitle?: string },
-        ) => {
+        playAlbum: async (songs: Song[], startIndex = 0, context) => {
           if (songs.length === 0) {
-            console.log("No songs, stopping playback");
             silentAudioService.pause();
             set({
               currentSong: null,
@@ -259,10 +238,34 @@ export const usePlayerStore = create<PlayerStore>()(
             return;
           }
 
-          if (!songs[0]?.hlsUrl) {
+          let targetIndexInQueue = startIndex;
+          let newShuffleHistory: number[] = [];
+          let newShufflePointer: number = -1;
+
+          if (get().shuffleMode !== "off") {
+            newShuffleHistory = shuffleQueue(songs.length);
+            const currentPosInShuffle = newShuffleHistory.indexOf(startIndex);
+            if (currentPosInShuffle !== -1) {
+              [newShuffleHistory[0], newShuffleHistory[currentPosInShuffle]] = [
+                newShuffleHistory[currentPosInShuffle],
+                newShuffleHistory[0],
+              ];
+            } else {
+              newShuffleHistory.unshift(startIndex);
+              newShuffleHistory.pop();
+            }
+            newShufflePointer = 0;
+            targetIndexInQueue = newShuffleHistory[newShufflePointer];
+          }
+
+          // eslint-disable-next-line prefer-const
+          let songToPlay = songs[targetIndexInQueue];
+          const fullSong = await ensureSongData(songToPlay);
+
+          if (!fullSong || !fullSong.hlsUrl) {
             console.error(
-              "First song has no hlsUrl, cannot start playback:",
-              songs[0],
+              "Cannot start playback: missing audio file",
+              fullSong,
             );
             toast.error("Cannot start playback: missing audio file");
             return;
@@ -270,69 +273,35 @@ export const usePlayerStore = create<PlayerStore>()(
 
           silentAudioService.play();
 
-          set((state) => {
-            const isShuffle = state.shuffleMode !== "off";
-            let songToPlay: Song;
-            let targetIndexInQueue: number;
-            let newShuffleHistory: number[] = [];
-            let newShufflePointer: number = -1;
+          // Подменяем минимальную песню на полную в очереди перед записью в стейт
+          const updatedQueue = [...songs];
+          updatedQueue[targetIndexInQueue] = fullSong;
 
-            if (isShuffle) {
-              newShuffleHistory = shuffleQueue(songs.length);
-              const currentPosInShuffle = newShuffleHistory.indexOf(startIndex);
-              if (currentPosInShuffle !== -1) {
-                [newShuffleHistory[0], newShuffleHistory[currentPosInShuffle]] =
-                  [
-                    newShuffleHistory[currentPosInShuffle],
-                    newShuffleHistory[0],
-                  ];
-              } else {
-                newShuffleHistory.unshift(startIndex);
-                newShuffleHistory.pop();
-              }
-              newShufflePointer = 0;
-              targetIndexInQueue = newShuffleHistory[newShufflePointer];
-              songToPlay = songs[targetIndexInQueue];
-            } else {
-              targetIndexInQueue = startIndex;
-              songToPlay = songs[targetIndexInQueue];
-              newShuffleHistory = [];
-              newShufflePointer = -1;
-            }
-
-            enrichSongWithAlbumTitleIfNeeded(songToPlay);
-            enrichSongWithLyricsIfNeeded(songToPlay);
-
-            return {
-              queue: songs,
-              isPlaying: true,
-              currentSong: songToPlay,
-              currentIndex: targetIndexInQueue,
-              shuffleHistory: newShuffleHistory,
-              shufflePointer: newShufflePointer,
-              currentTime: 0,
-              currentPlaybackContext: context
-                ? {
-                    type: context.type as
-                      | "song"
-                      | "album"
-                      | "playlist"
-                      | "generated-playlist"
-                      | "mix"
-                      | "artist",
-                    entityId: context.entityId,
-                    entityTitle: context.entityTitle,
-                  }
-                : null,
-            };
+          set({
+            queue: updatedQueue,
+            isPlaying: true,
+            currentSong: fullSong,
+            currentIndex: targetIndexInQueue,
+            shuffleHistory: newShuffleHistory,
+            shufflePointer: newShufflePointer,
+            currentTime: 0,
+            currentPlaybackContext: context
+              ? {
+                  type: context.type as any,
+                  entityId: context.entityId,
+                  entityTitle: context.entityTitle,
+                }
+              : null,
           });
+
+          enrichSongWithAlbumTitleIfNeeded(fullSong);
 
           if (get().shuffleMode === "smart") {
             get().generateSmartTracks();
           }
         },
 
-        setCurrentSong: (song: Song | null) => {
+        setCurrentSong: async (song: Song | null) => {
           if (!song) {
             silentAudioService.pause();
             set({
@@ -345,8 +314,13 @@ export const usePlayerStore = create<PlayerStore>()(
             return;
           }
 
-          if (!song.hlsUrl) {
-            console.error("Song has no hlsUrl, cannot start playback:", song);
+          const fullSong = await ensureSongData(song);
+
+          if (!fullSong || !fullSong.hlsUrl) {
+            console.error(
+              "Song has no hlsUrl, cannot start playback:",
+              fullSong,
+            );
             toast.error("Cannot start playback: missing audio file");
             return;
           }
@@ -354,7 +328,9 @@ export const usePlayerStore = create<PlayerStore>()(
           silentAudioService.play();
 
           set((state) => {
-            const songIndex = state.queue.findIndex((s) => s._id === song._id);
+            const songIndex = state.queue.findIndex(
+              (s) => s._id === fullSong._id,
+            );
             let newShufflePointer = state.shufflePointer;
             let newShuffleHistory = state.shuffleHistory;
 
@@ -378,11 +354,8 @@ export const usePlayerStore = create<PlayerStore>()(
               }
             }
 
-            enrichSongWithAlbumTitleIfNeeded(song);
-            enrichSongWithLyricsIfNeeded(song);
-
             return {
-              currentSong: song,
+              currentSong: fullSong,
               isPlaying: true,
               currentIndex: songIndex !== -1 ? songIndex : state.currentIndex,
               shuffleHistory: newShuffleHistory,
@@ -390,6 +363,9 @@ export const usePlayerStore = create<PlayerStore>()(
               currentTime: 0,
             };
           });
+
+          enrichSongWithAlbumTitleIfNeeded(fullSong);
+
           if (get().shuffleMode === "smart") {
             get().generateSmartTracks();
           }
@@ -411,13 +387,12 @@ export const usePlayerStore = create<PlayerStore>()(
           set((state) => {
             if (state.shuffleMode === "off") {
               const queueLength = state.queue.length;
-              if (queueLength === 0) {
+              if (queueLength === 0)
                 return {
                   shuffleMode: "regular",
                   shuffleHistory: [],
                   shufflePointer: -1,
                 };
-              }
               const newShuffleHistory = shuffleQueue(queueLength);
               const currentIndex = state.currentIndex;
               if (currentIndex !== -1) {
@@ -457,13 +432,11 @@ export const usePlayerStore = create<PlayerStore>()(
         generateSmartTracks: async () => {
           const state = get();
           if (!state.currentSong) return;
-
           try {
             const response = await axiosInstance.get(
               `/songs/${state.currentSong._id}/radio`,
             );
             const vibeTracks = response.data;
-
             if (vibeTracks && vibeTracks.length > 0) {
               set((currentState) => {
                 const newQueue = [...currentState.queue, ...vibeTracks];
@@ -477,21 +450,16 @@ export const usePlayerStore = create<PlayerStore>()(
                   currentState.shufflePointer + 1,
                 );
                 const newShuffleHistory = [...playedHistory, ...newIndices];
-
-                return {
-                  queue: newQueue,
-                  shuffleHistory: newShuffleHistory,
-                };
+                return { queue: newQueue, shuffleHistory: newShuffleHistory };
               });
             }
           } catch (error) {
             console.error("Smart shuffle error:", error);
           }
         },
-        playNext: () => {
-          if (get().repeatMode === "one") {
-            set({ repeatMode: "off" });
-          }
+
+        playNext: async () => {
+          if (get().repeatMode === "one") set({ repeatMode: "off" });
 
           const state = get();
           const {
@@ -502,9 +470,7 @@ export const usePlayerStore = create<PlayerStore>()(
             shuffleMode,
             repeatMode,
           } = state;
-
           const isShuffle = shuffleMode !== "off";
-
           const { isOffline } = useOfflineStore.getState();
           const { isSongDownloaded } = useOfflineStore.getState().actions;
 
@@ -530,17 +496,13 @@ export const usePlayerStore = create<PlayerStore>()(
               }
               tempShufflePointer = 0;
             }
-
             let checkedCount = 0;
             let potentialPointer = tempShufflePointer;
             while (checkedCount < tempShuffleHistory.length) {
               potentialPointer++;
               if (potentialPointer >= tempShuffleHistory.length) {
-                if (repeatMode === "all") {
-                  potentialPointer = 0;
-                } else {
-                  break;
-                }
+                if (repeatMode === "all") potentialPointer = 0;
+                else break;
               }
               const potentialIndex = tempShuffleHistory[potentialPointer];
               if (!isOffline || isSongDownloaded(queue[potentialIndex]._id)) {
@@ -560,9 +522,8 @@ export const usePlayerStore = create<PlayerStore>()(
               }
               if (potentialIndex === currentIndex) break;
             }
-            if (nextIndex <= currentIndex && repeatMode !== "all") {
+            if (nextIndex <= currentIndex && repeatMode !== "all")
               nextIndex = -1;
-            }
           }
 
           if (nextIndex === -1) {
@@ -578,10 +539,16 @@ export const usePlayerStore = create<PlayerStore>()(
           }
 
           const nextSong = queue[nextIndex];
+          const fullNextSong = await ensureSongData(nextSong);
+
+          if (!fullNextSong || !fullNextSong.hlsUrl) {
+            toast.error("Cannot load audio for next song");
+            return;
+          }
 
           silentAudioService.play();
           set({
-            currentSong: nextSong,
+            currentSong: fullNextSong,
             currentIndex: nextIndex,
             isPlaying: true,
             shuffleHistory: tempShuffleHistory,
@@ -589,8 +556,7 @@ export const usePlayerStore = create<PlayerStore>()(
             currentTime: 0,
           });
 
-          enrichSongWithAlbumTitleIfNeeded(nextSong);
-          enrichSongWithLyricsIfNeeded(nextSong);
+          enrichSongWithAlbumTitleIfNeeded(fullNextSong);
 
           if (
             shuffleMode === "smart" &&
@@ -600,16 +566,13 @@ export const usePlayerStore = create<PlayerStore>()(
           }
         },
 
-        playPrevious: () => {
+        playPrevious: async () => {
           const { currentTime } = get();
-
           if (currentTime > 3) {
             get().seekToTime(0);
             return;
           }
-          if (get().repeatMode === "one") {
-            set({ repeatMode: "off" });
-          }
+          if (get().repeatMode === "one") set({ repeatMode: "off" });
 
           const state = get();
           const {
@@ -620,9 +583,7 @@ export const usePlayerStore = create<PlayerStore>()(
             shuffleMode,
             repeatMode,
           } = state;
-
           const isShuffle = shuffleMode !== "off";
-
           const { isOffline } = useOfflineStore.getState();
           const { isSongDownloaded } = useOfflineStore.getState().actions;
 
@@ -641,11 +602,9 @@ export const usePlayerStore = create<PlayerStore>()(
             while (checkedCount < shuffleHistory.length) {
               potentialPointer--;
               if (potentialPointer < 0) {
-                if (repeatMode === "all") {
+                if (repeatMode === "all")
                   potentialPointer = shuffleHistory.length - 1;
-                } else {
-                  break;
-                }
+                else break;
               }
               const potentialIndex = shuffleHistory[potentialPointer];
               if (!isOffline || isSongDownloaded(queue[potentialIndex]._id)) {
@@ -666,9 +625,8 @@ export const usePlayerStore = create<PlayerStore>()(
               }
               if (potentialIndex === currentIndex) break;
             }
-            if (prevIndex >= currentIndex && repeatMode !== "all") {
+            if (prevIndex >= currentIndex && repeatMode !== "all")
               prevIndex = -1;
-            }
           }
 
           if (prevIndex === -1) {
@@ -680,89 +638,70 @@ export const usePlayerStore = create<PlayerStore>()(
           }
 
           const prevSong = queue[prevIndex];
+          const fullPrevSong = await ensureSongData(prevSong);
+
+          if (!fullPrevSong || !fullPrevSong.hlsUrl) {
+            toast.error("Cannot load audio for previous song");
+            return;
+          }
+
           silentAudioService.play();
           set({
-            currentSong: prevSong,
+            currentSong: fullPrevSong,
             currentIndex: prevIndex,
             isPlaying: true,
             shufflePointer: tempShufflePointer,
             currentTime: 0,
           });
 
-          enrichSongWithAlbumTitleIfNeeded(prevSong);
-          enrichSongWithLyricsIfNeeded(prevSong);
+          enrichSongWithAlbumTitleIfNeeded(fullPrevSong);
         },
 
         setRepeatMode: (mode) => set({ repeatMode: mode }),
         setIsFullScreenPlayerOpen: (isOpen: boolean) =>
           set({ isFullScreenPlayerOpen: isOpen }),
         setMasterVolume: (volume) => set({ masterVolume: volume }),
-
         setCurrentTime: (time, isPlayerUpdate = false) => {
-          if (!isPlayerUpdate) {
+          if (!isPlayerUpdate)
             set((state) => ({
               currentTime: time,
               seekVersion: state.seekVersion + 1,
             }));
-          } else {
-            set({ currentTime: time });
-          }
+          else set({ currentTime: time });
         },
-        setDuration: (duration, originalDuration) => {
+        setDuration: (duration, originalDuration) =>
           set({
-            duration: duration,
+            duration,
             originalDuration:
               originalDuration !== undefined ? originalDuration : duration,
-          });
-        },
+          }),
         setIsDesktopLyricsOpen: (isOpen: boolean) =>
           set({ isDesktopLyricsOpen: isOpen }),
-        setIsMobileLyricsFullScreen: (isOpen: boolean) => {
-          set({ isMobileLyricsFullScreen: isOpen });
-        },
-        seekToTime: (time: number) => {
+        setIsMobileLyricsFullScreen: (isOpen: boolean) =>
+          set({ isMobileLyricsFullScreen: isOpen }),
+        seekToTime: (time: number) =>
           set((state) => ({
             currentTime: time,
             seekVersion: state.seekVersion + 1,
             isPlaying: true,
-          }));
-        },
-
-        setPlaybackContext: (
-          context: {
-            type: string;
-            entityId?: string;
-            entityTitle?: string;
-          } | null,
-        ) => {
+          })),
+        setPlaybackContext: (context) =>
           set({
             currentPlaybackContext: context
               ? {
-                  type: context.type as
-                    | "song"
-                    | "album"
-                    | "playlist"
-                    | "generated-playlist"
-                    | "mix"
-                    | "artist",
+                  type: context.type as any,
                   entityId: context.entityId,
                   entityTitle: context.entityTitle,
                 }
               : null,
-          });
-        },
-
+          }),
         removeFromQueue: (songId: string) => {
           set((state) => {
             const songIndex = state.queue.findIndex(
               (song) => song._id === songId,
             );
-            if (songIndex === -1) {
-              return state;
-            }
-
+            if (songIndex === -1) return state;
             const newQueue = state.queue.filter((song) => song._id !== songId);
-
             let newCurrentIndex = state.currentIndex;
             let newShuffleHistory = [...state.shuffleHistory];
             let newShufflePointer = state.shufflePointer;
@@ -780,11 +719,9 @@ export const usePlayerStore = create<PlayerStore>()(
                 };
               } else {
                 if (state.isShuffle) {
-                  if (newShufflePointer < newShuffleHistory.length - 1) {
+                  if (newShufflePointer < newShuffleHistory.length - 1)
                     newShufflePointer++;
-                  } else {
-                    newShufflePointer = 0;
-                  }
+                  else newShufflePointer = 0;
                   newCurrentIndex = newShuffleHistory[newShufflePointer];
                 } else {
                   newCurrentIndex = Math.min(
@@ -804,12 +741,9 @@ export const usePlayerStore = create<PlayerStore>()(
                 newShuffleHistory = newShuffleHistory.map((idx) =>
                   idx > songIndex ? idx - 1 : idx,
                 );
-                if (removedIndex < newShufflePointer) {
-                  newShufflePointer--;
-                }
+                if (removedIndex < newShufflePointer) newShufflePointer--;
               }
             }
-
             return {
               queue: newQueue,
               currentIndex: newCurrentIndex,
@@ -820,7 +754,6 @@ export const usePlayerStore = create<PlayerStore>()(
             };
           });
         },
-
         moveSongInQueue: (fromIndex: number, toIndex: number) => {
           set((state) => {
             if (
@@ -828,31 +761,26 @@ export const usePlayerStore = create<PlayerStore>()(
               fromIndex >= state.queue.length ||
               toIndex < 0 ||
               toIndex >= state.queue.length
-            ) {
+            )
               return state;
-            }
-
             const newQueue = [...state.queue];
             const [movedSong] = newQueue.splice(fromIndex, 1);
             newQueue.splice(toIndex, 0, movedSong);
-
             let newCurrentIndex = state.currentIndex;
             let newShuffleHistory = [...state.shuffleHistory];
             const newShufflePointer = state.shufflePointer;
 
-            if (state.currentIndex === fromIndex) {
-              newCurrentIndex = toIndex;
-            } else if (
+            if (state.currentIndex === fromIndex) newCurrentIndex = toIndex;
+            else if (
               fromIndex < state.currentIndex &&
               toIndex >= state.currentIndex
-            ) {
+            )
               newCurrentIndex = state.currentIndex - 1;
-            } else if (
+            else if (
               fromIndex > state.currentIndex &&
               toIndex <= state.currentIndex
-            ) {
+            )
               newCurrentIndex = state.currentIndex + 1;
-            }
 
             if (state.isShuffle) {
               const fromShuffleIndex = newShuffleHistory.indexOf(fromIndex);
@@ -868,7 +796,6 @@ export const usePlayerStore = create<PlayerStore>()(
                 });
               }
             }
-
             return {
               queue: newQueue,
               currentIndex: newCurrentIndex,
@@ -877,7 +804,6 @@ export const usePlayerStore = create<PlayerStore>()(
             };
           });
         },
-
         clearQueue: () => {
           silentAudioService.pause();
           set({
@@ -889,23 +815,13 @@ export const usePlayerStore = create<PlayerStore>()(
             shufflePointer: -1,
           });
         },
-
-        addToQueue: (song: Song) => {
-          set((state) => ({
-            queue: [...state.queue, song],
-          }));
-        },
-
-        addSongsToQueue: (songs: Song[]) => {
-          set((state) => ({
-            queue: [...state.queue, ...songs],
-          }));
-        },
-
+        addToQueue: (song: Song) =>
+          set((state) => ({ queue: [...state.queue, song] })),
+        addSongsToQueue: (songs: Song[]) =>
+          set((state) => ({ queue: [...state.queue, ...songs] })),
         getNextSongsInShuffle: (count = 10) => {
           const state = get();
           if (state.queue.length === 0) return [];
-
           const {
             repeatMode,
             currentIndex,
@@ -915,9 +831,8 @@ export const usePlayerStore = create<PlayerStore>()(
           } = state;
           const isShuffle = state.shuffleMode !== "off";
 
-          if (repeatMode === "one") {
+          if (repeatMode === "one")
             return [queue[currentIndex]].filter(Boolean);
-          }
 
           if (!isShuffle) {
             if (repeatMode === "all") {
@@ -939,11 +854,9 @@ export const usePlayerStore = create<PlayerStore>()(
             let currentPointer = shufflePointer;
             let attempts = 0;
             const maxAttempts = shuffleHistory.length * 2;
-
             while (nextSongs.length < count && attempts < maxAttempts) {
               currentPointer = (currentPointer + 1) % shuffleHistory.length;
               const songIndex = shuffleHistory[currentPointer];
-
               if (songIndex < queue.length) {
                 const song = queue[songIndex];
                 if (!usedSongIds.has(song._id)) {
@@ -957,7 +870,6 @@ export const usePlayerStore = create<PlayerStore>()(
             let currentPointer = shufflePointer;
             let attempts = 0;
             const maxAttempts = shuffleHistory.length;
-
             while (
               nextSongs.length < count &&
               nextSongs.length < queue.length - 1 &&
@@ -965,7 +877,6 @@ export const usePlayerStore = create<PlayerStore>()(
             ) {
               currentPointer = (currentPointer + 1) % shuffleHistory.length;
               const songIndex = shuffleHistory[currentPointer];
-
               if (songIndex < queue.length) {
                 const song = queue[songIndex];
                 if (!usedSongIds.has(song._id)) {
@@ -976,7 +887,6 @@ export const usePlayerStore = create<PlayerStore>()(
               attempts++;
             }
           }
-
           return nextSongs;
         },
       };
@@ -986,16 +896,10 @@ export const usePlayerStore = create<PlayerStore>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         currentSong: state.currentSong
-          ? {
-              ...state.currentSong,
-              lyrics: state.currentSong.lyrics,
-            }
+          ? { ...state.currentSong, lyrics: state.currentSong.lyrics }
           : null,
         isPlaying: state.isPlaying,
-        queue: state.queue.map((song) => ({
-          ...song,
-          lyrics: song.lyrics,
-        })),
+        queue: state.queue.map((song) => ({ ...song, lyrics: song.lyrics })),
         currentIndex: state.currentIndex,
         repeatMode: state.repeatMode,
         shuffleMode: state.shuffleMode,
@@ -1006,19 +910,12 @@ export const usePlayerStore = create<PlayerStore>()(
       }),
       onRehydrateStorage: () => {
         return (persistedState, error) => {
-          if (error) {
-            console.log("an error happened during rehydration", error);
-          }
+          if (error) console.log("an error happened during rehydration", error);
           if (persistedState) {
             persistedState.isPlaying = false;
             persistedState.isFullScreenPlayerOpen = false;
             persistedState.currentTime = 0;
-
-            // Если устройство мобильное, форсируем громкость 100%
-            // поверх того, что пользователь мог сохранить ранее
-            if (isMobileDevice()) {
-              persistedState.masterVolume = 100;
-            }
+            if (isMobileDevice()) persistedState.masterVolume = 100;
           }
         };
       },

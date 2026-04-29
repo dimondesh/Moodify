@@ -22,7 +22,6 @@ import {
   getNewReleases,
   getPlaylistRecommendations,
   getRecentlyListenedArtists,
-  debugRecentlyListenedArtists,
   updateRecentlyListenedArtistsPrivacy,
   getTopTracksThisMonth,
   getAllTopTracksThisMonth,
@@ -40,14 +39,14 @@ router.get("/me/recommendations/new-releases", protectRoute, getNewReleases);
 router.get(
   "/me/recommendations/playlists",
   protectRoute,
-  getPlaylistRecommendations
+  getPlaylistRecommendations,
 );
 
 router.delete("/me/recent-searches/all", protectRoute, clearRecentSearches);
 router.delete(
   "/me/recent-searches/:searchId",
   protectRoute,
-  removeRecentSearch
+  removeRecentSearch,
 );
 
 router.get("/messages/:userId", protectRoute, getMessages);
@@ -59,22 +58,17 @@ router.get("/:userId/playlists", protectRoute, getPublicPlaylists);
 router.get(
   "/:userId/recently-listened-artists",
   protectRoute,
-  getRecentlyListenedArtists
-);
-router.get(
-  "/:userId/debug-recently-listened-artists",
-  protectRoute,
-  debugRecentlyListenedArtists
+  getRecentlyListenedArtists,
 );
 router.get(
   "/:userId/top-tracks-this-month",
   protectRoute,
-  getTopTracksThisMonth
+  getTopTracksThisMonth,
 );
 router.get(
   "/:userId/all-top-tracks-this-month",
   protectRoute,
-  getAllTopTracksThisMonth
+  getAllTopTracksThisMonth,
 );
 
 router.put("/me", protectRoute, updateUserProfile);
@@ -84,6 +78,6 @@ router.put("/privacy", protectRoute, updateUserPrivacy);
 router.put(
   "/recently-listened-artists-privacy",
   protectRoute,
-  updateRecentlyListenedArtistsPrivacy
+  updateRecentlyListenedArtistsPrivacy,
 );
 export default router;

@@ -2,6 +2,9 @@ import { Artist } from "../models/artist.model.js";
 import { Album } from "../models/album.model.js";
 import { Song } from "../models/song.model.js";
 
+const SONG_MINIMAL_SELECT =
+  "_id title artist albumId imageUrl duration playCount";
+
 export const getAllArtists = async (req, res, next) => {
   try {
     const artists = await Artist.find();
@@ -18,9 +21,7 @@ export const getArtistById = async (req, res, next) => {
     const artist = await Artist.findById(id)
       .populate({
         path: "songs",
-        select: "-lyrics",
-        select:
-          "title artist albumId imageUrl hlsUrl duration playCount genres moods",
+        select: SONG_MINIMAL_SELECT,
         populate: {
           path: "artist",
           select: "name imageUrl",
@@ -59,7 +60,6 @@ export const getArtistAppearsOn = async (req, res, next) => {
     const songsWithArtist = await Song.find({ artist: artistId })
       .select("albumId")
       .lean();
-
     const allAlbumIdsWithArtist = [
       ...new Set(songsWithArtist.map((s) => s.albumId).filter(Boolean)),
     ];
