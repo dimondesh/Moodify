@@ -474,11 +474,7 @@ const PlaylistDetailsPage = () => {
               >
                 {song.title}
               </button>
-              <div
-                className={`text-xs sm:text-sm truncate ${
-                  isCurrentlyPlaying ? "text-[#8b5cf6]" : "text-zinc-400"
-                }`}
-              >
+              <div className="text-xs sm:text-sm truncate text-zinc-400">
                 {song.artist.map((artist, artistIndex) => (
                   <span key={artist._id}>
                     <button
