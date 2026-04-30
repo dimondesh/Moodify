@@ -1,7 +1,8 @@
 import { Album } from "../models/album.model.js";
 import { ListenHistory } from "../models/listenHistory.model.js";
 
-const SONG_MINIMAL_SELECT = "_id title imageUrl duration playCount albumId";
+const SONG_MINIMAL_SELECT =
+  "_id title imageUrl duration playCount albumId createdAt";
 
 export const getAllAlbums = async (req, res, next) => {
   try {
