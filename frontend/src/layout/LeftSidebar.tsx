@@ -447,7 +447,7 @@ const LeftSidebar = () => {
               : t("sidebar.emptyLibrary")}
           </p>
         ) : (
-          <ScrollArea className="flex-1 h-full pb-7">
+          <ScrollArea className={`flex-1 h-full ${leftSidebarViewMode === "list" ? "pb-7" : "pb-26"}`}>
             {leftSidebarViewMode === "list" ? (
               <div className="space-y-2">
                 {filteredLibraryItems.map((item) => {
@@ -521,7 +521,7 @@ const LeftSidebar = () => {
                     <Link
                       to={linkPath}
                       key={`${item.type}-${item._id}`}
-                      className="p-2 hover:bg-[#2a2a2a] rounded-md flex items-center gap-3 cursor-pointer hover-scale relative"
+                      className="p-2 hover:bg-[#2a2a2a] rounded-md flex items-center gap-3 cursor-pointer relative"
                     >
                       <div className="relative flex-shrink-0 group">
                         <img
@@ -657,7 +657,7 @@ const LeftSidebar = () => {
                     <Link
                       to={linkPath}
                       key={`${item.type}-${item._id}`}
-                      className="px-0 py-1 hover:bg-[#2a2a2a] rounded-md flex flex-col items-center text-center cursor-pointer hover-scale relative flex-shrink-0"
+                      className="px-0 py-1 hover:bg-[#2a2a2a] rounded-md flex flex-col items-center text-center cursor-pointer relative flex-shrink-0"
                     >
                       <div className="relative flex-shrink-0 group mb-0.5">
                         <img

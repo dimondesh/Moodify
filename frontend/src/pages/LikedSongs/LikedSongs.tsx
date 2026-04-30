@@ -77,9 +77,7 @@ const LikedSongsPage = () => {
             if ((e.target as HTMLElement).closest("button")) return;
             handlePlaySpecificSong(song, index);
           }}
-          className={`grid grid-cols-[16px_4fr_2fr_1fr_min-content] md:grid-cols-[16px_4fr_2fr_1fr_min-content] gap-4 px-4 py-2 text-sm text-gray-400 hover:bg-[#2a2a2a] rounded-md group cursor-pointer ${
-            isCurrentlyPlaying ? "bg-[#2a2a2a]" : ""
-          }`}
+          className={`grid grid-cols-[16px_4fr_2fr_1fr_min-content] md:grid-cols-[16px_4fr_2fr_1fr_min-content] gap-4 px-4 py-2 text-sm text-gray-400 hover:bg-white/5 rounded-md group cursor-pointer `}
         >
           <div className="flex items-center justify-center">
             {isCurrentlyPlaying && isPlaying ? (
@@ -91,9 +89,9 @@ const LikedSongsPage = () => {
                 {index + 1}
               </span>
             )}
-            {!isCurrentlyPlaying && (
-              <Play className="h-3 w-3 sm:h-4 sm:w-4 hidden group-hover:block" />
-            )}
+           
+              <Play className="h-3 w-3 sm:h-4 sm:w-4 hidden group-hover:block fill-current text-zinc-400" />
+            
           </div>
           <div className="flex items-center gap-3 overflow-hidden">
             <button
