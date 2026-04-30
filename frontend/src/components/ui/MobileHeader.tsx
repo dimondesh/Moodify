@@ -21,12 +21,14 @@ import {
   Settings,
   UserIcon,
   Plus,
+  MessageCircle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth } from "../../lib/firebase";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
+import { useChatStore } from "../../stores/useChatStore";
 
 interface MobileHeaderProps {
   title: string;
@@ -39,6 +41,11 @@ const MobileHeader = ({ title }: MobileHeaderProps) => {
     useUIStore();
   const { isOffline } = useOfflineStore();
   const location = useLocation();
+  const { unreadMessages } = useChatStore();
+  const totalUnread = Array.from(unreadMessages.values()).reduce(
+    (acc, count) => acc + count,
+    0,
+  );
 
   const [user, setUser] = useState<null | {
     displayName: string | null;
@@ -65,6 +72,20 @@ const MobileHeader = ({ title }: MobileHeaderProps) => {
 
   const UserMenuItems = () => (
     <>
+      <DrawerClose asChild>
+        <Link
+          to="/chat"
+          className="flex items-center p-2 cursor-pointer hover:bg-zinc-700 rounded-md relative"
+        >
+          <MessageCircle className="w-4 h-4 mr-2" />
+          {t("sidebar.messages")}
+          {totalUnread > 0 && (
+            <span className="ml-auto bg-violet-600 text-white text-[10px] rounded-full h-5 min-w-5 px-1.5 flex items-center justify-center font-bold">
+              {totalUnread > 99 ? "99+" : totalUnread}
+            </span>
+          )}
+        </Link>
+      </DrawerClose>
       <DrawerClose asChild>
         <Link
           to={`/users/${authUser?.id}`}
@@ -163,6 +184,9 @@ const MobileHeader = ({ title }: MobileHeaderProps) => {
                     {user.displayName?.[0]}
                   </AvatarFallback>
                 </Avatar>
+                {totalUnread > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-violet-600 ring-2 ring-[#0f0f0f]" />
+                )}
               </Button>
             </DrawerTrigger>
             <DrawerContent

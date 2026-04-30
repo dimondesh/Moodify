@@ -1,22 +1,18 @@
 // frontend/src/layout/BottomNavigationBar.tsx
 
 import { Link, useLocation } from "react-router-dom";
-import { HomeIcon, Search, Library, MessageCircle } from "lucide-react";
+import { HomeIcon, Search, Library, Plus } from "lucide-react";
 import { useAuthStore } from "../stores/useAuthStore";
 import { cn } from "../lib/utils";
 import { buttonVariants } from "../components/ui/button";
 import { useTranslation } from "react-i18next";
-import { useChatStore } from "../stores/useChatStore";
+import { useUIStore } from "../stores/useUIStore";
 
 const BottomNavigationBar = () => {
   const { t } = useTranslation();
   const location = useLocation();
   const { user } = useAuthStore();
-  const { unreadMessages } = useChatStore();
-  const totalUnread = Array.from(unreadMessages.values()).reduce(
-    (acc, count) => acc + count,
-    0
-  );
+  const { openCreatePlaylistDialog } = useUIStore();
 
   const navItems = [
     {
@@ -35,12 +31,6 @@ const BottomNavigationBar = () => {
       to: "/library",
       icon: Library,
       label: t("bottomNav.library"),
-      authRequired: true,
-    },
-    {
-      to: "/chat",
-      icon: MessageCircle,
-      label: t("bottomNav.chat"),
       authRequired: true,
     },
   ];
@@ -65,14 +55,24 @@ const BottomNavigationBar = () => {
           >
             <item.icon className="size-5" />
             <span className="text-xs mt-1">{item.label}</span>
-            {item.to === "/chat" && totalUnread > 0 && (
-              <span className="absolute top-1 right-2 bg-violet-600 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center font-bold">
-                {totalUnread > 9 ? "9+" : totalUnread}
-              </span>
-            )}
           </Link>
         );
       })}
+
+      {user && (
+        <button
+          type="button"
+          onClick={openCreatePlaylistDialog}
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "sm" }),
+            "flex flex-col items-center justify-center p-0 h-full w-auto text-zinc-400 hover:text-white transition-colors duration-200 relative"
+          )}
+          title={t("sidebar.create")}
+        >
+          <Plus className="size-5" />
+          <span className="text-xs mt-1">{t("sidebar.create")}</span>
+        </button>
+      )}
     </div>
   );
 };

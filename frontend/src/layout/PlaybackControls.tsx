@@ -389,7 +389,7 @@ const PlaybackControls = () => {
       {isCompactView ? (
         <>
           {!isFullScreenPlayerOpen && (
-            <footer className="fixed bottom-21 left-0 right-0 h-14 sm:h-16 mx-1 mb-[4px] rounded-md bg-[#1a1a1a]/80 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between z-[60]">
+            <footer className="fixed bottom-21 left-0 right-0 h-14 sm:h-16 mx-1 mb-[4px] rounded-md bg-[#1a1a1a]/80 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between z-[60] relative overflow-hidden">
               <div
                 className="flex items-center gap-3 flex-1 cursor-pointer min-w-0"
                 onClick={() => setIsFullScreenPlayerOpen(true)}
@@ -399,12 +399,6 @@ const PlaybackControls = () => {
                     src={currentSong.imageUrl || "/default-song-cover.png"}
                     alt={currentSong.title}
                     className="w-full h-full object-cover"
-                  />
-                  <div
-                    className="absolute top-0 left-0 h-[2px] bg-white transition-all duration-100"
-                    style={{
-                      width: `${(currentTime / duration) * 100 || 0}%`,
-                    }}
                   />
                 </div>
 
@@ -446,6 +440,15 @@ const PlaybackControls = () => {
                     <Play className="h-5 w-5 sm:h-6 sm:w-6 fill-current" />
                   )}
                 </Button>
+              </div>
+
+              <div className="absolute left-0 right-0 bottom-0 h-[2px] bg-white/15">
+                <div
+                  className="h-full bg-white transition-all duration-100"
+                  style={{
+                    width: `${(currentTime / duration) * 100 || 0}%`,
+                  }}
+                />
               </div>
             </footer>
           )}
