@@ -262,7 +262,20 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
         try {
           const localAlbum = await getUserItem("albums", id, userId);
           if (localAlbum) {
-            set({ currentAlbum: localAlbum, isLoading: false });
+            const offlineAlbum: any = {
+              ...localAlbum,
+              // AlbumPage использует currentAlbum.songs, а в IndexedDB у нас songsData
+              songs: (localAlbum as any).songs?.length
+                ? (localAlbum as any).songs
+                : (localAlbum as any).songsData || [],
+            };
+            if (offlineAlbum.songs && offlineAlbum.title) {
+              offlineAlbum.songs = offlineAlbum.songs.map((song: Song) => ({
+                ...song,
+                albumTitle: song.albumTitle || offlineAlbum.title,
+              }));
+            }
+            set({ currentAlbum: offlineAlbum, isLoading: false });
             return;
           } else {
             throw new Error(

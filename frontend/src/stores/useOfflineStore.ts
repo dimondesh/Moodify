@@ -28,6 +28,105 @@ type ItemType =
   | "generated-playlists";
 const HLS_ASSETS_CACHE_NAME = "moodify-hls-assets-cache";
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+const parseM3u8KeyUris = (manifestText: string): string[] => {
+  const out: string[] = [];
+  // Example: #EXT-X-KEY:METHOD=AES-128,URI="key.key",IV=0x...
+  const re = /#EXT-X-KEY:.*?URI="([^"]+)"/g;
+  for (;;) {
+    const m = re.exec(manifestText);
+    if (!m) break;
+    out.push(m[1]);
+  }
+  return out;
+};
+
+const parseM3u8Uris = (manifestText: string): string[] => {
+  return manifestText
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .filter((l) => !l.startsWith("#"));
+};
+
+const collectHlsAssetUrls = async (
+  hlsUrl: string,
+  opts?: { maxDepth?: number; maxManifests?: number }
+): Promise<string[]> => {
+  const maxDepth = opts?.maxDepth ?? 3;
+  const maxManifests = opts?.maxManifests ?? 25;
+
+  const visitedManifests = new Set<string>();
+  const assetUrls = new Set<string>();
+
+  const queue: Array<{ url: string; depth: number }> = [{ url: hlsUrl, depth: 0 }];
+
+  while (queue.length > 0) {
+    const { url, depth } = queue.shift()!;
+    if (visitedManifests.has(url)) continue;
+    visitedManifests.add(url);
+    assetUrls.add(url);
+
+    if (visitedManifests.size > maxManifests) {
+      throw new Error("Слишком много HLS манифестов (возможный цикл)");
+    }
+
+    if (depth > maxDepth) continue;
+
+    const resp = await fetch(url, { mode: "cors", credentials: "omit" });
+    if (!resp.ok) {
+      throw new Error(`Не удалось загрузить HLS манифест: ${url} (${resp.status})`);
+    }
+    const text = await resp.text();
+    const baseUrl = new URL(url);
+
+    // Keys
+    for (const keyUri of parseM3u8KeyUris(text)) {
+      const keyUrl = new URL(keyUri, baseUrl);
+      assetUrls.add(keyUrl.href);
+    }
+
+    // All URIs (variants, segments, init maps, subtitles, etc.)
+    for (const uri of parseM3u8Uris(text)) {
+      const absolute = new URL(uri, baseUrl).href;
+      assetUrls.add(absolute);
+      if (absolute.endsWith(".m3u8")) {
+        queue.push({ url: absolute, depth: depth + 1 });
+      }
+    }
+  }
+
+  return Array.from(assetUrls);
+};
+
+const fetchWithRetry = async (
+  url: string,
+  opts?: { retries?: number; backoffMs?: number }
+): Promise<Response> => {
+  const retries = opts?.retries ?? 3;
+  const backoffMs = opts?.backoffMs ?? 250;
+
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const resp = await fetch(url, { mode: "cors", credentials: "omit" });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      return resp;
+    } catch (e) {
+      lastErr = e;
+      if (attempt === retries) break;
+      await sleep(backoffMs * Math.pow(2, attempt));
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error("Failed to fetch");
+};
+
+const hasPopulatedArtists = (song: Song): boolean => {
+  const a: any = (song as any).artist;
+  return Array.isArray(a) && a.length > 0 && typeof a[0] === "object" && !!a[0]?.name;
+};
+
 // Helper function to calculate the size of a single item
 const calculateItemSize = async (
   item: any,
@@ -391,27 +490,46 @@ export const useOfflineStore = create<OfflineState>()(
               return;
             }
 
-            // 2. Collect all URLs to cache (images, manifests, segments)
+            // 2. Collect all URLs to cache (images, manifests, variants, segments, keys)
             const urlsToCache = new Set<string>();
             if (serverItemData.imageUrl)
               urlsToCache.add(serverItemData.imageUrl);
 
+            const resolvedSongs: Song[] = [];
             for (const song of serverItemData.songs as Song[]) {
               if (song.imageUrl) urlsToCache.add(song.imageUrl);
-              if (song.hlsUrl) {
-                urlsToCache.add(song.hlsUrl);
-                // Fetch and parse manifest to get segment URLs
-                const manifestResponse = await fetch(song.hlsUrl);
-                const manifestText = await manifestResponse.text();
-                const baseUrl = new URL(song.hlsUrl);
-                const segments = manifestText
-                  .split("\n")
-                  .filter((line) => line.endsWith(".ts"));
-                segments.forEach((segment) => {
-                  const segmentUrl = new URL(segment, baseUrl);
-                  urlsToCache.add(segmentUrl.href);
-                });
+
+              // ВАЖНО: многие списки отдают "минимальный" Song без hlsUrl.
+              // Для оффлайн загрузки догружаем полные данные по /songs/:id.
+              let fullSong: Song = song;
+              if (!fullSong.hlsUrl) {
+                try {
+                  const fullResp = await axiosInstance.get(`/songs/${song._id}`);
+                  // Не перезатираем populated artist (с name) "сырой" версией с бэка
+                  fullSong = {
+                    ...song,
+                    ...fullResp.data,
+                    artist: hasPopulatedArtists(song)
+                      ? (song as any).artist
+                      : fullResp.data.artist,
+                  };
+                } catch (e) {
+                  throw new Error(
+                    i18n.t("toasts.downloadError", {
+                      error: `Song ${song._id} has no hlsUrl and cannot be resolved`,
+                    }),
+                  );
+                }
               }
+
+              if (!fullSong.hlsUrl) {
+                throw new Error(`Song ${song._id} has no hlsUrl`);
+              }
+
+              resolvedSongs.push(fullSong);
+
+              const hlsAssets = await collectHlsAssetUrls(fullSong.hlsUrl);
+              hlsAssets.forEach((u) => urlsToCache.add(u));
             }
 
             // Update progress: 40% - URLs collected
@@ -424,28 +542,48 @@ export const useOfflineStore = create<OfflineState>()(
               return;
             }
 
-            // 3. Cache all assets using Cache API with proper CORS handling
+            // 3. Cache all assets (реально нужно для оффлайна через service worker)
             const cache = await caches.open(HLS_ASSETS_CACHE_NAME);
 
-            // Cache each URL individually with proper CORS handling
-            for (const url of urlsToCache) {
+            const urlList = Array.from(urlsToCache);
+            let okCount = 0;
+            const failUrls: string[] = [];
+
+            for (let i = 0; i < urlList.length; i++) {
+              const url = urlList[i];
               try {
-                const response = await fetch(url, {
-                  mode: "cors",
-                  credentials: "omit",
-                });
-                if (response.ok) {
-                  await cache.put(url, response);
-                }
+                const resp = await fetchWithRetry(url, { retries: 3 });
+                // cache.put требует "незапользованный" body, поэтому clone()
+                await cache.put(url, resp.clone());
+                okCount++;
               } catch (error) {
+                failUrls.push(url);
                 console.warn(`Failed to cache ${url}:`, error);
-                // Continue with other URLs even if one fails
+              } finally {
+                // прогресс: 40..85 пропорционально реальной работе
+                const pct = 40 + Math.round(((i + 1) / urlList.length) * 45);
+                set((state) => ({
+                  downloadProgress: new Map(state.downloadProgress).set(
+                    itemId,
+                    Math.min(85, pct),
+                  ),
+                }));
               }
+
+              if (get().downloadCancelled.has(itemId)) return;
             }
 
-            // Update progress: 70% - assets cached
+            // Если упало слишком много — считаем загрузку неуспешной
+            const failRatio = urlList.length === 0 ? 1 : failUrls.length / urlList.length;
+            if (urlList.length === 0 || failRatio > 0.02) {
+              throw new Error(
+                `Не удалось закэшировать часть файлов (${failUrls.length}/${urlList.length}). Проверь CORS/доступ к CDN.`,
+              );
+            }
+
+            // Update progress: 85% - assets cached
             set((state) => ({
-              downloadProgress: new Map(state.downloadProgress).set(itemId, 70),
+              downloadProgress: new Map(state.downloadProgress).set(itemId, 85),
             }));
 
             // Check for cancellation
@@ -456,13 +594,15 @@ export const useOfflineStore = create<OfflineState>()(
             // 4. Save metadata to IndexedDB
             const itemToSave = {
               ...serverItemData,
-              songsData: serverItemData.songs,
+              songsData: resolvedSongs,
+              // чтобы все страницы/плеер в оффлайне работали с одинаковым полем
+              songs: resolvedSongs,
               userId,
               isGenerated: itemType === "generated-playlists",
             };
             await saveUserItem(storeName, itemToSave as any);
 
-            for (const song of serverItemData.songs as Song[]) {
+            for (const song of resolvedSongs) {
               await saveUserItem("songs", { ...song, userId });
             }
 
@@ -487,7 +627,7 @@ export const useOfflineStore = create<OfflineState>()(
                 downloadedItemIds: new Set(state.downloadedItemIds).add(itemId),
                 downloadedSongIds: new Set([
                   ...state.downloadedSongIds,
-                  ...serverItemData.songs.map((s: Song) => s._id),
+                  ...resolvedSongs.map((s: Song) => s._id),
                 ]),
                 downloadingItemIds: new Set(
                   [...state.downloadingItemIds].filter((id) => id !== itemId)
@@ -530,9 +670,8 @@ export const useOfflineStore = create<OfflineState>()(
             });
 
             // Don't throw the error to prevent UI crashes, just log it
-            console.warn(
-              `Download of ${itemType} ${itemId} failed, but continuing...`
-            );
+            // ВАЖНО: НЕ глотаем ошибку, иначе UI показывает "успех"
+            throw error;
           }
         },
 

@@ -18,6 +18,48 @@ export default defineConfig({
                 navigateFallback: "/index.html",
                 cleanupOutdatedCaches: true,
                 sourcemap: false,
+                runtimeCaching: [
+                    {
+                        // HLS manifests + segments + keys from CDN
+                        urlPattern: function (_a) {
+                            var url = _a.url;
+                            return url.pathname.endsWith(".m3u8") ||
+                                url.pathname.endsWith(".ts") ||
+                                url.pathname.endsWith(".m4s") ||
+                                url.pathname.endsWith(".aac") ||
+                                url.pathname.endsWith(".key");
+                        },
+                        handler: "CacheFirst",
+                        options: {
+                            cacheName: "moodify-hls-assets-cache",
+                            expiration: {
+                                maxEntries: 5000,
+                                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+                            },
+                            cacheableResponse: {
+                                statuses: [0, 200],
+                            },
+                        },
+                    },
+                    {
+                        // Images (covers, artists) for offline library
+                        urlPattern: function (_a) {
+                            var request = _a.request;
+                            return request.destination === "image";
+                        },
+                        handler: "CacheFirst",
+                        options: {
+                            cacheName: "moodify-image-cache",
+                            expiration: {
+                                maxEntries: 2000,
+                                maxAgeSeconds: 60 * 60 * 24 * 30,
+                            },
+                            cacheableResponse: {
+                                statuses: [0, 200],
+                            },
+                        },
+                    },
+                ],
             },
             includeAssets: [
                 "silent.mp3",

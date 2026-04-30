@@ -6,6 +6,8 @@ import toast from "react-hot-toast";
 import { useOfflineStore } from "./useOfflineStore";
 import { silentAudioService } from "@/lib/silentAudioService";
 import { axiosInstance } from "@/lib/axios";
+import { getUserItem } from "@/lib/offline-db";
+import { useAuthStore } from "./useAuthStore";
 
 const isMobileDevice = () => {
   if (typeof window === "undefined") return false;
@@ -114,7 +116,21 @@ export const usePlayerStore = create<PlayerStore>()(
 
       // Умная функция подгрузки недостающих данных трека (HLS, Canvas, Lyrics)
       const ensureSongData = async (song: Song): Promise<Song | null> => {
-        if (song.hlsUrl || useOfflineStore.getState().isOffline) return song;
+        // Онлайн: догружаем с сервера
+        // Оффлайн: пытаемся взять из IndexedDB (songs), иначе возвращаем как есть
+        if (song.hlsUrl) return song;
+
+        if (useOfflineStore.getState().isOffline) {
+          try {
+            const userId = useAuthStore.getState().user?.id;
+            if (!userId) return song;
+            const localSong = await getUserItem("songs", song._id, userId);
+            if (localSong?.hlsUrl) return { ...song, ...localSong };
+            return song;
+          } catch {
+            return song;
+          }
+        }
 
         set({ isFetchingLyrics: true });
         try {
@@ -128,6 +144,13 @@ export const usePlayerStore = create<PlayerStore>()(
             lyrics: fullData.lyrics,
             genres: fullData.genres,
             moods: fullData.moods,
+            // Если song уже пришёл с populated artist (name), не затираем его
+            artist:
+              Array.isArray((song as any).artist) &&
+              typeof (song as any).artist?.[0] === "object" &&
+              (song as any).artist?.[0]?.name
+                ? (song as any).artist
+                : fullData.artist ?? song.artist,
           };
 
           // Обновляем песню в очереди, чтобы данные закэшировались локально
