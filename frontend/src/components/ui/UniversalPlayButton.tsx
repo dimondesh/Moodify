@@ -279,14 +279,31 @@ const UniversalPlayButton = ({
 
   const playbackContext = getPlaybackContext();
 
-  const isCurrentlyPlayingFromThisEntity =
-    isPlaying &&
-    currentSong &&
-    songsToPlay.length > 0 &&
-    songsToPlay.some((song) => song._id === currentSong._id) &&
-    currentPlaybackContext &&
-    currentPlaybackContext.type === entityType &&
-    currentPlaybackContext.entityId === entity._id;
+  const isCurrentlyPlayingFromThisEntity = useMemo(() => {
+    if (!isPlaying || !currentSong) return false;
+
+    // Для конкретного трека (entityType="song") важен только факт,
+    // что текущая песня совпадает с entity. currentPlaybackContext при
+    // переключении next/prev может оставаться прежним и не должен ломать UI.
+    if (entityType === "song") {
+      return currentSong._id === entity._id;
+    }
+
+    return (
+      songsToPlay.length > 0 &&
+      songsToPlay.some((song) => song._id === currentSong._id) &&
+      !!currentPlaybackContext &&
+      currentPlaybackContext.type === entityType &&
+      currentPlaybackContext.entityId === entity._id
+    );
+  }, [
+    isPlaying,
+    currentSong,
+    entityType,
+    entity._id,
+    songsToPlay,
+    currentPlaybackContext,
+  ]);
 
   const handlePlay = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     e.preventDefault();
