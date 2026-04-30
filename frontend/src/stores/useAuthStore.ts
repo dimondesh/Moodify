@@ -6,6 +6,23 @@ import { auth, signOut as firebaseSignOut } from "../lib/firebase";
 import { useChatStore } from "./useChatStore";
 import { usePlayerStore } from "./usePlayerStore";
 
+const migrateLocalStorageKey = (fromKey: string, toKey: string) => {
+  try {
+    if (typeof window === "undefined") return;
+    const existingNew = localStorage.getItem(toKey);
+    if (existingNew) return;
+    const old = localStorage.getItem(fromKey);
+    if (!old) return;
+    localStorage.setItem(toKey, old);
+    localStorage.removeItem(fromKey);
+  } catch {
+    // ignore
+  }
+};
+
+// rename "moodify-studio-*" -> "moodify-*"
+migrateLocalStorageKey("moodify-studio-auth-storage", "moodify-auth-storage");
+
 interface AuthUser {
   id: string;
   firebaseUid: string;
@@ -306,7 +323,7 @@ export const useAuthStore = create<AuthStore>()(
       },
     }),
     {
-      name: "moodify-studio-auth-storage",
+      name: "moodify-auth-storage",
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         user: state.user,

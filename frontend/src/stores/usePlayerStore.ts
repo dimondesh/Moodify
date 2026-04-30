@@ -9,6 +9,25 @@ import { axiosInstance } from "@/lib/axios";
 import { getUserItem } from "@/lib/offline-db";
 import { useAuthStore } from "./useAuthStore";
 
+const migrateLocalStorageKey = (fromKey: string, toKey: string) => {
+  try {
+    if (typeof window === "undefined") return;
+    const existingNew = localStorage.getItem(toKey);
+    if (existingNew) return;
+    const old = localStorage.getItem(fromKey);
+    if (!old) return;
+    localStorage.setItem(toKey, old);
+    localStorage.removeItem(fromKey);
+  } catch {
+    // ignore
+  }
+};
+
+migrateLocalStorageKey(
+  "moodify-studio-player-storage",
+  "moodify-player-storage"
+);
+
 const isMobileDevice = () => {
   if (typeof window === "undefined") return false;
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
@@ -915,7 +934,7 @@ export const usePlayerStore = create<PlayerStore>()(
       };
     },
     {
-      name: "moodify-studio-player-storage",
+      name: "moodify-player-storage",
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         currentSong: state.currentSong

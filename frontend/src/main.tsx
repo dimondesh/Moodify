@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router-dom";
 import AuthProvider from "./Providers/AuthProvider.tsx";
 import "./lib/i18n.ts";
 import { HelmetProvider } from "react-helmet-async";
+import { registerSW } from "virtual:pwa-register";
 
 createRoot(document.getElementById("root")!).render(
   <HelmetProvider>
@@ -15,3 +16,10 @@ createRoot(document.getElementById("root")!).render(
     </AuthProvider>
   </HelmetProvider>
 );
+
+const updateSW = registerSW({
+  immediate: true,
+  onNeedRefresh() {
+    updateSW(true);
+  },
+});

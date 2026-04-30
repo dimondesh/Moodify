@@ -775,6 +775,8 @@
     "totalAvailable": "Всего доступно",
     "clearAllDownloads": "Очистить все загрузки",
     "clearLabel": "Это удалит все загруженные песни, альбомы и плейлисты с этого устройства.",
+    "clearAppCache": "Очистить кэш приложения",
+    "clearAppCacheDesc": "Удаляет кэш (включая Service Worker) и применяет обновления без hard reload.",
     "playbackSpeed": "Скорость воспроизведения",
     "playbackSpeedDesc": "Управляйте скоростью воспроизведения вашей музыки.",
     "reduceMotion": "Уменьшение Движения"
@@ -797,6 +799,8 @@
     "clearingDownloads": "Очистка всех загрузок...",
     "downloadsCleared": "Ваши загрузки были очищены.",
     "clearDownloadsError": "Произошла ошибка при очистке загрузок.",
+    "cacheCleared": "Кэш приложения очищен",
+    "cacheClearFailed": "Не удалось очистить кэш",
     "savedToLibrary": "Сохранено в Вашу медиатеку",
     "removedFromLibrary": "Удалено из Вашей медиатеки",
     "libraryUpdateError": "Не удалось обновить медиатеку.",

@@ -776,6 +776,8 @@
     "totalAvailable": "Total Available",
     "clearAllDownloads": "Clear All Downloads",
     "clearLabel": "This will remove all downloaded songs, albums, and playlists from this device.",
+    "clearAppCache": "Clear app cache",
+    "clearAppCacheDesc": "Clears cache (including Service Worker) and applies updates without a hard reload.",
     "playbackSpeed": "Playback Speed",
     "playbackSpeedDesc": "Control the playback speed of your music.",
     "reduceMotion": "Reduce Motion"
@@ -798,6 +800,8 @@
     "clearingDownloads": "Clearing all downloads...",
     "downloadsCleared": "Your downloads have been cleared.",
     "clearDownloadsError": "An error occurred while clearing downloads.",
+    "cacheCleared": "App cache cleared",
+    "cacheClearFailed": "Failed to clear cache",
     "savedToLibrary": "Saved to Your Library",
     "removedFromLibrary": "Removed from Your Library",
     "libraryUpdateError": "Failed to update library.",

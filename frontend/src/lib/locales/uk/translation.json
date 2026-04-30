@@ -775,6 +775,8 @@
     "totalAvailable": "Доступно всього",
     "clearAllDownloads": "Очистити всі завантаження",
     "clearLabel": "Це видалить усі завантажені пісні, альбоми та плейлисти з цього пристрою.",
+    "clearAppCache": "Очистити кеш застосунку",
+    "clearAppCacheDesc": "Видаляє кеш (включно з Service Worker) і застосовує оновлення без hard reload.",
     "playbackSpeed": "Швидкість відтворення",
     "playbackSpeedDesc": "Керуйте швидкістю відтворення вашої музики.",
     "reduceMotion": "Зменшення руху"
@@ -797,6 +799,8 @@
     "clearingDownloads": "Очищення всіх завантажень...",
     "downloadsCleared": "Ваші завантаження було очищено.",
     "clearDownloadsError": "Сталася помилка під час очищення завантажень.",
+    "cacheCleared": "Кеш застосунку очищено",
+    "cacheClearFailed": "Не вдалося очистити кеш",
     "savedToLibrary": "Збережено до Вашої медіатеки",
     "removedFromLibrary": "Видалено з Вашої медіатеки",
     "libraryUpdateError": "Не вдалося оновити медіатеку.",

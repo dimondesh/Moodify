@@ -1,6 +1,6 @@
 // frontend/src/lib/offline-db.ts
 
-import { openDB, DBSchema, IDBPDatabase, StoreNames } from "idb";
+import { openDB, deleteDB, DBSchema, IDBPDatabase, StoreNames } from "idb";
 import type { Song, Album, Playlist, Mix } from "@/types";
 
 const DB_NAME = "MoodifyStudioOfflineDB";
@@ -60,6 +60,14 @@ const initDB = () => {
 };
 
 export const getDb = initDB;
+
+export const deleteOfflineDb = async (): Promise<void> => {
+  // close any open connection by dropping reference
+  // (idb will reopen on next getDb call)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (dbPromise as any) = undefined;
+  await deleteDB(DB_NAME);
+};
 
 export const saveUserItem = async <T extends StoreNames<MoodifyDB>>(
   storeName: T,

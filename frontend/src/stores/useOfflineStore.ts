@@ -12,6 +12,7 @@ import {
   getAllUserMixes,
   getAllUserSongs,
   getUserItem,
+  deleteOfflineDb,
 } from "@/lib/offline-db";
 import type { Song, Album, Playlist, Mix } from "@/types";
 import { axiosInstance } from "@/lib/axios";
@@ -127,69 +128,6 @@ const hasPopulatedArtists = (song: Song): boolean => {
   return Array.isArray(a) && a.length > 0 && typeof a[0] === "object" && !!a[0]?.name;
 };
 
-// Helper function to calculate the size of a single item
-const calculateItemSize = async (
-  item: any,
-  cache: Cache,
-  _cacheKeys: Request[]
-): Promise<number> => {
-  let size = 0;
-
-  try {
-    // Calculate size of item metadata (stored in IndexedDB)
-    const itemSize = new Blob([JSON.stringify(item)]).size;
-    size += itemSize;
-
-    // Calculate size of cached assets
-    const urlsToCheck = new Set<string>();
-
-    // Add image URL
-    if (item.imageUrl) {
-      urlsToCheck.add(item.imageUrl);
-    }
-
-    // Add song-related URLs
-    const songs = item.songsData || item.songs || [];
-    for (const song of songs) {
-      if (song.imageUrl) {
-        urlsToCheck.add(song.imageUrl);
-      }
-      if (song.hlsUrl) {
-        urlsToCheck.add(song.hlsUrl);
-        // Add HLS segment URLs
-        try {
-          const manifestResponse = await fetch(song.hlsUrl);
-          const manifestText = await manifestResponse.text();
-          const baseUrl = new URL(song.hlsUrl);
-          const segments = manifestText
-            .split("\n")
-            .filter((line) => line.endsWith(".ts"));
-          segments.forEach((segment) => {
-            const segmentUrl = new URL(segment, baseUrl);
-            urlsToCheck.add(segmentUrl.href);
-          });
-        } catch (e) {
-          // Skip if manifest can't be fetched
-        }
-      }
-    }
-
-    // Calculate size of cached assets
-    for (const url of urlsToCheck) {
-      const request = new Request(url);
-      const response = await cache.match(request);
-      if (response) {
-        const blob = await response.blob();
-        size += blob.size;
-      }
-    }
-  } catch (error) {
-    console.warn("Failed to calculate size for item:", item._id, error);
-  }
-
-  return size;
-};
-
 interface OfflineState {
   downloadedItemIds: Set<string>;
   downloadedSongIds: Set<string>;
@@ -216,6 +154,7 @@ interface OfflineState {
     getStorageUsage: () => Promise<{ usage: number; quota: number }>;
     getDownloadedContentSize: () => Promise<{ usage: number; quota: number }>;
     clearAllDownloads: () => Promise<void>;
+    clearAppCache: () => Promise<void>;
     fetchAllDownloaded: () => Promise<(Album | Playlist | Mix)[]>;
     updateDownloadedPersonalMix: (personalMixId: string) => Promise<void>;
   };
@@ -784,28 +723,28 @@ export const useOfflineStore = create<OfflineState>()(
           if (!userId) return { usage: 0, quota: 0 };
 
           try {
-            // Get all downloaded items
-            const [albums, playlists, mixes] = await Promise.all([
-              getAllUserAlbums(userId),
-              getAllUserPlaylists(userId),
-              getAllUserMixes(userId),
-            ]);
-
+            // Реальный размер берём из Cache Storage, чтобы не было двойного счёта
             let totalSize = 0;
-            const cache = await caches.open(HLS_ASSETS_CACHE_NAME);
-            const cacheKeys = Array.from(await cache.keys());
-
-            // Calculate size for each downloaded item
-            for (const album of albums) {
-              totalSize += await calculateItemSize(album, cache, cacheKeys);
-            }
-
-            for (const playlist of playlists) {
-              totalSize += await calculateItemSize(playlist, cache, cacheKeys);
-            }
-
-            for (const mix of mixes) {
-              totalSize += await calculateItemSize(mix, cache, cacheKeys);
+            const cacheNames = await caches.keys();
+            for (const cacheName of cacheNames) {
+              // считаем только то, что относится к оффлайн/медиа (и workbox runtime)
+              if (
+                !cacheName.startsWith("moodify-") &&
+                !cacheName.startsWith("workbox-")
+              )
+                continue;
+              const cache = await caches.open(cacheName);
+              const keys = await cache.keys();
+              for (const req of keys) {
+                const resp = await cache.match(req);
+                if (!resp) continue;
+                try {
+                  const blob = await resp.blob();
+                  totalSize += blob.size;
+                } catch {
+                  // ignore
+                }
+              }
             }
 
             // Get total quota
@@ -858,6 +797,59 @@ export const useOfflineStore = create<OfflineState>()(
             console.error("Failed to clear all downloads:", error);
             toast.dismiss();
             toast.error(i18n.t("toasts.clearDownloadsError"));
+          }
+        },
+
+        clearAppCache: async () => {
+          try {
+            // 1) stop service workers (so they don't re-populate caches mid-clear)
+            if ("serviceWorker" in navigator) {
+              const regs = await navigator.serviceWorker.getRegistrations();
+              await Promise.allSettled(regs.map((r) => r.unregister()));
+            }
+
+            // 2) delete all Cache Storage entries
+            if ("caches" in window) {
+              const names = await caches.keys();
+              await Promise.allSettled(names.map((n) => caches.delete(n)));
+            }
+
+            // 3) delete offline IndexedDB
+            await deleteOfflineDb().catch(() => {});
+
+            // 4) clear persisted localStorage keys (new + legacy)
+            const keysToRemove: string[] = [];
+            for (let i = 0; i < localStorage.length; i++) {
+              const k = localStorage.key(i);
+              if (!k) continue;
+              if (
+                k.startsWith("moodify-") ||
+                k.startsWith("moodify-studio-") ||
+                k === "moodify-offline-storage"
+              ) {
+                keysToRemove.push(k);
+              }
+            }
+            keysToRemove.forEach((k) => localStorage.removeItem(k));
+
+            // 5) reset in-memory offline state
+            set({
+              downloadedItemIds: new Set(),
+              downloadedSongIds: new Set(),
+              downloadingItemIds: new Set(),
+              downloadProgress: new Map(),
+              downloadCancelled: new Set(),
+            });
+
+            toast.success(i18n.t("toasts.cacheCleared", "Кэш приложения очищен"));
+
+            // 6) reload so newest SW/assets apply without hard reload
+            window.location.reload();
+          } catch (e) {
+            console.error("[Offline] Failed to clear app cache", e);
+            toast.error(
+              i18n.t("toasts.cacheClearFailed", "Не удалось очистить кэш"),
+            );
           }
         },
       },

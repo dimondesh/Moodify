@@ -190,9 +190,8 @@ const SettingsPage: React.FC = () => {
       }
     }
   };
-  const { getDownloadedContentSize, clearAllDownloads } = useOfflineStore(
-    (s) => s.actions,
-  );
+  const { getDownloadedContentSize, clearAllDownloads, clearAppCache } =
+    useOfflineStore((s) => s.actions);
   const downloadedItemIds = useOfflineStore((s) => s.downloadedItemIds);
   const downloadingItemIds = useOfflineStore((s) => s.downloadingItemIds);
   const [storageUsage, setStorageUsage] = useState({ usage: 0, quota: 0 });
@@ -757,6 +756,22 @@ const SettingsPage: React.FC = () => {
                 </Button>
                 <p className="text-gray-400 text-sm mt-2 text-center">
                   {t("settings.clearLabel")}
+                </p>
+              </div>
+
+              <div className="mt-3">
+                <Button
+                  onClick={clearAppCache}
+                  variant="outline"
+                  className="w-full bg-[#2a2a2a] hover:bg-[#3a3a3a] border-[#3a3a3a]"
+                >
+                  {t("settings.clearAppCache", "Очистить кэш приложения")}
+                </Button>
+                <p className="text-gray-400 text-sm mt-2 text-center">
+                  {t(
+                    "settings.clearAppCacheDesc",
+                    "Удаляет кэш (включая SW) и применяет обновления без hard reload.",
+                  )}
                 </p>
               </div>
             </div>
