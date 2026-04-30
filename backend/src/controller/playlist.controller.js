@@ -14,7 +14,8 @@ import {
 } from "../lib/ai.service.js";
 import { optimizeAndUploadImage } from "../lib/image.service.js";
 
-const SONG_MINIMAL_SELECT = "_id title imageUrl duration playCount albumId";
+const SONG_MINIMAL_SELECT =
+  "_id title imageUrl duration playCount albumId createdAt";
 
 const uploadImageToBunny = async (file) => {
   try {
