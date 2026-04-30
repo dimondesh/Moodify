@@ -6,7 +6,6 @@ import path from "path";
 
 export default defineConfig({
   base: "/",
-
   plugins: [
     react(),
     VitePWA({
@@ -14,47 +13,12 @@ export default defineConfig({
       devOptions: {
         enabled: false,
       },
-
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,wav,mp3}"],
         maximumFileSizeToCacheInBytes: 15 * 1024 * 1024,
         navigateFallback: "/index.html",
         cleanupOutdatedCaches: true,
         sourcemap: false,
-
-        runtimeCaching: [
-          {
-            urlPattern: ({ url }) => url.hostname === "moodify-one.b-cdn.net",
-            handler: "CacheFirst",
-            options: {
-              cacheName: "moodify-hls-assets-cache",
-              expiration: {
-                maxEntries: 1000,
-                maxAgeSeconds: 60 * 60 * 24 * 90,
-              },
-              rangeRequests: true,
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-          {
-            urlPattern: ({ url }) =>
-              url.href.startsWith("https://moodify-music.com/api/albums"),
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "moodify-api-cache",
-              networkTimeoutSeconds: 5,
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 * 7,
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-        ],
       },
       includeAssets: [
         "silent.mp3",
