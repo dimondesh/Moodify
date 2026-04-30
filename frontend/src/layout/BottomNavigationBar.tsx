@@ -46,7 +46,7 @@ const BottomNavigationBar = () => {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-800 h-20 flex items-center justify-around z-50 pb-4">
+    <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[#0f0f0f] via-[#0f0f0f]/97 to-[#0f0f0f]/95 h-22 flex items-center justify-around z-50 pb-4">
       {navItems.map((item) => {
         if (item.authRequired && !user) {
           return null;
@@ -63,7 +63,7 @@ const BottomNavigationBar = () => {
               isActive ? "text-white" : "text-zinc-400"
             )}
           >
-            <item.icon className="h-5 w-5" />
+            <item.icon className="size-5" />
             <span className="text-xs mt-1">{item.label}</span>
             {item.to === "/chat" && totalUnread > 0 && (
               <span className="absolute top-1 right-2 bg-violet-600 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center font-bold">

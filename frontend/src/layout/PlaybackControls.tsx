@@ -389,7 +389,7 @@ const PlaybackControls = () => {
       {isCompactView ? (
         <>
           {!isFullScreenPlayerOpen && (
-            <footer className="fixed bottom-20 left-0 right-0 h-14 sm:h-16 mx-1 mb-[4px] rounded-md bg-[#1a1a1a]/80 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between z-[60]">
+            <footer className="fixed bottom-21 left-0 right-0 h-14 sm:h-16 mx-1 mb-[4px] rounded-md bg-[#1a1a1a]/80 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between z-[60]">
               <div
                 className="flex items-center gap-3 flex-1 cursor-pointer min-w-0"
                 onClick={() => setIsFullScreenPlayerOpen(true)}

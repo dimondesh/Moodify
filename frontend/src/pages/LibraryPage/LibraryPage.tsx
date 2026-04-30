@@ -574,7 +574,7 @@ const LibraryPage = () => {
                                 "https://moodify.b-cdn.net/default-album-cover.png"
                               }
                               alt={item.title}
-                              className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              className="absolute inset-0 w-full h-full object-cover duration-300 "
                               onError={(e) => {
                                 (e.target as HTMLImageElement).src =
                                   "https://moodify.b-cdn.net/default-album-cover.png";
@@ -670,7 +670,7 @@ const LibraryPage = () => {
                       <Link
                         key={`${item.type}-${item._id}`}
                         to={linkPath}
-                        className="bg-transparent p-3 rounded-md hover:bg-[#2a2a2a]/50 transition-all group cursor-pointer flex items-center gap-4 hover-scale"
+                        className="bg-transparent p-3 rounded-md hover:bg-[#2a2a2a]/50 transition-all group cursor-pointer flex items-center gap-4"
                       >
                         <div className="relative flex-shrink-0">
                           <img

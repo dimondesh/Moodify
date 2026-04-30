@@ -199,10 +199,8 @@ const MainLayout = () => {
     >
       <DynamicTitleUpdater />
       <AudioPlayer />
-      <MobileHeader title={getMobileHeaderTitle(location.pathname)} />
-      <div className="hidden md:block">
-        <Topbar />
-      </div>
+      {isMobile && <MobileHeader title={getMobileHeaderTitle(location.pathname)} />}
+      {!isMobile && <Topbar />}
       <ResizablePanelGroup
         direction="horizontal"
         className={`flex-1 flex overflow-hidden ${contentPaddingBottom} ${
