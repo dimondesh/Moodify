@@ -1,16 +1,111 @@
 // backend/src/lib/tempCleanup.service.js
 import fs from "fs";
 import path from "path";
-import { isUploadInProgress } from "./activeUploads.service.js";
+import {
+  isGlobalTempCleanupBlocked,
+  isPathUnderChunkAssemblyLease,
+} from "./adminUploadLease.service.js";
+
+const CHUNKS_ROOT = () => path.join(process.cwd(), "temp", "chunks");
+
+function cleanChunkSessionsOnly(chunksRoot) {
+  if (!fs.existsSync(chunksRoot)) return;
+  fs.readdir(chunksRoot, (err, uploadDirs) => {
+    if (err) {
+      console.log(`[TempCleanup] Ошибка чтения ${chunksRoot}:`, err);
+      return;
+    }
+    for (const uid of uploadDirs) {
+      const sessionPath = path.join(chunksRoot, uid);
+      if (!shouldCleanPath(sessionPath)) {
+        console.log(`[TempCleanup] Сохраняем chunked-сессию: ${sessionPath}`);
+        continue;
+      }
+      fs.rm(sessionPath, { recursive: true, force: true }, (rmErr) => {
+        if (rmErr) {
+          console.log(
+            `[TempCleanup] Ошибка удаления сессии чанков ${sessionPath}:`,
+            rmErr,
+          );
+        } else {
+          console.log(`[TempCleanup] Удалена chunked-сессия: ${sessionPath}`);
+        }
+      });
+    }
+  });
+}
+
+function shouldCleanPath(absPath) {
+  const normalized = path.resolve(absPath);
+  if (isPathUnderChunkAssemblyLease(normalized)) {
+    console.log(`[TempCleanup] Пропуск (активная chunked-сессия): ${normalized}`);
+    return false;
+  }
+  return true;
+}
+
+const cleanDirectoryContents = (tempDir) => {
+  if (!fs.existsSync(tempDir)) return;
+
+  fs.readdir(tempDir, (err, files) => {
+    if (err) {
+      console.log(`[TempCleanup] Ошибка чтения ${tempDir}:`, err);
+      return;
+    }
+
+    for (const file of files) {
+      const filePath = path.join(tempDir, file);
+
+      fs.stat(filePath, (err, stats) => {
+        if (err) return;
+
+        if (
+          stats.isDirectory() &&
+          path.resolve(filePath) === path.resolve(CHUNKS_ROOT())
+        ) {
+          cleanChunkSessionsOnly(filePath);
+          return;
+        }
+
+        if (!shouldCleanPath(filePath)) return;
+
+        if (stats.isDirectory()) {
+          fs.rm(filePath, { recursive: true, force: true }, (rmErr) => {
+            if (rmErr) {
+              console.log(
+                `[TempCleanup] Ошибка удаления директории ${filePath}:`,
+                rmErr,
+              );
+            } else {
+              console.log(`[TempCleanup] Удалена директория: ${filePath}`);
+            }
+          });
+        } else {
+          fs.unlink(filePath, (unlinkErr) => {
+            if (unlinkErr) {
+              console.log(
+                `[TempCleanup] Ошибка удаления файла ${filePath}:`,
+                unlinkErr,
+              );
+            } else {
+              console.log(`[TempCleanup] Удалён файл: ${filePath}`);
+            }
+          });
+        }
+      });
+    }
+  });
+};
 
 const cleanAllTempDirectories = () => {
-  // Проверяем, идет ли загрузка
-  if (isUploadInProgress()) {
-    console.log("[TempCleanup] Пропуск очистки - идет загрузка файлов");
+  if (isGlobalTempCleanupBlocked()) {
+    console.log(
+      "[TempCleanup] Пропуск — выполняется админская загрузка через очередь",
+    );
     return;
   }
 
-  console.log("[TempCleanup] Начинаем очистку временных директорий...");
+  console.log("[TempCleanup] Очистка временных директорий…");
 
   const tempDirs = [
     path.join(process.cwd(), "temp"),
@@ -18,51 +113,9 @@ const cleanAllTempDirectories = () => {
     path.join(process.cwd(), "temp_unzip_albums"),
   ];
 
-  tempDirs.forEach((tempDir) => {
-    if (fs.existsSync(tempDir)) {
-      fs.readdir(tempDir, (err, files) => {
-        if (err) {
-          console.log(
-            `[TempCleanup] Ошибка чтения директории ${tempDir}:`,
-            err
-          );
-          return;
-        }
-
-        files.forEach((file) => {
-          const filePath = path.join(tempDir, file);
-
-          fs.stat(filePath, (err, stats) => {
-            if (err) return;
-
-            if (stats.isDirectory()) {
-              fs.rm(filePath, { recursive: true, force: true }, (err) => {
-                if (err) {
-                  console.log(
-                    `[TempCleanup] Ошибка удаления директории ${filePath}:`,
-                    err
-                  );
-                } else {
-                  console.log(`[TempCleanup] Удалена директория: ${filePath}`);
-                }
-              });
-            } else {
-              fs.unlink(filePath, (err) => {
-                if (err) {
-                  console.log(
-                    `[TempCleanup] Ошибка удаления файла ${filePath}:`,
-                    err
-                  );
-                } else {
-                  console.log(`[TempCleanup] Удален файл: ${filePath}`);
-                }
-              });
-            }
-          });
-        });
-      });
-    }
-  });
+  for (const tempDir of tempDirs) {
+    cleanDirectoryContents(tempDir);
+  }
 };
 
 export { cleanAllTempDirectories };

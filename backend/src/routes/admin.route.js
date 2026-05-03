@@ -20,12 +20,15 @@ import {
   uploadChunk,
   testAudioAnalysis,
   testEmbeddingExtraction,
+  getAdminUploadQueueStatus,
 } from "../controller/admin.controller.js";
 import { protectRoute } from "../middleware/auth.middleware.js";
 
 const router = Router();
 
 router.use(protectRoute);
+
+router.get("/upload-queue/status", getAdminUploadQueueStatus);
 
 router.post("/songs", createSong);
 router.put("/songs/:id", updateSong);

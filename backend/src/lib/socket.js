@@ -5,7 +5,6 @@ import { User } from "../models/user.model.js";
 import { Song } from "../models/song.model.js";
 import { Artist } from "../models/artist.model.js";
 import { firebaseAdmin } from "./firebase.js";
-import { clearUploadInProgress } from "./activeUploads.service.js";
 export let io;
 
 export const initializeSocket = (server) => {
@@ -286,8 +285,6 @@ export const initializeSocket = (server) => {
       if (userSockets.has(userId)) {
         userSockets.delete(userId);
         userActivities.delete(userId);
-        // Снимаем флаг загрузки при отключении пользователя
-        clearUploadInProgress();
         io.emit("user_disconnected", userId);
       }
     });
