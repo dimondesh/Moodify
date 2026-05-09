@@ -529,7 +529,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
                   value={formData.fullName}
                   onChange={handleChange}
                   required
-                  placeholder="Иван Иванов"
+                  placeholder={t("auth.namePlaceholder", "John Doe")}
                   className="bg-gray-900 border-gray-700 py-6"
                 />
                 <div className="min-h-[24px] mt-2">
