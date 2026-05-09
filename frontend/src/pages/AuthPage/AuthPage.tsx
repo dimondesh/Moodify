@@ -33,11 +33,11 @@ interface AuthPageProps {
 const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user, tempEmail, setTempEmail } = useAuthStore();
 
   const [step, setStep] = useState<AuthStep>("email");
   const [formData, setFormData] = useState({
-    email: "",
+    email: tempEmail || "",
     password: "",
     fullName: "",
   });
@@ -47,11 +47,10 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
   const [verificationSent, setVerificationSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Сброс состояния при смене роута (логин/регистрация)
   useEffect(() => {
     setStep("email");
     setErrorItem("");
-    setFormData({ email: "", password: "", fullName: "" });
+    setFormData((prev) => ({ ...prev, password: "", fullName: "" }));
   }, [mode]);
 
   useEffect(() => {
@@ -83,6 +82,11 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (name === "email") {
+      setTempEmail(value);
+    }
+
     setErrorItem("");
   };
 
@@ -91,9 +95,13 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
+      setTempEmail("");
       navigate("/");
     } catch (error: any) {
-      if (error.code !== "auth/popup-closed-by-user") {
+      if (
+        error.code !== "auth/id-token-expired" &&
+        error.code !== "auth/popup-closed-by-user"
+      ) {
         toast.error(
           t("auth.googleSignInFailed", "Ошибка авторизации через Google"),
         );
@@ -103,7 +111,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
     }
   };
 
-  // ШАГ 1: Проверка Email
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.email)
@@ -158,13 +165,13 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
     }
   };
 
-  // ШАГ 2 (Вход): Пароль
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
       await signInWithEmailAndPassword(auth, formData.email, formData.password);
       toast.success(t("auth.loginSuccess", "Успешный вход"));
+      setTempEmail("");
       navigate("/");
     } catch (error: any) {
       setErrorItem(t("auth.errorInvalidCredentials", "Неверный пароль"));
@@ -190,13 +197,11 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
     }
   };
 
-  // ШАГ 2 (Рега): Создание пароля
   const handleSignupPasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isPasswordValid) setStep("signup_name");
   };
 
-  // ШАГ 3 (Рега): Имя и финиш
   const handleSignupComplete = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.fullName.trim())
@@ -214,6 +219,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
       });
       await sendEmailVerification(userCredential.user);
       await signOut(auth);
+      setTempEmail("");
       setVerificationSent(true);
     } catch (error: any) {
       toast.error(t("auth.errorAuthFailed", "Ошибка регистрации"));
@@ -255,9 +261,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
           - Moodify
         </title>
       </Helmet>
-      {/* Главный контейнер выравнивает контент по центру экрана */}
       <div className="min-h-screen bg-[#0f0f0f] text-white flex flex-col justify-center items-center px-4 py-8">
-        {/* Фиксируем высоту и ширину формы, чтобы предотвратить "прыжки" */}
         <div className="w-full max-w-[340px] relative flex flex-col min-h-[550px]">
           {step !== "email" && (
             <button
@@ -399,7 +403,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
-
                 <div className="flex justify-between items-start min-h-[24px] mt-2">
                   <div className="text-red-500 text-xs flex-1 pr-2">
                     {errorItem}

@@ -53,7 +53,8 @@ interface AuthStore {
   isAdmin: boolean;
   isLoading: boolean;
   error: string | null;
-
+  tempEmail: string;
+  setTempEmail: (email: string) => void;
   setUser: (user: AuthUser | null) => void;
   syncUser: (userData: FirebaseUserDataForSync) => Promise<void>;
   fetchUser: (firebaseUid: string) => Promise<void>;
@@ -63,7 +64,7 @@ interface AuthStore {
   updateUserLanguage: (language: string) => Promise<void>;
   updateUserPrivacy: (isAnonymous: boolean) => Promise<void>;
   updateRecentlyListenedArtistsPrivacy: (
-    showRecentlyListenedArtists: boolean
+    showRecentlyListenedArtists: boolean,
   ) => Promise<void>;
 }
 
@@ -85,6 +86,8 @@ export const useAuthStore = create<AuthStore>()(
       isAdmin: false,
       isLoading: false,
       error: null,
+      tempEmail: "",
+      setTempEmail: (email: string) => set({ tempEmail: email }),
 
       setUser: (user) => set({ user, isAdmin: user?.isAdmin ?? false }),
 
@@ -131,7 +134,7 @@ export const useAuthStore = create<AuthStore>()(
           const response = await axiosInstance.put(
             "/users/me",
             formData,
-            config
+            config,
           );
 
           const updatedUser = response.data.user;
@@ -181,7 +184,7 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       updateRecentlyListenedArtistsPrivacy: async (
-        showRecentlyListenedArtists: boolean
+        showRecentlyListenedArtists: boolean,
       ) => {
         set({ isLoading: true });
         try {
@@ -197,7 +200,7 @@ export const useAuthStore = create<AuthStore>()(
         } catch (error) {
           console.error(
             "Failed to update recently listened artists privacy:",
-            error
+            error,
           );
           set({ isLoading: false });
           throw error;
@@ -218,7 +221,7 @@ export const useAuthStore = create<AuthStore>()(
           const response = await axiosInstance.post(
             "/auth/sync",
             payload,
-            headers
+            headers,
           );
 
           const syncedUserFromBackend = response.data.user;
@@ -229,7 +232,7 @@ export const useAuthStore = create<AuthStore>()(
             !syncedUserFromBackend.firebaseUid
           ) {
             throw new Error(
-              "Backend did not return a valid user with MongoDB ID or Firebase UID."
+              "Backend did not return a valid user with MongoDB ID or Firebase UID.",
             );
           }
 
@@ -263,7 +266,7 @@ export const useAuthStore = create<AuthStore>()(
       fetchUser: async (firebaseUid: string) => {
         if (!navigator.onLine) {
           console.log(
-            "AuthStore (fetchUser): Offline, skipping network request."
+            "AuthStore (fetchUser): Offline, skipping network request.",
           );
           if (get().user) {
             set({ isLoading: false });
@@ -276,7 +279,7 @@ export const useAuthStore = create<AuthStore>()(
           const currentUser = auth.currentUser;
           if (!currentUser || currentUser.uid !== firebaseUid) {
             throw new Error(
-              "No active Firebase user or UID mismatch for fetchUser."
+              "No active Firebase user or UID mismatch for fetchUser.",
             );
           }
 
@@ -292,7 +295,7 @@ export const useAuthStore = create<AuthStore>()(
         } catch (error: any) {
           console.error(
             "AuthStore: Error fetching user data in fetchUser:",
-            error
+            error,
           );
           set({
             isLoading: false,
@@ -308,7 +311,13 @@ export const useAuthStore = create<AuthStore>()(
         try {
           await firebaseSignOut(auth);
           console.log("Firebase user signed out.");
-          set({ user: null, isAdmin: false, isLoading: false, error: null });
+          set({
+            user: null,
+            isAdmin: false,
+            isLoading: false,
+            error: null,
+            tempEmail: "",
+          });
         } catch (error: any) {
           console.error("Logout error:", error);
           set({
@@ -328,7 +337,8 @@ export const useAuthStore = create<AuthStore>()(
       partialize: (state) => ({
         user: state.user,
         isAdmin: state.isAdmin,
+        tempEmail: state.tempEmail,
       }),
-    }
-  )
+    },
+  ),
 );
