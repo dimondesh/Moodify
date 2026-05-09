@@ -35,11 +35,11 @@ export const syncUserWithDb = async (req, res) => {
       });
       await user.save();
       console.log(
-        `✅ New user created: ${user.email} with MongoDB ID: ${user._id}`
+        `✅ New user created: ${user.email} with MongoDB ID: ${user._id}`,
       );
     } else {
       console.log(
-        `✅ User already exists, returning data from MongoDB for ${user.email}`
+        `✅ User already exists, returning data from MongoDB for ${user.email}`,
       );
     }
 
@@ -65,5 +65,19 @@ export const syncUserWithDb = async (req, res) => {
     res
       .status(500)
       .json({ error: "Internal server error", details: error.message });
+  }
+};
+export const checkEmailExists = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: "Email обязателен" });
+    }
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    res.status(200).json({ exists: !!user });
+  } catch (error) {
+    console.error("❌ Error checking email:", error);
+    res.status(500).json({ error: "Внутренняя ошибка сервера" });
   }
 };

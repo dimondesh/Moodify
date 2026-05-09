@@ -156,7 +156,8 @@ function App() {
       <ErrorBoundary>
         <Routes>
           <Route path="sitemap.xml" element={"sitemap.xml"} />
-          <Route path="login" element={<AuthPage />} />
+          <Route path="/login" element={<AuthPage mode="login" />} />
+          <Route path="/register" element={<AuthPage mode="register" />} />{" "}
           <Route element={<MainLayout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/all-songs/:category?" element={<AllSongsPage />} />

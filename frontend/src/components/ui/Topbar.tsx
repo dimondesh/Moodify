@@ -563,7 +563,7 @@ const Topbar = () => {
                 variant="ghost"
                 className="text-gray-300 hover:text-white hover:bg-[#2a2a2a]"
               >
-                <Link to="/login" state={{ mode: "signup" }}>
+                <Link to="/register" state={{ mode: "signup" }}>
                   Sign Up
                 </Link>
               </Button>

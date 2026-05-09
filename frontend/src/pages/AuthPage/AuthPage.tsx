@@ -13,42 +13,45 @@ import {
 } from "firebase/auth";
 import { auth } from "../../lib/firebase";
 import { useAuthStore } from "../../stores/useAuthStore";
+import { axiosInstance } from "../../lib/axios";
 import toast from "react-hot-toast";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { MailCheck, Eye, EyeOff } from "lucide-react";
+import { MailCheck, Eye, EyeOff, ArrowLeft, Check, X } from "lucide-react";
 import MoodifyLogo from "../../components/MoodifyLogo";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 
-const AuthPage: React.FC = () => {
+type AuthStep = "email" | "login_password" | "signup_password" | "signup_name";
+
+interface AuthPageProps {
+  mode: "login" | "register";
+}
+
+const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const location = useLocation();
   const { user } = useAuthStore();
 
-  const [isLoginView, setIsLoginView] = useState(
-    location.state?.mode !== "signup",
-  );
-
+  const [step, setStep] = useState<AuthStep>("email");
   const [formData, setFormData] = useState({
-    fullName: "",
     email: "",
     password: "",
-    confirmPassword: "",
+    fullName: "",
   });
 
-  const [errors, setErrors] = useState({
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
+  const [errorItem, setErrorItem] = useState<React.ReactNode>("");
   const [isLoading, setIsLoading] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
-
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Сброс состояния при смене роута (логин/регистрация)
+  useEffect(() => {
+    setStep("email");
+    setErrorItem("");
+    setFormData({ email: "", password: "", fullName: "" });
+  }, [mode]);
 
   useEffect(() => {
     if (user) {
@@ -56,28 +59,30 @@ const AuthPage: React.FC = () => {
     }
   }, [user, navigate]);
 
-  const validateEmail = (email: string) => {
-    if (!email) return t("auth.emailRequired", "Email обязателен");
-    if (email.length > 42)
-      return t("auth.emailMaxLength", "Слишком длинный email");
-    if (!/\S+@\S+\.\S+/.test(email))
-      return t("auth.emailInvalid", "Неверный формат email");
-    return "";
-  };
+  const passwordRules = [
+    {
+      id: "length",
+      text: t("auth.ruleLength", "Минимум 8 символов"),
+      isValid: formData.password.length >= 8,
+    },
+    {
+      id: "uppercase",
+      text: t("auth.ruleUppercase", "Хотя бы одна заглавная буква"),
+      isValid: /[A-ZА-Я]/.test(formData.password),
+    },
+    {
+      id: "number",
+      text: t("auth.ruleNumber", "Хотя бы одна цифра"),
+      isValid: /[0-9]/.test(formData.password),
+    },
+  ];
 
-  const validatePassword = (password: string) => {
-    if (!password) return t("auth.passwordRequired", "Пароль обязателен");
-    if (password.length < 6)
-      return t("auth.passwordMinLength", "Минимум 6 символов");
-    if (password.length > 20)
-      return t("auth.passwordMaxLength", "Максимум 20 символов");
-    return "";
-  };
+  const isPasswordValid = passwordRules.every((rule) => rule.isValid);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: "" }));
+    setErrorItem("");
   };
 
   const handleGoogleSignIn = async () => {
@@ -86,119 +91,114 @@ const AuthPage: React.FC = () => {
     try {
       await signInWithPopup(auth, provider);
       navigate("/");
-    } catch (error: unknown) {
-      const authError = error as AuthError;
-      if (authError.code !== "auth/popup-closed-by-user") {
+    } catch (error: any) {
+      if (error.code !== "auth/popup-closed-by-user") {
         toast.error(
           t("auth.googleSignInFailed", "Ошибка авторизации через Google"),
         );
-        console.error("Google sign-in error:", error);
       }
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleForgotPassword = async () => {
-    const emailError = validateEmail(formData.email);
-    if (emailError) {
-      setErrors((prev) => ({
-        ...prev,
-        email: t("auth.enterEmailToReset", "Введите email для сброса пароля"),
-      }));
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      await sendPasswordResetEmail(auth, formData.email);
-      toast.success(
-        t(
-          "auth.resetEmailSent",
-          "Письмо со ссылкой для сброса пароля отправлено!",
-        ),
-      );
-    } catch (error: unknown) {
-      const authError = error as AuthError;
-      if (authError.code === "auth/user-not-found") {
-        toast.error(
-          t("auth.errorUserNotFound", "Пользователь с таким email не найден"),
-        );
-      } else {
-        toast.error(t("auth.errorResetFailed", "Ошибка при отправке письма"));
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  // ШАГ 1: Проверка Email
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const emailError = validateEmail(formData.email);
-    const passwordError = validatePassword(formData.password);
-
-    let confirmError = "";
-    if (!isLoginView && formData.password !== formData.confirmPassword) {
-      confirmError = t("auth.passwordsDoNotMatch", "Пароли не совпадают");
-    }
-
-    if (emailError || passwordError || confirmError) {
-      setErrors({
-        email: emailError,
-        password: passwordError,
-        confirmPassword: confirmError,
-      });
-      return;
-    }
+    if (!formData.email)
+      return setErrorItem(t("auth.emailRequired", "Email обязателен"));
+    if (!/\S+@\S+\.\S+/.test(formData.email))
+      return setErrorItem(t("auth.emailInvalid", "Неверный формат"));
 
     setIsLoading(true);
-
     try {
-      if (isLoginView) {
-        await signInWithEmailAndPassword(
-          auth,
-          formData.email,
-          formData.password,
-        );
-        toast.success(t("auth.loginSuccess", "Успешный вход"));
-        navigate("/");
-      } else {
-        const userCredential = await createUserWithEmailAndPassword(
-          auth,
-          formData.email,
-          formData.password,
-        );
-        await updateProfile(userCredential.user, {
-          displayName: formData.fullName,
-        });
-        await sendEmailVerification(userCredential.user);
-        await signOut(auth);
+      const response = await axiosInstance.post("/auth/check-email", {
+        email: formData.email,
+      });
+      const exists = response.data.exists;
 
-        toast.success(t("auth.signupSuccess", "Успешная регистрация"));
-        setVerificationSent(true);
+      if (mode === "login") {
+        if (exists) {
+          setStep("login_password");
+        } else {
+          setErrorItem(
+            <div className="flex flex-col gap-1">
+              <span>{t("auth.errorUserNotFound", "Аккаунт не найден.")}</span>
+              <Link
+                to="/register"
+                className="text-violet-500 hover:underline font-medium"
+              >
+                {t("auth.linkCreateAccount", "Создать новый?")}
+              </Link>
+            </div>,
+          );
+        }
+      } else {
+        if (exists) {
+          setErrorItem(
+            <div className="flex flex-col gap-1">
+              <span>{t("auth.errorEmailInUse", "Этот email уже занят.")}</span>
+              <Link
+                to="/login"
+                className="text-violet-500 hover:underline font-medium"
+              >
+                {t("auth.linkLoginInstead", "Войти в аккаунт?")}
+              </Link>
+            </div>,
+          );
+        } else {
+          setStep("signup_password");
+        }
       }
     } catch (error) {
-      const authError = error as AuthError;
-      let errorMessage = "An unknown error occurred.";
-      switch (authError.code) {
-        case "auth/user-not-found":
-        case "auth/wrong-password":
-        case "auth/invalid-credential":
-          errorMessage = t(
-            "auth.errorInvalidCredentials",
-            "Неверный логин или пароль",
-          );
-          break;
-        case "auth/email-already-in-use":
-          errorMessage = t("auth.errorEmailInUse", "Email уже используется");
-          break;
-        case "auth/invalid-email":
-          errorMessage = t("auth.errorInvalidEmail", "Неверный формат Email");
-          break;
-        default:
-          errorMessage = t("auth.errorAuthFailed", "Ошибка авторизации");
-      }
-      toast.error(errorMessage);
+      toast.error(t("auth.checkEmailError", "Ошибка при проверке email"));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ШАГ 2 (Вход): Пароль
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, formData.email, formData.password);
+      toast.success(t("auth.loginSuccess", "Успешный вход"));
+      navigate("/");
+    } catch (error: any) {
+      setErrorItem(t("auth.errorInvalidCredentials", "Неверный пароль"));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ШАГ 2 (Рега): Создание пароля
+  const handleSignupPasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isPasswordValid) setStep("signup_name");
+  };
+
+  // ШАГ 3 (Рега): Имя и финиш
+  const handleSignupComplete = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.fullName.trim())
+      return setErrorItem(t("auth.nameRequired", "Введите имя"));
+
+    setIsLoading(true);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        formData.email,
+        formData.password,
+      );
+      await updateProfile(userCredential.user, {
+        displayName: formData.fullName,
+      });
+      await sendEmailVerification(userCredential.user);
+      await signOut(auth);
+      setVerificationSent(true);
+    } catch (error: any) {
+      toast.error(t("auth.errorAuthFailed", "Ошибка регистрации"));
     } finally {
       setIsLoading(false);
     }
@@ -210,26 +210,17 @@ const AuthPage: React.FC = () => {
         <div className="w-full max-w-sm text-center">
           <MailCheck className="w-16 h-16 text-violet-500 mx-auto mb-6" />
           <h1 className="text-3xl font-bold mb-4">
-            {t("auth.verifyEmailTitle", "Подтвердите Email")}
+            {t("auth.verifyEmailTitle", "Подтвердите почту")}
           </h1>
-          <p className="text-gray-400 mb-2">
-            {t("auth.verifyEmailMessage1", "Мы отправили письмо на")}
-          </p>
-          <p className="text-white font-semibold mb-6">{formData.email}</p>
-          <p className="text-gray-400 mb-8">
-            {t(
-              "auth.verifyEmailMessage2",
-              "Проверьте входящую почту и подтвердите адрес",
-            )}
+          <p className="text-gray-400 mb-6">
+            {t("auth.verifyEmailMessage", "Мы отправили письмо на")}{" "}
+            <span className="text-white font-semibold">{formData.email}</span>
           </p>
           <Button
-            onClick={() => {
-              setVerificationSent(false);
-              setIsLoginView(true);
-            }}
-            className="w-full h-12 bg-violet-500 hover:bg-violet-600 text-black font-semibold rounded-full"
+            onClick={() => navigate("/login")}
+            className="w-full h-12 bg-violet-500 hover:bg-violet-600 text-black font-bold rounded-full"
           >
-            {t("auth.backToLogin", "Вернуться к входу")}
+            {t("auth.backToLogin", "К авторизации")}
           </Button>
         </div>
       </div>
@@ -240,236 +231,234 @@ const AuthPage: React.FC = () => {
     <>
       <Helmet>
         <title>
-          {isLoginView
+          {mode === "login"
             ? t("auth.loginTitle", "Вход")
-            : t("auth.signupTitle", "Регистрация")}
+            : t("auth.registerTitle", "Регистрация")}{" "}
+          - Moodify
         </title>
       </Helmet>
       <div className="min-h-screen bg-[#0f0f0f] text-white flex flex-col justify-center items-center px-4">
-        <div className="w-full max-w-xs">
-          {/* Logo */}
+        <div className="w-full max-w-xs relative">
+          {step !== "email" && (
+            <button
+              onClick={() => {
+                if (step === "signup_name") setStep("signup_password");
+                else setStep("email");
+                setErrorItem("");
+              }}
+              className="absolute -left-12 top-1 p-2 text-gray-400 hover:text-white rounded-full hover:bg-white/10"
+            >
+              <ArrowLeft size={24} />
+            </button>
+          )}
+
           <Link to="/" className="flex justify-center mb-8">
             <div className="w-10 h-10">
               <MoodifyLogo />
             </div>
           </Link>
 
-          {/* Header */}
-          <div className="text-center mb-6">
-            <h1 className="text-3xl md:text-4xl font-bold mb-3">
-              {isLoginView
-                ? t("auth.loginTitle", "Вход")
-                : t("auth.signupTitle", "Регистрация")}
-            </h1>
-            <p className="text-gray-400 text-sm">
-              {isLoginView
-                ? t("auth.loginSubtitle", "Войдите в свой аккаунт")
-                : t("auth.signupSubtitle", "Создайте новый аккаунт")}
-            </p>
-          </div>
-
-          {/* Form Section */}
-          <form onSubmit={handleSubmit} className="space-y-4 mb-8">
-            {!isLoginView && (
+          {/* ШАГ: EMAIL */}
+          {step === "email" && (
+            <form onSubmit={handleEmailSubmit} className="space-y-4">
+              <h1 className="text-3xl font-bold text-center mb-6">
+                {mode === "login"
+                  ? t("auth.loginWelcome", "С возвращением")
+                  : t("auth.registerWelcome", "Создать аккаунт")}
+              </h1>
               <div>
                 <Label
-                  htmlFor="fullName"
+                  htmlFor="email"
                   className="text-sm text-gray-300 mb-2 block"
                 >
-                  {t("auth.fullNameLabel", "Полное имя")}
+                  {t("auth.emailLabel", "Email")}
                 </Label>
                 <Input
-                  id="fullName"
-                  name="fullName"
-                  type="text"
-                  value={formData.fullName}
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
                   onChange={handleChange}
-                  placeholder={t("auth.fullNamePlaceholder", "Иван Иванов")}
                   required
-                  className="w-full bg-gray-900 border border-gray-700 text-white placeholder-gray-500 px-4 py-5 rounded-md focus:outline-none focus:border-violet-500 focus:ring-0! focus:ring-violet-500"
+                  className="bg-gray-900 border-gray-700 py-6"
                 />
+                {errorItem && (
+                  <div className="text-red-500 text-xs mt-2">{errorItem}</div>
+                )}
               </div>
-            )}
-
-            {/* Email Field */}
-            <div>
-              <Label
-                htmlFor="email"
-                className="text-sm text-gray-300 mb-2 block"
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full h-12 bg-violet-500 text-black font-bold rounded-full"
               >
-                {t("auth.emailLabel", "Email")}
-              </Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder={t("auth.emailPlaceholder", "your@email.com")}
-                required
-                maxLength={42}
-                className="w-full bg-gray-900 border border-gray-700 text-white placeholder-gray-500 px-4 py-5 rounded-md focus:outline-none focus:border-violet-500 focus:ring-0! focus:ring-violet-500"
-              />
-              {errors.email && (
-                <p className="text-red-500 text-xs mt-2">{errors.email}</p>
-              )}
-            </div>
+                {t("common.continue", "Продолжить")}
+              </Button>
 
-            {/* Password Field */}
-            <div>
-              <Label
-                htmlFor="password"
-                className="text-sm text-gray-300 mb-2 block"
+              <div className="flex items-center gap-2 my-4">
+                <div className="flex-1 h-px bg-gray-700"></div>
+                <span className="text-xs text-gray-500 uppercase">
+                  {t("auth.or", "или")}
+                </span>
+                <div className="flex-1 h-px bg-gray-700"></div>
+              </div>
+
+              <Button
+                onClick={handleGoogleSignIn}
+                variant="outline"
+                type="button"
+                className="w-full h-12 border-gray-700 rounded-full"
               >
-                {t("auth.passwordLabel", "Пароль")}
-              </Label>
+                <img src="/google.svg" alt="G" className="w-5 h-5 mr-3" />
+                {t("auth.continueWithGoogle", "Google")}
+              </Button>
+
+              <p className="text-center text-sm text-gray-400 mt-6">
+                {mode === "login" ? (
+                  <>
+                    {t("auth.noAccount", "Нет аккаунта?")}{" "}
+                    <Link
+                      to="/register"
+                      className="text-violet-500 hover:underline"
+                    >
+                      {t("auth.signUp", "Зарегистрироваться")}
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    {t("auth.haveAccount", "Есть аккаунт?")}{" "}
+                    <Link
+                      to="/login"
+                      className="text-violet-500 hover:underline"
+                    >
+                      {t("auth.signIn", "Войти")}
+                    </Link>
+                  </>
+                )}
+              </p>
+            </form>
+          )}
+
+          {/* ШАГ: ПАРОЛЬ (ЛОГИН) */}
+          {step === "login_password" && (
+            <form onSubmit={handleLoginSubmit} className="space-y-4">
+              <h1 className="text-3xl font-bold text-center mb-2">
+                {t("auth.loginTitle", "Вход")}
+              </h1>
+              <p className="text-gray-400 text-sm text-center mb-4">
+                {formData.email}
+              </p>
               <div className="relative">
                 <Input
-                  id="password"
                   name="password"
                   type={showPassword ? "text" : "password"}
                   value={formData.password}
                   onChange={handleChange}
-                  placeholder={t("auth.passwordPlaceholder", "••••••••")}
                   required
-                  minLength={6}
-                  maxLength={42}
-                  className="w-full bg-gray-900 border border-gray-700 text-white placeholder-gray-500 px-4 py-5 pr-12 rounded-md focus:outline-none focus:border-violet-500 focus:ring-0! focus:ring-violet-500"
+                  className="bg-gray-900 border-gray-700 py-6 pr-12"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
-                  tabIndex={-1}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              {errors.password && (
-                <p className="text-red-500 text-xs mt-2">{errors.password}</p>
-              )}
-            </div>
+              {errorItem && <p className="text-red-500 text-xs">{errorItem}</p>}
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full h-12 bg-violet-500 text-black font-bold rounded-full"
+              >
+                {t("auth.loginButton", "Войти")}
+              </Button>
+              <button
+                type="button"
+                onClick={() => sendPasswordResetEmail(auth, formData.email)}
+                className="w-full text-xs text-violet-500 text-right"
+              >
+                {t("auth.forgotPassword", "Забыли пароль?")}
+              </button>
+            </form>
+          )}
 
-            {/* Confirm Password Field (Signup) */}
-            {!isLoginView && (
-              <div>
-                <Label
-                  htmlFor="confirmPassword"
-                  className="text-sm text-gray-300 mb-2 block"
-                >
-                  {t("auth.confirmPasswordLabel", "Подтвердите пароль")}
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    placeholder={t(
-                      "auth.confirmPasswordPlaceholder",
-                      "••••••••",
-                    )}
-                    required={!isLoginView}
-                    minLength={6}
-                    maxLength={42}
-                    className="w-full bg-gray-900 border border-gray-700 text-white placeholder-gray-500 px-4 py-5 pr-12 rounded-md focus:outline-none focus:border-violet-500 focus:ring-0! focus:ring-violet-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
-                    tabIndex={-1}
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff size={18} />
-                    ) : (
-                      <Eye size={18} />
-                    )}
-                  </button>
-                </div>
-                {errors.confirmPassword && (
-                  <p className="text-red-500 text-xs mt-2">
-                    {errors.confirmPassword}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Forgot Password Link (Login) */}
-            {isLoginView && (
-              <div className="flex justify-end">
+          {/* ШАГ: ПАРОЛЬ (РЕГА) */}
+          {step === "signup_password" && (
+            <form onSubmit={handleSignupPasswordSubmit} className="space-y-4">
+              <h1 className="text-3xl font-bold text-center mb-6">
+                {t("auth.createPassword", "Придумайте пароль")}
+              </h1>
+              <div className="relative">
+                <Input
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  className="bg-gray-900 border-gray-700 py-6 pr-12"
+                />
                 <button
                   type="button"
-                  onClick={handleForgotPassword}
-                  className="text-xs text-violet-500 hover:text-violet-400 transition-colors"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"
                 >
-                  {t("auth.forgotPassword", "Забыли пароль?")}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-            )}
+              <div className="bg-gray-900/50 p-4 rounded-lg border border-gray-800 space-y-2">
+                {passwordRules.map((rule) => (
+                  <div key={rule.id} className="flex items-center text-sm">
+                    {rule.isValid ? (
+                      <Check size={14} className="text-green-500 mr-2" />
+                    ) : (
+                      <X size={14} className="text-gray-600 mr-2" />
+                    )}
+                    <span
+                      className={rule.isValid ? "text-white" : "text-gray-500"}
+                    >
+                      {rule.text}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <Button
+                type="submit"
+                disabled={!isPasswordValid || isLoading}
+                className="w-full h-12 bg-violet-500 text-black font-bold rounded-full"
+              >
+                {t("common.next", "Далее")}
+              </Button>
+            </form>
+          )}
 
-            {/* Submit Button */}
-            <Button
-              type="submit"
-              className="w-full h-12 bg-violet-500 hover:bg-violet-600 text-black font-bold rounded-full mt-6 flex items-center justify-center"
-              disabled={isLoading}
-            >
-              {isLoginView
-                ? t("auth.loginButton", "Войти")
-                : t("auth.signupButton", "Зарегистрироваться")}
-            </Button>
-          </form>
-
-          {/* Divider */}
-          <div className="flex items-center gap-2 mb-4">
-            <div className="flex-1 h-px bg-gray-700"></div>
-            <span className="text-xs text-gray-500 uppercase tracking-wider">
-              {t("auth.or", "или")}
-            </span>
-            <div className="flex-1 h-px bg-gray-700"></div>
-          </div>
-
-          {/* Google Sign In Button */}
-          <Button
-            onClick={handleGoogleSignIn}
-            variant="outline"
-            type="button"
-            className="w-full h-12 border border-gray-700 text-white hover:bg-gray-900 hover:border-gray-600 rounded-full font-semibold transition-colors"
-            disabled={isLoading}
-          >
-            <img
-              src="/google.svg"
-              alt={t("common.google", "Google")}
-              className="w-5 h-5 mr-3"
-            />
-            {t("auth.continueWithGoogle", "Продолжить с Google")}
-          </Button>
-
-          {/* Toggle Login/Signup */}
-          <div className="text-center mt-4 text-sm text-gray-400">
-            {isLoginView ? (
-              <span>
-                {t("auth.promptSignup", "Нет аккаунта?")}{" "}
-                <button
-                  onClick={() => setIsLoginView(false)}
-                  className="text-violet-500 hover:text-violet-400 font-semibold transition-colors"
-                >
-                  {t("auth.signupLink", "Зарегистрироваться")}
-                </button>
-              </span>
-            ) : (
-              <span>
-                {t("auth.promptLogin", "Уже есть аккаунт?")}{" "}
-                <button
-                  onClick={() => setIsLoginView(true)}
-                  className="text-violet-500 hover:text-violet-400 font-semibold transition-colors"
-                >
-                  {t("auth.loginLink", "Войти")}
-                </button>
-              </span>
-            )}
-          </div>
+          {/* ШАГ: ИМЯ (РЕГА) */}
+          {step === "signup_name" && (
+            <form onSubmit={handleSignupComplete} className="space-y-4">
+              <h1 className="text-3xl font-bold text-center mb-2">
+                {t("auth.whatsYourName", "Как вас зовут?")}
+              </h1>
+              <p className="text-gray-400 text-sm text-center mb-6">
+                {t("auth.nameSubtitle", "Это имя будет в профиле")}
+              </p>
+              <Input
+                name="fullName"
+                type="text"
+                value={formData.fullName}
+                onChange={handleChange}
+                required
+                placeholder="Иван Иванов"
+                className="bg-gray-900 border-gray-700 py-6"
+              />
+              {errorItem && <p className="text-red-500 text-xs">{errorItem}</p>}
+              <Button
+                type="submit"
+                disabled={isLoading || !formData.fullName.trim()}
+                className="w-full h-12 bg-violet-500 text-black font-bold rounded-full"
+              >
+                {t("auth.createAccount", "Создать аккаунт")}
+              </Button>
+            </form>
+          )}
         </div>
       </div>
     </>
