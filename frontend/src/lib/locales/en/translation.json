@@ -1199,7 +1199,17 @@
     "signupLink": "Sign up",
     "promptLogin": "Already have an account?",
     "loginLink": "Log in",
-    "verifyEmailPrompt": "Please verify your email before logging in."
+    "verifyEmailPrompt": "Please verify your email before logging in.",
+    "enterEmailToReset": "Enter your email to reset password",
+    "resetEmailSent": "Password reset email sent!",
+    "errorUserNotFound": "User with this email not found",
+    "errorResetFailed": "Failed to send reset email",
+    "passwordsDoNotMatch": "Passwords do not match",
+    "loginSubtitle": "Log into your account",
+    "signupSubtitle": "Create a new account",
+    "confirmPasswordLabel": "Confirm Password",
+    "confirmPasswordPlaceholder": "••••••••",
+    "forgotPassword": "Forgot password?"
   },
   "common": {
     "unknownArtist": "Unknown Artist",

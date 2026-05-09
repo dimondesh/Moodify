@@ -1189,7 +1189,17 @@
     "signupLink": "Зареєструйтесь",
     "promptLogin": "Вже є обліковий запис?",
     "loginLink": "Увійти",
-    "verifyEmailPrompt": "Будь ласка, підтвердіть вашу пошту перед входом."
+    "verifyEmailPrompt": "Будь ласка, підтвердіть вашу пошту перед входом.",
+    "enterEmailToReset": "Введіть email для скидання пароля",
+    "resetEmailSent": "Лист із посиланням для скидання пароля надіслано!",
+    "errorUserNotFound": "Користувача з таким email не знайдено",
+    "errorResetFailed": "Помилка при надсиланні листа",
+    "passwordsDoNotMatch": "Паролі не збігаються",
+    "loginSubtitle": "Увійдіть у свій обліковий запис",
+    "signupSubtitle": "Створіть новий обліковий запис",
+    "confirmPasswordLabel": "Підтвердіть пароль",
+    "confirmPasswordPlaceholder": "••••••••",
+    "forgotPassword": "Забули пароль?"
   },
   "common": {
     "unknownArtist": "Невідомий виконавець",

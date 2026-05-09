@@ -1194,7 +1194,17 @@
     "signupLink": "Зарегистрируйтесь",
     "promptLogin": "Уже есть аккаунт?",
     "loginLink": "Войти",
-    "verifyEmailPrompt": "Пожалуйста, подтвердите ваш email перед входом."
+    "verifyEmailPrompt": "Пожалуйста, подтвердите ваш email перед входом.",
+    "enterEmailToReset": "Введите email для сброса пароля",
+    "resetEmailSent": "Письмо со ссылкой для сброса пароля отправлено!",
+    "errorUserNotFound": "Пользователь с таким email не найден",
+    "errorResetFailed": "Ошибка при отправке письма",
+    "passwordsDoNotMatch": "Пароли не совпадают",
+    "loginSubtitle": "Войдите в свой аккаунт",
+    "signupSubtitle": "Создайте новый аккаунт",
+    "confirmPasswordLabel": "Подтвердите пароль",
+    "confirmPasswordPlaceholder": "••••••••",
+    "forgotPassword": "Забыли пароль?"
   },
   "common": {
     "unknownArtist": "Неизвестный исполнитель",
