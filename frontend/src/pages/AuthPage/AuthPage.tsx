@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect } from "react";
-import { useLocation, useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -8,7 +10,6 @@ import {
   sendEmailVerification,
   sendPasswordResetEmail,
   updateProfile,
-  AuthError,
   signOut,
 } from "firebase/auth";
 import { auth } from "../../lib/firebase";
@@ -172,6 +173,23 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
     }
   };
 
+  const handleForgotPassword = async () => {
+    setIsLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, formData.email);
+      toast.success(
+        t(
+          "auth.resetEmailSent",
+          "Письмо со ссылкой для сброса пароля отправлено!",
+        ),
+      );
+    } catch (error: unknown) {
+      toast.error(t("auth.errorResetFailed", "Ошибка при отправке письма"));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // ШАГ 2 (Рега): Создание пароля
   const handleSignupPasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -237,8 +255,10 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
           - Moodify
         </title>
       </Helmet>
-      <div className="min-h-screen bg-[#0f0f0f] text-white flex flex-col justify-center items-center px-4">
-        <div className="w-full max-w-xs relative">
+      {/* Главный контейнер выравнивает контент по центру экрана */}
+      <div className="min-h-screen bg-[#0f0f0f] text-white flex flex-col justify-center items-center px-4 py-8">
+        {/* Фиксируем высоту и ширину формы, чтобы предотвратить "прыжки" */}
+        <div className="w-full max-w-[340px] relative flex flex-col min-h-[550px]">
           {step !== "email" && (
             <button
               onClick={() => {
@@ -246,13 +266,13 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
                 else setStep("email");
                 setErrorItem("");
               }}
-              className="absolute -left-12 top-1 p-2 text-gray-400 hover:text-white rounded-full hover:bg-white/10"
+              className="absolute left-0 top-0 p-2 text-gray-400 hover:text-white rounded-full hover:bg-white/10 transition-colors z-10"
             >
               <ArrowLeft size={24} />
             </button>
           )}
 
-          <Link to="/" className="flex justify-center mb-8">
+          <Link to="/" className="flex justify-center mb-8 shrink-0">
             <div className="w-10 h-10">
               <MoodifyLogo />
             </div>
@@ -260,12 +280,15 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
 
           {/* ШАГ: EMAIL */}
           {step === "email" && (
-            <form onSubmit={handleEmailSubmit} className="space-y-4">
-              <h1 className="text-3xl font-bold text-center mb-6">
-                {mode === "login"
-                  ? t("auth.loginWelcome", "С возвращением")
-                  : t("auth.registerWelcome", "Создать аккаунт")}
-              </h1>
+            <form onSubmit={handleEmailSubmit} className="flex flex-col flex-1">
+              <div className="text-center mb-8 h-[80px] flex flex-col items-center justify-start shrink-0">
+                <h1 className="text-3xl font-bold mb-2">
+                  {mode === "login"
+                    ? t("auth.loginWelcome", "С возвращением")
+                    : t("auth.registerWelcome", "Создать аккаунт")}
+                </h1>
+              </div>
+
               <div>
                 <Label
                   htmlFor="email"
@@ -282,19 +305,22 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
                   required
                   className="bg-gray-900 border-gray-700 py-6"
                 />
-                {errorItem && (
-                  <div className="text-red-500 text-xs mt-2">{errorItem}</div>
-                )}
+                <div className="min-h-[24px] mt-2">
+                  {errorItem && (
+                    <div className="text-red-500 text-xs">{errorItem}</div>
+                  )}
+                </div>
               </div>
+
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-12 bg-violet-500 text-black font-bold rounded-full"
+                className="w-full h-12 bg-violet-500 hover:bg-violet-600 text-black font-bold rounded-full mt-2 shrink-0"
               >
                 {t("common.continue", "Продолжить")}
               </Button>
 
-              <div className="flex items-center gap-2 my-4">
+              <div className="flex items-center gap-2 my-4 shrink-0">
                 <div className="flex-1 h-px bg-gray-700"></div>
                 <span className="text-xs text-gray-500 uppercase">
                   {t("auth.or", "или")}
@@ -306,13 +332,13 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
                 onClick={handleGoogleSignIn}
                 variant="outline"
                 type="button"
-                className="w-full h-12 border-gray-700 rounded-full"
+                className="w-full h-12 border-gray-700 hover:bg-gray-900 rounded-full shrink-0"
               >
                 <img src="/google.svg" alt="G" className="w-5 h-5 mr-3" />
                 {t("auth.continueWithGoogle", "Google")}
               </Button>
 
-              <p className="text-center text-sm text-gray-400 mt-6">
+              <p className="text-center text-sm text-gray-400 mt-6 shrink-0">
                 {mode === "login" ? (
                   <>
                     {t("auth.noAccount", "Нет аккаунта?")}{" "}
@@ -340,78 +366,120 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
 
           {/* ШАГ: ПАРОЛЬ (ЛОГИН) */}
           {step === "login_password" && (
-            <form onSubmit={handleLoginSubmit} className="space-y-4">
-              <h1 className="text-3xl font-bold text-center mb-2">
-                {t("auth.loginTitle", "Вход")}
-              </h1>
-              <p className="text-gray-400 text-sm text-center mb-4">
-                {formData.email}
-              </p>
-              <div className="relative">
-                <Input
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  className="bg-gray-900 border-gray-700 py-6 pr-12"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
+            <form onSubmit={handleLoginSubmit} className="flex flex-col flex-1">
+              <div className="text-center mb-8 h-[80px] flex flex-col items-center justify-start shrink-0">
+                <h1 className="text-3xl font-bold mb-2">
+                  {t("auth.loginTitle", "Вход")}
+                </h1>
+                <p className="text-gray-400 text-sm">{formData.email}</p>
               </div>
-              {errorItem && <p className="text-red-500 text-xs">{errorItem}</p>}
+
+              <div>
+                <Label
+                  htmlFor="password"
+                  className="text-sm text-gray-300 mb-2 block"
+                >
+                  {t("auth.passwordLabel", "Пароль")}
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                    className="bg-gray-900 border-gray-700 py-6 pr-12"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+
+                <div className="flex justify-between items-start min-h-[24px] mt-2">
+                  <div className="text-red-500 text-xs flex-1 pr-2">
+                    {errorItem}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleForgotPassword}
+                    className="text-xs text-violet-500 hover:text-violet-400 shrink-0 mt-0.5"
+                  >
+                    {t("auth.forgotPassword", "Забыли пароль?")}
+                  </button>
+                </div>
+              </div>
+
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-12 bg-violet-500 text-black font-bold rounded-full"
+                className="w-full h-12 bg-violet-500 hover:bg-violet-600 text-black font-bold rounded-full mt-4 shrink-0"
               >
                 {t("auth.loginButton", "Войти")}
               </Button>
-              <button
-                type="button"
-                onClick={() => sendPasswordResetEmail(auth, formData.email)}
-                className="w-full text-xs text-violet-500 text-right"
-              >
-                {t("auth.forgotPassword", "Забыли пароль?")}
-              </button>
             </form>
           )}
 
           {/* ШАГ: ПАРОЛЬ (РЕГА) */}
           {step === "signup_password" && (
-            <form onSubmit={handleSignupPasswordSubmit} className="space-y-4">
-              <h1 className="text-3xl font-bold text-center mb-6">
-                {t("auth.createPassword", "Придумайте пароль")}
-              </h1>
-              <div className="relative">
-                <Input
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  className="bg-gray-900 border-gray-700 py-6 pr-12"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
+            <form
+              onSubmit={handleSignupPasswordSubmit}
+              className="flex flex-col flex-1"
+            >
+              <div className="text-center mb-8 h-[80px] flex flex-col items-center justify-start shrink-0">
+                <h1 className="text-3xl font-bold mb-2">
+                  {t("auth.createPasswordTitle", "Придумайте пароль")}
+                </h1>
+                <p className="text-gray-400 text-sm">{formData.email}</p>
               </div>
-              <div className="bg-gray-900/50 p-4 rounded-lg border border-gray-800 space-y-2">
+
+              <div>
+                <Label
+                  htmlFor="password"
+                  className="text-sm text-gray-300 mb-2 block"
+                >
+                  {t("auth.passwordLabel", "Пароль")}
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                    className="bg-gray-900 border-gray-700 py-6 pr-12"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-gray-900/50 p-4 rounded-lg border border-gray-800 space-y-2 mt-6 shrink-0">
                 {passwordRules.map((rule) => (
-                  <div key={rule.id} className="flex items-center text-sm">
+                  <div
+                    key={rule.id}
+                    className="flex items-center text-sm transition-colors duration-300"
+                  >
                     {rule.isValid ? (
-                      <Check size={14} className="text-green-500 mr-2" />
+                      <Check
+                        size={16}
+                        className="text-green-500 mr-2 flex-shrink-0"
+                      />
                     ) : (
-                      <X size={14} className="text-gray-600 mr-2" />
+                      <X
+                        size={16}
+                        className="text-gray-600 mr-2 flex-shrink-0"
+                      />
                     )}
                     <span
                       className={rule.isValid ? "text-white" : "text-gray-500"}
@@ -421,10 +489,11 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
                   </div>
                 ))}
               </div>
+
               <Button
                 type="submit"
                 disabled={!isPasswordValid || isLoading}
-                className="w-full h-12 bg-violet-500 text-black font-bold rounded-full"
+                className="w-full h-12 bg-violet-500 hover:bg-violet-600 text-black font-bold rounded-full mt-6 shrink-0 disabled:opacity-50"
               >
                 {t("common.next", "Далее")}
               </Button>
@@ -433,27 +502,47 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
 
           {/* ШАГ: ИМЯ (РЕГА) */}
           {step === "signup_name" && (
-            <form onSubmit={handleSignupComplete} className="space-y-4">
-              <h1 className="text-3xl font-bold text-center mb-2">
-                {t("auth.whatsYourName", "Как вас зовут?")}
-              </h1>
-              <p className="text-gray-400 text-sm text-center mb-6">
-                {t("auth.nameSubtitle", "Это имя будет в профиле")}
-              </p>
-              <Input
-                name="fullName"
-                type="text"
-                value={formData.fullName}
-                onChange={handleChange}
-                required
-                placeholder="Иван Иванов"
-                className="bg-gray-900 border-gray-700 py-6"
-              />
-              {errorItem && <p className="text-red-500 text-xs">{errorItem}</p>}
+            <form
+              onSubmit={handleSignupComplete}
+              className="flex flex-col flex-1"
+            >
+              <div className="text-center mb-8 h-[80px] flex flex-col items-center justify-start shrink-0">
+                <h1 className="text-3xl font-bold mb-2">
+                  {t("auth.whatsYourName", "Как вас зовут?")}
+                </h1>
+                <p className="text-gray-400 text-sm">
+                  {t("auth.nameSubtitle", "Это имя будет в профиле")}
+                </p>
+              </div>
+
+              <div>
+                <Label
+                  htmlFor="fullName"
+                  className="text-sm text-gray-300 mb-2 block"
+                >
+                  {t("auth.fullNameLabel", "Имя")}
+                </Label>
+                <Input
+                  id="fullName"
+                  name="fullName"
+                  type="text"
+                  value={formData.fullName}
+                  onChange={handleChange}
+                  required
+                  placeholder="Иван Иванов"
+                  className="bg-gray-900 border-gray-700 py-6"
+                />
+                <div className="min-h-[24px] mt-2">
+                  {errorItem && (
+                    <div className="text-red-500 text-xs">{errorItem}</div>
+                  )}
+                </div>
+              </div>
+
               <Button
                 type="submit"
                 disabled={isLoading || !formData.fullName.trim()}
-                className="w-full h-12 bg-violet-500 text-black font-bold rounded-full"
+                className="w-full h-12 bg-violet-500 hover:bg-violet-600 text-black font-bold rounded-full mt-2 shrink-0"
               >
                 {t("auth.createAccount", "Создать аккаунт")}
               </Button>
