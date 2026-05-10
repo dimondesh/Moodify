@@ -17,14 +17,9 @@ import cron from "node-cron";
 import { initializeSocket, io } from "./lib/socket.js";
 import libraryRoutes from "./routes/library.route.js";
 import artistRoutes from "./routes/artist.route.js";
-import mixRoutes from "./routes/mix.route.js";
 import cronRoutes from "./routes/cron.route.js";
 import shareRoutes from "./routes/share.route.js";
-import generatedPlaylistRoutes from "./routes/generatedPlaylist.route.js";
-import personalMixRoutes from "./routes/personalMix.route.js";
 import imageRoutes from "./routes/image.route.js";
-import { updateDailyMixes } from "./controller/mix.controller.js";
-import { generatePersonalMixes } from "./controller/personalMix.controller.js";
 import { ListenHistory } from "./models/listenHistory.model.js";
 import {
   generateOnRepeatPlaylistForUser,
@@ -32,11 +27,6 @@ import {
   generateOnRepeatRewindForUser,
 } from "./lib/playlistGenerator.service.js";
 import { User } from "./models/user.model.js";
-import {
-  generateNewReleasesForUser,
-  generatePlaylistRecommendationsForUser,
-  generateFeaturedSongsForUser,
-} from "./lib/recommendation.service.js";
 import homeRoutes from "./routes/home.route.js";
 import { cleanAllTempDirectories } from "./lib/tempCleanup.service.js";
 import { getSitemap } from "./controller/sitemap.controller.js";
@@ -269,9 +259,6 @@ app.use("/api/search", searchRoutes);
 app.use("/api/library", libraryRoutes);
 app.use("/api/playlists", playlistRoutes);
 app.use("/api/artists", artistRoutes);
-app.use("/api/mixes", mixRoutes);
-app.use("/api/generated-playlists", generatedPlaylistRoutes);
-app.use("/api/personal-mixes", personalMixRoutes);
 app.use("/api/home", homeRoutes);
 
 app.use("/api/cron", cronRoutes);

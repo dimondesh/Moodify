@@ -8,45 +8,7 @@ const librarySchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
-    likedSongs: [
-      {
-        songId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Song",
-          required: true,
-        },
-        addedAt: {
-          type: Date,
-          default: Date.now,
-        },
-      },
-    ],
-    savedMixes: [
-      {
-        mixId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Mix",
-          required: true,
-        },
-        addedAt: {
-          type: Date,
-          default: Date.now,
-        },
-      },
-    ],
-    savedPersonalMixes: [
-      {
-        personalMixId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "PersonalMix",
-          required: true,
-        },
-        addedAt: {
-          type: Date,
-          default: Date.now,
-        },
-      },
-    ],
+
     albums: [
       {
         albumId: {
@@ -54,10 +16,7 @@ const librarySchema = new mongoose.Schema(
           ref: "Album",
           required: true,
         },
-        addedAt: {
-          type: Date,
-          default: Date.now,
-        },
+        addedAt: { type: Date, default: Date.now },
       },
     ],
     playlists: [
@@ -67,10 +26,7 @@ const librarySchema = new mongoose.Schema(
           ref: "Playlist",
           required: true,
         },
-        addedAt: {
-          type: Date,
-          default: Date.now,
-        },
+        addedAt: { type: Date, default: Date.now },
       },
     ],
     followedArtists: [
@@ -80,30 +36,14 @@ const librarySchema = new mongoose.Schema(
           ref: "Artist",
           required: true,
         },
-        addedAt: {
-          type: Date,
-          default: Date.now,
-        },
-      },
-    ],
-    savedGeneratedPlaylists: [
-      {
-        playlistId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "GeneratedPlaylist",
-          required: true,
-        },
-        addedAt: {
-          type: Date,
-          default: Date.now,
-        },
+        addedAt: { type: Date, default: Date.now },
       },
     ],
   },
   { timestamps: true },
 );
+
 librarySchema.index({ userId: 1 });
-librarySchema.index({ "likedSongs.songId": 1 });
 librarySchema.index({ "albums.albumId": 1 });
 
 export const Library = mongoose.model("Library", librarySchema);

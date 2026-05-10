@@ -3,7 +3,6 @@ import { Album } from "../models/album.model.js";
 import { Playlist } from "../models/playlist.model.js";
 import { Artist } from "../models/artist.model.js";
 import { User } from "../models/user.model.js";
-import { Mix } from "../models/mix.model.js";
 
 const SONG_MINIMAL_SELECT =
   "_id title artist albumId imageUrl duration playCount";
@@ -19,7 +18,6 @@ export const searchSongs = async (req, res, next) => {
         playlists: [],
         artists: [],
         users: [],
-        mixes: [],
       });
     }
 
@@ -36,56 +34,51 @@ export const searchSongs = async (req, res, next) => {
       .lean();
     const matchingArtistIds = matchingArtists.map((artist) => artist._id);
 
-    const [songsRaw, albumsRaw, playlistsRaw, usersRaw, mixesRaw] =
-      await Promise.all([
-        Song.find({
-          $or: [{ title: regex }, { artist: { $in: matchingArtistIds } }],
+    const [songsRaw, albumsRaw, playlistsRaw, usersRaw] = await Promise.all([
+      Song.find({
+        $or: [{ title: regex }, { artist: { $in: matchingArtistIds } }],
+      })
+        .select(SONG_MINIMAL_SELECT)
+        .populate("artist", "name imageUrl")
+        .populate("albumId", "title imageUrl")
+        .limit(50)
+        .lean(),
+
+      Album.find({
+        $or: [{ title: regex }, { artist: { $in: matchingArtistIds } }],
+      })
+        .populate("artist", "name imageUrl")
+        .populate({
+          path: "songs",
+          select: SONG_MINIMAL_SELECT,
+          populate: { path: "artist", select: "name imageUrl" },
         })
-          .select(SONG_MINIMAL_SELECT)
-          .populate("artist", "name imageUrl")
-          .populate("albumId", "title imageUrl")
-          .limit(50)
-          .lean(),
+        .limit(50)
+        .lean(),
 
-        Album.find({
-          $or: [{ title: regex }, { artist: { $in: matchingArtistIds } }],
+      // Ищем И среди пользовательских плейлистов, И среди глобальных миксов (они тоже публичные)
+      Playlist.find({
+        isPublic: true,
+        $or: [
+          { title: regex },
+          { description: regex },
+          { searchableNames: regex },
+        ],
+      })
+        .populate("owner", "fullName")
+        .populate({
+          path: "songs",
+          select: SONG_MINIMAL_SELECT,
+          populate: { path: "artist", select: "name imageUrl" },
         })
-          .populate("artist", "name imageUrl")
-          .populate({
-            path: "songs",
-            select: SONG_MINIMAL_SELECT,
-            populate: { path: "artist", select: "name imageUrl" },
-          })
-          .limit(50)
-          .lean(),
+        .limit(50)
+        .lean(),
 
-        Playlist.find({
-          isPublic: true,
-          $or: [{ title: regex }, { description: regex }],
-        })
-          .populate("owner", "fullName")
-          .populate({
-            path: "songs",
-            select: SONG_MINIMAL_SELECT,
-            populate: { path: "artist", select: "name imageUrl" },
-          })
-          .limit(50)
-          .lean(),
-
-        User.find({ fullName: regex })
-          .limit(50)
-          .select("fullName imageUrl")
-          .lean(),
-
-        Mix.find({ searchableNames: regex })
-          .populate({
-            path: "songs",
-            select: SONG_MINIMAL_SELECT,
-            populate: { path: "artist", select: "name imageUrl" },
-          })
-          .limit(50)
-          .lean(),
-      ]);
+      User.find({ fullName: regex })
+        .limit(50)
+        .select("fullName imageUrl")
+        .lean(),
+    ]);
 
     const formatSong = (song) => ({
       ...song,
@@ -98,7 +91,6 @@ export const searchSongs = async (req, res, next) => {
       artist: song.artist
         ? song.artist.map((a) => ({ ...a, _id: a._id.toString() }))
         : [],
-      // Фолбэки, так как мы их не отдаем
       genres: [],
       moods: [],
     });
@@ -139,13 +131,7 @@ export const searchSongs = async (req, res, next) => {
       type: "user",
     }));
 
-    const mixes = mixesRaw.map((mix) => ({
-      ...mix,
-      _id: mix._id.toString(),
-      songs: mix.songs ? mix.songs.map(formatSong) : [],
-    }));
-
-    return res.json({ songs, albums, playlists, artists, users, mixes });
+    return res.json({ songs, albums, playlists, artists, users });
   } catch (error) {
     next(error);
   }

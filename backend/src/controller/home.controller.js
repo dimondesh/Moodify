@@ -6,15 +6,12 @@ import {
   getListenHistory,
 } from "./song.controller.js";
 import { getTrendingAlbums } from "./album.controller.js";
-import { getDailyMixes } from "./mix.controller.js";
-import { getPublicPlaylists } from "./playlist.controller.js";
 import {
   getFavoriteArtists,
   getNewReleases,
   getPlaylistRecommendations,
 } from "./user.controller.js";
-import { getMyGeneratedPlaylists } from "./generatedPlaylist.controller.js";
-import { getPersonalMixes } from "./personalMix.controller.js";
+import { Playlist } from "../models/playlist.model.js";
 import { Library } from "../models/library.model.js";
 
 const HOME_SECTION_LIMIT = 12;
@@ -24,7 +21,6 @@ export const getPrimaryHomePageData = async (req, res, next) => {
     const featuredSongs = await getQuickPicks(req, res, next, true, 8);
     res.status(200).json({ featuredSongs });
   } catch (error) {
-    console.error("Error fetching primary homepage data:", error);
     next(error);
   }
 };
@@ -33,32 +29,65 @@ export const getSecondaryHomePageData = async (req, res, next) => {
   try {
     const userId = req.user?.id;
 
+    // Берем публичные миксы (Жанры и Настроения) из единой таблицы Playlist
+    const publicMixesPromise = Playlist.find({
+      type: { $in: ["GENRE_MIX", "MOOD_MIX"] },
+      isPublic: true,
+    })
+      .limit(HOME_SECTION_LIMIT)
+      .lean();
+
+    // Обычные публичные плейлисты юзеров
+    const publicPlaylistsPromise = Playlist.find({
+      type: "USER_CREATED",
+      isPublic: true,
+    })
+      .limit(HOME_SECTION_LIMIT)
+      .populate("owner", "fullName")
+      .lean();
+
     const commonPromises = [
       getTrendingSongs(req, res, next, true, HOME_SECTION_LIMIT),
-      getDailyMixes(req, res, next, true, HOME_SECTION_LIMIT),
-      getPublicPlaylists(req, res, next, true, HOME_SECTION_LIMIT),
-      getMyGeneratedPlaylists(req, res, next, true, HOME_SECTION_LIMIT),
+      publicMixesPromise,
+      publicPlaylistsPromise,
     ];
 
-    const userSpecificPromises = userId
-      ? [
-          getMadeForYouSongs(req, res, next, true, HOME_SECTION_LIMIT),
-          getListenHistory(req, res, next, true, HOME_SECTION_LIMIT),
-          getFavoriteArtists(req, res, next, true, HOME_SECTION_LIMIT),
-          getNewReleases(req, res, next, true, HOME_SECTION_LIMIT),
-          getPlaylistRecommendations(req, res, next, true, HOME_SECTION_LIMIT),
-        ]
-      : [];
+    let userSpecificPromises = [];
+    if (userId) {
+      // Ищем сгенерированные подборки чисто для этого юзера (Discover Weekly, On Repeat, Daily Mix)
+      const userPlaylistsPromise = Playlist.find({
+        owner: userId,
+        type: {
+          $in: [
+            "PERSONAL_MIX",
+            "ON_REPEAT",
+            "DISCOVER_WEEKLY",
+            "ON_REPEAT_REWIND",
+          ],
+        },
+      })
+        .limit(HOME_SECTION_LIMIT)
+        .lean();
 
-    const [trendingSongs, mixesData, publicPlaylists, allGeneratedPlaylists] =
+      userSpecificPromises = [
+        getMadeForYouSongs(req, res, next, true, HOME_SECTION_LIMIT),
+        getListenHistory(req, res, next, true, HOME_SECTION_LIMIT),
+        getFavoriteArtists(req, res, next, true, HOME_SECTION_LIMIT),
+        getNewReleases(req, res, next, true, HOME_SECTION_LIMIT),
+        getPlaylistRecommendations(req, res, next, true, HOME_SECTION_LIMIT),
+        userPlaylistsPromise,
+      ];
+    }
+
+    const [trendingSongs, publicMixes, publicPlaylists] =
       await Promise.all(commonPromises);
 
     const secondaryData = {
       trendingSongs,
-      genreMixes: mixesData.genreMixes,
-      moodMixes: mixesData.moodMixes,
+      genreMixes: publicMixes.filter((p) => p.type === "GENRE_MIX"),
+      moodMixes: publicMixes.filter((p) => p.type === "MOOD_MIX"),
       publicPlaylists,
-      allGeneratedPlaylists,
+      allGeneratedPlaylists: [],
       madeForYouSongs: [],
       recentlyListenedSongs: [],
       favoriteArtists: [],
@@ -73,18 +102,19 @@ export const getSecondaryHomePageData = async (req, res, next) => {
         favoriteArtists,
         newReleases,
         recommendedPlaylists,
+        userPlaylists,
       ] = await Promise.all(userSpecificPromises);
 
       secondaryData.madeForYouSongs = madeForYouSongs;
-      secondaryData.recentlyListenedSongs = recentlyListened.songs;
+      secondaryData.recentlyListenedSongs = recentlyListened.songs || [];
       secondaryData.favoriteArtists = favoriteArtists;
       secondaryData.newReleases = newReleases;
       secondaryData.recommendedPlaylists = recommendedPlaylists;
+      secondaryData.allGeneratedPlaylists = userPlaylists; // Отправляем все умные плейлисты на фронт
     }
 
     res.status(200).json(secondaryData);
   } catch (error) {
-    console.error("Error fetching secondary homepage data:", error);
     next(error);
   }
 };
@@ -93,34 +123,62 @@ export const getBootstrapData = async (req, res, next) => {
   try {
     const userId = req.user?.id;
 
+    const publicMixesPromise = Playlist.find({
+      type: { $in: ["GENRE_MIX", "MOOD_MIX"] },
+      isPublic: true,
+    })
+      .limit(HOME_SECTION_LIMIT)
+      .lean();
+    const publicPlaylistsPromise = Playlist.find({
+      type: "USER_CREATED",
+      isPublic: true,
+    })
+      .limit(HOME_SECTION_LIMIT)
+      .populate("owner", "fullName")
+      .lean();
+
     const commonPromises = [
       getQuickPicks(req, res, next, true, 8),
       getTrendingAlbums(req, res, next, true, HOME_SECTION_LIMIT),
-      getDailyMixes(req, res, next, true, HOME_SECTION_LIMIT),
-      getPublicPlaylists(req, res, next, true, HOME_SECTION_LIMIT),
+      publicMixesPromise,
+      publicPlaylistsPromise,
     ];
 
-    const userSpecificPromises = userId
-      ? [
-          getPersonalMixes(req, res, next, true),
-          getMyGeneratedPlaylists(req, res, next, true, HOME_SECTION_LIMIT),
-          getMadeForYouSongs(req, res, next, true, HOME_SECTION_LIMIT),
-          getListenHistory(req, res, next, true, HOME_SECTION_LIMIT),
-          getFavoriteArtists(req, res, next, true, HOME_SECTION_LIMIT),
-          getNewReleases(req, res, next, true, HOME_SECTION_LIMIT),
-          getPlaylistRecommendations(req, res, next, true, HOME_SECTION_LIMIT),
-          getOptimizedLibrarySummary(userId),
-        ]
-      : [];
+    let userSpecificPromises = [];
+    if (userId) {
+      const userPlaylistsPromise = Playlist.find({
+        owner: userId,
+        type: {
+          $in: [
+            "PERSONAL_MIX",
+            "ON_REPEAT",
+            "DISCOVER_WEEKLY",
+            "ON_REPEAT_REWIND",
+          ],
+        },
+      })
+        .limit(HOME_SECTION_LIMIT)
+        .lean();
 
-    const [featuredSongs, trendingAlbums, mixesData, publicPlaylists] =
+      userSpecificPromises = [
+        getMadeForYouSongs(req, res, next, true, HOME_SECTION_LIMIT),
+        getListenHistory(req, res, next, true, HOME_SECTION_LIMIT),
+        getFavoriteArtists(req, res, next, true, HOME_SECTION_LIMIT),
+        getNewReleases(req, res, next, true, HOME_SECTION_LIMIT),
+        getPlaylistRecommendations(req, res, next, true, HOME_SECTION_LIMIT),
+        getOptimizedLibrarySummary(userId),
+        userPlaylistsPromise,
+      ];
+    }
+
+    const [featuredSongs, trendingAlbums, publicMixes, publicPlaylists] =
       await Promise.all(commonPromises);
 
     const bootstrapData = {
       featuredSongs,
       trendingAlbums,
-      genreMixes: mixesData.genreMixes,
-      moodMixes: mixesData.moodMixes,
+      genreMixes: publicMixes.filter((p) => p.type === "GENRE_MIX"),
+      moodMixes: publicMixes.filter((p) => p.type === "MOOD_MIX"),
       personalMixes: [],
       publicPlaylists,
       allGeneratedPlaylists: [],
@@ -134,26 +192,26 @@ export const getBootstrapData = async (req, res, next) => {
         likedSongs: [],
         playlists: [],
         followedArtists: [],
-        savedMixes: [],
-        savedPersonalMixes: [],
-        generatedPlaylists: [],
       },
     };
 
     if (userId && userSpecificPromises.length > 0) {
       const [
-        personalMixes,
-        allGeneratedPlaylists,
         madeForYouSongs,
         recentlyListened,
         favoriteArtists,
         newReleases,
         recommendedPlaylists,
         librarySummary,
+        userPlaylists,
       ] = await Promise.all(userSpecificPromises);
 
-      bootstrapData.personalMixes = personalMixes;
-      bootstrapData.allGeneratedPlaylists = allGeneratedPlaylists;
+      bootstrapData.personalMixes = userPlaylists.filter(
+        (p) => p.type === "PERSONAL_MIX",
+      );
+      bootstrapData.allGeneratedPlaylists = userPlaylists.filter(
+        (p) => p.type !== "PERSONAL_MIX",
+      );
       bootstrapData.madeForYouSongs = madeForYouSongs;
       bootstrapData.recentlyListenedSongs = recentlyListened.songs || [];
       bootstrapData.favoriteArtists = favoriteArtists;
@@ -164,35 +222,22 @@ export const getBootstrapData = async (req, res, next) => {
 
     res.status(200).json(bootstrapData);
   } catch (error) {
-    console.error("Error fetching bootstrap data:", error);
     next(error);
   }
 };
 
+// Очищенная от удаленных моделей агрегация
 async function getOptimizedLibrarySummary(userId) {
   const objectId = new mongoose.Types.ObjectId(userId);
-
   const libraryData = await Library.aggregate([
     { $match: { userId: objectId } },
-
     {
       $lookup: {
         from: "albums",
         localField: "albums.albumId",
         foreignField: "_id",
         as: "albumDetails",
-        pipeline: [{ $project: { title: 1, artist: 1, imageUrl: 1, type: 1 } }],
-      },
-    },
-    {
-      $lookup: {
-        from: "songs",
-        localField: "likedSongs.songId",
-        foreignField: "_id",
-        as: "songDetails",
-        pipeline: [
-          { $project: { title: 1, artist: 1, imageUrl: 1, duration: 1 } },
-        ],
+        pipeline: [{ $project: { title: 1, artist: 1, imageUrl: 1 } }],
       },
     },
     {
@@ -201,366 +246,19 @@ async function getOptimizedLibrarySummary(userId) {
         localField: "playlists.playlistId",
         foreignField: "_id",
         as: "playlistDetails",
-        pipeline: [
-          { $project: { title: 1, owner: 1, imageUrl: 1, isPublic: 1 } },
-        ],
+        pipeline: [{ $project: { title: 1, owner: 1, imageUrl: 1, type: 1 } }],
       },
     },
-    {
-      $lookup: {
-        from: "artists",
-        localField: "followedArtists.artistId",
-        foreignField: "_id",
-        as: "artistDetails",
-        pipeline: [{ $project: { name: 1, imageUrl: 1 } }],
-      },
-    },
-    {
-      $lookup: {
-        from: "mixes",
-        localField: "savedMixes.mixId",
-        foreignField: "_id",
-        as: "mixDetails",
-        pipeline: [
-          { $project: { name: 1, imageUrl: 1, sourceName: 1, type: 1 } },
-        ],
-      },
-    },
-    {
-      $lookup: {
-        from: "personalmixes",
-        localField: "savedPersonalMixes.personalMixId",
-        foreignField: "_id",
-        as: "personalMixDetails",
-        pipeline: [{ $project: { name: 1, imageUrl: 1 } }],
-      },
-    },
-    {
-      $lookup: {
-        from: "generatedplaylists",
-        localField: "savedGeneratedPlaylists.playlistId",
-        foreignField: "_id",
-        as: "genPlaylistDetails",
-        pipeline: [{ $project: { nameKey: 1, imageUrl: 1 } }],
-      },
-    },
-
-    {
-      $lookup: {
-        from: "artists",
-        localField: "albumDetails.artist",
-        foreignField: "_id",
-        as: "albumArtists",
-        pipeline: [{ $project: { name: 1, imageUrl: 1 } }],
-      },
-    },
-    {
-      $lookup: {
-        from: "artists",
-        localField: "songDetails.artist",
-        foreignField: "_id",
-        as: "songArtists",
-        pipeline: [{ $project: { name: 1, imageUrl: 1 } }],
-      },
-    },
-    {
-      $lookup: {
-        from: "users",
-        localField: "playlistDetails.owner",
-        foreignField: "_id",
-        as: "playlistOwners",
-        pipeline: [{ $project: { fullName: 1, imageUrl: 1 } }],
-      },
-    },
-
     {
       $project: {
         _id: 0,
-        albums: {
-          $map: {
-            input: "$albumDetails",
-            as: "album",
-            in: {
-              $mergeObjects: [
-                "$$album",
-                {
-                  addedAt: {
-                    $let: {
-                      vars: {
-                        libItem: {
-                          $arrayElemAt: [
-                            {
-                              $filter: {
-                                input: "$albums",
-                                as: "a",
-                                cond: { $eq: ["$$a.albumId", "$$album._id"] },
-                              },
-                            },
-                            0,
-                          ],
-                        },
-                      },
-                      in: "$$libItem.addedAt",
-                    },
-                  },
-                  artist: {
-                    $filter: {
-                      input: "$albumArtists",
-                      as: "art",
-                      cond: { $in: ["$$art._id", "$$album.artist"] },
-                    },
-                  },
-                },
-              ],
-            },
-          },
-        },
-        likedSongs: {
-          $map: {
-            input: "$songDetails",
-            as: "song",
-            in: {
-              $mergeObjects: [
-                "$$song",
-                {
-                  likedAt: {
-                    $let: {
-                      vars: {
-                        libItem: {
-                          $arrayElemAt: [
-                            {
-                              $filter: {
-                                input: "$likedSongs",
-                                as: "s",
-                                cond: { $eq: ["$$s.songId", "$$song._id"] },
-                              },
-                            },
-                            0,
-                          ],
-                        },
-                      },
-                      in: "$$libItem.addedAt",
-                    },
-                  },
-                  artist: {
-                    $filter: {
-                      input: "$songArtists",
-                      as: "art",
-                      cond: { $in: ["$$art._id", "$$song.artist"] },
-                    },
-                  },
-                },
-              ],
-            },
-          },
-        },
-        playlists: {
-          $map: {
-            input: "$playlistDetails",
-            as: "pl",
-            in: {
-              $mergeObjects: [
-                "$$pl",
-                {
-                  addedAt: {
-                    $let: {
-                      vars: {
-                        libItem: {
-                          $arrayElemAt: [
-                            {
-                              $filter: {
-                                input: "$playlists",
-                                as: "p",
-                                cond: { $eq: ["$$p.playlistId", "$$pl._id"] },
-                              },
-                            },
-                            0,
-                          ],
-                        },
-                      },
-                      in: "$$libItem.addedAt",
-                    },
-                  },
-                  owner: {
-                    $arrayElemAt: [
-                      {
-                        $filter: {
-                          input: "$playlistOwners",
-                          as: "owner",
-                          cond: { $eq: ["$$owner._id", "$$pl.owner"] },
-                        },
-                      },
-                      0,
-                    ],
-                  },
-                },
-              ],
-            },
-          },
-        },
-        followedArtists: {
-          $map: {
-            input: "$artistDetails",
-            as: "artist",
-            in: {
-              $mergeObjects: [
-                "$$artist",
-                {
-                  addedAt: {
-                    $let: {
-                      vars: {
-                        libItem: {
-                          $arrayElemAt: [
-                            {
-                              $filter: {
-                                input: "$followedArtists",
-                                as: "fa",
-                                cond: {
-                                  $eq: ["$$fa.artistId", "$$artist._id"],
-                                },
-                              },
-                            },
-                            0,
-                          ],
-                        },
-                      },
-                      in: "$$libItem.addedAt",
-                    },
-                  },
-                },
-              ],
-            },
-          },
-        },
-        savedMixes: {
-          $map: {
-            input: "$mixDetails",
-            as: "mix",
-            in: {
-              $mergeObjects: [
-                "$$mix",
-                {
-                  addedAt: {
-                    $let: {
-                      vars: {
-                        libItem: {
-                          $arrayElemAt: [
-                            {
-                              $filter: {
-                                input: "$savedMixes",
-                                as: "sm",
-                                cond: { $eq: ["$$sm.mixId", "$$mix._id"] },
-                              },
-                            },
-                            0,
-                          ],
-                        },
-                      },
-                      in: "$$libItem.addedAt",
-                    },
-                  },
-                },
-              ],
-            },
-          },
-        },
-        savedPersonalMixes: {
-          $map: {
-            input: "$personalMixDetails",
-            as: "personalMix",
-            in: {
-              $mergeObjects: [
-                "$$personalMix",
-                {
-                  addedAt: {
-                    $let: {
-                      vars: {
-                        libItem: {
-                          $arrayElemAt: [
-                            {
-                              $filter: {
-                                input: "$savedPersonalMixes",
-                                as: "spm",
-                                cond: {
-                                  $eq: [
-                                    "$$spm.personalMixId",
-                                    "$$personalMix._id",
-                                  ],
-                                },
-                              },
-                            },
-                            0,
-                          ],
-                        },
-                      },
-                      in: "$$libItem.addedAt",
-                    },
-                  },
-                },
-              ],
-            },
-          },
-        },
-        generatedPlaylists: {
-          $map: {
-            input: "$genPlaylistDetails",
-            as: "gp",
-            in: {
-              $mergeObjects: [
-                "$$gp",
-                {
-                  addedAt: {
-                    $let: {
-                      vars: {
-                        libItem: {
-                          $arrayElemAt: [
-                            {
-                              $filter: {
-                                input: "$savedGeneratedPlaylists",
-                                as: "sgp",
-                                cond: { $eq: ["$$sgp.playlistId", "$$gp._id"] },
-                              },
-                            },
-                            0,
-                          ],
-                        },
-                      },
-                      in: "$$libItem.addedAt",
-                    },
-                  },
-                },
-              ],
-            },
-          },
-        },
+        albums: "$albumDetails",
+        playlists: "$playlistDetails",
       },
     },
   ]);
 
-  if (libraryData.length === 0) {
-    return {
-      albums: [],
-      likedSongs: [],
-      playlists: [],
-      followedArtists: [],
-      savedMixes: [],
-      savedPersonalMixes: [],
-      generatedPlaylists: [],
-    };
-  }
-
-  const finalData = libraryData[0];
-  if (finalData.playlists) {
-    finalData.playlists.forEach((pl) => {
-      if (pl.owner) {
-        pl.owner = {
-          _id: pl.owner._id,
-          fullName: pl.owner.fullName,
-          imageUrl: pl.owner.imageUrl,
-        };
-      }
-    });
-  }
-
-  return finalData;
+  return libraryData.length > 0
+    ? libraryData[0]
+    : { albums: [], playlists: [] };
 }

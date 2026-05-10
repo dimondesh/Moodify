@@ -1,7 +1,6 @@
 // backend/src/lib/playlistGenerator.service.js
 import mongoose from "mongoose";
 import { ListenHistory } from "../models/listenHistory.model.js";
-import { GeneratedPlaylist } from "../models/generatedPlaylist.model.js";
 import { Song } from "../models/song.model.js";
 import { Library } from "../models/library.model.js";
 
@@ -21,7 +20,7 @@ export const generateOnRepeatPlaylistForUser = async (userId) => {
   if (listenHistory.length === 0) {
     await GeneratedPlaylist.deleteOne({ user: userId, type: "ON_REPEAT" });
     console.log(
-      `No listen history for user ${userId}. Deleting old 'On Repeat' if it exists.`
+      `No listen history for user ${userId}. Deleting old 'On Repeat' if it exists.`,
     );
     return null;
   }
@@ -39,11 +38,11 @@ export const generateOnRepeatPlaylistForUser = async (userId) => {
         generatedOn: new Date(),
       },
     },
-    { upsert: true, new: true }
+    { upsert: true, new: true },
   );
 
   console.log(
-    `'On Repeat' playlist processed for user ${userId} with ${songIds.length} songs.`
+    `'On Repeat' playlist processed for user ${userId} with ${songIds.length} songs.`,
   );
   return onRepeatPlaylist;
 };
@@ -53,10 +52,10 @@ export const generateDiscoverWeeklyForUser = async (userId) => {
     console.log(`[Discover Weekly] Starting generation for user: ${userId}`);
 
     const listenHistory = await ListenHistory.find({ user: userId }).select(
-      "song -_id"
+      "song -_id",
     );
     const library = await Library.findOne({ userId }).select(
-      "likedSongs.songId"
+      "likedSongs.songId",
     );
 
     const listenedSongIds = listenHistory.map((item) => item.song);
@@ -67,14 +66,14 @@ export const generateDiscoverWeeklyForUser = async (userId) => {
 
     if (listenedSongIds.length < 20) {
       console.log(
-        `[Discover Weekly] User ${userId} has insufficient listen history. Skipping.`
+        `[Discover Weekly] User ${userId} has insufficient listen history. Skipping.`,
       );
       return;
     }
 
     const tasteProfile = await ListenHistory.aggregate([
       { $match: { user: userId } },
-      { $limit: 200 }, 
+      { $limit: 200 },
       {
         $lookup: {
           from: "songs",
@@ -112,21 +111,21 @@ export const generateDiscoverWeeklyForUser = async (userId) => {
     const topArtistIds = tasteProfile[0].topArtists.map((a) => a._id);
 
     const candidates = await Song.find({
-      _id: { $nin: excludedSongIds }, 
+      _id: { $nin: excludedSongIds },
       $or: [
         { genres: { $in: topGenreIds } },
         { artist: { $in: topArtistIds } },
       ],
     })
-      .sort({ playCount: -1 }) 
-      .limit(200) 
+      .sort({ playCount: -1 })
+      .limit(200)
       .populate("artist", "name imageUrl");
 
     const finalTracks = candidates.sort(() => 0.5 - Math.random()).slice(0, 30);
 
     if (finalTracks.length < 10) {
       console.log(
-        `[Discover Weekly] Not enough new tracks found for user ${userId}. Skipping.`
+        `[Discover Weekly] Not enough new tracks found for user ${userId}. Skipping.`,
       );
       return;
     }
@@ -136,7 +135,7 @@ export const generateDiscoverWeeklyForUser = async (userId) => {
       type: "DISCOVER_WEEKLY",
       nameKey: "generatedPlaylists.discoverWeekly.title",
       descriptionKey: "generatedPlaylists.discoverWeekly.description",
-      imageUrl: "https://moodify.b-cdn.net/discover-weekly.png", 
+      imageUrl: "https://moodify.b-cdn.net/discover-weekly.png",
       songs: finalTracks.map((song) => song._id),
       generatedOn: new Date(),
     };
@@ -144,16 +143,16 @@ export const generateDiscoverWeeklyForUser = async (userId) => {
     await GeneratedPlaylist.findOneAndUpdate(
       { user: userId, type: "DISCOVER_WEEKLY" },
       playlistData,
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
 
     console.log(
-      `[Discover Weekly] Successfully generated for user: ${userId} with ${finalTracks.length} tracks.`
+      `[Discover Weekly] Successfully generated for user: ${userId} with ${finalTracks.length} tracks.`,
     );
   } catch (error) {
     console.error(
       `[Discover Weekly] Error generating for user ${userId}:`,
-      error
+      error,
     );
   }
 };
@@ -169,11 +168,11 @@ export const generateOnRepeatRewindForUser = async (userId) => {
       {
         $match: {
           user: userId,
-          listenedAt: { $gte: sixMonthsAgo, $lt: oneMonthAgo }, 
+          listenedAt: { $gte: sixMonthsAgo, $lt: oneMonthAgo },
         },
       },
       { $group: { _id: "$song", count: { $sum: 1 } } },
-      { $match: { count: { $gt: 3 } } }, 
+      { $match: { count: { $gt: 3 } } },
       { $sort: { count: -1 } },
       { $limit: 100 },
     ]);
@@ -182,7 +181,7 @@ export const generateOnRepeatRewindForUser = async (userId) => {
 
     if (pastFavoriteSongIds.length < 10) {
       console.log(
-        `[On Repeat Rewind] Not enough past favorites for user ${userId}. Skipping.`
+        `[On Repeat Rewind] Not enough past favorites for user ${userId}. Skipping.`,
       );
       return;
     }
@@ -194,12 +193,12 @@ export const generateOnRepeatRewindForUser = async (userId) => {
     const recentSongIds = recentListens.map((item) => item.song);
 
     const rewindSongIds = pastFavoriteSongIds.filter(
-      (id) => !recentSongIds.some((recentId) => recentId.equals(id))
+      (id) => !recentSongIds.some((recentId) => recentId.equals(id)),
     );
 
     if (rewindSongIds.length < 10) {
       console.log(
-        `[On Repeat Rewind] Not enough "forgotten" tracks for user ${userId}. Skipping.`
+        `[On Repeat Rewind] Not enough "forgotten" tracks for user ${userId}. Skipping.`,
       );
       return;
     }
@@ -213,7 +212,7 @@ export const generateOnRepeatRewindForUser = async (userId) => {
       type: "ON_REPEAT_REWIND",
       nameKey: "generatedPlaylists.onRepeatRewind.title",
       descriptionKey: "generatedPlaylists.onRepeatRewind.description",
-      imageUrl: "https://moodify.b-cdn.net/on-repeat-rewind2.png", 
+      imageUrl: "https://moodify.b-cdn.net/on-repeat-rewind2.png",
       songs: finalTracks.map((song) => song._id),
       generatedOn: new Date(),
     };
@@ -221,16 +220,16 @@ export const generateOnRepeatRewindForUser = async (userId) => {
     await GeneratedPlaylist.findOneAndUpdate(
       { user: userId, type: "ON_REPEAT_REWIND" },
       playlistData,
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
 
     console.log(
-      `[On Repeat Rewind] Successfully generated for user: ${userId} with ${finalTracks.length} tracks.`
+      `[On Repeat Rewind] Successfully generated for user: ${userId} with ${finalTracks.length} tracks.`,
     );
   } catch (error) {
     console.error(
       `[On Repeat Rewind] Error generating for user ${userId}:`,
-      error
+      error,
     );
   }
 };

@@ -1,7 +1,6 @@
 import { Song } from "../models/song.model.js";
 import { Album } from "../models/album.model.js";
 import { Playlist } from "../models/playlist.model.js";
-import { Mix } from "../models/mix.model.js";
 
 export const getSharedEntity = async (req, res, next) => {
   try {
@@ -33,9 +32,6 @@ export const getSharedEntity = async (req, res, next) => {
         entity = await Playlist.findById(entityId)
           .populate("owner", "fullName imageUrl")
           .populate(songPopulateOptions);
-        break;
-      case "mix":
-        entity = await Mix.findById(entityId).populate(songPopulateOptions);
         break;
       default:
         return res.status(400).json({ message: "Invalid entity type" });

@@ -1,7 +1,6 @@
 import { Song } from "../models/song.model.js";
 import { Album } from "../models/album.model.js";
 import { Playlist } from "../models/playlist.model.js";
-import { Mix } from "../models/mix.model.js";
 
 export const generateOGMeta = async (req, res, next) => {
   try {
@@ -41,14 +40,6 @@ export const generateOGMeta = async (req, res, next) => {
         title = `${playlist.title} | Moodify`;
         description = `Playlist by ${playlist.owner?.fullName || "Moodify User"}`;
         image = playlist.imageUrl || image;
-      }
-    } else if (path.startsWith("/mixes/")) {
-      type = "music.playlist";
-      const mix = await Mix.findById(id);
-      if (mix) {
-        title = `${mix.sourceName} | Moodify Mix`;
-        description = `Listen to ${mix.sourceName} Mix on Moodify.`;
-        image = mix.imageUrl || image;
       }
     }
 

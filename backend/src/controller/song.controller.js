@@ -3,12 +3,9 @@
 import { Song } from "../models/song.model.js";
 import { ListenHistory } from "../models/listenHistory.model.js";
 import { User } from "../models/user.model.js";
-import { UserRecommendation } from "../models/userRecommendation.model.js";
 import { Album } from "../models/album.model.js";
 import { Playlist } from "../models/playlist.model.js";
-import { Mix } from "../models/mix.model.js";
 import { Artist } from "../models/artist.model.js";
-import { GeneratedPlaylist } from "../models/generatedPlaylist.model.js";
 import { getVibeMatchTracks } from "../lib/recommendation.service.js";
 import axios from "axios";
 
@@ -39,26 +36,6 @@ export const getQuickPicks = async (
   try {
     const userId = req.user?.id;
     let finalPicks = [];
-
-    if (userId) {
-      const recommendations = await UserRecommendation.findOne({
-        user: userId,
-        type: "FEATURED_SONGS",
-      }).populate({
-        path: "items",
-        model: "Song",
-        select: SONG_MINIMAL_SELECT,
-        populate: {
-          path: "artist",
-          model: "Artist",
-          select: "name imageUrl",
-        },
-      });
-
-      if (recommendations && recommendations.items.length > 0) {
-        finalPicks = recommendations.items.slice(0, limit);
-      }
-    }
 
     if (finalPicks.length === 0) {
       finalPicks = await getTrendingSongs(req, res, next, true, limit);

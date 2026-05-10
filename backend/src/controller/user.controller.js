@@ -12,7 +12,6 @@ import {
   uploadToBunny,
 } from "../lib/bunny.service.js";
 import path from "path";
-import { UserRecommendation } from "../models/userRecommendation.model.js";
 import { ListenHistory } from "../models/listenHistory.model.js";
 import { Song } from "../models/song.model.js";
 import { optimizeAndUploadImage } from "../lib/image.service.js";
@@ -598,26 +597,15 @@ export const getNewReleases = async (
   returnInternal = false,
 ) => {
   try {
-    const userId = req.user.id;
-    const recommendations = await UserRecommendation.findOne({
-      user: userId,
-      type: "NEW_RELEASE",
-    }).populate({
-      path: "items",
-      model: "Album",
-      populate: [
-        { path: "artist", model: "Artist", select: "name imageUrl" },
-        {
-          path: "songs",
-          select: SONG_MINIMAL_SELECT,
-          populate: { path: "artist", select: "name imageUrl" },
-        },
-      ],
-    });
+    // Пока отдаем просто 10 последних альбомов
+    const albums = await Album.find()
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .populate("artist", "name imageUrl")
+      .lean();
 
-    const result = recommendations ? recommendations.items : [];
-    if (returnInternal) return result;
-    return res.status(200).json(result);
+    if (returnInternal) return albums;
+    return res.status(200).json(albums);
   } catch (error) {
     if (returnInternal) return [];
     next(error);
@@ -631,26 +619,15 @@ export const getPlaylistRecommendations = async (
   returnInternal = false,
 ) => {
   try {
-    const userId = req.user.id;
-    const recommendations = await UserRecommendation.findOne({
-      user: userId,
-      type: "PLAYLIST_FOR_YOU",
-    }).populate({
-      path: "items",
-      model: "Playlist",
-      populate: [
-        { path: "owner", model: "User", select: "fullName" },
-        {
-          path: "songs",
-          select: SONG_MINIMAL_SELECT,
-          populate: { path: "artist", select: "name imageUrl" },
-        },
-      ],
-    });
+    // Отдаем публичные миксы и плейлисты как рекомендации
+    const playlists = await Playlist.find({ isPublic: true })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .populate("owner", "fullName")
+      .lean();
 
-    const result = recommendations ? recommendations.items : [];
-    if (returnInternal) return result;
-    return res.status(200).json(result);
+    if (returnInternal) return playlists;
+    return res.status(200).json(playlists);
   } catch (error) {
     if (returnInternal) return [];
     next(error);

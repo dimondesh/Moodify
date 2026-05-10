@@ -1,7 +1,6 @@
 import { Artist } from "../models/artist.model.js";
 import { Album } from "../models/album.model.js";
 import { Playlist } from "../models/playlist.model.js";
-import { Mix } from "../models/mix.model.js";
 import { User } from "../models/user.model.js";
 
 export const getSitemap = async (req, res) => {
@@ -52,16 +51,6 @@ export const getSitemap = async (req, res) => {
         <lastmod>${new Date(item.updatedAt || Date.now()).toISOString()}</lastmod>
         <changefreq>daily</changefreq>
         <priority>0.7</priority>
-      </url>`;
-    });
-
-    mixes.forEach((item) => {
-      xml += `
-      <url>
-        <loc>${baseUrl}/mixes/${item._id}</loc>
-        <lastmod>${new Date(item.updatedAt || Date.now()).toISOString()}</lastmod>
-        <changefreq>weekly</changefreq>
-        <priority>0.6</priority>
       </url>`;
     });
 
