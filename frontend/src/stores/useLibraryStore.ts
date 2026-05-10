@@ -1,24 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from "zustand";
 import { axiosInstance } from "../lib/axios";
-import type {
-  Album,
-  Song,
-  LibraryPlaylist,
-  Artist,
-  Mix,
-  GeneratedPlaylist,
-  PersonalMix,
-} from "../types";
+import type { Album, Song, LibraryPlaylist, Artist } from "../types";
 import { useOfflineStore } from "./useOfflineStore";
 import {
   getAllUserAlbums,
   getAllUserPlaylists,
-  getAllUserMixes,
   getAllUserSongs,
 } from "../lib/offline-db";
 import { useAuthStore } from "./useAuthStore";
-import toast from "react-hot-toast";
 import i18n from "@/lib/i18n";
 
 interface LibraryStore {
@@ -26,9 +16,8 @@ interface LibraryStore {
   likedSongs: Song[];
   playlists: LibraryPlaylist[];
   followedArtists: Artist[];
-  savedMixes: Mix[];
-  savedPersonalMixes: PersonalMix[];
-  generatedPlaylists: GeneratedPlaylist[];
+  /** Mongo id of the user's LIKED_SONGS playlist when it exists */
+  likedPlaylistId: string | null;
 
   isLoading: boolean;
   error: string | null;
@@ -36,22 +25,16 @@ interface LibraryStore {
   fetchLibrary: () => Promise<void>;
   fetchLikedSongs: () => Promise<void>;
   fetchFollowedArtists: () => Promise<void>;
-  isGeneratedPlaylistSaved: (playlistId: string) => boolean;
-  toggleGeneratedPlaylistInLibrary: (playlistId: string) => Promise<void>;
 
   toggleAlbum: (albumId: string) => Promise<void>;
   toggleSongLike: (songId: string) => Promise<void>;
   togglePlaylist: (playlistId: string) => Promise<void>;
   toggleArtistFollow: (artistId: string) => Promise<void>;
-  toggleMixInLibrary: (mixId: string) => Promise<void>;
-  togglePersonalMixInLibrary: (personalMixId: string) => Promise<void>;
+
   isAlbumInLibrary: (albumId: string) => boolean;
   isPlaylistInLibrary: (playlistId: string) => boolean;
-
   isSongLiked: (songId: string) => boolean;
   isArtistFollowed: (artistId: string) => boolean;
-  isMixSaved: (mixId: string) => boolean;
-  isPersonalMixSaved: (personalMixId: string) => boolean;
 }
 
 export const useLibraryStore = create<LibraryStore>((set, get) => ({
@@ -59,9 +42,7 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
   likedSongs: [],
   playlists: [],
   followedArtists: [],
-  savedMixes: [],
-  savedPersonalMixes: [],
-  generatedPlaylists: [],
+  likedPlaylistId: null,
   isLoading: false,
   error: null,
 
@@ -79,22 +60,17 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
         return;
       }
       try {
-        const [albums, playlists, savedMixes, songs] = await Promise.all([
+        const [albums, playlists, songs] = await Promise.all([
           getAllUserAlbums(userId),
           getAllUserPlaylists(userId),
-          getAllUserMixes(userId),
           getAllUserSongs(userId),
         ]);
 
         set({
           albums,
           playlists: playlists as LibraryPlaylist[],
-          savedMixes,
           likedSongs: songs,
           followedArtists: [],
-          generatedPlaylists: playlists.filter(
-            (p: any) => p.isGenerated,
-          ) as unknown as GeneratedPlaylist[],
         });
       } catch (err: any) {
         console.error("Failed to fetch offline library data:", err);
@@ -111,12 +87,8 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
 
       set({
         albums: data.albums || [],
-        likedSongs: data.likedSongs || [],
         playlists: data.playlists || [],
         followedArtists: data.followedArtists || [],
-        savedMixes: data.savedMixes || [],
-        savedPersonalMixes: data.savedPersonalMixes || [],
-        generatedPlaylists: data.generatedPlaylists || [],
       });
     } catch (err: any) {
       set({
@@ -125,43 +97,6 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
     } finally {
       set({ isLoading: false });
     }
-  },
-
-  toggleGeneratedPlaylistInLibrary: async (playlistId: string) => {
-    if (useOfflineStore.getState().isOffline) return;
-
-    const previousPlaylists = get().generatedPlaylists;
-    const isCurrentlySaved = get().isGeneratedPlaylistSaved(playlistId);
-
-    set((state) => ({
-      generatedPlaylists: isCurrentlySaved
-        ? state.generatedPlaylists.filter((p) => p._id !== playlistId)
-        : [
-            ...state.generatedPlaylists,
-            { _id: playlistId, nameKey: "placeholder" } as GeneratedPlaylist,
-          ],
-    }));
-
-    try {
-      const response = await axiosInstance.post(
-        "/library/generated-playlists/toggle",
-        { playlistId },
-      );
-      toast.success(
-        response.data.isSaved
-          ? i18n.t("toasts.savedToLibrary")
-          : i18n.t("toasts.removedFromLibrary"),
-      );
-      await get().fetchLibrary();
-    } catch (err) {
-      console.error("Toggle generated playlist error", err);
-      toast.error(i18n.t("toasts.libraryUpdateError"));
-      set({ generatedPlaylists: previousPlaylists });
-    }
-  },
-
-  isGeneratedPlaylistSaved: (playlistId: string) => {
-    return get().generatedPlaylists.some((p) => p._id === playlistId);
   },
 
   fetchLikedSongs: async () => {
@@ -181,7 +116,7 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
       );
       try {
         const allDownloadedSongs = await getAllUserSongs(userId);
-        set({ likedSongs: allDownloadedSongs });
+        set({ likedSongs: allDownloadedSongs, likedPlaylistId: null });
       } catch (err: any) {
         set({
           error: err.message || i18n.t("errors.fetchOfflineSongsError"),
@@ -192,7 +127,10 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
 
     try {
       const res = await axiosInstance.get("/library/liked-songs");
-      set({ likedSongs: res.data.songs });
+      set({
+        likedSongs: res.data.songs,
+        likedPlaylistId: res.data.playlistId ?? null,
+      });
     } catch (err: any) {
       set({
         error: err.message || i18n.t("errors.fetchLikedSongsError"),
@@ -232,7 +170,7 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
     if (useOfflineStore.getState().isOffline) return;
     try {
       await axiosInstance.post("/library/songs/toggle-like", { songId });
-      await get().fetchLibrary();
+      await Promise.all([get().fetchLibrary(), get().fetchLikedSongs()]);
     } catch (err) {
       console.error("Toggle song like error", err);
       set({ error: i18n.t("errors.toggleSongLikeError") });
@@ -261,30 +199,6 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
     }
   },
 
-  toggleMixInLibrary: async (mixId: string) => {
-    if (useOfflineStore.getState().isOffline) return;
-    try {
-      await axiosInstance.post("/library/mixes/toggle", { mixId });
-      await get().fetchLibrary();
-    } catch (err) {
-      console.error("Toggle mix in library error", err);
-      set({ error: i18n.t("errors.toggleMixError") });
-    }
-  },
-
-  togglePersonalMixInLibrary: async (personalMixId: string) => {
-    if (useOfflineStore.getState().isOffline) return;
-    try {
-      await axiosInstance.post("/library/personal-mixes/toggle", {
-        personalMixId,
-      });
-      await get().fetchLibrary();
-    } catch (err) {
-      console.error("Toggle personal mix in library error", err);
-      set({ error: i18n.t("errors.toggleMixError") });
-    }
-  },
-
   isAlbumInLibrary: (albumId: string) =>
     get().albums.some((album) => album._id === albumId),
   isPlaylistInLibrary: (playlistId: string) =>
@@ -293,8 +207,4 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
     get().likedSongs.some((song) => song._id === songId),
   isArtistFollowed: (artistId: string) =>
     get().followedArtists.some((artist) => artist._id === artistId),
-  isMixSaved: (mixId: string) =>
-    get().savedMixes.some((mix) => mix._id === mixId),
-  isPersonalMixSaved: (personalMixId: string) =>
-    get().savedPersonalMixes.some((mix) => mix._id === personalMixId),
 }));

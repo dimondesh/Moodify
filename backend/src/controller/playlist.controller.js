@@ -164,10 +164,11 @@ export const getPlaylistById = async (req, res, next) => {
       return res.status(404).json({ message: "Playlist not found" });
     }
 
-    if (
-      !playlist.isPublic &&
-      playlist.owner._id.toString() !== req.user.id.toString()
-    ) {
+    const viewerId = req.user?.id?.toString();
+    const ownerId = playlist.owner?._id?.toString();
+    const isOwner = Boolean(ownerId && viewerId && ownerId === viewerId);
+
+    if (!playlist.isPublic && !isOwner) {
       return res
         .status(403)
         .json({ message: "Access denied. This is a private playlist." });

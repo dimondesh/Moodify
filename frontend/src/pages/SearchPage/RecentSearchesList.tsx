@@ -42,9 +42,6 @@ const RecentSearchesList: React.FC<RecentSearchesListProps> = ({
       case "User":
         path = `/users/${item._id}`;
         break;
-      case "Mix":
-        path = `/mixes/${item._id}`;
-        break;
       case "Song":
         if (item.albumId) {
           path = `/albums/${item.albumId}`;
@@ -65,10 +62,7 @@ const RecentSearchesList: React.FC<RecentSearchesListProps> = ({
     const title = String(
       item.isTranslatable ? t(item.title, item.title) : item.title,
     );
-    const subtitleKey =
-      item.itemType === "Mix"
-        ? "sidebar.subtitle.dailyMix"
-        : `sidebar.subtitle.${item.itemType.toLowerCase()}`;
+    const subtitleKey = `sidebar.subtitle.${item.itemType.toLowerCase()}`;
     let subtitle = String(t(subtitleKey, item.itemType));
 
     if (
@@ -148,9 +142,7 @@ const RecentSearchesList: React.FC<RecentSearchesListProps> = ({
                           | "song"
                           | "album"
                           | "playlist"
-                          | "mix"
                           | "artist"
-                          | "generated-playlist"
                       }
                       variant="overlay"
                       className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"

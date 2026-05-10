@@ -219,24 +219,30 @@ export const recordListen = async (req, res, next) => {
     if (!songExists)
       return res.status(404).json({ message: "Song not found." });
 
-    const validContextTypes = [
-      "album",
-      "playlist",
-      "generated-playlist",
-      "mix",
-      "artist",
-    ];
-    if (playbackContext && !validContextTypes.includes(playbackContext.type)) {
-      return res.status(400).json({
-        message: "Invalid playback context type.",
-        validTypes: validContextTypes,
-      });
+    const legacyToPlaylist = {
+      mix: "playlist",
+      "generated-playlist": "playlist",
+      "personal-mix": "playlist",
+    };
+
+    const validContextTypes = ["album", "playlist", "artist"];
+    if (playbackContext) {
+      const normalizedType =
+        legacyToPlaylist[playbackContext.type] || playbackContext.type;
+      if (!validContextTypes.includes(normalizedType)) {
+        return res.status(400).json({
+          message: "Invalid playback context type.",
+          validTypes: [...validContextTypes, ...Object.keys(legacyToPlaylist)],
+        });
+      }
     }
 
     const listenData = { user: userId, song: songId };
     if (playbackContext) {
+      const normalizedType =
+        legacyToPlaylist[playbackContext.type] || playbackContext.type;
       listenData.playbackContext = {
-        type: playbackContext.type,
+        type: normalizedType,
         entityId: playbackContext.entityId || null,
         entityTitle: playbackContext.entityTitle || null,
       };
@@ -283,15 +289,24 @@ export const getListenHistory = async (
     for (const record of fullHistory) {
       if (!record.playbackContext) continue;
 
-      const { type, entityId, entityTitle } = record.playbackContext;
-      const entityKey = `${type}-${entityId}`;
+      const { type: rawType, entityId, entityTitle } = record.playbackContext;
+      const playlistLikeTypes = new Set([
+        "playlist",
+        "mix",
+        "generated-playlist",
+        "personal-mix",
+      ]);
+      const normalizedType = playlistLikeTypes.has(rawType)
+        ? "playlist"
+        : rawType;
+      const entityKey = `${normalizedType}-${entityId}`;
 
       if (!seenEntityKeys.has(entityKey)) {
         seenEntityKeys.add(entityKey);
 
         const entity = {
           _id: entityId,
-          itemType: type,
+          itemType: normalizedType,
           title: entityTitle || "Unknown",
           imageUrl: null,
           songs: [],
@@ -300,7 +315,7 @@ export const getListenHistory = async (
         if (entityId) {
           try {
             let entityData = null;
-            switch (type) {
+            switch (normalizedType) {
               case "album":
                 entityData = await Album.findById(entityId)
                   .select("title imageUrl type artist")
@@ -314,7 +329,7 @@ export const getListenHistory = async (
                 break;
               case "playlist":
                 entityData = await Playlist.findById(entityId)
-                  .select("title imageUrl owner")
+                  .select("title imageUrl owner type sourceName")
                   .populate("owner", "fullName")
                   .populate({
                     path: "songs",
@@ -322,28 +337,6 @@ export const getListenHistory = async (
                     populate: { path: "artist", select: "name imageUrl" },
                   })
                   .lean();
-                break;
-              case "mix":
-                entityData = await Mix.findById(entityId)
-                  .select("name imageUrl type")
-                  .populate({
-                    path: "songs",
-                    select: SONG_MINIMAL_SELECT,
-                    populate: { path: "artist", select: "name imageUrl" },
-                  })
-                  .lean();
-                if (entityData) entityData.title = entityData.name;
-                break;
-              case "generated-playlist":
-                entityData = await GeneratedPlaylist.findById(entityId)
-                  .select("nameKey imageUrl")
-                  .populate({
-                    path: "songs",
-                    select: SONG_MINIMAL_SELECT,
-                    populate: { path: "artist", select: "name imageUrl" },
-                  })
-                  .lean();
-                if (entityData) entityData.title = entityData.nameKey;
                 break;
               case "artist":
                 entityData = await Artist.findById(entityId)
@@ -363,16 +356,14 @@ export const getListenHistory = async (
               entity.title = entityData.title || entityTitle;
               entity.imageUrl = entityData.imageUrl;
               entity.songs = entityData.songs || [];
-              if (type === "album") {
+              if (normalizedType === "album") {
                 entity.type = entityData.type;
                 entity.artist = entityData.artist;
-              } else if (type === "playlist") {
+              } else if (normalizedType === "playlist") {
                 entity.owner = entityData.owner;
-              } else if (type === "mix") {
                 entity.type = entityData.type;
-              } else if (type === "generated-playlist") {
-                entity.nameKey = entityData.nameKey;
-              } else if (type === "artist") {
+                entity.sourceName = entityData.sourceName;
+              } else if (normalizedType === "artist") {
                 entity.name = entityData.name;
               }
             }

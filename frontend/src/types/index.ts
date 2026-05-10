@@ -15,30 +15,6 @@ export interface Genre {
   _id: string;
   name: string;
 }
-export interface PersonalMix {
-  _id: string;
-  user: string;
-  name: string;
-  songs: Song[];
-  imageUrl: string;
-  generatedOn: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Mix {
-  _id: string;
-  name: string;
-  type: "Genre" | "Mood";
-  sourceName: string;
-  songs: Song[];
-  imageUrl: string;
-  createdAt: string;
-  updatedAt: string;
-  addedAt?: string;
-  generatedOn: string;
-  searchableNames?: string[];
-}
 
 export interface Mood {
   _id: string;
@@ -67,7 +43,7 @@ export interface Song {
 export interface RecentSearchItem {
   _id: string;
   searchId: string;
-  itemType: "Artist" | "Album" | "Playlist" | "User" | "Mix" | "Song";
+  itemType: "Artist" | "Album" | "Playlist" | "User" | "Song";
 
   name?: string;
   title?: string;
@@ -77,18 +53,6 @@ export interface RecentSearchItem {
   owner?: User;
 
   albumId?: string | null;
-}
-
-export interface GeneratedPlaylist {
-  _id: string;
-  user: string;
-  type: "ON_REPEAT";
-  songs: Song[];
-  nameKey: string;
-  descriptionKey: string;
-  imageUrl: string;
-  generatedOn: string;
-  addedAt?: string;
 }
 
 export interface Album {
@@ -122,7 +86,7 @@ export interface Message {
   isRead: boolean;
 
   shareDetails?: {
-    entityType: "song" | "album" | "playlist" | "mix";
+    entityType: "song" | "album" | "playlist";
     entityId: string;
   };
 }
@@ -153,7 +117,6 @@ export interface SearchState {
   albums: Album[];
   playlists: Playlist[];
   artists: Artist[];
-  mixes: Mix[];
 
   users: User[];
 
@@ -169,18 +132,35 @@ export interface UserLibrary {
   albums: Album[];
 }
 
+export type PlaylistKind =
+  | "USER_CREATED"
+  | "GENRE_MIX"
+  | "MOOD_MIX"
+  | "PERSONAL_MIX"
+  | "ON_REPEAT"
+  | "DISCOVER_WEEKLY"
+  | "ON_REPEAT_REWIND"
+  | "NEW_RELEASES"
+  | "LIKED_SONGS";
+
 export interface Playlist {
   _id: string;
   title: string;
   description?: string;
   isPublic: boolean;
-  owner: User;
+  owner: User | null;
   songs: Song[];
-  type: "playlist";
+  /** Server playlist category (not the library UI discriminator) */
+  type?: PlaylistKind;
   imageUrl?: string;
-  likes: number;
+  likes?: number;
   createdAt: string;
   updatedAt: string;
+  isSystem?: boolean;
+  sourceName?: string;
+  sourceId?: string;
+  searchableNames?: string[];
+  lastGeneratedAt?: string;
 }
 
 export interface BaseLibraryItem {
@@ -202,34 +182,21 @@ export interface AlbumItem extends BaseLibraryItem {
 }
 export interface PlaylistItem extends BaseLibraryItem {
   type: "playlist";
-  owner: User;
-  isGenerated?: boolean;
+  owner: User | null;
+  playlistKind?: PlaylistKind;
 }
-export interface MixItem extends BaseLibraryItem {
-  type: "mix";
-  sourceName: string;
-}
-export interface PersonalMixItem extends BaseLibraryItem {
-  type: "personal-mix";
-}
+
 export interface FollowedArtistItem extends BaseLibraryItem {
   type: "artist";
   artistId: string;
   addedAt?: string;
-}
-export interface GeneratedPlaylistItem extends BaseLibraryItem {
-  type: "generated-playlist";
-  sourceName: string;
 }
 
 export type LibraryItem =
   | LikedSongsItem
   | AlbumItem
   | PlaylistItem
-  | FollowedArtistItem
-  | MixItem
-  | PersonalMixItem
-  | GeneratedPlaylistItem;
+  | FollowedArtistItem;
 export interface LibraryPlaylist extends Playlist {
   addedAt?: string;
 }

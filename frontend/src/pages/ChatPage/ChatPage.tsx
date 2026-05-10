@@ -148,7 +148,11 @@ const ChatPage = () => {
           >
             {message.type === "share" && message.shareDetails ? (
               <SharedContentMessage
-                entityType={message.shareDetails.entityType}
+                entityType={
+                  (message.shareDetails.entityType as string) === "mix"
+                    ? "playlist"
+                    : message.shareDetails.entityType
+                }
                 entityId={message.shareDetails.entityId}
               />
             ) : (

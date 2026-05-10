@@ -9,24 +9,19 @@ import {
   getDb,
   getAllUserAlbums,
   getAllUserPlaylists,
-  getAllUserMixes,
+  getAllUserLegacyPlaylistBucket,
   getAllUserSongs,
   getUserItem,
   deleteOfflineDb,
 } from "@/lib/offline-db";
-import type { Song, Album, Playlist, Mix } from "@/types";
+import type { Song, Album, Playlist } from "@/types";
 import { axiosInstance } from "@/lib/axios";
 import toast from "react-hot-toast";
 import { useAuthStore } from "./useAuthStore";
 import { useMusicStore } from "./useMusicStore";
 import i18n from "@/lib/i18n";
 
-type ItemType =
-  | "albums"
-  | "playlists"
-  | "mixes"
-  | "personal-mixes"
-  | "generated-playlists";
+type ItemType = "albums" | "playlists";
 const HLS_ASSETS_CACHE_NAME = "moodify-hls-assets-cache";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -155,8 +150,8 @@ interface OfflineState {
     getDownloadedContentSize: () => Promise<{ usage: number; quota: number }>;
     clearAllDownloads: () => Promise<void>;
     clearAppCache: () => Promise<void>;
-    fetchAllDownloaded: () => Promise<(Album | Playlist | Mix)[]>;
-    updateDownloadedPersonalMix: (personalMixId: string) => Promise<void>;
+    fetchAllDownloaded: () => Promise<(Album | Playlist)[]>;
+    updateDownloadedPlaylist: (playlistId: string) => Promise<void>;
   };
 }
 
@@ -182,17 +177,18 @@ export const useOfflineStore = create<OfflineState>()(
             return;
           }
 
-          const [albums, playlists, mixes, songs] = await Promise.all([
-            getAllUserAlbums(userId),
-            getAllUserPlaylists(userId),
-            getAllUserMixes(userId), // Включает как обычные миксы, так и персональные
-            getAllUserSongs(userId),
-          ]);
+          const [albums, playlists, legacyPlaylistRows, songs] =
+            await Promise.all([
+              getAllUserAlbums(userId),
+              getAllUserPlaylists(userId),
+              getAllUserLegacyPlaylistBucket(userId),
+              getAllUserSongs(userId),
+            ]);
 
           const allItemKeys = [
             ...albums.map((i) => i._id),
             ...playlists.map((i) => i._id),
-            ...mixes.map((i) => i._id),
+            ...legacyPlaylistRows.map((i) => i._id),
           ];
           const allSongKeys = songs.map((s) => s._id);
 
@@ -246,24 +242,19 @@ export const useOfflineStore = create<OfflineState>()(
           toast.loading(i18n.t("toasts.syncingLibrary"), { id: "sync-toast" });
 
           try {
-            const [localPlaylists, localMixes] = await Promise.all([
+            const [localPlaylists, legacyPlaylistRows] = await Promise.all([
               getAllUserPlaylists(userId),
-              getAllUserMixes(userId),
+              getAllUserLegacyPlaylistBucket(userId),
             ]);
 
             for (const localPlaylist of localPlaylists) {
               try {
-                const endpoint = localPlaylist.isGenerated
-                  ? `/generated-playlists/${localPlaylist._id}`
-                  : `/playlists/${localPlaylist._id}`;
-                const serverResponse = await axiosInstance.get(endpoint);
+                const serverResponse = await axiosInstance.get(
+                  `/playlists/${localPlaylist._id}`,
+                );
                 const serverPlaylist = serverResponse.data;
-                const serverDate = localPlaylist.isGenerated
-                  ? serverPlaylist.generatedOn
-                  : serverPlaylist.updatedAt;
-                const localDate = localPlaylist.isGenerated
-                  ? (localPlaylist as any).generatedOn
-                  : localPlaylist.updatedAt;
+                const serverDate = serverPlaylist.updatedAt;
+                const localDate = localPlaylist.updatedAt;
 
                 if (new Date(serverDate) > new Date(localDate)) {
                   toast.loading(
@@ -272,45 +263,45 @@ export const useOfflineStore = create<OfflineState>()(
                     }),
                     {
                       id: `sync-${localPlaylist._id}`,
-                    }
+                    },
                   );
                   await get().actions.downloadItem(
                     localPlaylist._id,
-                    localPlaylist.isGenerated
-                      ? "generated-playlists"
-                      : "playlists"
+                    "playlists",
                   );
                   toast.dismiss(`sync-${localPlaylist._id}`);
                 }
               } catch (e) {
                 console.error(
                   `Failed to sync playlist ${localPlaylist._id}`,
-                  e
+                  e,
                 );
               }
             }
 
-            for (const localMix of localMixes) {
+            for (const row of legacyPlaylistRows) {
               try {
                 const serverResponse = await axiosInstance.get(
-                  `/mixes/${localMix._id}`
+                  `/playlists/${row._id}`,
                 );
-                const serverMix = serverResponse.data;
-                if (
-                  new Date(serverMix.generatedOn) >
-                  new Date(localMix.generatedOn)
-                ) {
+                const serverPl = serverResponse.data;
+                const localUpdated = new Date(
+                  row.updatedAt || row.lastGeneratedAt || 0,
+                );
+                if (new Date(serverPl.updatedAt) > localUpdated) {
                   toast.loading(
-                    i18n.t("toasts.updatingItem", { itemTitle: localMix.name }),
+                    i18n.t("toasts.updatingItem", {
+                      itemTitle: row.title,
+                    }),
                     {
-                      id: `sync-${localMix._id}`,
-                    }
+                      id: `sync-${row._id}`,
+                    },
                   );
-                  await get().actions.downloadItem(localMix._id, "mixes");
-                  toast.dismiss(`sync-${localMix._id}`);
+                  await get().actions.downloadItem(row._id, "playlists");
+                  toast.dismiss(`sync-${row._id}`);
                 }
               } catch (e) {
-                console.error(`Failed to sync mix ${localMix._id}`, e);
+                console.error(`Failed to sync offline playlist ${row._id}`, e);
               }
             }
 
@@ -324,29 +315,28 @@ export const useOfflineStore = create<OfflineState>()(
         fetchAllDownloaded: async () => {
           const userId = useAuthStore.getState().user?.id;
           if (!userId) return [];
-          const [albums, playlists, mixes] = await Promise.all([
+          const [albums, playlists, legacyRows] = await Promise.all([
             getAllUserAlbums(userId),
             getAllUserPlaylists(userId),
-            getAllUserMixes(userId),
+            getAllUserLegacyPlaylistBucket(userId),
           ]);
-          return [...albums, ...playlists, ...mixes];
+          return [...albums, ...playlists, ...legacyRows];
         },
 
-        updateDownloadedPersonalMix: async (personalMixId: string) => {
+        updateDownloadedPlaylist: async (playlistId: string) => {
           const userId = useAuthStore.getState().user?.id;
           if (!userId) return;
 
           const { isDownloaded } = get().actions;
-          if (!isDownloaded(personalMixId)) return;
+          if (!isDownloaded(playlistId)) return;
 
           try {
             console.log(
-              `[Offline] Updating downloaded personal mix ${personalMixId}`
+              `[Offline] Updating downloaded playlist ${playlistId}`,
             );
 
-            // Загружаем обновленные данные с сервера
             const response = await axiosInstance.get(
-              `/personal-mixes/${personalMixId}`
+              `/playlists/${playlistId}`,
             );
             const updatedData = response.data;
 
@@ -354,23 +344,22 @@ export const useOfflineStore = create<OfflineState>()(
               throw new Error(i18n.t("errors.invalidServerData"));
             }
 
-            // Обновляем данные в IndexedDB
             const itemToUpdate = {
               ...updatedData,
               songsData: updatedData.songs,
               userId,
             };
 
-            await saveUserItem("mixes", itemToUpdate);
+            await saveUserItem("playlists", itemToUpdate);
 
             console.log(
-              `[Offline] Personal mix ${personalMixId} updated successfully`
+              `[Offline] Playlist ${playlistId} updated successfully`,
             );
             toast.success(i18n.t("toasts.personalMixUpdated"));
           } catch (error) {
             console.error(
-              `[Offline] Failed to update personal mix ${personalMixId}:`,
-              error
+              `[Offline] Failed to update playlist ${playlistId}:`,
+              error,
             );
             toast.error(i18n.t("toasts.updateError"));
           }
@@ -396,20 +385,12 @@ export const useOfflineStore = create<OfflineState>()(
               return;
             }
 
-            // 1. Fetch item metadata
-            let endpoint = "";
-            let storeName: "albums" | "playlists" | "mixes";
-
-            if (itemType === "generated-playlists") {
-              endpoint = `/generated-playlists/${itemId}`;
-              storeName = "playlists";
-            } else if (itemType === "personal-mixes") {
-              endpoint = `/personal-mixes/${itemId}`;
-              storeName = "mixes";
-            } else {
-              endpoint = `/${itemType}/${itemId}`;
-              storeName = itemType;
-            }
+            const endpoint =
+              itemType === "albums"
+                ? `/albums/${itemId}`
+                : `/playlists/${itemId}`;
+            const storeName: "albums" | "playlists" =
+              itemType === "albums" ? "albums" : "playlists";
 
             const response = await axiosInstance.get(endpoint);
             const serverItemData =
@@ -534,10 +515,8 @@ export const useOfflineStore = create<OfflineState>()(
             const itemToSave = {
               ...serverItemData,
               songsData: resolvedSongs,
-              // чтобы все страницы/плеер в оффлайне работали с одинаковым полем
               songs: resolvedSongs,
               userId,
-              isGenerated: itemType === "generated-playlists",
             };
             await saveUserItem(storeName, itemToSave as any);
 
@@ -619,14 +598,14 @@ export const useOfflineStore = create<OfflineState>()(
           if (!userId) return;
 
           try {
-            const storeName: "albums" | "playlists" | "mixes" =
-              itemType === "generated-playlists"
-                ? "playlists"
-                : itemType === "personal-mixes"
-                ? "mixes"
-                : itemType;
+            let storeName: "albums" | "playlists" | "mixes" =
+              itemType === "albums" ? "albums" : "playlists";
 
-            const itemToDelete = await getUserItem(storeName, itemId, userId);
+            let itemToDelete = await getUserItem(storeName, itemId, userId);
+            if (!itemToDelete && itemType === "playlists") {
+              itemToDelete = await getUserItem("mixes", itemId, userId);
+              if (itemToDelete) storeName = "mixes";
+            }
             if (!itemToDelete) return;
 
             // 1. Collect all URLs to delete from cache
@@ -668,15 +647,15 @@ export const useOfflineStore = create<OfflineState>()(
             await deleteUserItem(storeName, itemId);
             for (const song of songs) {
               // Make sure not to delete a song if it's part of another downloaded item
-              const [allAlbums, allPlaylists, allMixes] = await Promise.all([
+              const [allAlbums, allPlaylists, legacyRows] = await Promise.all([
                 getAllUserAlbums(userId),
                 getAllUserPlaylists(userId),
-                getAllUserMixes(userId),
+                getAllUserLegacyPlaylistBucket(userId),
               ]);
               const isSongInOtherItems = [
                 ...allAlbums,
                 ...allPlaylists,
-                ...allMixes,
+                ...legacyRows,
               ].some(
                 (item) =>
                   item._id !== itemId &&

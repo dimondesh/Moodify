@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { axiosInstance } from "@/lib/axios";
-import { Album, Playlist, Song, Artist, Mix } from "@/types";
+import { Album, Playlist, Song, Artist } from "@/types";
 import { Loader2, Music, Play, Plus, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePlayerStore } from "@/stores/usePlayerStore";
@@ -10,11 +10,11 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 interface SharedContentMessageProps {
-  entityType: "song" | "album" | "playlist" | "mix";
+  entityType: "song" | "album" | "playlist";
   entityId: string;
 }
 
-type EntityData = Song | Album | Playlist | Mix;
+type EntityData = Song | Album | Playlist;
 
 const getArtistNames = (artists: Artist[] = []): string => {
   return artists.map((a) => a.name).join(", ");
@@ -37,8 +37,6 @@ export const SharedContentMessage: React.FC<SharedContentMessageProps> = ({
     isSongLiked,
     isAlbumInLibrary,
     isPlaylistInLibrary,
-    isMixSaved,
-    toggleMixInLibrary,
     fetchLibrary,
   } = useLibraryStore();
 
@@ -46,7 +44,7 @@ export const SharedContentMessage: React.FC<SharedContentMessageProps> = ({
     const fetchEntity = async () => {
       try {
         const response = await axiosInstance.get(
-          `/share/${entityType}/${entityId}`
+          `/share/${entityType}/${entityId}`,
         );
         setEntity(response.data);
       } catch (error) {
@@ -63,22 +61,12 @@ export const SharedContentMessage: React.FC<SharedContentMessageProps> = ({
     if (!entity) return;
     if (entityType === "song") {
       setCurrentSong(entity as Song);
-    } else if (
-      entityType === "album" ||
-      entityType === "playlist" ||
-      entityType === "mix"
-    ) {
-      if ((entity as Album | Playlist | Mix).songs?.length > 0) {
-        playAlbum((entity as Album | Playlist | Mix).songs, 0, {
-          type:
-            entityType === "mix"
-              ? "mix"
-              : entityType === "playlist"
-              ? "playlist"
-              : "album",
-          entityId: (entity as Album | Playlist | Mix)._id,
-          entityTitle:
-            (entity as Album | Playlist).title || (entity as Mix).name,
+    } else if (entityType === "album" || entityType === "playlist") {
+      if ((entity as Album | Playlist).songs?.length > 0) {
+        playAlbum((entity as Album | Playlist).songs, 0, {
+          type: entityType,
+          entityId: (entity as Album | Playlist)._id,
+          entityTitle: (entity as Album | Playlist).title,
         });
       } else {
         toast.error(t("common.noSongsToPlay"));
@@ -96,8 +84,6 @@ export const SharedContentMessage: React.FC<SharedContentMessageProps> = ({
         await toggleAlbum(entity._id);
       } else if (entityType === "playlist") {
         await togglePlaylist(entity._id);
-      } else if (entityType === "mix") {
-        await toggleMixInLibrary(entity._id);
       }
 
       await fetchLibrary();
@@ -129,10 +115,10 @@ export const SharedContentMessage: React.FC<SharedContentMessageProps> = ({
     let path = "";
     if (entityType === "song") {
       path = `/albums/${(entity as Song).albumId}`;
-    } else if (entityType === "mix") {
-      path = `/mixes/${entity._id}`;
+    } else if (entityType === "playlist") {
+      path = `/playlists/${entity._id}`;
     } else {
-      path = `/${entityType}s/${entity._id}`;
+      path = `/albums/${entity._id}`;
     }
     navigate(path);
   };
@@ -141,32 +127,25 @@ export const SharedContentMessage: React.FC<SharedContentMessageProps> = ({
     entityType === "song"
       ? isSongLiked(entity._id)
       : entityType === "album"
-      ? isAlbumInLibrary(entity._id)
-      : entityType === "playlist"
-      ? isPlaylistInLibrary(entity._id)
-      : entityType === "mix"
-      ? isMixSaved(entity._id)
-      : false;
+        ? isAlbumInLibrary(entity._id)
+        : isPlaylistInLibrary(entity._id);
 
   const getSubtitle = () => {
     if (entityType === "song") return getArtistNames((entity as Song).artist);
-    if (entityType === "album") return getArtistNames((entity as Album).artist);
-    if (entityType === "playlist")
-      return `by ${(entity as Playlist).owner.fullName}`;
-    if (entityType === "mix") {
-      const mix = entity as Mix;
-      if (!mix.songs || mix.songs.length === 0) {
-        return t("sidebar.subtitle.dailyMix");
+    if (entityType === "album")
+      return getArtistNames((entity as Album).artist);
+    if (entityType === "playlist") {
+      const pl = entity as Playlist;
+      if (!pl.songs || pl.songs.length === 0) {
+        return t("sidebar.subtitle.playlist");
       }
-
-      const allArtists = mix.songs.flatMap((song) => song.artist);
+      const allArtists = pl.songs.flatMap((song) => song.artist);
       const uniqueArtists = allArtists.filter(
         (artist, index, self) =>
-          index === self.findIndex((a) => a._id === artist._id)
+          index === self.findIndex((a) => a._id === artist._id),
       );
       const firstTwoUniqueArtists = uniqueArtists.slice(0, 2);
       const artistNames = getArtistNames(firstTwoUniqueArtists);
-
       if (uniqueArtists.length > 2) {
         return `${artistNames} ${t("common.andMore")}`;
       }
@@ -176,9 +155,6 @@ export const SharedContentMessage: React.FC<SharedContentMessageProps> = ({
   };
 
   const getDisplayTitle = () => {
-    if (entityType === "mix") {
-      return t((entity as Mix).name);
-    }
     return (entity as Song | Album | Playlist).title;
   };
 

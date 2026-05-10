@@ -24,7 +24,7 @@ const messageSchema = new mongoose.Schema(
     shareDetails: {
       entityType: {
         type: String,
-        enum: ["song", "album", "playlist", "mix"],
+        enum: ["song", "album", "playlist"],
       },
       entityId: {
         type: mongoose.Schema.Types.ObjectId,

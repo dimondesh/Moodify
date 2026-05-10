@@ -14,12 +14,8 @@ import {
   Artist,
   LikedSongsItem,
   FollowedArtistItem,
-  MixItem,
-  PersonalMixItem,
-  GeneratedPlaylistItem,
   Album,
   Playlist,
-  Mix,
 } from "../../types";
 import { Button } from "@/components/ui/button";
 import { useAuthState } from "react-firebase-hooks/auth";
@@ -41,11 +37,9 @@ const LibraryPage = () => {
     albums,
     playlists,
     followedArtists,
-    savedMixes,
-    savedPersonalMixes,
     isLoading: isLoadingLibrary,
     error: libraryError,
-    generatedPlaylists,
+    likedPlaylistId,
   } = useLibraryStore();
   const {
     myPlaylists,
@@ -89,31 +83,12 @@ const LibraryPage = () => {
         const downloadedLibraryItemsMap = new Map<string, LibraryItem>();
 
         items.forEach((item) => {
-          // Определяем тип элемента по его свойствам
-          if ((item as any).isGenerated) {
-            // Генерированный плейлист
-            downloadedLibraryItemsMap.set(item._id, {
-              _id: item._id,
-              type: "generated-playlist",
-              title: t((item as any).nameKey, (item as any).title),
-              imageUrl: item.imageUrl,
-              createdAt: new Date(
-                (item as any).addedAt || (item as any).generatedOn,
-              ),
-              sourceName: "Moodify",
-            } as GeneratedPlaylistItem);
-          } else if ((item as any).owner) {
-            // Обычный плейлист
-            downloadedLibraryItemsMap.set(item._id, {
-              _id: item._id,
-              type: "playlist",
-              title: (item as Playlist).title,
-              imageUrl: (item as Playlist).imageUrl,
-              createdAt: new Date((item as Playlist).updatedAt),
-              owner: (item as Playlist).owner,
-            } as PlaylistItem);
-          } else if ((item as any).artist) {
-            // Альбом
+          const raw = item as unknown as Record<string, unknown>;
+          if (
+            Array.isArray(raw.artist) &&
+            raw.releaseYear !== undefined &&
+            raw.title
+          ) {
             downloadedLibraryItemsMap.set(item._id, {
               _id: item._id,
               type: "album",
@@ -123,27 +98,26 @@ const LibraryPage = () => {
               artist: (item as Album).artist,
               albumType: (item as Album).type,
             } as AlbumItem);
-          } else if ((item as any).user) {
-            // Персональный микс
-            const personalMix = item as any;
-            downloadedLibraryItemsMap.set(item._id, {
-              _id: item._id,
-              type: "personal-mix",
-              title: personalMix.name,
-              imageUrl: personalMix.imageUrl,
-              createdAt: new Date(personalMix.generatedOn),
-            } as PersonalMixItem);
-          } else if ((item as any).sourceName) {
-            // Обычный микс
-            downloadedLibraryItemsMap.set(item._id, {
-              _id: item._id,
-              type: "mix",
-              title: t((item as Mix).name),
-              imageUrl: (item as Mix).imageUrl,
-              createdAt: new Date((item as Mix).generatedOn),
-              sourceName: (item as Mix).sourceName,
-            } as MixItem);
+            return;
           }
+          const title =
+            (raw.title as string) ||
+            (raw.name as string) ||
+            (raw.nameKey ? t(raw.nameKey as string) : "Playlist");
+          downloadedLibraryItemsMap.set(item._id, {
+            _id: item._id,
+            type: "playlist",
+            title,
+            imageUrl: item.imageUrl,
+            createdAt: new Date(
+              (raw.updatedAt as string) ||
+                (raw.generatedOn as string) ||
+                (raw.addedAt as string) ||
+                Date.now(),
+            ),
+            owner: (raw.owner as Playlist["owner"]) ?? null,
+            playlistKind: raw.type as Playlist["type"],
+          } as PlaylistItem);
         });
         const sortedItems = Array.from(downloadedLibraryItemsMap.values()).sort(
           (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
@@ -208,54 +182,21 @@ const LibraryPage = () => {
 
     [...(myPlaylists || []), ...(playlists || [])].forEach((playlist) => {
       if (!libraryItemsMap.has(playlist._id)) {
-        const isGenerated = (playlist as any).isGenerated;
         libraryItemsMap.set(playlist._id, {
           _id: playlist._id,
-          type: isGenerated ? "generated-playlist" : "playlist",
-          title: isGenerated ? t((playlist as any).nameKey) : playlist.title,
+          type: "playlist",
+          title: playlist.title,
           imageUrl: playlist.imageUrl,
           createdAt: new Date(
-            (playlist as any).addedAt || playlist.updatedAt || new Date(),
+            (playlist as { addedAt?: string }).addedAt ||
+              playlist.updatedAt ||
+              new Date(),
           ),
-          owner: playlist.owner,
-          isGenerated: isGenerated,
+          owner: playlist.owner ?? null,
+          playlistKind: playlist.type,
         } as PlaylistItem);
       }
     });
-
-    (generatedPlaylists || []).forEach((playlist) => {
-      if (!libraryItemsMap.has(playlist._id)) {
-        libraryItemsMap.set(playlist._id, {
-          _id: playlist._id,
-          type: "generated-playlist",
-          title: t(playlist.nameKey),
-          imageUrl: playlist.imageUrl,
-          createdAt: new Date(playlist.addedAt || playlist.generatedOn),
-          sourceName: "Moodify",
-        } as GeneratedPlaylistItem);
-      }
-    });
-
-    (savedMixes || []).forEach((mix) =>
-      libraryItemsMap.set(mix._id, {
-        _id: mix._id,
-        type: "mix",
-        title: t(mix.name),
-        imageUrl: mix.imageUrl,
-        createdAt: new Date(mix.addedAt ?? new Date()),
-        sourceName: mix.sourceName,
-      } as MixItem),
-    );
-
-    (savedPersonalMixes || []).forEach((personalMix) =>
-      libraryItemsMap.set(personalMix._id, {
-        _id: personalMix._id,
-        type: "personal-mix",
-        title: personalMix.name,
-        imageUrl: personalMix.imageUrl,
-        createdAt: new Date((personalMix as any).addedAt ?? new Date()),
-      } as PersonalMixItem),
-    );
 
     (followedArtists || []).forEach((artist) =>
       libraryItemsMap.set(artist._id, {
@@ -284,16 +225,7 @@ const LibraryPage = () => {
     return Array.from(libraryItemsMap.values()).sort(
       (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
     );
-  }, [
-    albums,
-    myPlaylists,
-    playlists,
-    generatedPlaylists,
-    savedMixes,
-    followedArtists,
-    likedSongs,
-    t,
-  ]);
+  }, [albums, myPlaylists, playlists, followedArtists, likedSongs, t]);
 
   const filteredLibraryItems = useMemo(() => {
     let filtered = libraryItems;
@@ -304,7 +236,7 @@ const LibraryPage = () => {
         case "playlists":
           filtered = filtered.filter(
             (item) =>
-              item.type === "playlist" || item.type === "generated-playlist",
+              item.type === "playlist" || item.type === "liked-songs",
           );
           break;
         case "albums":
@@ -509,14 +441,11 @@ const LibraryPage = () => {
                         }`;
                         break;
                       }
-                      case "generated-playlist": {
-                        linkPath = `/generated-playlists/${item._id}`;
-                        subtitle = t("sidebar.subtitle.playlist");
-                        break;
-                      }
                       case "liked-songs": {
                         const likedItem = item as LikedSongsItem;
-                        linkPath = "/liked-songs";
+                        linkPath = likedPlaylistId
+                          ? `/playlists/${likedPlaylistId}`
+                          : "/liked-songs";
                         subtitle = `${t("sidebar.subtitle.playlist")} • ${
                           likedItem.songsCount
                         } ${
@@ -531,24 +460,6 @@ const LibraryPage = () => {
                         const artistItem = item as FollowedArtistItem;
                         linkPath = `/artists/${artistItem._id}`;
                         subtitle = t("sidebar.subtitle.artist");
-                        break;
-                      }
-                      case "mix": {
-                        const mixItem = item as MixItem;
-                        linkPath = `/mixes/${mixItem._id}`;
-                        subtitle = t("sidebar.subtitle.dailyMix");
-                        coverImageUrl =
-                          item.imageUrl ||
-                          "https://moodify.b-cdn.net/default-album-cover.png";
-                        break;
-                      }
-                      case "personal-mix": {
-                        const personalMixItem = item as PersonalMixItem;
-                        linkPath = `/personal-mixes/${personalMixItem._id}`;
-                        subtitle = "Personal Mix";
-                        coverImageUrl =
-                          item.imageUrl ||
-                          "https://moodify.b-cdn.net/default-album-cover.png";
                         break;
                       }
                     }
@@ -627,14 +538,11 @@ const LibraryPage = () => {
                         }`;
                         break;
                       }
-                      case "generated-playlist": {
-                        linkPath = `/generated-playlists/${item._id}`;
-                        subtitle = t("sidebar.subtitle.playlist");
-                        break;
-                      }
                       case "liked-songs": {
                         const likedItem = item as LikedSongsItem;
-                        linkPath = "/liked-songs";
+                        linkPath = likedPlaylistId
+                          ? `/playlists/${likedPlaylistId}`
+                          : "/liked-songs";
                         subtitle = `${t("sidebar.subtitle.playlist")} • ${
                           likedItem.songsCount
                         } ${
@@ -650,18 +558,6 @@ const LibraryPage = () => {
                         linkPath = `/artists/${artistItem._id}`;
                         subtitle = t("sidebar.subtitle.artist");
                         imageClass = "rounded-full";
-                        break;
-                      }
-                      case "mix": {
-                        const mixItem = item as MixItem;
-                        linkPath = `/mixes/${mixItem._id}`;
-                        subtitle = t("sidebar.subtitle.dailyMix");
-                        break;
-                      }
-                      case "personal-mix": {
-                        const personalMixItem = item as PersonalMixItem;
-                        linkPath = `/personal-mixes/${personalMixItem._id}`;
-                        subtitle = "Personal Mix";
                         break;
                       }
                     }

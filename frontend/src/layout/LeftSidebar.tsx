@@ -27,9 +27,6 @@ import {
   Artist,
   LikedSongsItem,
   FollowedArtistItem,
-  MixItem,
-  PersonalMixItem,
-  GeneratedPlaylistItem,
 } from "../types";
 import { useMusicStore } from "../stores/useMusicStore";
 import { useTranslation } from "react-i18next";
@@ -45,11 +42,9 @@ const LeftSidebar = () => {
   const {
     albums,
     playlists,
-    savedMixes,
-    savedPersonalMixes,
     followedArtists,
-    generatedPlaylists,
     likedSongs,
+    likedPlaylistId,
   } = useLibraryStore();
 
   const { myPlaylists, fetchMyPlaylists } = usePlaylistStore();
@@ -140,20 +135,9 @@ const LeftSidebar = () => {
     // Helper function to check if item should be included based on offline state
     const shouldIncludeItem = (
       itemId: string,
-      itemType:
-        | "album"
-        | "playlist"
-        | "generated-playlist"
-        | "mix"
-        | "personal-mix"
-        | "artist",
+      _itemType: "album" | "playlist" | "artist",
     ) => {
-      if (!isOffline) return true; // Include all items when online
-
-      // When offline, only include downloaded items
-      if (itemType === "generated-playlist") {
-        return isDownloaded(itemId); // Generated playlists are stored as "playlist" type in offline store
-      }
+      if (!isOffline) return true;
       return isDownloaded(itemId);
     };
 
@@ -173,62 +157,21 @@ const LeftSidebar = () => {
 
     [...(myPlaylists || []), ...(playlists || [])].forEach((playlist) => {
       if (!libraryItemsMap.has(playlist._id)) {
-        const isGenerated = (playlist as any).isGenerated;
-        const itemType = isGenerated ? "generated-playlist" : "playlist";
-
-        if (shouldIncludeItem(playlist._id, itemType)) {
+        if (shouldIncludeItem(playlist._id, "playlist")) {
           libraryItemsMap.set(playlist._id, {
             _id: playlist._id,
-            type: isGenerated ? "generated-playlist" : "playlist",
-            title: isGenerated ? t((playlist as any).nameKey) : playlist.title,
+            type: "playlist",
+            title: playlist.title,
             imageUrl: playlist.imageUrl,
             createdAt: new Date(
-              (playlist as any).addedAt || playlist.updatedAt || new Date(),
+              (playlist as { addedAt?: string }).addedAt ||
+                playlist.updatedAt ||
+                new Date(),
             ),
-            owner: playlist.owner,
-            isGenerated: isGenerated,
+            owner: playlist.owner ?? null,
+            playlistKind: playlist.type,
           } as PlaylistItem);
         }
-      }
-    });
-
-    (generatedPlaylists || []).forEach((playlist) => {
-      if (!libraryItemsMap.has(playlist._id)) {
-        if (shouldIncludeItem(playlist._id, "generated-playlist")) {
-          libraryItemsMap.set(playlist._id, {
-            _id: playlist._id,
-            type: "generated-playlist",
-            title: t(playlist.nameKey),
-            imageUrl: playlist.imageUrl,
-            createdAt: new Date(playlist.addedAt || playlist.generatedOn),
-            sourceName: "Moodify",
-          } as GeneratedPlaylistItem);
-        }
-      }
-    });
-
-    (savedMixes || []).forEach((mix) => {
-      if (shouldIncludeItem(mix._id, "mix")) {
-        libraryItemsMap.set(mix._id, {
-          _id: mix._id,
-          type: "mix",
-          title: t(mix.name),
-          imageUrl: mix.imageUrl,
-          createdAt: new Date(mix.addedAt ?? new Date()),
-          sourceName: mix.sourceName,
-        } as MixItem);
-      }
-    });
-
-    (savedPersonalMixes || []).forEach((personalMix) => {
-      if (shouldIncludeItem(personalMix._id, "personal-mix")) {
-        libraryItemsMap.set(personalMix._id, {
-          _id: personalMix._id,
-          type: "personal-mix",
-          title: t("personalMix.title") + " " + personalMix.name.split(" ")[2],
-          imageUrl: personalMix.imageUrl,
-          createdAt: new Date((personalMix as any).addedAt ?? new Date()),
-        } as PersonalMixItem);
       }
     });
 
@@ -266,8 +209,6 @@ const LeftSidebar = () => {
     albums,
     myPlaylists,
     playlists,
-    generatedPlaylists,
-    savedMixes,
     followedArtists,
     likedSongs,
     t,
@@ -284,9 +225,7 @@ const LeftSidebar = () => {
         case "playlists":
           filtered = filtered.filter(
             (item) =>
-              item.type === "playlist" ||
-              item.type === "generated-playlist" ||
-              item.type === "liked-songs",
+              item.type === "playlist" || item.type === "liked-songs",
           );
           break;
         case "albums":
@@ -476,14 +415,11 @@ const LeftSidebar = () => {
                       }`;
                       break;
                     }
-                    case "generated-playlist": {
-                      linkPath = `/generated-playlists/${item._id}`;
-                      subtitle = t("sidebar.subtitle.playlist");
-                      break;
-                    }
                     case "liked-songs": {
                       const likedItem = item as LikedSongsItem;
-                      linkPath = "/liked-songs";
+                      linkPath = likedPlaylistId
+                        ? `/playlists/${likedPlaylistId}`
+                        : "/liked-songs";
                       subtitle = `${t("sidebar.subtitle.playlist")} • ${
                         likedItem.songsCount
                       } ${
@@ -499,18 +435,6 @@ const LeftSidebar = () => {
                       linkPath = `/artists/${artistItem._id}`;
                       subtitle = t("sidebar.subtitle.artist");
                       imageClass = "rounded-full";
-                      break;
-                    }
-                    case "mix": {
-                      const mixItem = item as MixItem;
-                      linkPath = `/mixes/${mixItem._id}`;
-                      subtitle = t("sidebar.subtitle.dailyMix");
-                      break;
-                    }
-                    case "personal-mix": {
-                      const personalMixItem = item as PersonalMixItem;
-                      linkPath = `/personal-mixes/${personalMixItem._id}`;
-                      subtitle = t("personalMix.title");
                       break;
                     }
                     default:
@@ -556,9 +480,6 @@ const LeftSidebar = () => {
                             item.type as
                               | "album"
                               | "playlist"
-                              | "generated-playlist"
-                              | "mix"
-                              | "personal-mix"
                               | "artist"
                               | "liked-songs"
                           }
@@ -612,14 +533,11 @@ const LeftSidebar = () => {
                       }`;
                       break;
                     }
-                    case "generated-playlist": {
-                      linkPath = `/generated-playlists/${item._id}`;
-                      subtitle = t("sidebar.subtitle.playlist");
-                      break;
-                    }
                     case "liked-songs": {
                       const likedItem = item as LikedSongsItem;
-                      linkPath = "/liked-songs";
+                      linkPath = likedPlaylistId
+                        ? `/playlists/${likedPlaylistId}`
+                        : "/liked-songs";
                       subtitle = `${t("sidebar.subtitle.playlist")} • ${
                         likedItem.songsCount
                       } ${
@@ -635,18 +553,6 @@ const LeftSidebar = () => {
                       linkPath = `/artists/${artistItem._id}`;
                       subtitle = t("sidebar.subtitle.artist");
                       imageClass = "rounded-full";
-                      break;
-                    }
-                    case "mix": {
-                      const mixItem = item as MixItem;
-                      linkPath = `/mixes/${mixItem._id}`;
-                      subtitle = t("sidebar.subtitle.dailyMix");
-                      break;
-                    }
-                    case "personal-mix": {
-                      const personalMixItem = item as PersonalMixItem;
-                      linkPath = `/personal-mixes/${personalMixItem._id}`;
-                      subtitle = "Personal Mix";
                       break;
                     }
                     default:
@@ -692,9 +598,6 @@ const LeftSidebar = () => {
                             item.type as
                               | "album"
                               | "playlist"
-                              | "generated-playlist"
-                              | "mix"
-                              | "personal-mix"
                               | "artist"
                               | "liked-songs"
                           }

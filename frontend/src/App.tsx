@@ -18,10 +18,12 @@ import PlaylistDetailsPage from "./pages/PlaylistPage/PlaylistDetailsPage";
 import ArtistPage from "./pages/ArtistPage/ArtistPage";
 import ProfilePage from "./pages/ProfilePage/ProfilePage";
 import DisplayListPage from "./pages/DisplayListPage/DisplayListPage";
-import MixDetailsPage from "./pages/MixDetailsPage/MixDetailsPage";
-import PersonalMixPage from "./pages/PersonalMixPage/PersonalMixPage";
-import AllMixesPage from "./pages/AllMixesPage/AllMixesPage";
-import GeneratedPlaylistPage from "./pages/GeneratedPlaylistPage/GeneratedPlaylistPage";
+import PlaylistBrowsePage from "./pages/PlaylistBrowsePage/PlaylistBrowsePage";
+import {
+  LegacyPlaylistById,
+  LegacyPlaylistByMixId,
+  LegacyPlaylistBrowse,
+} from "./components/routing/LegacyPlaylistRedirects";
 import TopTracksPage from "./pages/TopTracksPage/TopTracksPage";
 import OfflinePage from "./pages/OfflinePage/OfflinePage";
 import LibraryPage from "./pages/LibraryPage/LibraryPage";
@@ -122,13 +124,7 @@ function App() {
       "/liked-songs",
       "/offline",
     ];
-    const prefixSafePaths = [
-      "/albums/",
-      "/playlists/",
-      "/mixes/",
-      "/personal-mixes/",
-      "/generated-playlists/",
-    ];
+    const prefixSafePaths = ["/albums/", "/playlists/"];
 
     const isExactSafe = exactSafePaths.includes(location.pathname);
     const isPrefixSafe = prefixSafePaths.some((path) =>
@@ -149,7 +145,7 @@ function App() {
       >
         <meta
           name="description"
-          content="Moodify is an advanced music streaming service for enthusiasts. Create complex mixes, use AI-generated playlists, and connect with friends in a rich audio environment."
+          content="Moodify is an advanced music streaming service for enthusiasts. Build playlists, discover music with smart playlists, and connect with friends in a rich audio environment."
         />
         <link rel="canonical" href={canonicalUrl} />
       </Helmet>
@@ -168,6 +164,10 @@ function App() {
             <Route path="/liked-songs" element={<LikedSongs />} />
             <Route path="/library" element={<LibraryPage />} />
             <Route
+              path="/playlists/browse/:category"
+              element={<PlaylistBrowsePage />}
+            />
+            <Route
               path="/playlists/:playlistId"
               element={<PlaylistDetailsPage />}
             />
@@ -175,14 +175,14 @@ function App() {
             <Route path="/artists/:id" element={<ArtistPage />} />
             <Route path="/users/:userId" element={<ProfilePage />} />
             <Route path="/list" element={<DisplayListPage />} />
-            <Route path="/mixes/:mixId" element={<MixDetailsPage />} />
-            <Route path="/personal-mixes/:id" element={<PersonalMixPage />} />
-            <Route path="/all-mixes/:category" element={<AllMixesPage />} />
+            <Route path="/mixes/:mixId" element={<LegacyPlaylistByMixId />} />
+            <Route path="/personal-mixes/:id" element={<LegacyPlaylistById />} />
+            <Route path="/all-mixes/:category" element={<LegacyPlaylistBrowse />} />
             <Route path="/offline" element={<OfflinePage />} />
             <Route path="/track/:id" element={<TrackRedirect />} />
             <Route
               path="/generated-playlists/:id"
-              element={<GeneratedPlaylistPage />}
+              element={<LegacyPlaylistById />}
             />
             <Route
               path="/users/:userId/top-tracks"

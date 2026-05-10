@@ -1,7 +1,7 @@
 // frontend/src/lib/offline-db.ts
 
 import { openDB, deleteDB, DBSchema, IDBPDatabase, StoreNames } from "idb";
-import type { Song, Album, Playlist, Mix } from "@/types";
+import type { Song, Album, Playlist } from "@/types";
 
 const DB_NAME = "MoodifyStudioOfflineDB";
 const DB_VERSION = 5;
@@ -15,7 +15,11 @@ type StoredPlaylist = Playlist & {
   nameKey?: string;
   descriptionKey?: string;
 };
-type StoredMix = Mix & { songsData: Song[]; userId: string };
+/** Legacy object store name `mixes` — same shape as playlist downloads. */
+type StoredLegacyPlaylistBucket = Playlist & {
+  songsData: Song[];
+  userId: string;
+};
 
 interface MoodifyDB extends DBSchema {
   songs: { key: string; value: StoredSong; indexes: { "by-user": string } };
@@ -25,7 +29,11 @@ interface MoodifyDB extends DBSchema {
     value: StoredPlaylist;
     indexes: { "by-user": string };
   };
-  mixes: { key: string; value: StoredMix; indexes: { "by-user": string } };
+  mixes: {
+    key: string;
+    value: StoredLegacyPlaylistBucket;
+    indexes: { "by-user": string };
+  };
 }
 
 let dbPromise: Promise<IDBPDatabase<MoodifyDB>>;
@@ -101,7 +109,9 @@ export const getAllUserPlaylists = async (
   return db.getAllFromIndex("playlists", "by-user", userId);
 };
 
-export const getAllUserMixes = async (userId: string): Promise<StoredMix[]> => {
+export const getAllUserLegacyPlaylistBucket = async (
+  userId: string,
+): Promise<StoredLegacyPlaylistBucket[]> => {
   if (!userId) return [];
   const db = await getDb();
   return db.getAllFromIndex("mixes", "by-user", userId);

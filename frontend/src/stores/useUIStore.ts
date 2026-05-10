@@ -6,14 +6,12 @@ import type { Playlist } from "../types";
 import { useMusicStore } from "./useMusicStore";
 import { useLibraryStore } from "./useLibraryStore";
 import { usePlaylistStore } from "./usePlaylistStore";
-import { useMixesStore } from "./useMixesStore";
-import { useGeneratedPlaylistStore } from "./useGeneratedPlaylistStore";
-import { usePersonalMixStore } from "./usePersonalMixStore";
 import { axiosInstance } from "../lib/axios";
+import { useAuthStore } from "./useAuthStore";
 import toast from "react-hot-toast";
 
 interface ShareEntity {
-  type: "song" | "album" | "playlist" | "mix";
+  type: "song" | "album" | "playlist";
   id: string;
 }
 
@@ -153,36 +151,28 @@ export const useUIStore = create<UIStore>()(
             recentlyListenedSongs: data.recentlyListenedSongs || [],
             favoriteArtists: data.favoriteArtists || [],
             newReleases: data.newReleases || [],
+            homePersonalPlaylists: data.personalMixes || [],
+            homeSmartPlaylists: data.allGeneratedPlaylists || [],
+            genreMixes: data.genreMixes || [],
+            moodMixes: data.moodMixes || [],
             homePageDataLastFetched: Date.now(),
           });
 
           useLibraryStore.setState({
             albums: data.library.albums || [],
-            likedSongs: data.library.likedSongs || [],
             playlists: data.library.playlists || [],
             followedArtists: data.library.followedArtists || [],
-            savedMixes: data.library.savedMixes || [],
-            savedPersonalMixes: data.library.savedPersonalMixes || [],
-            generatedPlaylists: data.library.generatedPlaylists || [],
           });
+
+          if (useAuthStore.getState().user) {
+            void useLibraryStore.getState().fetchLikedSongs();
+          }
 
           usePlaylistStore.setState({
             publicPlaylists: data.publicPlaylists || [],
             recommendedPlaylists: data.recommendedPlaylists || [],
           });
 
-          useMixesStore.setState({
-            genreMixes: data.genreMixes || [],
-            moodMixes: data.moodMixes || [],
-          });
-
-          useGeneratedPlaylistStore.setState({
-            allGeneratedPlaylists: data.allGeneratedPlaylists || [],
-          });
-
-          usePersonalMixStore.setState({
-            personalMixes: data.personalMixes || [],
-          });
         } catch (error) {
           console.error("Failed to fetch initial app data", error);
           toast.error("Could not load essential app data.");

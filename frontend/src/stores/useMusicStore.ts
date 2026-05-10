@@ -4,8 +4,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from "zustand";
 import { axiosInstance } from "../lib/axios";
-import type { Song, Album, Stats, Artist, Genre, Mood } from "../types/index";
+import type {
+  Song,
+  Album,
+  Stats,
+  Artist,
+  Genre,
+  Mood,
+  Playlist,
+} from "../types/index";
 import toast from "react-hot-toast";
+import i18n from "../lib/i18n";
 import { useOfflineStore } from "./useOfflineStore";
 import {
   getUserItem,
@@ -59,7 +68,15 @@ interface MusicStore {
   isAppearsOnLoading: boolean;
   favoriteArtists: Artist[];
   newReleases: Album[];
+  /** From /home/bootstrap — type PERSONAL_MIX playlists for this user */
+  homePersonalPlaylists: Playlist[];
+  /** From /home/bootstrap — On Repeat, Discover Weekly, etc. */
+  homeSmartPlaylists: Playlist[];
+  /** Public genre/mood playlists (GENRE_MIX / MOOD_MIX) from bootstrap or /home/secondary */
+  genreMixes: Playlist[];
+  moodMixes: Playlist[];
   clearHomePageCache: () => void;
+  fetchSecondaryHomePlaylists: () => Promise<void>;
   fetchAlbums: () => Promise<void>;
   fetchAlbumbyId: (id: string) => Promise<void>;
   fetchArtistById: (id: string, forceRefetch?: boolean) => Promise<void>;
@@ -101,6 +118,10 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
   trendingAlbums: [],
   favoriteArtists: [],
   newReleases: [],
+  homePersonalPlaylists: [],
+  homeSmartPlaylists: [],
+  genreMixes: [],
+  moodMixes: [],
   paginatedSongs: [],
   songsPage: 1,
   songsTotalPages: 1,
@@ -446,6 +467,21 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
       set({ error: error.message });
     } finally {
       set({ isLoading: false });
+    }
+  },
+  fetchSecondaryHomePlaylists: async () => {
+    try {
+      const response = await axiosInstance.get("/home/secondary");
+      set({
+        genreMixes: response.data.genreMixes || [],
+        moodMixes: response.data.moodMixes || [],
+      });
+    } catch (err: unknown) {
+      console.error("Failed to fetch secondary home playlists:", err);
+      toast.error(
+        (err as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || i18n.t("errors.fetchMixesError"),
+      );
     }
   },
 }));

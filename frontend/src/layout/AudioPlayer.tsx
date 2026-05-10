@@ -200,13 +200,7 @@ const AudioPlayer = () => {
         const playbackContext = currentPlaybackContext;
 
         // Валидируем контекст воспроизведения
-        const validContextTypes = [
-          "album",
-          "playlist",
-          "generated-playlist",
-          "mix",
-          "artist",
-        ];
+        const validContextTypes = ["album", "playlist", "artist"];
 
         const isValidContext =
           playbackContext &&

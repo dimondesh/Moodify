@@ -4,37 +4,17 @@ import { Button } from "./button";
 import { Play, Pause } from "lucide-react";
 import { usePlayerStore } from "@/stores/usePlayerStore";
 import { axiosInstance } from "@/lib/axios";
-import type {
-  Song,
-  Album,
-  Playlist,
-  Mix,
-  Artist,
-  GeneratedPlaylist,
-  PersonalMix,
-  LibraryItem,
-} from "@/types";
+import type { Song, Album, Playlist, Artist, LibraryItem } from "@/types";
 
 type EntityType =
   | "song"
   | "album"
   | "playlist"
-  | "mix"
   | "artist"
-  | "generated-playlist"
-  | "personal-mix"
   | "liked-songs";
 
 type UniversalPlayButtonProps = {
-  entity:
-    | Song
-    | Album
-    | Playlist
-    | Mix
-    | Artist
-    | GeneratedPlaylist
-    | PersonalMix
-    | LibraryItem;
+  entity: Song | Album | Playlist | Artist | LibraryItem;
   entityType: EntityType;
   songs?: Song[];
   onClick?: (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
@@ -64,10 +44,7 @@ const UniversalPlayButton = ({
 
   // Извлекаем песни из entity для проверки
   const entitySongs = useMemo(() => {
-    return (
-      (entity as Album | Playlist | Mix | GeneratedPlaylist | PersonalMix)
-        .songs || []
-    );
+    return (entity as Album | Playlist | Artist).songs || [];
   }, [entity]);
 
   // Загружаем песни для сущности при монтировании компонента
@@ -76,9 +53,6 @@ const UniversalPlayButton = ({
       "artist",
       "album",
       "playlist",
-      "mix",
-      "generated-playlist",
-      "personal-mix",
       "liked-songs",
     ].includes(entityType);
 
@@ -120,15 +94,6 @@ const UniversalPlayButton = ({
         break;
       case "playlist":
         apiEndpoint = `/playlists/${entity._id}`;
-        break;
-      case "mix":
-        apiEndpoint = `/mixes/${entity._id}`;
-        break;
-      case "generated-playlist":
-        apiEndpoint = `/generated-playlists/${entity._id}`;
-        break;
-      case "personal-mix":
-        apiEndpoint = `/personal-mixes/${entity._id}`;
         break;
       case "liked-songs":
         apiEndpoint = `/library/liked-songs`;
@@ -182,26 +147,6 @@ const UniversalPlayButton = ({
         return (entity as Playlist).songs?.length > 0
           ? (entity as Playlist).songs
           : loadedSongs;
-      case "mix":
-        // Проверяем, это LibraryItem или обычный Mix
-        if ("type" in entity && entity.type === "mix") {
-          return loadedSongs; // Для LibraryItem используем загруженные песни
-        }
-        return (entity as Mix).songs?.length > 0
-          ? (entity as Mix).songs
-          : loadedSongs;
-      case "generated-playlist":
-        // Проверяем, это LibraryItem или обычный GeneratedPlaylist
-        if ("type" in entity && entity.type === "generated-playlist") {
-          return loadedSongs; // Для LibraryItem используем загруженные песни
-        }
-        return (entity as GeneratedPlaylist).songs?.length > 0
-          ? (entity as GeneratedPlaylist).songs
-          : loadedSongs;
-      case "personal-mix":
-        return (entity as PersonalMix).songs?.length > 0
-          ? (entity as PersonalMix).songs
-          : loadedSongs;
       case "liked-songs":
         // Для liked-songs всегда используем загруженные песни
         return loadedSongs;
@@ -241,24 +186,6 @@ const UniversalPlayButton = ({
           type: "playlist" as const,
           entityId: entity._id,
           entityTitle: (entity as Playlist).title,
-        };
-      case "mix":
-        return {
-          type: "mix" as const,
-          entityId: entity._id,
-          entityTitle: (entity as Mix).name,
-        };
-      case "generated-playlist":
-        return {
-          type: "generated-playlist" as const,
-          entityId: entity._id,
-          entityTitle: (entity as GeneratedPlaylist).nameKey,
-        };
-      case "personal-mix":
-        return {
-          type: "personal-mix" as const,
-          entityId: entity._id,
-          entityTitle: (entity as PersonalMix).name,
         };
       case "liked-songs":
         return {

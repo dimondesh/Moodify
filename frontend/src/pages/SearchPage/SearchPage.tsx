@@ -9,10 +9,9 @@ import PlaylistGrid from "./PlaylistGrid";
 import ArtistGrid from "./ArtistGrid";
 import useDebounce from "../../hooks/useDebounce";
 import UserGrid from "./UserGrid";
-import MixGrid from "./MixGrid";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
-import BrowseMixes from "./BrowseMixes";
+import BrowseSecondaryPlaylists from "./BrowseSecondaryPlaylists";
 import StandardLoader from "../../components/ui/StandardLoader";
 import { Search } from "lucide-react";
 import {
@@ -44,7 +43,6 @@ const SearchPage = () => {
     playlists,
     artists,
     users,
-    mixes,
     loading,
     error,
     search,
@@ -98,8 +96,8 @@ const SearchPage = () => {
     ? `${t("common.resultsFor")} "${queryParam}"`
     : t("common.searchMusic");
   const description = queryParam
-    ? `Find artists, songs, albums, mixes, and playlists for "${queryParam}" on Moodify.`
-    : "Search for your favorite songs, artists, albums, mixes, playlists, and users on Moodify.";
+    ? `Find artists, songs, albums, and playlists for "${queryParam}" on Moodify.`
+    : "Search for your favorite songs, artists, albums, playlists, and users on Moodify.";
 
   return (
     <>
@@ -145,7 +143,7 @@ const SearchPage = () => {
               <h1 className="hidden md:block text-2xl sm:text-3xl font-bold mb-6 text-left text-white">
                 {t("searchpage.findYourFavorites")}
               </h1>
-              <BrowseMixes />
+              <BrowseSecondaryPlaylists />
             </>
           )}
 
@@ -163,8 +161,7 @@ const SearchPage = () => {
             albums.length === 0 &&
             playlists.length === 0 &&
             artists.length === 0 &&
-            users.length === 0 &&
-            mixes.length === 0 && (
+            users.length === 0 && (
               <p className="text-gray-400 text-center">
                 {t("searchpage.noResults")}
               </p>
@@ -197,13 +194,6 @@ const SearchPage = () => {
                 <PlaylistGrid
                   title={t("searchpage.playlists")}
                   playlists={playlists}
-                  isLoading={loading}
-                />
-              )}
-              {mixes.length > 0 && (
-                <MixGrid
-                  title={t("common.mixes")}
-                  mixes={mixes}
                   isLoading={loading}
                 />
               )}

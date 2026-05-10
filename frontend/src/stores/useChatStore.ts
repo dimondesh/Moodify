@@ -45,7 +45,7 @@ interface ChatStore {
     content: string,
     type?: "text" | "share",
     shareDetails?: {
-      entityType: "song" | "album" | "playlist" | "mix";
+      entityType: "song" | "album" | "playlist";
       entityId: string;
     },
   ) => void;

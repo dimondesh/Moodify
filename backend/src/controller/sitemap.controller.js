@@ -5,11 +5,10 @@ import { User } from "../models/user.model.js";
 
 export const getSitemap = async (req, res) => {
   try {
-    const [artists, albums, playlists, mixes, users] = await Promise.all([
+    const [artists, albums, playlists, users] = await Promise.all([
       Artist.find({}, "_id updatedAt"),
       Album.find({}, "_id updatedAt"),
       Playlist.find({ isPublic: true }, "_id updatedAt"),
-      Mix.find({}, "_id updatedAt"),
       User.find({}, "_id updatedAt"),
     ]);
 

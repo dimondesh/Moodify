@@ -121,11 +121,11 @@ export const getLikedSongs = async (req, res, next) => {
       })
       .lean();
 
-    if (!likedPlaylist || !likedPlaylist.songs) return res.json({ songs: [] });
+    if (!likedPlaylist) return res.json({ songs: [], playlistId: null });
 
-    // Разворачиваем массив, чтобы последние лайки были первыми
-    const songs = likedPlaylist.songs.slice().reverse();
-    res.json({ songs });
+    const rawSongs = likedPlaylist.songs || [];
+    const songs = rawSongs.slice().reverse();
+    res.json({ songs, playlistId: likedPlaylist._id });
   } catch (err) {
     next(err);
   }
@@ -287,7 +287,8 @@ export const getLibrarySummary = async (req, res, next) => {
       mongoose
         .model("Playlist")
         .find({ _id: { $in: playlistIds } })
-        .select("title imageUrl owner isPublic")
+        .select("title imageUrl owner isPublic type isSystem")
+        .populate({ path: "owner", select: "fullName imageUrl" })
         .lean(),
       mongoose
         .model("Artist")

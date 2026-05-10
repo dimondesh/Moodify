@@ -11,14 +11,11 @@ import { useMusicStore } from "../../stores/useMusicStore";
 import FeaturedSection from "./FeaturedSection";
 import { usePlayerStore } from "../../stores/usePlayerStore";
 import { usePlaylistStore } from "../../stores/usePlaylistStore";
-import { useMixesStore } from "../../stores/useMixesStore";
 import { useAuthStore } from "../../stores/useAuthStore";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import { useDominantColor } from "@/hooks/useDominantColor";
 import { Song } from "@/types";
-import { useGeneratedPlaylistStore } from "../../stores/useGeneratedPlaylistStore";
-import { usePersonalMixStore } from "../../stores/usePersonalMixStore";
 import HorizontalSection from "./HorizontalSection";
 import { useNavigate } from "react-router-dom";
 import { useUIStore } from "../../stores/useUIStore";
@@ -40,13 +37,13 @@ const HomePageComponent = () => {
     newReleases,
     fetchRecentlyListenedSongs,
     isRecentlyListenedLoading,
+    homePersonalPlaylists,
+    homeSmartPlaylists,
+    genreMixes,
+    moodMixes,
   } = useMusicStore();
-
-  const { genreMixes, moodMixes } = useMixesStore();
   const { user } = useAuthStore();
   const { publicPlaylists, recommendedPlaylists } = usePlaylistStore();
-  const { allGeneratedPlaylists } = useGeneratedPlaylistStore();
-  const { personalMixes } = usePersonalMixStore();
 
   const { isHomePageLoading, isSecondaryHomePageLoading } = useUIStore();
   const { initializeQueue, currentSong } = usePlayerStore();
@@ -241,11 +238,11 @@ const HomePageComponent = () => {
     [recentlyListenedEntities],
   );
   const genreMixesItems = useMemo(
-    () => genreMixes.map((mix) => ({ ...mix, itemType: "mix" as const })),
+    () => genreMixes.map((mix) => ({ ...mix, itemType: "playlist" as const })),
     [genreMixes],
   );
   const moodMixesItems = useMemo(
-    () => moodMixes.map((mix) => ({ ...mix, itemType: "mix" as const })),
+    () => moodMixes.map((mix) => ({ ...mix, itemType: "playlist" as const })),
     [moodMixes],
   );
   const publicPlaylistsItems = useMemo(
@@ -255,33 +252,32 @@ const HomePageComponent = () => {
   );
   const generatedPlaylistsItems = useMemo(
     () =>
-      allGeneratedPlaylists.map((pl) => ({
+      homeSmartPlaylists.map((pl) => ({
         ...pl,
-        itemType: "generated-playlist" as const,
+        itemType: "playlist" as const,
       })),
-    [allGeneratedPlaylists],
+    [homeSmartPlaylists],
   );
 
-  const personalMixesItems = useMemo(
+  const personalPlaylistsItems = useMemo(
     () =>
-      personalMixes.map((mix) => ({
-        ...mix,
-        itemType: "personal-mix" as const,
-        name: t("personalMix.title") + " " + mix.name.split(" ")[2],
+      homePersonalPlaylists.map((pl) => ({
+        ...pl,
+        itemType: "playlist" as const,
       })),
-    [personalMixes],
+    [homePersonalPlaylists],
   );
 
   // Комбинируем персональные миксы и генеративные плейлисты для секции Made For You
   const madeForYouItems = useMemo(() => {
     const items = [
-      ...personalMixesItems,
+      ...personalPlaylistsItems,
       ...generatedPlaylistsItems.filter(
         (pl) => pl.type === "ON_REPEAT" || pl.type === "DISCOVER_WEEKLY",
       ),
     ];
     return items;
-  }, [personalMixesItems, generatedPlaylistsItems]);
+  }, [personalPlaylistsItems, generatedPlaylistsItems]);
 
   const handleShowAllMadeForYou = useCallback(
     () =>
@@ -302,15 +298,15 @@ const HomePageComponent = () => {
   );
   const handleShowAllGenreMixes = useCallback(
     () =>
-      navigate(`/all-mixes/genres`, {
-        state: { mixes: genreMixes, title: t("homepage.genreMixes") },
+      navigate(`/playlists/browse/genres`, {
+        state: { playlists: genreMixes, title: t("homepage.genreMixes") },
       }),
     [navigate, genreMixes, t],
   );
   const handleShowAllMoodMixes = useCallback(
     () =>
-      navigate(`/all-mixes/moods`, {
-        state: { mixes: moodMixes, title: t("homepage.moodMixes") },
+      navigate(`/playlists/browse/moods`, {
+        state: { playlists: moodMixes, title: t("homepage.moodMixes") },
       }),
     [navigate, moodMixes, t],
   );
@@ -328,7 +324,7 @@ const HomePageComponent = () => {
         <title>Home</title>
         <meta
           name="description"
-          content="Listen to trending music, discover personal mixes, and explore public playlists. Moodify - your ultimate guide in the world of music."
+          content="Listen to trending music, discover personalized playlists, and explore public playlists. Moodify - your ultimate guide in the world of music."
         />
       </Helmet>
       <main className="min-h-full bg-[#0f0f0f] pb-30 lg:pb-0">

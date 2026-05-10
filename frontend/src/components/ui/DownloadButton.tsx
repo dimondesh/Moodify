@@ -7,12 +7,7 @@ import { Button } from "./button";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 
-type ItemType =
-  | "albums"
-  | "playlists"
-  | "mixes"
-  | "personal-mixes"
-  | "generated-playlists";
+type ItemType = "albums" | "playlists";
 
 interface DownloadButtonProps {
   itemId: string;

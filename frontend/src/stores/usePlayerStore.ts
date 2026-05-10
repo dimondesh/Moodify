@@ -54,14 +54,7 @@ interface PlayerStore {
   originalDuration: number;
   seekVersion: number;
   currentPlaybackContext: {
-    type:
-      | "song"
-      | "album"
-      | "playlist"
-      | "generated-playlist"
-      | "mix"
-      | "personal-mix"
-      | "artist";
+    type: "song" | "album" | "playlist" | "artist" | "liked-songs";
     entityId?: string;
     entityTitle?: string;
   } | null;
@@ -96,6 +89,33 @@ interface PlayerStore {
   addToQueue: (song: Song) => void;
   addSongsToQueue: (songs: Song[]) => void;
   getNextSongsInShuffle: (count?: number) => Song[];
+}
+
+type StoredPlaybackType = NonNullable<
+  PlayerStore["currentPlaybackContext"]
+>["type"];
+
+function normalizePlaybackContextType(
+  raw?: string,
+): StoredPlaybackType | undefined {
+  if (!raw) return undefined;
+  if (
+    raw === "mix" ||
+    raw === "generated-playlist" ||
+    raw === "personal-mix"
+  ) {
+    return "playlist";
+  }
+  if (
+    raw === "song" ||
+    raw === "album" ||
+    raw === "playlist" ||
+    raw === "artist" ||
+    raw === "liked-songs"
+  ) {
+    return raw;
+  }
+  return undefined;
 }
 
 const shuffleQueue = (length: number) => {
@@ -319,6 +339,10 @@ export const usePlayerStore = create<PlayerStore>()(
           const updatedQueue = [...songs];
           updatedQueue[targetIndexInQueue] = fullSong;
 
+          const normalizedType = context
+            ? normalizePlaybackContextType(context.type)
+            : undefined;
+
           set({
             queue: updatedQueue,
             isPlaying: true,
@@ -327,13 +351,14 @@ export const usePlayerStore = create<PlayerStore>()(
             shuffleHistory: newShuffleHistory,
             shufflePointer: newShufflePointer,
             currentTime: 0,
-            currentPlaybackContext: context
-              ? {
-                  type: context.type as any,
-                  entityId: context.entityId,
-                  entityTitle: context.entityTitle,
-                }
-              : null,
+            currentPlaybackContext:
+              context && normalizedType
+                ? {
+                    type: normalizedType,
+                    entityId: context.entityId,
+                    entityTitle: context.entityTitle,
+                  }
+                : null,
           });
 
           enrichSongWithAlbumTitleIfNeeded(fullSong);
@@ -727,16 +752,21 @@ export const usePlayerStore = create<PlayerStore>()(
             seekVersion: state.seekVersion + 1,
             isPlaying: true,
           })),
-        setPlaybackContext: (context) =>
+        setPlaybackContext: (context) => {
+          const t = context
+            ? normalizePlaybackContextType(context.type)
+            : undefined;
           set({
-            currentPlaybackContext: context
-              ? {
-                  type: context.type as any,
-                  entityId: context.entityId,
-                  entityTitle: context.entityTitle,
-                }
-              : null,
-          }),
+            currentPlaybackContext:
+              context && t
+                ? {
+                    type: t,
+                    entityId: context.entityId,
+                    entityTitle: context.entityTitle,
+                  }
+                : null,
+          });
+        },
         removeFromQueue: (songId: string) => {
           set((state) => {
             const songIndex = state.queue.findIndex(

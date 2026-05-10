@@ -20,7 +20,7 @@ import { useTranslation } from "react-i18next";
 interface ShareDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  entityType: "song" | "album" | "playlist" | "mix";
+  entityType: "song" | "album" | "playlist";
   entityId: string;
 }
 
@@ -48,7 +48,6 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
       song: "track",
       album: "albums",
       playlist: "playlists",
-      mix: "mixes",
     };
 
     const path = pathMap[entityType] || entityType;

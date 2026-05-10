@@ -2,15 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from "zustand";
 import { axiosInstance } from "../lib/axios";
-import {
-  Playlist,
-  Song,
-  Album,
-  Artist,
-  User,
-  Mix,
-  RecentSearchItem,
-} from "../types";
+import { Playlist, Song, Album, Artist, User, RecentSearchItem } from "../types";
 
 interface SearchState {
   query: string;
@@ -18,7 +10,6 @@ interface SearchState {
   albums: Album[];
   playlists: Playlist[];
   users: User[];
-  mixes: Mix[];
   artists: Artist[];
   loading: boolean;
   error: string | null;
@@ -41,7 +32,6 @@ export const useSearchStore = create<SearchState>((set, get) => ({
   playlists: [],
   artists: [],
   users: [],
-  mixes: [],
   recentSearches: [],
   isRecentLoading: false,
 
@@ -58,7 +48,6 @@ export const useSearchStore = create<SearchState>((set, get) => ({
         playlists: [],
         artists: [],
         users: [],
-        mixes: [],
         loading: false,
         error: null,
         query: "",
@@ -76,7 +65,6 @@ export const useSearchStore = create<SearchState>((set, get) => ({
         playlists: res.data.playlists || [],
         artists: res.data.artists || [],
         users: res.data.users || [],
-        mixes: res.data.mixes || [],
         loading: false,
       });
     } catch (e: any) {
@@ -108,7 +96,7 @@ export const useSearchStore = create<SearchState>((set, get) => ({
   removeRecentSearch: async (searchId: string) => {
     set((state) => ({
       recentSearches: state.recentSearches.filter(
-        (s) => s.searchId !== searchId
+        (s) => s.searchId !== searchId,
       ),
     }));
     try {

@@ -14,6 +14,7 @@ import {
 import path from "path";
 import { ListenHistory } from "../models/listenHistory.model.js";
 import { Song } from "../models/song.model.js";
+import { Playlist } from "../models/playlist.model.js";
 import { optimizeAndUploadImage } from "../lib/image.service.js";
 
 const SONG_MINIMAL_SELECT =
@@ -405,34 +406,43 @@ export const getRecentSearches = async (req, res, next) => {
 
     const promises = searches.map(async (search) => {
       if (!search.itemType || !search.item) return null;
-      const model = mongoose.model(search.itemType);
-      let query = model.findById(search.item);
 
-      switch (search.itemType) {
+      const rawType = search.itemType;
+      const effectiveType = rawType === "Mix" ? "Playlist" : rawType;
+
+      let query;
+      switch (effectiveType) {
         case "Playlist":
-          query = query
-            .select("title imageUrl owner")
+          query = Playlist.findById(search.item)
+            .select("title imageUrl owner type sourceName")
             .populate("owner", "fullName");
           break;
         case "Album":
-          query = query
+          query = mongoose
+            .model("Album")
+            .findById(search.item)
             .select("title imageUrl artist")
             .populate("artist", "name");
           break;
         case "Artist":
-          query = query.select("name imageUrl");
+          query = mongoose
+            .model("Artist")
+            .findById(search.item)
+            .select("name imageUrl");
           break;
         case "User":
-          query = query.select("fullName imageUrl");
-          break;
-        case "Mix":
-          query = query.select("name imageUrl");
+          query = mongoose
+            .model("User")
+            .findById(search.item)
+            .select("fullName imageUrl");
           break;
         case "Song":
-          query = query
+          query = Song.findById(search.item)
             .select("title imageUrl artist albumId")
             .populate("artist", "name");
           break;
+        default:
+          return null;
       }
 
       const result = await query.lean();
@@ -441,9 +451,9 @@ export const getRecentSearches = async (req, res, next) => {
       return {
         ...result,
         searchId: search._id,
-        itemType: search.itemType,
+        itemType: effectiveType,
         title: result.title || result.name || result.fullName,
-        isTranslatable: search.itemType === "Mix",
+        isTranslatable: false,
       };
     });
 
@@ -457,12 +467,19 @@ export const getRecentSearches = async (req, res, next) => {
 export const addRecentSearch = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const { itemId, itemType } = req.body;
+    let { itemId, itemType } = req.body;
 
     if (!itemId || !itemType)
       return res
         .status(400)
         .json({ message: "itemId and itemType are required" });
+
+    if (itemType === "Mix") itemType = "Playlist";
+
+    const allowed = ["Artist", "Album", "Playlist", "User", "Song"];
+    if (!allowed.includes(itemType)) {
+      return res.status(400).json({ message: "Invalid itemType" });
+    }
 
     await RecentSearch.findOneAndUpdate(
       { user: userId, item: itemId, itemType: itemType },

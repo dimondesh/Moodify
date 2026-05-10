@@ -13,15 +13,7 @@ import { ScrollArea, ScrollBar } from "../../components/ui/scroll-area";
 import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
 import { getArtistNames, getOptimizedImageUrl } from "../../lib/utils";
 import { useMusicStore } from "../../stores/useMusicStore";
-import type {
-  Song,
-  Album,
-  Playlist,
-  Mix,
-  Artist,
-  GeneratedPlaylist,
-  PersonalMix,
-} from "../../types";
+import type { Song, Album, Playlist, Artist } from "../../types";
 import HorizontalSectionSkeleton from "./HorizontalSectionSkeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TFunction } from "i18next";
@@ -32,10 +24,13 @@ type DisplayItem =
   | (Song & { itemType: "song" })
   | (Album & { itemType: "album" })
   | (Playlist & { itemType: "playlist" })
-  | (Mix & { itemType: "mix" })
-  | (Artist & { itemType: "artist" })
-  | (GeneratedPlaylist & { itemType: "generated-playlist" })
-  | (PersonalMix & { itemType: "personal-mix" });
+  | (Artist & { itemType: "artist" });
+
+function isPlaylistCoverOverlayItem(item: DisplayItem): boolean {
+  if (item.itemType !== "playlist") return false;
+  const k = (item as Playlist).type;
+  return k === "GENRE_MIX" || k === "MOOD_MIX" || k === "PERSONAL_MIX";
+}
 
 interface HorizontalSectionProps {
   title: string;
@@ -61,7 +56,6 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
   const [canScrollRight, setCanScrollRight] = useState(true);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
-  // Функция для проверки валидности элемента
   const isValidItem = useCallback((item: DisplayItem): boolean => {
     if (!item || !item._id || !item.itemType) return false;
 
@@ -75,51 +69,36 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
           !!(item as Artist).name ||
           !!(item as Artist & { title?: string }).title
         );
-      case "mix":
-        return (
-          !!(item as Mix).name || !!(item as Mix & { title?: string }).title
-        );
-      case "generated-playlist":
-        return (
-          !!(item as GeneratedPlaylist).nameKey ||
-          !!(item as GeneratedPlaylist & { title?: string }).title
-        );
-      case "personal-mix":
-        return (
-          !!(item as PersonalMix).name ||
-          !!(item as PersonalMix & { title?: string }).title
-        );
       default:
         return false;
     }
   }, []);
 
-  // Мемоизируем фильтрацию и обработку элементов
   const validItems = useMemo(
     () => items.filter(isValidItem),
-    [items, isValidItem]
+    [items, isValidItem],
   );
 
   const itemsToShow = useMemo(
     () => validItems.slice(0, limit),
-    [validItems, limit]
+    [validItems, limit],
   );
   const canShowAll = useMemo(
     () => onShowAll && items.length > limit,
-    [onShowAll, items.length, limit]
+    [onShowAll, items.length, limit],
   );
 
   const songsOnly = useMemo(
     () =>
       validItems.filter(
-        (item): item is Song & { itemType: "song" } => item.itemType === "song"
+        (item): item is Song & { itemType: "song" } => item.itemType === "song",
       ),
-    [validItems]
+    [validItems],
   );
 
   const checkScrollability = useCallback(() => {
     const element = scrollContainerRef.current?.querySelector<HTMLDivElement>(
-      "[data-radix-scroll-area-viewport]"
+      "[data-radix-scroll-area-viewport]",
     );
     if (element) {
       const { scrollLeft, scrollWidth, clientWidth } = element;
@@ -131,7 +110,7 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
   useEffect(() => {
     const scrollAreaElement = scrollContainerRef.current;
     const viewportElement = scrollAreaElement?.querySelector<HTMLDivElement>(
-      "[data-radix-scroll-area-viewport]"
+      "[data-radix-scroll-area-viewport]",
     );
 
     if (viewportElement) {
@@ -144,7 +123,6 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
       const resizeObserver = new ResizeObserver(checkScrollability);
       resizeObserver.observe(viewportElement);
 
-      // Также наблюдаем за контейнером контента внутри viewport
       if (viewportElement.firstChild) {
         resizeObserver.observe(viewportElement.firstChild as Element);
       }
@@ -159,7 +137,7 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
 
   const scroll = (direction: "left" | "right") => {
     const element = scrollContainerRef.current?.querySelector<HTMLDivElement>(
-      "[data-radix-scroll-area-viewport]"
+      "[data-radix-scroll-area-viewport]",
     );
     if (element) {
       const scrollAmount = element.clientWidth * 0.8;
@@ -193,15 +171,6 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
       case "playlist":
         navigate(`/playlists/${item._id}`);
         break;
-      case "generated-playlist":
-        navigate(`/generated-playlists/${item._id}`);
-        break;
-      case "mix":
-        navigate(`/mixes/${item._id}`);
-        break;
-      case "personal-mix":
-        navigate(`/personal-mixes/${item._id}`);
-        break;
       case "artist":
         navigate(`/artists/${item._id}`);
         break;
@@ -216,23 +185,9 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
         "Unknown Artist"
       );
     }
-    if (item.itemType === "mix") {
-      // Для миксов используем name если есть, иначе title (из истории)
-      const mixName =
-        (item as Mix).name || (item as Mix & { title?: string }).title;
-      return mixName ? t(mixName) : "Unknown Mix";
-    }
-    if (item.itemType === "generated-playlist") {
-      const nameKey =
-        (item as GeneratedPlaylist).nameKey ||
-        (item as GeneratedPlaylist & { title?: string }).title;
-      return nameKey ? t(nameKey) : "Unknown Playlist";
-    }
-    if (item.itemType === "personal-mix") {
-      const personalMixName =
-        (item as PersonalMix).name ||
-        (item as PersonalMix & { title?: string }).title;
-      return personalMixName || "Unknown Mix";
+    if (item.itemType === "playlist") {
+      const pl = item as Playlist;
+      return pl.title || "Unknown Title";
     }
     return item.title || "Unknown Title";
   };
@@ -251,49 +206,37 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
       }
       case "playlist": {
         const playlist = item as Playlist;
+        if (
+          playlist.type === "GENRE_MIX" ||
+          playlist.type === "MOOD_MIX" ||
+          playlist.type === "PERSONAL_MIX"
+        ) {
+          if (!playlist.songs || playlist.songs.length === 0) {
+            return t("sidebar.subtitle.dailyMix");
+          }
+          const songArtists = playlist.songs.flatMap((song) => song.artist);
+          const uniqueArtists = songArtists.filter(
+            (artist, index, self) =>
+              index === self.findIndex((a) => a._id === artist._id),
+          );
+          const firstTwoUniqueArtists = uniqueArtists.slice(0, 2);
+          const artistNames = getArtistNames(firstTwoUniqueArtists, allArtists);
+          if (uniqueArtists.length > 2) {
+            return `${artistNames} ${t("common.andMore")}`;
+          }
+          return artistNames;
+        }
+        if (
+          playlist.type === "ON_REPEAT" ||
+          playlist.type === "DISCOVER_WEEKLY" ||
+          playlist.type === "ON_REPEAT_REWIND" ||
+          playlist.type === "NEW_RELEASES"
+        ) {
+          return `${t("sidebar.subtitle.playlist")} • Moodify`;
+        }
         return t("sidebar.subtitle.byUser", {
           name: playlist.owner?.fullName || t("sidebar.subtitle.user"),
         });
-      }
-      case "generated-playlist":
-        return `${t("sidebar.subtitle.playlist")} • Moodify`;
-      case "mix": {
-        const mix = item as Mix;
-        if (!mix.songs || mix.songs.length === 0) {
-          return t("sidebar.subtitle.dailyMix");
-        }
-
-        const allArtists = mix.songs.flatMap((song) => song.artist);
-        const uniqueArtists = allArtists.filter(
-          (artist, index, self) =>
-            index === self.findIndex((a) => a._id === artist._id)
-        );
-        const firstTwoUniqueArtists = uniqueArtists.slice(0, 2);
-        const artistNames = getArtistNames(firstTwoUniqueArtists, allArtists);
-
-        if (uniqueArtists.length > 2) {
-          return `${artistNames} ${t("common.andMore")}`;
-        }
-        return artistNames;
-      }
-      case "personal-mix": {
-        const personalMix = item as PersonalMix;
-        if (!personalMix.songs || personalMix.songs.length === 0) {
-          return t("sidebar.subtitle.dailyMix");
-        }
-
-        const allArtists = personalMix.songs.flatMap((song) => song.artist);
-        const uniqueArtists = allArtists.filter(
-          (artist, index, self) =>
-            index === self.findIndex((a) => a._id === artist._id)
-        );
-        const firstTwoUniqueArtists = uniqueArtists.slice(0, 2);
-        const artistNames = getArtistNames(firstTwoUniqueArtists, allArtists);
-
-        if (uniqueArtists.length > 2) {
-          return `${artistNames} ${t("common.andMore")}`;
-        }
-        return artistNames;
       }
       case "artist":
         return t("sidebar.subtitle.artist");
@@ -321,8 +264,7 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
         <Button
           variant="ghost"
           size="icon"
-          className="absolute left-
-          0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-20 bg-black/50 backdrop-blur-md hover:bg-black/80 rounded-full size-10 opacity-0 group-hover/section:opacity-100 transition-opacity"
+          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-20 bg-black/50 backdrop-blur-md hover:bg-black/80 rounded-full size-10 opacity-0 group-hover/section:opacity-100 transition-opacity"
           onClick={() => scroll("left")}
         >
           <ChevronLeft className="h-6 w-6" />
@@ -369,15 +311,13 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
                         src={getOptimizedImageUrl(
                           item.imageUrl ||
                             "https://moodify.b-cdn.net/default-album-cover.png",
-                          200
+                          200,
                         )}
                         alt={getDisplayTitle(item)}
                         className="absolute inset-0 h-full w-full object-cover rounded-md transition-transform duration-300 group-hover:scale-105"
                       />
                     )}
-                    {/* Для миксов добавляем затемнение с названием */}
-                    {(item.itemType === "mix" ||
-                      item.itemType === "personal-mix") && (
+                    {isPlaylistCoverOverlayItem(item) && (
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-2 pt-6 z-10">
                         <h3 className="text-white text-sm font-bold drop-shadow-lg break-words">
                           {getDisplayTitle(item)}
@@ -390,22 +330,17 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
                     entityType={item.itemType}
                     songs={item.itemType === "song" ? songsOnly : undefined}
                     className={`absolute bottom-3 right-2 ${
-                      item.itemType === "mix" ||
-                      item.itemType === "personal-mix"
-                        ? "z-50"
-                        : ""
+                      isPlaylistCoverOverlayItem(item) ? "z-50" : ""
                     }`}
                     size="sm"
                   />
                 </div>
                 <div className="px-1">
-                  {/* Для миксов не показываем название под обложкой, только subtitle */}
-                  {item.itemType !== "mix" &&
-                    item.itemType !== "personal-mix" && (
-                      <h3 className="font-semibold text-sm truncate">
-                        {getDisplayTitle(item)}
-                      </h3>
-                    )}
+                  {!isPlaylistCoverOverlayItem(item) && (
+                    <h3 className="font-semibold text-sm truncate">
+                      {getDisplayTitle(item)}
+                    </h3>
+                  )}
                   <p
                     className="text-xs text-zinc-400 leading-tight"
                     style={{

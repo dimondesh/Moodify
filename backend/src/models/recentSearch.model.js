@@ -17,7 +17,7 @@ const recentSearchSchema = new mongoose.Schema(
     itemType: {
       type: String,
       required: true,
-      enum: ["Artist", "Album", "Playlist", "User", "Mix"],
+      enum: ["Artist", "Album", "Playlist", "User", "Song"],
     },
   },
   { timestamps: true }
