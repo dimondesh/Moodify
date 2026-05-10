@@ -3,7 +3,12 @@
 import "./MoodifyLogo.css";
 import { useAudioSettingsStore } from "../lib/webAudio";
 
-const MoodifyLogo = () => {
+// Добавляем интерфейс для пропсов компонента
+interface MoodifyLogoProps {
+  isWhite?: boolean; // Необязательный пропс, по умолчанию будет false
+}
+
+const MoodifyLogo = ({ isWhite = false }: MoodifyLogoProps) => {
   const { isReduceMotionEnabled } = useAudioSettingsStore();
 
   return (
@@ -14,6 +19,7 @@ const MoodifyLogo = () => {
         className={`moodify-logo ${
           isReduceMotionEnabled ? "no-animation" : "animated"
         }`}
+        style={isWhite ? { filter: "brightness(0) invert(1)" } : undefined}
       />
     </div>
   );

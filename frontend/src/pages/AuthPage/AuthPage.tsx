@@ -298,7 +298,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
 
           <Link to="/" className="flex justify-center mb-8 shrink-0">
             <div className="w-10 h-10">
-              <MoodifyLogo />
+              <MoodifyLogo isWhite />
             </div>
           </Link>
 
