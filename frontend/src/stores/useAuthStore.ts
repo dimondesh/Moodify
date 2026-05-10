@@ -2,7 +2,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { axiosInstance } from "../lib/axios";
-import { auth, signOut as firebaseSignOut } from "../lib/firebase";
 import { useChatStore } from "./useChatStore";
 import { usePlayerStore } from "./usePlayerStore";
 
@@ -20,12 +19,10 @@ const migrateLocalStorageKey = (fromKey: string, toKey: string) => {
   }
 };
 
-// rename "moodify-studio-*" -> "moodify-*"
 migrateLocalStorageKey("moodify-studio-auth-storage", "moodify-auth-storage");
 
-interface AuthUser {
+export interface AuthUser {
   id: string;
-  firebaseUid: string;
   email: string;
   fullName: string;
   imageUrl?: string | null;
@@ -40,15 +37,21 @@ interface UpdateProfileData {
   imageUrl?: File | null;
 }
 
-interface FirebaseUserDataForSync {
-  uid: string;
-  email: string;
-  displayName?: string | null;
-  photoURL?: string | null;
-  fullName?: string;
+function mapBackendUser(u: any): AuthUser {
+  return {
+    id: u._id,
+    email: u.email,
+    fullName: u.fullName || u.email,
+    imageUrl: u.imageUrl || null,
+    language: u.language,
+    isAnonymous: u.isAnonymous,
+    showRecentlyListenedArtists: u.showRecentlyListenedArtists,
+    isAdmin: u.isAdmin,
+  };
 }
 
 interface AuthStore {
+  accessToken: string | null;
   user: AuthUser | null;
   isAdmin: boolean;
   isLoading: boolean;
@@ -56,8 +59,17 @@ interface AuthStore {
   tempEmail: string;
   setTempEmail: (email: string) => void;
   setUser: (user: AuthUser | null) => void;
-  syncUser: (userData: FirebaseUserDataForSync) => Promise<void>;
-  fetchUser: (firebaseUid: string) => Promise<void>;
+  applyAuthResponse: (data: { token: string; user: any }) => void;
+  bootstrapAuth: () => Promise<void>;
+  loginWithPassword: (email: string, password: string) => Promise<void>;
+  registerAccount: (
+    email: string,
+    password: string,
+    fullName: string,
+  ) => Promise<void>;
+  verifyEmailCode: (email: string, code: string) => Promise<void>;
+  resendVerificationEmail: (email: string) => Promise<void>;
+  completeGoogleAccessToken: (accessToken: string) => Promise<void>;
   logout: () => Promise<void>;
   reset: () => void;
   updateUserProfile: (data: UpdateProfileData) => Promise<void>;
@@ -66,12 +78,12 @@ interface AuthStore {
   updateRecentlyListenedArtistsPrivacy: (
     showRecentlyListenedArtists: boolean,
   ) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
-const getAuthHeaders = async () => {
-  const currentUser = auth.currentUser;
-  if (!currentUser) return {};
-  const token = await currentUser.getIdToken();
+const getAuthHeaders = (get: () => AuthStore) => {
+  const token = get().accessToken;
+  if (!token) return {};
   return {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -82,6 +94,7 @@ const getAuthHeaders = async () => {
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
+      accessToken: null,
       user: null,
       isAdmin: false,
       isLoading: false,
@@ -91,19 +104,151 @@ export const useAuthStore = create<AuthStore>()(
 
       setUser: (user) => set({ user, isAdmin: user?.isAdmin ?? false }),
 
+      applyAuthResponse: (data) => {
+        const mapped = mapBackendUser(data.user);
+        set({
+          accessToken: data.token,
+          user: mapped,
+          isAdmin: mapped.isAdmin ?? false,
+          isLoading: false,
+          error: null,
+        });
+      },
+
+      bootstrapAuth: async () => {
+        const token = get().accessToken;
+        if (!token) {
+          set({ isLoading: false });
+          return;
+        }
+        set({ isLoading: true, error: null });
+        try {
+          const response = await axiosInstance.get("/auth/me", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          get().applyAuthResponse(response.data);
+        } catch (error: any) {
+          const status = error?.response?.status;
+          if (status === 401 || status === 404) {
+            set({
+              user: null,
+              accessToken: null,
+              isAdmin: false,
+              isLoading: false,
+              error: null,
+            });
+          } else {
+            set({ isLoading: false });
+          }
+        }
+      },
+
+      loginWithPassword: async (email, password) => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await axiosInstance.post("/auth/login", {
+            email: email.trim().toLowerCase(),
+            password,
+          });
+          get().applyAuthResponse(response.data);
+        } catch (error: any) {
+          set({
+            isLoading: false,
+            error: error.response?.data?.error || "Login failed",
+          });
+          throw error;
+        }
+      },
+
+      registerAccount: async (email, password, fullName) => {
+        set({ isLoading: true, error: null });
+        try {
+          await axiosInstance.post("/auth/register", {
+            email: email.trim().toLowerCase(),
+            password,
+            fullName: fullName.trim(),
+          });
+          set({ isLoading: false, error: null });
+        } catch (error: any) {
+          set({
+            isLoading: false,
+            error: error.response?.data?.error || "Registration failed",
+          });
+          throw error;
+        }
+      },
+
+      verifyEmailCode: async (email, code) => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await axiosInstance.post("/auth/verify-email", {
+            email: email.trim().toLowerCase(),
+            code: String(code).trim(),
+          });
+          get().applyAuthResponse(response.data);
+        } catch (error: any) {
+          set({
+            isLoading: false,
+            error: error.response?.data?.error || "Verification failed",
+          });
+          throw error;
+        }
+      },
+
+      resendVerificationEmail: async (email) => {
+        await axiosInstance.post("/auth/resend-verification", {
+          email: email.trim().toLowerCase(),
+        });
+      },
+
+      completeGoogleAccessToken: async (accessToken) => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await axiosInstance.post("/auth/google", {
+            accessToken,
+          });
+          get().applyAuthResponse(response.data);
+        } catch (error: any) {
+          set({
+            isLoading: false,
+            error: error.response?.data?.error || "Google sign-in failed",
+          });
+          throw error;
+        }
+      },
+
+      logout: async () => {
+        set({
+          user: null,
+          accessToken: null,
+          isAdmin: false,
+          isLoading: false,
+          error: null,
+          tempEmail: "",
+        });
+      },
+
+      reset: () => {
+        set({
+          user: null,
+          accessToken: null,
+          isAdmin: false,
+          isLoading: false,
+          error: null,
+        });
+      },
+
       updateUserLanguage: async (language: string) => {
         set({ isLoading: true, error: null });
         try {
-          const authHeaders = await getAuthHeaders();
+          const authHeaders = getAuthHeaders(get);
           await axiosInstance.put("/users/language", { language }, authHeaders);
 
           set((state) => ({
             user: state.user ? { ...state.user, language } : state.user,
             isLoading: false,
           }));
-          console.log("AuthStore: User language updated.");
         } catch (error: any) {
-          console.error("AuthStore: Update language error:", error);
           set({
             error: error.response?.data?.message || "Failed to update language",
             isLoading: false,
@@ -111,6 +256,7 @@ export const useAuthStore = create<AuthStore>()(
           throw error;
         }
       },
+
       updateUserProfile: async (data: UpdateProfileData) => {
         set({ isLoading: true, error: null });
         try {
@@ -122,7 +268,7 @@ export const useAuthStore = create<AuthStore>()(
             formData.append("imageUrl", data.imageUrl);
           }
 
-          const authHeaders = await getAuthHeaders();
+          const authHeaders = getAuthHeaders(get);
 
           const config = {
             headers: {
@@ -140,13 +286,18 @@ export const useAuthStore = create<AuthStore>()(
           const updatedUser = response.data.user;
 
           set((state) => ({
-            user: state.user ? { ...state.user, ...updatedUser } : updatedUser,
+            user: state.user
+              ? {
+                  ...state.user,
+                  ...mapBackendUser({
+                    ...updatedUser,
+                    email: state.user.email,
+                  }),
+                }
+              : state.user,
             isLoading: false,
           }));
-
-          console.log("AuthStore: User profile updated.");
         } catch (error: any) {
-          console.error("AuthStore: Update profile error:", error);
           set({
             error: error.response?.data?.message || "Failed to update profile",
             isLoading: false,
@@ -154,6 +305,7 @@ export const useAuthStore = create<AuthStore>()(
           throw error;
         }
       },
+
       updateUserPrivacy: async (isAnonymous: boolean) => {
         set({ isLoading: true });
         try {
@@ -207,128 +359,12 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
-      syncUser: async (userData: FirebaseUserDataForSync) => {
-        set({ isLoading: true, error: null });
-        try {
-          const payload = {
-            firebaseUid: userData.uid,
-            email: userData.email,
-            fullName: userData.fullName || userData.displayName,
-            imageUrl: userData.photoURL,
-          };
-
-          const headers = await getAuthHeaders();
-          const response = await axiosInstance.post(
-            "/auth/sync",
-            payload,
-            headers,
-          );
-
-          const syncedUserFromBackend = response.data.user;
-
-          if (
-            !syncedUserFromBackend ||
-            !syncedUserFromBackend._id ||
-            !syncedUserFromBackend.firebaseUid
-          ) {
-            throw new Error(
-              "Backend did not return a valid user with MongoDB ID or Firebase UID.",
-            );
-          }
-
-          const fullUser: AuthUser = {
-            id: syncedUserFromBackend._id,
-            firebaseUid: syncedUserFromBackend.firebaseUid,
-            email: syncedUserFromBackend.email,
-            fullName:
-              syncedUserFromBackend.fullName || syncedUserFromBackend.email,
-            imageUrl: syncedUserFromBackend.imageUrl || null,
-            language: syncedUserFromBackend.language,
-            isAnonymous: syncedUserFromBackend.isAnonymous,
-            showRecentlyListenedArtists:
-              syncedUserFromBackend.showRecentlyListenedArtists,
-            isAdmin: syncedUserFromBackend.isAdmin,
-          };
-
-          get().setUser(fullUser);
-          set({ isLoading: false, error: null });
-        } catch (error: any) {
-          console.error("AuthStore: Sync error:", error);
-          set({
-            error: error.response?.data?.message || "Failed to sync user",
-            isLoading: false,
-            user: null,
-            isAdmin: false,
-          });
-        }
-      },
-
-      fetchUser: async (firebaseUid: string) => {
-        if (!navigator.onLine) {
-          console.log(
-            "AuthStore (fetchUser): Offline, skipping network request.",
-          );
-          if (get().user) {
-            set({ isLoading: false });
-          }
-          return;
-        }
-
-        set({ isLoading: true, error: null });
-        try {
-          const currentUser = auth.currentUser;
-          if (!currentUser || currentUser.uid !== firebaseUid) {
-            throw new Error(
-              "No active Firebase user or UID mismatch for fetchUser.",
-            );
-          }
-
-          await get().syncUser({
-            uid: currentUser.uid,
-            email: currentUser.email || "",
-            displayName: currentUser.displayName,
-            photoURL: currentUser.photoURL,
-          });
-
-          set({ isLoading: false, error: null });
-          console.log("AuthStore: User fetched via fetchUser.");
-        } catch (error: any) {
-          console.error(
-            "AuthStore: Error fetching user data in fetchUser:",
-            error,
-          );
-          set({
-            isLoading: false,
-            user: null,
-            error: error.message || "Failed to fetch user data.",
-            isAdmin: false,
-          });
-        }
-      },
-
-      logout: async () => {
-        set({ isLoading: true, error: null });
-        try {
-          await firebaseSignOut(auth);
-          console.log("Firebase user signed out.");
-          set({
-            user: null,
-            isAdmin: false,
-            isLoading: false,
-            error: null,
-            tempEmail: "",
-          });
-        } catch (error: any) {
-          console.error("Logout error:", error);
-          set({
-            isLoading: false,
-            error: error.message || "Logout failed",
-          });
-        }
-      },
-
-      reset: () => {
-        set({ user: null, isAdmin: false, isLoading: false, error: null });
+      changePassword: async (currentPassword, newPassword) => {
+        await axiosInstance.post(
+          "/auth/change-password",
+          { currentPassword, newPassword },
+          getAuthHeaders(get),
+        );
       },
     }),
     {
@@ -338,6 +374,7 @@ export const useAuthStore = create<AuthStore>()(
         user: state.user,
         isAdmin: state.isAdmin,
         tempEmail: state.tempEmail,
+        accessToken: state.accessToken,
       }),
     },
   ),

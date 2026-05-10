@@ -4,7 +4,7 @@ import { Message } from "../models/message.model.js";
 import { User } from "../models/user.model.js";
 import { Song } from "../models/song.model.js";
 import { Artist } from "../models/artist.model.js";
-import { firebaseAdmin } from "./firebase.js";
+import { verifyAccessToken } from "./jwt.js";
 export let io;
 
 export const initializeSocket = (server) => {
@@ -26,28 +26,27 @@ export const initializeSocket = (server) => {
 
     if (!token) {
       const error = new Error("Authentication error: Token required.");
-      error.data = { message: "No Firebase ID Token provided." };
+      error.data = { message: "No access token provided." };
       console.error("Socket.IO Auth Error: No token provided.");
       return next(error);
     }
 
     try {
-      const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
+      const decoded = verifyAccessToken(token);
+      const user = await User.findById(decoded.sub);
       console.log(
-        "Socket.IO Middleware: Firebase ID Token decoded for UID:",
-        decodedToken.uid
+        "Socket.IO Middleware: JWT decoded for user id:",
+        decoded.sub
       );
-
-      const user = await User.findOne({ firebaseUid: decodedToken.uid });
 
       if (!user) {
         const error = new Error("Authentication error: User not found.");
         error.data = {
-          message: `User not found in DB for Firebase UID: ${decodedToken.uid}`,
+          message: `User not found in DB for id: ${decoded.sub}`,
         };
         console.error(
-          "Socket.IO Auth Error: User not found in DB for Firebase UID:",
-          decodedToken.uid
+          "Socket.IO Auth Error: User not found in DB for id:",
+          decoded.sub
         );
         return next(error);
       }

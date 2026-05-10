@@ -22,8 +22,6 @@ import {
 import { useAuthStore } from "../../stores/useAuthStore";
 import { cn } from "../../lib/utils";
 import { Button, buttonVariants } from "./button";
-import { auth } from "../../lib/firebase";
-import { signOut, onAuthStateChanged } from "firebase/auth";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,7 +57,8 @@ const Topbar = () => {
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
   const [query, setQuery] = useState("");
   const [isSearchVisible, setIsSearchVisible] = useState(false);
-  const { isAdmin, user: authUser } = useAuthStore();
+  const { isAdmin, user: authUser, logout } = useAuthStore();
+  const disconnectSocket = useChatStore((s) => s.disconnectSocket);
   const isMobile = useMediaQuery("(max-width: 768px)");
   const { waveAnalyzerEnabled } = useAudioSettingsStore();
   const { isPlaying } = usePlayerStore();
@@ -78,11 +77,6 @@ const Topbar = () => {
     (acc, count) => acc + count,
     0,
   );
-
-  const [user, setUser] = useState<null | {
-    displayName: string | null;
-    photoURL: string | null;
-  }>(null);
 
   // Состояния для кнопок навигации
   const [canGoBack, setCanGoBack] = useState(false);
@@ -113,20 +107,6 @@ const Topbar = () => {
       };
     }
   }, [location]);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
-        setUser({
-          displayName: firebaseUser.displayName,
-          photoURL: firebaseUser.photoURL,
-        });
-      } else {
-        setUser(null);
-      }
-    });
-    return () => unsubscribe();
-  }, []);
 
   useEffect(() => {
     if (!location.pathname.startsWith("/search")) {
@@ -171,7 +151,8 @@ const Topbar = () => {
     setIsSearchVisible(false);
   };
   const handleLogout = async () => {
-    await signOut(auth);
+    disconnectSocket();
+    await logout();
   };
 
   const UserMenuItems = () => (
@@ -369,7 +350,7 @@ const Topbar = () => {
             isSearchVisible ? "hidden" : "flex"
           }`}
         >
-          {user && (
+          {authUser && (
             <Button
               size="icon"
               variant="ghost"
@@ -408,7 +389,7 @@ const Topbar = () => {
               )}
             </Button>
           )}
-          {user && (
+          {authUser && (
             <Link
               to="/chat"
               className={cn(
@@ -437,7 +418,7 @@ const Topbar = () => {
               )}
             </Link>
           )}
-          {user ? (
+          {authUser ? (
             isMobile ? (
               <Drawer
                 direction="right"
@@ -452,12 +433,12 @@ const Topbar = () => {
                   >
                     <Avatar className="w-8 h-8 object-cover">
                       <AvatarImage
-                        src={user.photoURL || undefined}
+                        src={authUser.imageUrl || undefined}
                         alt="avatar"
                         className="object-cover"
                       />
                       <AvatarFallback className="bg-[#8b5cf6] text-white font-semibold">
-                        {user.displayName?.[0]}
+                        {authUser.fullName?.[0]}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
@@ -471,15 +452,15 @@ const Topbar = () => {
                     <div className="flex items-center gap-3">
                       <Avatar className="w-10 h-10 object-cover">
                         <AvatarImage
-                          src={user.photoURL || undefined}
+                          src={authUser.imageUrl || undefined}
                           alt="avatar"
                           className="object-cover"
                         />
                         <AvatarFallback className="bg-[#8b5cf6] text-white font-semibold">
-                          {user.displayName?.[0]}
+                          {authUser.fullName?.[0]}
                         </AvatarFallback>
                       </Avatar>
-                      <p className="font-semibold">{user.displayName}</p>
+                      <p className="font-semibold">{authUser.fullName}</p>
                     </div>
                   </DrawerHeader>
                   <div className="p-4 flex flex-col gap-1">
@@ -497,12 +478,12 @@ const Topbar = () => {
                   >
                     <Avatar className="w-8 h-8 object-cover">
                       <AvatarImage
-                        src={user.photoURL || undefined}
+                        src={authUser.imageUrl || undefined}
                         alt="avatar"
                         className="object-cover"
                       />
                       <AvatarFallback className="bg-[#8b5cf6] text-white font-semibold">
-                        {user.displayName?.[0]}
+                        {authUser.fullName?.[0]}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
@@ -511,9 +492,9 @@ const Topbar = () => {
                   className="w-48 bg-[#1a1a1a] border-[#2a2a2a] text-white p-1"
                   align="end"
                 >
-                  {user.displayName && (
+                  {authUser.fullName && (
                     <DropdownMenuItem className="text-sm font-semibold cursor-default text-white p-2 opacity-100 hover:bg-[#2a2a2a]">
-                      {user.displayName}
+                      {authUser.fullName}
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator className="bg-[#2a2a2a]" />

@@ -40,8 +40,7 @@ import { useChatStore } from "../stores/useChatStore";
 import { getArtistNames } from "@/lib/utils";
 import { useUIStore } from "@/stores/useUIStore";
 import { CreatePlaylistDialog } from "../pages/PlaylistPage/CreatePlaylistDialog";
-import { useAuthState } from "react-firebase-hooks/auth";
-import { auth } from "../lib/firebase";
+import { useAuthStore } from "../stores/useAuthStore";
 import { QueueDropdown } from "../components/QueueDropdown";
 import { QueueDrawer } from "../components/QueueDrawer";
 import Repeat1 from "@/components/ui/repeat-one-icon";
@@ -82,7 +81,7 @@ const PlaybackControls = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { isIosDevice } = useUIStore();
-  const [user] = useAuthState(auth);
+  const user = useAuthStore((s) => s.user);
 
   const {
     currentSong,

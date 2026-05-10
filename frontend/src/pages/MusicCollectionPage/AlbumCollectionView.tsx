@@ -18,8 +18,7 @@ import { useLibraryStore } from "@/stores/useLibraryStore";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
-import { useAuthState } from "react-firebase-hooks/auth";
-import { auth } from "@/lib/firebase";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { DownloadButton } from "@/components/ui/DownloadButton";
 import PlaylistDetailsSkeleton from "@/components/ui/skeletons/PlaylistDetailsSkeleton";
 import { Share } from "lucide-react";
@@ -44,7 +43,7 @@ const formatDuration = (seconds: number) => {
 const AlbumCollectionView = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const { t } = useTranslation();
-  const [user] = useAuthState(auth);
+  const user = useAuthStore((s) => s.user);
   const { albumId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const playSongId = searchParams.get("play");

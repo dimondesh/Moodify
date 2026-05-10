@@ -4,8 +4,14 @@ const userSchema = new mongoose.Schema(
   {
     fullName: String,
     imageUrl: String,
-    email: { type: String, required: true },
-    firebaseUid: { type: String, required: true, unique: true },
+    email: { type: String, required: true, unique: true, lowercase: true },
+    passwordHash: { type: String, default: null },
+    googleId: { type: String, sparse: true, unique: true },
+    emailVerified: { type: Boolean, default: false },
+    emailVerificationCodeHash: { type: String, default: null },
+    emailVerificationCodeExpires: { type: Date, default: null },
+    passwordResetCodeHash: { type: String, default: null },
+    passwordResetCodeExpires: { type: Date, default: null },
     language: {
       type: String,
       enum: ["ru", "uk", "en"],

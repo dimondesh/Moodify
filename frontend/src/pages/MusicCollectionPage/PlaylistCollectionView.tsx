@@ -58,8 +58,6 @@ import { EditPlaylistDialog } from "@/pages/PlaylistPage/EditPlaylistDialog";
 import Equalizer from "@/components/ui/equalizer";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
-import { useAuthState } from "react-firebase-hooks/auth";
-import { auth } from "@/lib/firebase";
 import { DownloadButton } from "@/components/ui/DownloadButton";
 import { ShareDialog } from "@/components/ui/ShareDialog";
 import { useUIStore } from "@/stores/useUIStore";
@@ -93,7 +91,7 @@ function playlistKindLabel(t: (k: string) => string, kind?: PlaylistKind) {
 const PlaylistCollectionView = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const { socket } = useChatStore();
-  const [user] = useAuthState(auth);
+  const user = useAuthStore((s) => s.user);
   const { t } = useTranslation();
   const { playlistId } = useParams<{ playlistId: string }>();
   const {

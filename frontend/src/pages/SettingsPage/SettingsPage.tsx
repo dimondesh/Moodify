@@ -30,12 +30,6 @@ import { Helmet } from "react-helmet-async";
 import { useOfflineStore } from "../../stores/useOfflineStore";
 import toast from "react-hot-toast";
 import { useUIStore } from "@/stores/useUIStore";
-import {
-  reauthenticateWithCredential,
-  updatePassword,
-  EmailAuthProvider,
-} from "firebase/auth";
-import { auth } from "../../lib/firebase";
 import { Input } from "@/components/ui/input";
 
 const SettingsPage: React.FC = () => {
@@ -78,6 +72,7 @@ const SettingsPage: React.FC = () => {
     updateUserLanguage,
     updateUserPrivacy,
     updateRecentlyListenedArtistsPrivacy,
+    changePassword,
   } = useAuthStore();
   const isAnonymous = user?.isAnonymous ?? false;
   const showRecentlyListenedArtists = user?.showRecentlyListenedArtists ?? true;
@@ -130,15 +125,10 @@ const SettingsPage: React.FC = () => {
       return;
     }
 
-    const user = auth.currentUser;
-
-    if (!user || !user.email) return;
+    if (!user) return;
 
     try {
-      const credential = EmailAuthProvider.credential(user.email, oldPassword);
-      await reauthenticateWithCredential(user, credential);
-
-      await updatePassword(user, newPassword);
+      await changePassword(oldPassword, newPassword);
 
       toast.success(
         t(
@@ -151,15 +141,18 @@ const SettingsPage: React.FC = () => {
       setConfirmPassword("");
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
+      const msg = error?.response?.data?.error || "";
       if (
-        error.code === "auth/wrong-password" ||
-        error.code === "auth/invalid-credential"
+        error?.response?.status === 401 ||
+        msg.toLowerCase().includes("incorrect")
       ) {
         toast.error(
           t("settings.wrongCurrentPassword", "Неверный текущий пароль"),
         );
       } else {
-        toast.error("Ошибка при смене пароля: " + error.message);
+        toast.error(
+          t("settings.passwordChangeFailed", "Ошибка при смене пароля"),
+        );
       }
     }
   };

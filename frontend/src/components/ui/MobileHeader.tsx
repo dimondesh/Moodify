@@ -24,10 +24,6 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { signOut } from "firebase/auth";
-import { auth } from "../../lib/firebase";
-import { useEffect, useState } from "react";
-import { onAuthStateChanged } from "firebase/auth";
 import { useChatStore } from "../../stores/useChatStore";
 
 interface MobileHeaderProps {
@@ -36,7 +32,8 @@ interface MobileHeaderProps {
 
 const MobileHeader = ({ title }: MobileHeaderProps) => {
   const { t } = useTranslation();
-  const { isAdmin, user: authUser } = useAuthStore();
+  const { isAdmin, user: authUser, logout } = useAuthStore();
+  const disconnectSocket = useChatStore((s) => s.disconnectSocket);
   const { isUserSheetOpen, setUserSheetOpen, openCreatePlaylistDialog } =
     useUIStore();
   const { isOffline } = useOfflineStore();
@@ -47,27 +44,9 @@ const MobileHeader = ({ title }: MobileHeaderProps) => {
     0,
   );
 
-  const [user, setUser] = useState<null | {
-    displayName: string | null;
-    photoURL: string | null;
-  }>(null);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
-        setUser({
-          displayName: firebaseUser.displayName,
-          photoURL: firebaseUser.photoURL,
-        });
-      } else {
-        setUser(null);
-      }
-    });
-    return () => unsubscribe();
-  }, []);
-
   const handleLogout = async () => {
-    await signOut(auth);
+    disconnectSocket();
+    await logout();
   };
 
   const UserMenuItems = () => (
@@ -162,7 +141,7 @@ const MobileHeader = ({ title }: MobileHeaderProps) => {
           </Button>
         )}
 
-        {user ? (
+        {authUser ? (
           <Drawer
             direction="right"
             open={isUserSheetOpen}
@@ -176,12 +155,12 @@ const MobileHeader = ({ title }: MobileHeaderProps) => {
               >
                 <Avatar className="w-8 h-8 object-cover">
                   <AvatarImage
-                    src={user.photoURL || undefined}
+                    src={authUser.imageUrl || undefined}
                     alt="avatar"
                     className="object-cover"
                   />
                   <AvatarFallback className="bg-[#8b5cf6] text-white font-semibold">
-                    {user.displayName?.[0]}
+                    {authUser.fullName?.[0]}
                   </AvatarFallback>
                 </Avatar>
                 {totalUnread > 0 && (
@@ -198,15 +177,15 @@ const MobileHeader = ({ title }: MobileHeaderProps) => {
                 <div className="flex items-center gap-3">
                   <Avatar className="w-10 h-10 object-cover">
                     <AvatarImage
-                      src={user.photoURL || undefined}
+                      src={authUser.imageUrl || undefined}
                       alt="avatar"
                       className="object-cover"
                     />
                     <AvatarFallback className="bg-[#8b5cf6] text-white font-semibold">
-                      {user.displayName?.[0]}
+                      {authUser.fullName?.[0]}
                     </AvatarFallback>
                   </Avatar>
-                  <p className="font-semibold">{user.displayName}</p>
+                  <p className="font-semibold">{authUser.fullName}</p>
                 </div>
               </DrawerHeader>
               <div className="p-4 flex flex-col gap-1">

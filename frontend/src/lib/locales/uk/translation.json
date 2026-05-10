@@ -780,7 +780,16 @@
     "clearAppCacheDesc": "Видаляє кеш (включно з Service Worker) і застосовує оновлення без hard reload.",
     "playbackSpeed": "Швидкість відтворення",
     "playbackSpeedDesc": "Керуйте швидкістю відтворення вашої музики.",
-    "reduceMotion": "Зменшення руху"
+    "reduceMotion": "Зменшення руху",
+    "changePassword": "Зміна пароля",
+    "oldPassword": "Поточний пароль",
+    "newPassword": "Новий пароль",
+    "confirmPassword": "Підтвердження пароля",
+    "updatePasswordButton": "Зберегти пароль",
+    "passwordsMismatch": "Нові паролі не збігаються",
+    "passwordChanged": "Пароль успішно змінено.",
+    "wrongCurrentPassword": "Невірний поточний пароль",
+    "passwordChangeFailed": "Не вдалося змінити пароль."
   },
   "toasts": {
     "anonymousEnabled": "Анонімний режим увімкнено",
@@ -819,6 +828,9 @@
     "updateError": "Не вдалося оновити елемент"
   },
   "errors": {
+    "somethingWentWrong": "Щось пішло не так",
+    "goBack": "Назад",
+    "reloadPage": "Перезавантажити сторінку",
     "userNotAvailableOffline": "Користувач недоступний для офлайн-медіатеки.",
     "fetchLibraryOfflineError": "Не вдалося завантажити медіатеку зі сховища",
     "fetchLibraryError": "Не вдалося завантажити медіатеку",
@@ -1220,7 +1232,27 @@
     "whatsYourName": "Як вас звати?",
     "nameSubtitle": "Це ім'я буде в профілі",
     "createAccount": "Створити акаунт",
-    "namePlaceholder": "Іван Іванов"
+    "namePlaceholder": "Іван Іванов",
+    "verifyCodeTitle": "Введіть код з листа",
+    "verifyCodeHint": "Ми надіслали 6-значний код на вашу пошту.",
+    "verifyCodeLabel": "Код",
+    "verifyCodeSubmit": "Підтвердити й продовжити",
+    "codeRequired": "Введіть код.",
+    "codeInvalid": "Невірний або прострочений код.",
+    "resendCode": "Надіслати код ще раз",
+    "resendCodeFailed": "Не вдалося надіслати код повторно.",
+    "verificationCodeSent": "Код надіслано на пошту.",
+    "resetCodeSent": "Якщо акаунт існує, на пошту надіслано код для скидання.",
+    "resetPasswordTitle": "Скидання пароля",
+    "resetPasswordHint": "Введіть код з листа та новий пароль.",
+    "newPasswordLabel": "Новий пароль",
+    "confirmPasswordLabel": "Підтвердіть пароль",
+    "saveNewPassword": "Зберегти новий пароль",
+    "passwordUpdated": "Пароль оновлено. Можна увійти.",
+    "resetPasswordFailed": "Не вдалося скинути пароль. Перевірте код.",
+    "passwordRulesHint": "Пароль: щонайменше 8 символів, одна велика літера й одна цифра.",
+    "googleAccountExistsUsePassword": "Цей email зареєстровано з паролем. Увійдіть через пошту й пароль.",
+    "googleNotConfigured": "Вхід через Google не налаштовано."
   },
   "common": {
     "unknownArtist": "Невідомий виконавець",

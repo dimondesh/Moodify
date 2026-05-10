@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 import { Message } from "../models/message.model.js";
 import { User } from "../models/user.model.js";
 import { Library } from "../models/library.model.js";
-import { firebaseAdmin } from "../lib/firebase.js";
+import { Album } from "../models/album.model.js";
 import { RecentSearch } from "../models/recentSearch.model.js";
 import {
   getPathFromUrl,
@@ -76,7 +76,7 @@ export const getUserProfile = async (req, res, next) => {
         ],
         select: "title imageUrl isPublic owner songs",
       })
-      .select("-email -firebaseUid");
+      .select("-email -passwordHash");
 
     const library = await Library.findOne({ userId: userId }).lean();
 
@@ -164,15 +164,12 @@ export const updateUserProfile = async (req, res, next) => {
   try {
     const { fullName } = req.body;
     const userId = req.user.id;
-    const firebaseUid = req.user.firebaseUid;
     const currentUser = await User.findById(userId);
 
     const updateDataMongo = {};
-    const updateDataFirebase = {};
 
     if (fullName) {
       updateDataMongo.fullName = fullName;
-      updateDataFirebase.displayName = fullName;
     }
 
     if (req.files && req.files.imageUrl) {
@@ -189,18 +186,13 @@ export const updateUserProfile = async (req, res, next) => {
         85,
       );
       updateDataMongo.imageUrl = result.url;
-      updateDataFirebase.photoURL = result.url;
     }
 
     const updatedUser = await User.findByIdAndUpdate(userId, updateDataMongo, {
       new: true,
     }).select(
-      "-email -firebaseUid -followers -followingUsers -followingArtists",
+      "-email -passwordHash -followers -followingUsers -followingArtists",
     );
-
-    if (Object.keys(updateDataFirebase).length > 0) {
-      await firebaseAdmin.auth().updateUser(firebaseUid, updateDataFirebase);
-    }
 
     res
       .status(200)

@@ -5,7 +5,6 @@ import type { Message, User } from "../types";
 
 import { io, Socket } from "socket.io-client";
 import type { DefaultEventsMap } from "@socket.io/component-emitter";
-import { auth } from "../lib/firebase";
 import { useAuthStore } from "./useAuthStore";
 import { useOfflineStore } from "./useOfflineStore";
 interface ArtistInfo {
@@ -110,7 +109,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   fetchUnreadCounts: async () => {
     if (useOfflineStore.getState().isOffline) return;
     try {
-      const token = await auth.currentUser?.getIdToken();
+      const token = useAuthStore.getState().accessToken;
       if (!token) return;
 
       const response = await axiosInstance.get("/users/unread-counts", {
@@ -142,13 +141,10 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
     set({ isLoading: true, error: null });
     try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
-        throw new Error(
-          "No Firebase user is logged in to get ID token for fetching users.",
-        );
+      const token = useAuthStore.getState().accessToken;
+      if (!token) {
+        throw new Error("No access token for fetching users.");
       }
-      const token = await currentUser.getIdToken();
       const response = await axiosInstance.get("/users/mutuals", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -185,21 +181,18 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       return;
     }
 
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
+    const token = useAuthStore.getState().accessToken;
+    if (!token) {
       console.warn(
-        "initSocket: No Firebase user is logged in. Cannot get ID token.",
+        "initSocket: No access token. Cannot authenticate Socket.IO.",
       );
-      set({ error: "Socket.IO init failed: No Firebase user logged in." });
+      set({ error: "Socket.IO init failed: Not authenticated." });
       return;
     }
 
     try {
-      const idToken = await currentUser.getIdToken(true);
-      socket.auth = { token: idToken };
-      console.log(
-        "initSocket: Firebase ID Token obtained, setting socket.auth.",
-      );
+      socket.auth = { token };
+      console.log("initSocket: Access token set on socket.auth.");
 
       if (!listenersRegistered) {
         console.log("initSocket: Registering Socket.IO listeners...");
@@ -376,10 +369,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       console.log("initSocket: Attempting to connect socket...");
       socket.connect();
     } catch (error: any) {
-      console.error(
-        "initSocket: Error getting Firebase ID Token or connecting Socket.IO:",
-        error,
-      );
+      console.error("initSocket: Error connecting Socket.IO:", error);
       set({ error: `Socket.IO init failed: ${error.message}` });
     }
   },
@@ -424,13 +414,10 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
     set({ isLoading: true, error: null });
     try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
-        throw new Error(
-          "No Firebase user is logged in to get ID token for fetching messages.",
-        );
+      const token = useAuthStore.getState().accessToken;
+      if (!token) {
+        throw new Error("No access token for fetching messages.");
       }
-      const token = await currentUser.getIdToken();
 
       const response = await axiosInstance.get(`/users/messages/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },

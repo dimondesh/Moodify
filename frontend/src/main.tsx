@@ -6,8 +6,11 @@ import AuthProvider from "./Providers/AuthProvider.tsx";
 import "./lib/i18n.ts";
 import { HelmetProvider } from "react-helmet-async";
 import { registerSW } from "virtual:pwa-register";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
-createRoot(document.getElementById("root")!).render(
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim() || "";
+
+const appTree = (
   <HelmetProvider>
     <AuthProvider>
       <BrowserRouter>
@@ -15,6 +18,14 @@ createRoot(document.getElementById("root")!).render(
       </BrowserRouter>
     </AuthProvider>
   </HelmetProvider>
+);
+
+createRoot(document.getElementById("root")!).render(
+  googleClientId ? (
+    <GoogleOAuthProvider clientId={googleClientId}>{appTree}</GoogleOAuthProvider>
+  ) : (
+    appTree
+  ),
 );
 
 const updateSW = registerSW({

@@ -1,33 +1,80 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
-  sendEmailVerification,
-  sendPasswordResetEmail,
-  updateProfile,
-  signOut,
-} from "firebase/auth";
-import { auth } from "../../lib/firebase";
+import { useGoogleLogin } from "@react-oauth/google";
 import { useAuthStore } from "../../stores/useAuthStore";
 import { axiosInstance } from "../../lib/axios";
 import toast from "react-hot-toast";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { MailCheck, Eye, EyeOff, ArrowLeft, Check, X } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft, Check, X } from "lucide-react";
 import MoodifyLogo from "../../components/MoodifyLogo";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 
-type AuthStep = "email" | "login_password" | "signup_password" | "signup_name";
+type AuthStep =
+  | "email"
+  | "login_password"
+  | "signup_password"
+  | "signup_name"
+  | "verify_code"
+  | "reset_password";
 
 interface AuthPageProps {
   mode: "login" | "register";
+}
+
+/** Renders only when `VITE_GOOGLE_CLIENT_ID` is set and `GoogleOAuthProvider` wraps the app. */
+function AuthGoogleOAuthButton({
+  setIsLoading,
+}: {
+  setIsLoading: (v: boolean) => void;
+}) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const completeGoogleAccessToken = useAuthStore(
+    (s) => s.completeGoogleAccessToken,
+  );
+  const setTempEmail = useAuthStore((s) => s.setTempEmail);
+
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setIsLoading(true);
+      try {
+        await completeGoogleAccessToken(tokenResponse.access_token);
+        setTempEmail("");
+        toast.success(t("auth.loginSuccess"));
+        navigate("/");
+      } catch (error: unknown) {
+        const err = error as { response?: { data?: { code?: string } } };
+        const code = err?.response?.data?.code;
+        if (code === "ACCOUNT_EXISTS_PASSWORD") {
+          toast.error(t("auth.googleAccountExistsUsePassword"));
+        } else {
+          toast.error(t("auth.googleSignInFailed"));
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    onError: () => {
+      toast.error(t("auth.googleSignInFailed"));
+    },
+    scope: "openid email profile",
+  });
+
+  return (
+    <Button
+      onClick={() => googleLogin()}
+      variant="outline"
+      type="button"
+      className="w-full h-12 border-gray-700 hover:bg-gray-900 rounded-full shrink-0"
+    >
+      <img src="/google.svg" alt="G" className="w-5 h-5 mr-3" />
+      {t("auth.continueWithGoogle", "Google")}
+    </Button>
+  );
 }
 
 const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
@@ -35,33 +82,55 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, tempEmail, setTempEmail } = useAuthStore();
+  const registerAccount = useAuthStore((s) => s.registerAccount);
+  const verifyEmailCode = useAuthStore((s) => s.verifyEmailCode);
+  const resendVerificationEmail = useAuthStore((s) => s.resendVerificationEmail);
+  const loginWithPassword = useAuthStore((s) => s.loginWithPassword);
 
   const rawStep = (searchParams.get("step") as AuthStep) || "email";
   let step = rawStep;
 
-  if (
-    mode === "login" &&
-    (step === "signup_password" || step === "signup_name")
-  ) {
-    step = "email";
-  } else if (mode === "register" && step === "login_password") {
-    step = "email";
+  if (mode === "login") {
+    if (
+      step === "signup_password" ||
+      step === "signup_name" ||
+      step === "verify_code"
+    ) {
+      step = "email";
+    }
+  } else if (mode === "register") {
+    if (step === "login_password" || step === "reset_password") {
+      step = "email";
+    }
   }
 
   const [formData, setFormData] = useState({
     email: tempEmail || "",
     password: "",
     fullName: "",
+    verifyCode: "",
+    resetCode: "",
+    newPassword: "",
+    confirmPassword: "",
   });
 
   const [errorItem, setErrorItem] = useState<React.ReactNode>("");
   const [isLoading, setIsLoading] = useState(false);
-  const [verificationSent, setVerificationSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim();
 
   useEffect(() => {
     setErrorItem("");
-    setFormData((prev) => ({ ...prev, password: "", fullName: "" }));
+    setFormData((prev) => ({
+      ...prev,
+      password: "",
+      fullName: "",
+      verifyCode: "",
+      resetCode: "",
+      newPassword: "",
+      confirmPassword: "",
+    }));
     if (searchParams.has("step")) {
       setSearchParams({});
     }
@@ -86,7 +155,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
     {
       id: "uppercase",
       text: t("auth.ruleUppercase", "Хотя бы одна заглавная буква"),
-      isValid: /[A-ZА-Я]/.test(formData.password),
+      isValid: /[A-ZА-ЯЁІЇЄ]/.test(formData.password),
     },
     {
       id: "number",
@@ -108,27 +177,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
     setErrorItem("");
   };
 
-  const handleGoogleSignIn = async () => {
-    setIsLoading(true);
-    const provider = new GoogleAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
-      setTempEmail("");
-      navigate("/");
-    } catch (error: any) {
-      if (
-        error.code !== "auth/id-token-expired" &&
-        error.code !== "auth/popup-closed-by-user"
-      ) {
-        toast.error(
-          t("auth.googleSignInFailed", "Ошибка авторизации через Google"),
-        );
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.email)
@@ -145,7 +193,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
 
       if (mode === "login") {
         if (exists) {
-          setSearchParams({ step: "login_password" }); // Пушим новый шаг в URL
+          setSearchParams({ step: "login_password" });
         } else {
           setErrorItem(
             <div className="flex flex-col gap-1">
@@ -176,7 +224,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
           setSearchParams({ step: "signup_password" });
         }
       }
-    } catch (error) {
+    } catch {
       toast.error(t("auth.checkEmailError", "Ошибка при проверке email"));
     } finally {
       setIsLoading(false);
@@ -187,14 +235,21 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, formData.email, formData.password);
+      await loginWithPassword(formData.email, formData.password);
       toast.success(t("auth.loginSuccess", "Успешный вход"));
       setTempEmail("");
       navigate("/");
     } catch (error: any) {
-      setErrorItem(
-        t("auth.errorInvalidCredentials", "Неверный логин или пароль"),
-      );
+      const status = error?.response?.status;
+      const code = error?.response?.data?.code;
+      if (status === 403 && code === "EMAIL_NOT_VERIFIED") {
+        toast.error(t("auth.verifyEmailPrompt"));
+        setSearchParams({ step: "verify_code" });
+      } else {
+        setErrorItem(
+          t("auth.errorInvalidCredentials", "Неверный логин или пароль"),
+        );
+      }
     } finally {
       setIsLoading(false);
     }
@@ -203,14 +258,12 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
   const handleForgotPassword = async () => {
     setIsLoading(true);
     try {
-      await sendPasswordResetEmail(auth, formData.email);
-      toast.success(
-        t(
-          "auth.resetEmailSent",
-          "Письмо со ссылкой для сброса пароля отправлено!",
-        ),
-      );
-    } catch (error: unknown) {
+      await axiosInstance.post("/auth/forgot-password", {
+        email: formData.email.trim().toLowerCase(),
+      });
+      toast.success(t("auth.resetCodeSent"));
+      setSearchParams({ step: "reset_password" });
+    } catch {
       toast.error(t("auth.errorResetFailed", "Ошибка при отправке письма"));
     } finally {
       setIsLoading(false);
@@ -229,46 +282,89 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
 
     setIsLoading(true);
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
+      await registerAccount(
         formData.email,
         formData.password,
+        formData.fullName,
       );
-      await updateProfile(userCredential.user, {
-        displayName: formData.fullName,
-      });
-      await sendEmailVerification(userCredential.user);
-      await signOut(auth);
       setTempEmail("");
-      setVerificationSent(true);
-    } catch (error: any) {
+      setSearchParams({ step: "verify_code" });
+      toast.success(t("auth.verificationCodeSent"));
+    } catch {
       toast.error(t("auth.errorAuthFailed", "Ошибка регистрации"));
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (verificationSent) {
-    return (
-      <div className="min-h-screen bg-black text-white flex flex-col justify-center items-center px-4">
-        <div className="w-full max-w-sm text-center">
-          <MailCheck className="w-16 h-16 text-violet-500 mx-auto mb-6" />
-          <h1 className="text-3xl font-bold mb-4">
-            {t("auth.verifyEmailTitle", "Подтвердите почту")}
-          </h1>
-          <p className="text-gray-400 mb-6">
-            {t("auth.verifyEmailMessage", "Мы отправили письмо на")}{" "}
-            <span className="text-white font-semibold">{formData.email}</span>
-          </p>
-          <Button
-            onClick={() => navigate("/login")}
-            className="w-full h-12 bg-violet-500 hover:bg-violet-600 text-black font-bold rounded-full"
-          >
-            {t("auth.backToLogin", "К авторизации")}
-          </Button>
-        </div>
-      </div>
-    );
+  const handleVerifySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.verifyCode.trim()) {
+      setErrorItem(t("auth.codeRequired"));
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await verifyEmailCode(formData.email, formData.verifyCode);
+      toast.success(t("auth.loginSuccess"));
+      setTempEmail("");
+      navigate("/");
+    } catch {
+      setErrorItem(t("auth.codeInvalid"));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    setIsLoading(true);
+    try {
+      await resendVerificationEmail(formData.email);
+      toast.success(t("auth.verificationCodeSent"));
+    } catch {
+      toast.error(t("auth.resendCodeFailed"));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (formData.newPassword !== formData.confirmPassword) {
+      toast.error(t("auth.passwordsDoNotMatch"));
+      return;
+    }
+    if (!isStrongPassword(formData.newPassword)) {
+      setErrorItem(t("auth.passwordRulesHint"));
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await axiosInstance.post("/auth/reset-password", {
+        email: formData.email.trim().toLowerCase(),
+        code: formData.resetCode.trim(),
+        newPassword: formData.newPassword,
+      });
+      toast.success(t("auth.passwordUpdated"));
+      setSearchParams({ step: "login_password" });
+      setFormData((prev) => ({
+        ...prev,
+        resetCode: "",
+        newPassword: "",
+        confirmPassword: "",
+      }));
+    } catch {
+      toast.error(t("auth.resetPasswordFailed"));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  function isStrongPassword(p: string) {
+    if (!p || p.length < 8) return false;
+    if (!/[A-ZА-ЯЁІЇЄ]/.test(p)) return false;
+    if (!/[0-9]/.test(p)) return false;
+    return true;
   }
 
   return (
@@ -288,6 +384,11 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
               onClick={() => {
                 if (step === "signup_name")
                   setSearchParams({ step: "signup_password" });
+                else if (step === "verify_code") {
+                  if (mode === "register") setSearchParams({});
+                  else setSearchParams({ step: "login_password" });
+                } else if (step === "reset_password")
+                  setSearchParams({ step: "login_password" });
                 else setSearchParams({});
               }}
               className="absolute -left-12 top-0 p-2 text-gray-400 hover:text-white rounded-full hover:bg-white/10 transition-colors z-10 hidden sm:block"
@@ -302,7 +403,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
             </div>
           </Link>
 
-          {/* ШАГ: EMAIL */}
           {step === "email" && (
             <form onSubmit={handleEmailSubmit} className="flex flex-col flex-1">
               <div className="text-center mb-8 h-[80px] flex flex-col items-center justify-start shrink-0">
@@ -352,15 +452,21 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
                 <div className="flex-1 h-px bg-gray-700"></div>
               </div>
 
-              <Button
-                onClick={handleGoogleSignIn}
-                variant="outline"
-                type="button"
-                className="w-full h-12 border-gray-700 hover:bg-gray-900 rounded-full shrink-0"
-              >
-                <img src="/google.svg" alt="G" className="w-5 h-5 mr-3" />
-                {t("auth.continueWithGoogle", "Google")}
-              </Button>
+              {googleClientId ? (
+                <AuthGoogleOAuthButton setIsLoading={setIsLoading} />
+              ) : (
+                <Button
+                  onClick={() =>
+                    toast.error(t("auth.googleNotConfigured"))
+                  }
+                  variant="outline"
+                  type="button"
+                  className="w-full h-12 border-gray-700 hover:bg-gray-900 rounded-full shrink-0"
+                >
+                  <img src="/google.svg" alt="G" className="w-5 h-5 mr-3" />
+                  {t("auth.continueWithGoogle", "Google")}
+                </Button>
+              )}
 
               <p className="text-center text-sm text-gray-400 mt-6 shrink-0">
                 {mode === "login" ? (
@@ -388,7 +494,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
             </form>
           )}
 
-          {/* ШАГ: ПАРОЛЬ (ЛОГИН) */}
           {step === "login_password" && (
             <form onSubmit={handleLoginSubmit} className="flex flex-col flex-1">
               <div className="text-center mb-8 h-[80px] flex flex-col items-center justify-start shrink-0">
@@ -447,7 +552,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
             </form>
           )}
 
-          {/* ШАГ: ПАРОЛЬ (РЕГА) */}
           {step === "signup_password" && (
             <form
               onSubmit={handleSignupPasswordSubmit}
@@ -523,7 +627,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
             </form>
           )}
 
-          {/* ШАГ: ИМЯ (РЕГА) */}
           {step === "signup_name" && (
             <form
               onSubmit={handleSignupComplete}
@@ -568,6 +671,119 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
                 className="w-full h-12 bg-violet-500 hover:bg-violet-600 text-black font-bold rounded-full mt-2 shrink-0"
               >
                 {t("auth.createAccount", "Создать аккаунт")}
+              </Button>
+            </form>
+          )}
+
+          {step === "verify_code" && (
+            <form onSubmit={handleVerifySubmit} className="flex flex-col flex-1">
+              <div className="text-center mb-8 h-[80px] flex flex-col items-center justify-start shrink-0">
+                <h1 className="text-3xl font-bold mb-2">
+                  {t("auth.verifyCodeTitle")}
+                </h1>
+                <p className="text-gray-400 text-sm">{formData.email}</p>
+              </div>
+              <p className="text-gray-400 text-sm mb-4 text-center">
+                {t("auth.verifyCodeHint")}
+              </p>
+              <div>
+                <Label
+                  htmlFor="verifyCode"
+                  className="text-sm text-gray-300 mb-2 block"
+                >
+                  {t("auth.verifyCodeLabel")}
+                </Label>
+                <Input
+                  id="verifyCode"
+                  name="verifyCode"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  value={formData.verifyCode}
+                  onChange={handleChange}
+                  className="bg-gray-900 border-gray-700 py-6 text-center text-2xl tracking-[0.4em]"
+                />
+                <div className="min-h-[24px] mt-2">
+                  {errorItem && (
+                    <div className="text-red-500 text-xs">{errorItem}</div>
+                  )}
+                </div>
+              </div>
+              <Button
+                type="submit"
+                disabled={isLoading || formData.verifyCode.trim().length < 6}
+                className="w-full h-12 bg-violet-500 hover:bg-violet-600 text-black font-bold rounded-full mt-4 shrink-0"
+              >
+                {t("auth.verifyCodeSubmit")}
+              </Button>
+              <button
+                type="button"
+                onClick={handleResendCode}
+                disabled={isLoading}
+                className="mt-4 text-sm text-violet-500 hover:underline text-center"
+              >
+                {t("auth.resendCode")}
+              </button>
+            </form>
+          )}
+
+          {step === "reset_password" && (
+            <form
+              onSubmit={handleResetPasswordSubmit}
+              className="flex flex-col flex-1 gap-4"
+            >
+              <div className="text-center mb-4 shrink-0">
+                <h1 className="text-3xl font-bold mb-2">
+                  {t("auth.resetPasswordTitle")}
+                </h1>
+                <p className="text-gray-400 text-sm">{formData.email}</p>
+              </div>
+              <p className="text-gray-400 text-sm text-center">
+                {t("auth.resetPasswordHint")}
+              </p>
+              <div>
+                <Label className="text-sm text-gray-300 mb-2 block">
+                  {t("auth.verifyCodeLabel")}
+                </Label>
+                <Input
+                  name="resetCode"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={formData.resetCode}
+                  onChange={handleChange}
+                  className="bg-gray-900 border-gray-700 py-6 text-center text-xl tracking-widest"
+                />
+              </div>
+              <div>
+                <Label className="text-sm text-gray-300 mb-2 block">
+                  {t("auth.newPasswordLabel")}
+                </Label>
+                <Input
+                  name="newPassword"
+                  type="password"
+                  value={formData.newPassword}
+                  onChange={handleChange}
+                  className="bg-gray-900 border-gray-700 py-6"
+                />
+              </div>
+              <div>
+                <Label className="text-sm text-gray-300 mb-2 block">
+                  {t("auth.confirmPasswordLabel")}
+                </Label>
+                <Input
+                  name="confirmPassword"
+                  type="password"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className="bg-gray-900 border-gray-700 py-6"
+                />
+              </div>
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full h-12 bg-violet-500 hover:bg-violet-600 text-black font-bold rounded-full shrink-0"
+              >
+                {t("auth.saveNewPassword")}
               </Button>
             </form>
           )}

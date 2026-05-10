@@ -18,8 +18,7 @@ import {
   Playlist,
 } from "../../types";
 import { Button } from "@/components/ui/button";
-import { useAuthState } from "react-firebase-hooks/auth";
-import { auth } from "../../lib/firebase";
+import { useAuthStore } from "../../stores/useAuthStore";
 import { CreatePlaylistDialog } from "../PlaylistPage/CreatePlaylistDialog";
 import { Plus, Grid3X3, List, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -61,7 +60,7 @@ const LibraryPage = () => {
   } = useUIStore();
 
   const { artists } = useMusicStore();
-  const [user] = useAuthState(auth);
+  const user = useAuthStore((s) => s.user);
   const { isDownloaded, fetchAllDownloaded } = useOfflineStore(
     (s) => s.actions,
   );

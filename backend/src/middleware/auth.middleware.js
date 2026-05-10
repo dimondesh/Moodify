@@ -1,7 +1,17 @@
-import { firebaseAdmin } from "../lib/firebase.js";
 import { User } from "../models/user.model.js";
+import { verifyAccessToken } from "../lib/jwt.js";
 import dotenv from "dotenv";
 dotenv.config();
+
+const buildReqUser = (user) => {
+  const adminEmails = process.env.ADMIN_EMAILS?.split(",").map((s) => s.trim().toLowerCase()) || [];
+  return {
+    id: user._id,
+    email: user.email,
+    isAdmin: adminEmails.includes((user.email || "").toLowerCase()),
+  };
+};
+
 export const protectRoute = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
@@ -10,28 +20,24 @@ export const protectRoute = async (req, res, next) => {
       return res.status(401).json({ error: "Token required" });
     }
 
-    const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
+    let decoded;
+    try {
+      decoded = verifyAccessToken(token);
+    } catch {
+      return res.status(401).json({ error: "Invalid or expired token" });
+    }
 
-    const user = await User.findOne({ firebaseUid: decodedToken.uid });
-
+    const user = await User.findById(decoded.sub);
     if (!user) {
-      console.error("User not found in DB for firebaseUid:", decodedToken.uid);
+      console.error("User not found in DB for token sub:", decoded.sub);
       return res.status(404).json({ error: "User not found" });
     }
 
-    req.user = {
-      id: user._id,
-      firebaseUid: user.firebaseUid,
-      email: decodedToken.email,
-      isAdmin: process.env.ADMIN_EMAILS.split(",").includes(decodedToken.email),
-    };
-
+    req.user = buildReqUser(user);
     next();
   } catch (error) {
     console.error("Auth error:", error.message);
-    res
-      .status(401)
-      .json({ error: "Authentication failed", details: error.message });
+    res.status(401).json({ error: "Authentication failed", details: error.message });
   }
 };
 
@@ -43,17 +49,14 @@ export const attachUserIfPresent = async (req, res, next) => {
       return next();
     }
 
-    const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
-    const user = await User.findOne({ firebaseUid: decodedToken.uid });
-
-    if (user) {
-      const adminEmails = process.env.ADMIN_EMAILS?.split(",") || [];
-      req.user = {
-        id: user._id,
-        firebaseUid: user.firebaseUid,
-        email: decodedToken.email,
-        isAdmin: adminEmails.includes(decodedToken.email),
-      };
+    try {
+      const decoded = verifyAccessToken(token);
+      const user = await User.findById(decoded.sub);
+      if (user) {
+        req.user = buildReqUser(user);
+      }
+    } catch {
+      // invalid token — continue as guest
     }
 
     next();

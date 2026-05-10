@@ -17,8 +17,7 @@ import PlaylistSkeleton from "../components/ui/skeletons/PlaylistSkeleton";
 import React, { useMemo, useEffect, useRef, useCallback } from "react";
 import { useLibraryStore } from "../stores/useLibraryStore";
 import { usePlaylistStore } from "../stores/usePlaylistStore";
-import { useAuthState } from "react-firebase-hooks/auth";
-import { auth } from "../lib/firebase";
+import { useAuthStore } from "../stores/useAuthStore";
 import { CreatePlaylistDialog } from "../pages/PlaylistPage/CreatePlaylistDialog";
 import {
   LibraryItem,
@@ -49,7 +48,8 @@ const LeftSidebar = () => {
 
   const { myPlaylists, fetchMyPlaylists } = usePlaylistStore();
 
-  const [user, loadingUser] = useAuthState(auth);
+  const user = useAuthStore((s) => s.user);
+  const authLoading = useAuthStore((s) => s.isLoading);
   const { isOffline } = useOfflineStore();
   const { isDownloaded } = useOfflineStore((s) => s.actions);
   const {
@@ -72,7 +72,8 @@ const LeftSidebar = () => {
 
   const { isHomePageLoading } = useUIStore();
 
-  const isLoading = (isHomePageLoading || loadingUser) && !isOffline;
+  const isLoading =
+    (isHomePageLoading || (!user && authLoading)) && !isOffline;
 
   const GridSkeleton = React.memo(() => (
     <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,1fr))] gap-1">

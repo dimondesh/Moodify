@@ -93,7 +93,6 @@ export interface Message {
 
 export interface User {
   _id: string;
-  firebaseUid: string;
   fullName: string;
   imageUrl: string;
   email: string;

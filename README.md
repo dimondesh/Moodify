@@ -69,7 +69,7 @@ Backend (Express.js + MongoDB + Gemini + Spotify APIs)
 └── Socket.io (Chat + Friends Activity)
 
 🔐 Authentication
-Authentication via Firebase Auth, with email/password and OAuth providers.
+JWT-based sessions: email/password with email verification (Resend), Google OAuth, and password reset via one-time codes.
 
 🌍 Integrations
 Spotify API — Albums, artists, metadata
