@@ -57,8 +57,7 @@ const Topbar = () => {
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
   const [query, setQuery] = useState("");
   const [isSearchVisible, setIsSearchVisible] = useState(false);
-  const { isAdmin, user: authUser, logout } = useAuthStore();
-  const disconnectSocket = useChatStore((s) => s.disconnectSocket);
+  const { user: authUser, logout } = useAuthStore();
   const isMobile = useMediaQuery("(max-width: 768px)");
   const { waveAnalyzerEnabled } = useAudioSettingsStore();
   const { isPlaying } = usePlayerStore();
@@ -151,7 +150,6 @@ const Topbar = () => {
     setIsSearchVisible(false);
   };
   const handleLogout = async () => {
-    disconnectSocket();
     await logout();
   };
 
@@ -175,17 +173,7 @@ const Topbar = () => {
           {t("topbar.settings")}
         </Link>
       </DrawerClose>
-      {isAdmin && (
-        <DrawerClose asChild>
-          <Link
-            to="/admin"
-            className="flex items-center p-2 cursor-pointer hover:bg-zinc-700 rounded-md"
-          >
-            <LayoutDashboardIcon className="w-4 h-4 mr-2" />
-            {t("topbar.adminDashboard")}
-          </Link>
-        </DrawerClose>
-      )}
+
       <div className="w-full h-px bg-zinc-700 my-1" />
       <DrawerClose asChild>
         <div
@@ -360,18 +348,7 @@ const Topbar = () => {
               <Search className="w-4 h-4" />
             </Button>
           )}
-          {isAdmin && (
-            <Link
-              to={"/admin"}
-              className={cn(
-                buttonVariants({ variant: "outline", size: "sm" }),
-                "hidden sm:inline-flex bg-[#2a2a2a] border-[#2a2a2a] hover:bg-[#3a3a3a]",
-              )}
-            >
-              <LayoutDashboardIcon className="w-4 h-4 mr-2" />
-              <span className="hidden md:inline">{t("topbar.admin")}</span>
-            </Link>
-          )}
+
           {!isMobile && (
             <Button
               size="icon"
@@ -516,17 +493,7 @@ const Topbar = () => {
                       {t("topbar.settings")}
                     </Link>
                   </DropdownMenuItem>
-                  {isAdmin && (
-                    <DropdownMenuItem asChild className="p-0">
-                      <Link
-                        to="/admin"
-                        className="flex items-center w-full p-2 cursor-pointer hover:bg-[#2a2a2a] rounded-sm"
-                      >
-                        <LayoutDashboardIcon className="w-4 h-4 mr-2" />
-                        {t("topbar.adminDashboard")}
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
+
                   <DropdownMenuItem
                     onClick={handleLogout}
                     className="text-red-400 p-2 cursor-pointer hover:bg-[#2a2a2a]"

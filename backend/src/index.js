@@ -1,4 +1,4 @@
-import dotenv from "dotenv";
+import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
 import { connectDB } from "./lib/db.js";
@@ -32,8 +32,6 @@ import { cleanAllTempDirectories } from "./lib/tempCleanup.service.js";
 import { getSitemap } from "./controller/sitemap.controller.js";
 import ogRoutes from "./routes/og.route.js";
 import { connectRedis } from "./lib/redis.js";
-
-dotenv.config();
 
 const PORT = process.env.PORT || 5000;
 

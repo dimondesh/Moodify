@@ -7,6 +7,7 @@ import {
   login,
   googleAuth,
   forgotPassword,
+  verifyResetCode,
   resetPassword,
   getMe,
   changePassword,
@@ -22,6 +23,7 @@ router.post("/resend-verification", resendVerification);
 router.post("/login", login);
 router.post("/google", googleAuth);
 router.post("/forgot-password", forgotPassword);
+router.post("/verify-reset-code", verifyResetCode);
 router.post("/reset-password", resetPassword);
 router.get("/me", protectRoute, getMe);
 router.post("/change-password", protectRoute, changePassword);

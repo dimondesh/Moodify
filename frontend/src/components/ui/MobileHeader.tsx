@@ -32,8 +32,7 @@ interface MobileHeaderProps {
 
 const MobileHeader = ({ title }: MobileHeaderProps) => {
   const { t } = useTranslation();
-  const { isAdmin, user: authUser, logout } = useAuthStore();
-  const disconnectSocket = useChatStore((s) => s.disconnectSocket);
+  const { user: authUser, logout } = useAuthStore();
   const { isUserSheetOpen, setUserSheetOpen, openCreatePlaylistDialog } =
     useUIStore();
   const { isOffline } = useOfflineStore();
@@ -45,7 +44,6 @@ const MobileHeader = ({ title }: MobileHeaderProps) => {
   );
 
   const handleLogout = async () => {
-    disconnectSocket();
     await logout();
   };
 
@@ -83,17 +81,7 @@ const MobileHeader = ({ title }: MobileHeaderProps) => {
           {t("topbar.settings")}
         </Link>
       </DrawerClose>
-      {isAdmin && (
-        <DrawerClose asChild>
-          <Link
-            to="/admin"
-            className="flex items-center p-2 cursor-pointer hover:bg-zinc-700 rounded-md"
-          >
-            <LayoutDashboardIcon className="w-4 h-4 mr-2" />
-            {t("topbar.adminDashboard")}
-          </Link>
-        </DrawerClose>
-      )}
+
       <div className="w-full h-px bg-zinc-700 my-1" />
       <DrawerClose asChild>
         <div

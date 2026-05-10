@@ -19,7 +19,8 @@ type AuthStep =
   | "signup_password"
   | "signup_name"
   | "verify_code"
-  | "reset_password";
+  | "reset_verify_code"
+  | "reset_new_password";
 
 interface AuthPageProps {
   mode: "login" | "register";
@@ -84,22 +85,21 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
   const { user, tempEmail, setTempEmail } = useAuthStore();
   const registerAccount = useAuthStore((s) => s.registerAccount);
   const verifyEmailCode = useAuthStore((s) => s.verifyEmailCode);
-  const resendVerificationEmail = useAuthStore((s) => s.resendVerificationEmail);
   const loginWithPassword = useAuthStore((s) => s.loginWithPassword);
 
   const rawStep = (searchParams.get("step") as AuthStep) || "email";
   let step = rawStep;
 
   if (mode === "login") {
-    if (
-      step === "signup_password" ||
-      step === "signup_name" ||
-      step === "verify_code"
-    ) {
+    if (step === "signup_password" || step === "signup_name") {
       step = "email";
     }
   } else if (mode === "register") {
-    if (step === "login_password" || step === "reset_password") {
+    if (
+      step === "login_password" ||
+      step === "reset_verify_code" ||
+      step === "reset_new_password"
+    ) {
       step = "email";
     }
   }
@@ -117,11 +117,38 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
   const [errorItem, setErrorItem] = useState<React.ReactNode>("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [verifyResendUntil, setVerifyResendUntil] = useState(0);
+  const [resetResendUntil, setResetResendUntil] = useState(0);
+  const [passwordResetJwt, setPasswordResetJwt] = useState<string | null>(
+    null,
+  );
+  const [, setResendTick] = useState(0);
 
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim();
 
   useEffect(() => {
+    const tmr = window.setInterval(() => {
+      if (verifyResendUntil > Date.now() || resetResendUntil > Date.now()) {
+        setResendTick((x) => x + 1);
+      }
+    }, 1000);
+    return () => window.clearInterval(tmr);
+  }, [verifyResendUntil, resetResendUntil]);
+
+  const verifyResendSecondsLeft = Math.max(
+    0,
+    Math.ceil((verifyResendUntil - Date.now()) / 1000),
+  );
+  const resetResendSecondsLeft = Math.max(
+    0,
+    Math.ceil((resetResendUntil - Date.now()) / 1000),
+  );
+
+  useEffect(() => {
     setErrorItem("");
+    setPasswordResetJwt(null);
+    setVerifyResendUntil(0);
+    setResetResendUntil(0);
     setFormData((prev) => ({
       ...prev,
       password: "",
@@ -189,7 +216,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
       const response = await axiosInstance.post("/auth/check-email", {
         email: formData.email,
       });
-      const exists = response.data.exists;
+      const exists = response.data.exists as boolean;
+      const needsVerification = !!response.data.needsVerification;
 
       if (mode === "login") {
         if (exists) {
@@ -208,7 +236,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
           );
         }
       } else {
-        if (exists) {
+        if (exists && needsVerification) {
+          setSearchParams({ step: "verify_code" });
+        } else if (exists) {
           setErrorItem(
             <div className="flex flex-col gap-1">
               <span>{t("auth.errorEmailInUse", "Этот email уже занят.")}</span>
@@ -261,10 +291,20 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
       await axiosInstance.post("/auth/forgot-password", {
         email: formData.email.trim().toLowerCase(),
       });
-      toast.success(t("auth.resetCodeSent"));
-      setSearchParams({ step: "reset_password" });
-    } catch {
-      toast.error(t("auth.errorResetFailed", "Ошибка при отправке письма"));
+      setResetResendUntil(Date.now() + 60_000);
+      setSearchParams({ step: "reset_verify_code" });
+      setFormData((prev) => ({ ...prev, resetCode: "" }));
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { status?: number; data?: { retryAfterSeconds?: number } };
+      };
+      if (err.response?.status === 429) {
+        const sec = err.response?.data?.retryAfterSeconds ?? 60;
+        setResetResendUntil(Date.now() + sec * 1000);
+        toast.error(t("auth.rateLimitWait", { seconds: sec }));
+      } else {
+        toast.error(t("auth.errorResetFailed", "Ошибка при отправке письма"));
+      }
     } finally {
       setIsLoading(false);
     }
@@ -290,8 +330,17 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
       setTempEmail("");
       setSearchParams({ step: "verify_code" });
       toast.success(t("auth.verificationCodeSent"));
-    } catch {
-      toast.error(t("auth.errorAuthFailed", "Ошибка регистрации"));
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { status?: number; data?: { retryAfterSeconds?: number } };
+      };
+      if (err.response?.status === 429) {
+        const sec = err.response?.data?.retryAfterSeconds ?? 60;
+        setVerifyResendUntil(Date.now() + sec * 1000);
+        toast.error(t("auth.rateLimitWait", { seconds: sec }));
+      } else {
+        toast.error(t("auth.errorAuthFailed", "Ошибка регистрации"));
+      }
     } finally {
       setIsLoading(false);
     }
@@ -319,17 +368,84 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
   const handleResendCode = async () => {
     setIsLoading(true);
     try {
-      await resendVerificationEmail(formData.email);
+      await axiosInstance.post("/auth/resend-verification", {
+        email: formData.email.trim().toLowerCase(),
+      });
       toast.success(t("auth.verificationCodeSent"));
-    } catch {
-      toast.error(t("auth.resendCodeFailed"));
+      setVerifyResendUntil(Date.now() + 60_000);
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { status?: number; data?: { retryAfterSeconds?: number } };
+      };
+      if (err.response?.status === 429) {
+        const sec = err.response?.data?.retryAfterSeconds ?? 60;
+        setVerifyResendUntil(Date.now() + sec * 1000);
+        toast.error(t("auth.rateLimitWait", { seconds: sec }));
+      } else {
+        toast.error(t("auth.resendCodeFailed"));
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
+  const handleResendResetEmail = async () => {
+    setIsLoading(true);
+    try {
+      await axiosInstance.post("/auth/forgot-password", {
+        email: formData.email.trim().toLowerCase(),
+      });
+      setResetResendUntil(Date.now() + 60_000);
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { status?: number; data?: { retryAfterSeconds?: number } };
+      };
+      if (err.response?.status === 429) {
+        const sec = err.response?.data?.retryAfterSeconds ?? 60;
+        setResetResendUntil(Date.now() + sec * 1000);
+        toast.error(t("auth.rateLimitWait", { seconds: sec }));
+      } else {
+        toast.error(t("auth.errorResetFailed"));
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyResetCodeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.resetCode.trim()) {
+      setErrorItem(t("auth.codeRequired"));
+      return;
+    }
+    setIsLoading(true);
+    setErrorItem("");
+    try {
+      const res = await axiosInstance.post("/auth/verify-reset-code", {
+        email: formData.email.trim().toLowerCase(),
+        code: formData.resetCode.trim(),
+      });
+      setPasswordResetJwt(res.data.resetToken);
+      setFormData((prev) => ({
+        ...prev,
+        resetCode: "",
+        newPassword: "",
+        confirmPassword: "",
+      }));
+      setSearchParams({ step: "reset_new_password" });
+    } catch {
+      setErrorItem(t("auth.codeInvalid"));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFinalResetPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passwordResetJwt) {
+      setSearchParams({ step: "reset_verify_code" });
+      return;
+    }
     if (formData.newPassword !== formData.confirmPassword) {
       toast.error(t("auth.passwordsDoNotMatch"));
       return;
@@ -341,15 +457,14 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
     setIsLoading(true);
     try {
       await axiosInstance.post("/auth/reset-password", {
-        email: formData.email.trim().toLowerCase(),
-        code: formData.resetCode.trim(),
+        resetToken: passwordResetJwt,
         newPassword: formData.newPassword,
       });
       toast.success(t("auth.passwordUpdated"));
+      setPasswordResetJwt(null);
       setSearchParams({ step: "login_password" });
       setFormData((prev) => ({
         ...prev,
-        resetCode: "",
         newPassword: "",
         confirmPassword: "",
       }));
@@ -387,9 +502,12 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
                 else if (step === "verify_code") {
                   if (mode === "register") setSearchParams({});
                   else setSearchParams({ step: "login_password" });
-                } else if (step === "reset_password")
+                } else if (step === "reset_verify_code") {
                   setSearchParams({ step: "login_password" });
-                else setSearchParams({});
+                } else if (step === "reset_new_password") {
+                  setPasswordResetJwt(null);
+                  setSearchParams({ step: "reset_verify_code" });
+                } else setSearchParams({});
               }}
               className="absolute -left-12 top-0 p-2 text-gray-400 hover:text-white rounded-full hover:bg-white/10 transition-colors z-10 hidden sm:block"
             >
@@ -719,27 +837,29 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
               <button
                 type="button"
                 onClick={handleResendCode}
-                disabled={isLoading}
-                className="mt-4 text-sm text-violet-500 hover:underline text-center"
+                disabled={isLoading || verifyResendSecondsLeft > 0}
+                className="mt-4 text-sm text-violet-500 hover:underline text-center disabled:opacity-50 disabled:no-underline"
               >
-                {t("auth.resendCode")}
+                {verifyResendSecondsLeft > 0
+                  ? t("auth.resendInSeconds", { seconds: verifyResendSecondsLeft })
+                  : t("auth.resendCode")}
               </button>
             </form>
           )}
 
-          {step === "reset_password" && (
+          {step === "reset_verify_code" && (
             <form
-              onSubmit={handleResetPasswordSubmit}
-              className="flex flex-col flex-1 gap-4"
+              onSubmit={handleVerifyResetCodeSubmit}
+              className="flex flex-col flex-1"
             >
-              <div className="text-center mb-4 shrink-0">
+              <div className="text-center mb-8 h-[80px] flex flex-col items-center justify-start shrink-0">
                 <h1 className="text-3xl font-bold mb-2">
-                  {t("auth.resetPasswordTitle")}
+                  {t("auth.resetVerifyCodeTitle")}
                 </h1>
                 <p className="text-gray-400 text-sm">{formData.email}</p>
               </div>
-              <p className="text-gray-400 text-sm text-center">
-                {t("auth.resetPasswordHint")}
+              <p className="text-gray-400 text-sm mb-4 text-center">
+                {t("auth.resetVerifyCodeHint")}
               </p>
               <div>
                 <Label className="text-sm text-gray-300 mb-2 block">
@@ -748,12 +868,52 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
                 <Input
                   name="resetCode"
                   inputMode="numeric"
+                  autoComplete="one-time-code"
                   maxLength={6}
                   value={formData.resetCode}
                   onChange={handleChange}
-                  className="bg-gray-900 border-gray-700 py-6 text-center text-xl tracking-widest"
+                  className="bg-gray-900 border-gray-700 py-6 text-center text-2xl tracking-[0.4em]"
                 />
+                <div className="min-h-[24px] mt-2">
+                  {errorItem && (
+                    <div className="text-red-500 text-xs">{errorItem}</div>
+                  )}
+                </div>
               </div>
+              <Button
+                type="submit"
+                disabled={isLoading || formData.resetCode.trim().length < 6}
+                className="w-full h-12 bg-violet-500 hover:bg-violet-600 text-black font-bold rounded-full mt-4 shrink-0"
+              >
+                {t("auth.resetVerifyCodeContinue")}
+              </Button>
+              <button
+                type="button"
+                onClick={handleResendResetEmail}
+                disabled={isLoading || resetResendSecondsLeft > 0}
+                className="mt-4 text-sm text-violet-500 hover:underline text-center disabled:opacity-50 disabled:no-underline"
+              >
+                {resetResendSecondsLeft > 0
+                  ? t("auth.resendInSeconds", { seconds: resetResendSecondsLeft })
+                  : t("auth.resendCode")}
+              </button>
+            </form>
+          )}
+
+          {step === "reset_new_password" && (
+            <form
+              onSubmit={handleFinalResetPasswordSubmit}
+              className="flex flex-col flex-1 gap-4"
+            >
+              <div className="text-center mb-4 shrink-0">
+                <h1 className="text-3xl font-bold mb-2">
+                  {t("auth.resetNewPasswordTitle")}
+                </h1>
+                <p className="text-gray-400 text-sm">{formData.email}</p>
+              </div>
+              <p className="text-gray-400 text-sm text-center">
+                {t("auth.resetNewPasswordHint")}
+              </p>
               <div>
                 <Label className="text-sm text-gray-300 mb-2 block">
                   {t("auth.newPasswordLabel")}
@@ -777,6 +937,11 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
                   onChange={handleChange}
                   className="bg-gray-900 border-gray-700 py-6"
                 />
+              </div>
+              <div className="min-h-[20px]">
+                {errorItem && (
+                  <div className="text-red-500 text-xs">{errorItem}</div>
+                )}
               </div>
               <Button
                 type="submit"

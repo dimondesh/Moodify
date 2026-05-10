@@ -218,6 +218,11 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       logout: async () => {
+        try {
+          useChatStore.getState().disconnectSocket();
+        } catch {
+          // ignore
+        }
         set({
           user: null,
           accessToken: null,
@@ -226,6 +231,11 @@ export const useAuthStore = create<AuthStore>()(
           error: null,
           tempEmail: "",
         });
+        if (typeof window !== "undefined") {
+          queueMicrotask(() => {
+            window.location.reload();
+          });
+        }
       },
 
       reset: () => {

@@ -10,8 +10,10 @@ const userSchema = new mongoose.Schema(
     emailVerified: { type: Boolean, default: false },
     emailVerificationCodeHash: { type: String, default: null },
     emailVerificationCodeExpires: { type: Date, default: null },
+    emailVerificationLastSentAt: { type: Date, default: null },
     passwordResetCodeHash: { type: String, default: null },
     passwordResetCodeExpires: { type: Date, default: null },
+    passwordResetLastSentAt: { type: Date, default: null },
     language: {
       type: String,
       enum: ["ru", "uk", "en"],
