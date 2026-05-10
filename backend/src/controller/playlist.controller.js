@@ -174,7 +174,12 @@ export const getPlaylistById = async (req, res, next) => {
         .json({ message: "Access denied. This is a private playlist." });
     }
 
-    res.status(200).json(playlist);
+    const payload = { ...playlist };
+    if (payload.type === "LIKED_SONGS" && payload.isSystem) {
+      delete payload.description;
+    }
+
+    res.status(200).json(payload);
   } catch (error) {
     console.error("Error in getPlaylistById:", error);
     next(error);

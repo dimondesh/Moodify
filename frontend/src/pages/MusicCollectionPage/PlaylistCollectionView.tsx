@@ -162,7 +162,7 @@ const PlaylistCollectionView = () => {
     isUserEditable && currentPlaylist?.type !== "LIKED_SONGS",
   );
 
-  const { backgrounds, isColorLoading } = useCollectionDominantBackground(
+  const { backgrounds } = useCollectionDominantBackground(
     currentPlaylist?.imageUrl,
     playlistId,
   );
@@ -536,7 +536,7 @@ const PlaylistCollectionView = () => {
     });
   };
 
-  if (localIsLoading || isColorLoading) {
+  if (localIsLoading) {
     return (
       <>
         <Helmet>
@@ -598,11 +598,15 @@ const PlaylistCollectionView = () => {
     currentPlaylist.owner?.fullName ||
     currentPlaylist.sourceName ||
     t("common.unknownArtist");
+  const playlistDescriptionText =
+    currentPlaylist.type === "LIKED_SONGS" && currentPlaylist.isSystem
+      ? t("pages.likedSongs.systemDescription")
+      : (currentPlaylist.description?.trim() || "");
   const metaDescription = `Listen to "${
     currentPlaylist.title
   }", a playlist by ${ownerName} on Moodify. Features ${
     currentPlaylist.songs?.length || 0
-  } songs. ${currentPlaylist.description || ""}`;
+  } songs.${playlistDescriptionText ? ` ${playlistDescriptionText}` : ""}`;
 
   return (
     <>
@@ -634,9 +638,9 @@ const PlaylistCollectionView = () => {
                 <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold mt-2 mb-2 sm:my-4 break-words">
                   {currentPlaylist.title}
                 </h1>
-                {currentPlaylist.description && (
+                {playlistDescriptionText && (
                   <p className="text-gray-400 text-base mt-2 break-words">
-                    {currentPlaylist.description}
+                    {playlistDescriptionText}
                   </p>
                 )}
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 text-xs sm:text-sm text-gray-100 mt-2">

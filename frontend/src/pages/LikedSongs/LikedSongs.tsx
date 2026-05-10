@@ -141,8 +141,11 @@ const LikedSongsPage = () => {
             </div>
           </div>
           <div className="items-center hidden md:flex text-xs">
-            {song.likedAt
-              ? format(new Date(song.likedAt), "MMM dd, yyyy")
+            {song.likedAt || song.addedAt
+              ? format(
+                  new Date(song.likedAt || song.addedAt || 0),
+                  "MMM dd, yyyy",
+                )
               : "N/A"}
           </div>
           <div className="flex items-center text-xs sm:text-sm flex-shrink-0 justify-end md:mr-10">

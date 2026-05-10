@@ -33,7 +33,7 @@ import { useTranslation } from "react-i18next";
 import { Download } from "lucide-react";
 import { useOfflineStore } from "../stores/useOfflineStore";
 import { useUIStore } from "../stores/useUIStore";
-import { getOptimizedImageUrl } from "@/lib/utils";
+import { getOptimizedImageUrl, normalizeAlbumKind } from "@/lib/utils";
 import UniversalPlayButton from "../components/ui/UniversalPlayButton";
 import EntityTypeFilter from "../components/ui/EntityTypeFilter";
 
@@ -156,6 +156,8 @@ const LeftSidebar = () => {
     });
 
     [...(myPlaylists || []), ...(playlists || [])].forEach((playlist) => {
+      if (playlist.type === "LIKED_SONGS") return;
+      if (likedPlaylistId && playlist._id === likedPlaylistId) return;
       if (!libraryItemsMap.has(playlist._id)) {
         if (shouldIncludeItem(playlist._id, "playlist")) {
           libraryItemsMap.set(playlist._id, {
@@ -211,6 +213,7 @@ const LeftSidebar = () => {
     playlists,
     followedArtists,
     likedSongs,
+    likedPlaylistId,
     t,
     isOffline,
     isDownloaded,
@@ -400,10 +403,7 @@ const LeftSidebar = () => {
                     case "album": {
                       const albumItem = item as AlbumItem;
                       linkPath = `/albums/${albumItem._id}`;
-                      subtitle = `${
-                        t(`pages.album.${albumItem.albumType}`) ||
-                        t("sidebar.subtitle.album")
-                      } • ${getArtistNames(albumItem.artist)}`;
+                      subtitle = `${t(`sidebar.subtitle.${normalizeAlbumKind(albumItem.albumType)}`)} • ${getArtistNames(albumItem.artist)}`;
                       break;
                     }
                     case "playlist": {
@@ -417,9 +417,7 @@ const LeftSidebar = () => {
                     }
                     case "liked-songs": {
                       const likedItem = item as LikedSongsItem;
-                      linkPath = likedPlaylistId
-                        ? `/playlists/${likedPlaylistId}`
-                        : "/liked-songs";
+                      linkPath = "/liked-songs";
                       subtitle = `${t("sidebar.subtitle.playlist")} • ${
                         likedItem.songsCount
                       } ${
@@ -518,10 +516,7 @@ const LeftSidebar = () => {
                     case "album": {
                       const albumItem = item as AlbumItem;
                       linkPath = `/albums/${albumItem._id}`;
-                      subtitle = `${
-                        t(`pages.album.${albumItem.albumType}`) ||
-                        t("sidebar.subtitle.album")
-                      } • ${getArtistNames(albumItem.artist)}`;
+                      subtitle = `${t(`sidebar.subtitle.${normalizeAlbumKind(albumItem.albumType)}`)} • ${getArtistNames(albumItem.artist)}`;
                       break;
                     }
                     case "playlist": {
@@ -535,9 +530,7 @@ const LeftSidebar = () => {
                     }
                     case "liked-songs": {
                       const likedItem = item as LikedSongsItem;
-                      linkPath = likedPlaylistId
-                        ? `/playlists/${likedPlaylistId}`
-                        : "/liked-songs";
+                      linkPath = "/liked-songs";
                       subtitle = `${t("sidebar.subtitle.playlist")} • ${
                         likedItem.songsCount
                       } ${

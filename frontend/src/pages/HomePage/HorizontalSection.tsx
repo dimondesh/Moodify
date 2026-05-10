@@ -11,7 +11,11 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { ScrollArea, ScrollBar } from "../../components/ui/scroll-area";
 import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
-import { getArtistNames, getOptimizedImageUrl } from "../../lib/utils";
+import {
+  getArtistNames,
+  getOptimizedImageUrl,
+  normalizeAlbumKind,
+} from "../../lib/utils";
 import { useMusicStore } from "../../stores/useMusicStore";
 import type { Song, Album, Playlist, Artist } from "../../types";
 import HorizontalSectionSkeleton from "./HorizontalSectionSkeleton";
@@ -198,11 +202,11 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
         return getArtistNames((item as Song).artist, allArtists);
       case "album": {
         const album = item as Album;
-        const albumType = album.type || "album";
+        const kind = normalizeAlbumKind(album.type);
         const albumArtists = album.artist
           ? getArtistNames(album.artist, allArtists)
-          : t("sidebar.subtitle.unknownArtist");
-        return `${t(`sidebar.subtitle.${albumType}`)} • ${albumArtists}`;
+          : t("common.unknownArtist");
+        return `${t(`sidebar.subtitle.${kind}`)} • ${albumArtists}`;
       }
       case "playlist": {
         const playlist = item as Playlist;

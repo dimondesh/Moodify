@@ -23,7 +23,7 @@ export function useCollectionDominantBackground(
     const updateBackgroundColor = (color: string) => {
       backgroundKeyRef.current += 1;
       const newKey = backgroundKeyRef.current;
-      setBackgrounds((prev) => [{ key: newKey, color }, ...prev.slice(0, 1)]);
+      setBackgrounds([{ key: newKey, color }]);
     };
 
     if (imageUrl) {

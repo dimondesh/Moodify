@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 import {
   getQuickPicks,
   getTrendingSongs,
@@ -12,7 +11,7 @@ import {
   getPlaylistRecommendations,
 } from "./user.controller.js";
 import { Playlist } from "../models/playlist.model.js";
-import { Library } from "../models/library.model.js";
+import { buildLibrarySummaryForUser } from "./library.controller.js";
 
 const HOME_SECTION_LIMIT = 12;
 
@@ -228,37 +227,5 @@ export const getBootstrapData = async (req, res, next) => {
 
 // Очищенная от удаленных моделей агрегация
 async function getOptimizedLibrarySummary(userId) {
-  const objectId = new mongoose.Types.ObjectId(userId);
-  const libraryData = await Library.aggregate([
-    { $match: { userId: objectId } },
-    {
-      $lookup: {
-        from: "albums",
-        localField: "albums.albumId",
-        foreignField: "_id",
-        as: "albumDetails",
-        pipeline: [{ $project: { title: 1, artist: 1, imageUrl: 1 } }],
-      },
-    },
-    {
-      $lookup: {
-        from: "playlists",
-        localField: "playlists.playlistId",
-        foreignField: "_id",
-        as: "playlistDetails",
-        pipeline: [{ $project: { title: 1, owner: 1, imageUrl: 1, type: 1 } }],
-      },
-    },
-    {
-      $project: {
-        _id: 0,
-        albums: "$albumDetails",
-        playlists: "$playlistDetails",
-      },
-    },
-  ]);
-
-  return libraryData.length > 0
-    ? libraryData[0]
-    : { albums: [], playlists: [] };
+  return buildLibrarySummaryForUser(userId);
 }

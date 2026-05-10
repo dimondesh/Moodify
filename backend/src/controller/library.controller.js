@@ -6,6 +6,87 @@ import { User } from "../models/user.model.js";
 const SONG_MINIMAL_SELECT =
   "_id title artist albumId imageUrl duration playCount";
 
+const sortByLibraryAddedAtDesc = (a, b) => {
+  const ta = new Date(a.addedAt ?? 0).getTime();
+  const tb = new Date(b.addedAt ?? 0).getTime();
+  return tb - ta;
+};
+
+/** Shared by GET /library/summary and home bootstrap — preserves addedAt and newest-first order. */
+export async function buildLibrarySummaryForUser(userId) {
+  if (!userId) {
+    return { albums: [], playlists: [], followedArtists: [] };
+  }
+
+  const library = await Library.findOne({ userId }).lean();
+  if (!library) {
+    return { albums: [], playlists: [], followedArtists: [] };
+  }
+
+  const albumEntries = library.albums || [];
+  const playlistEntries = library.playlists || [];
+  const artistEntries = library.followedArtists || [];
+
+  const albumIds = albumEntries.map((a) => a.albumId);
+  const playlistIds = playlistEntries.map((p) => p.playlistId);
+  const artistIds = artistEntries.map((a) => a.artistId);
+
+  const [albumDocs, playlistDocs, artistDocs] = await Promise.all([
+    mongoose
+      .model("Album")
+      .find({ _id: { $in: albumIds } })
+      .select("title imageUrl type artist")
+      .populate({ path: "artist", select: "name imageUrl" })
+      .lean(),
+    mongoose
+      .model("Playlist")
+      .find({ _id: { $in: playlistIds } })
+      .select("title imageUrl owner isPublic type isSystem updatedAt")
+      .populate({ path: "owner", select: "fullName imageUrl" })
+      .lean(),
+    mongoose
+      .model("Artist")
+      .find({ _id: { $in: artistIds } })
+      .select("name imageUrl createdAt")
+      .lean(),
+  ]);
+
+  const albumById = new Map(albumDocs.map((a) => [a._id.toString(), a]));
+  const playlistById = new Map(
+    playlistDocs.map((p) => [p._id.toString(), p]),
+  );
+  const artistById = new Map(artistDocs.map((a) => [a._id.toString(), a]));
+
+  const albums = albumEntries
+    .map((entry) => {
+      const doc = albumById.get(entry.albumId.toString());
+      if (!doc) return null;
+      return { ...doc, addedAt: entry.addedAt };
+    })
+    .filter(Boolean)
+    .sort(sortByLibraryAddedAtDesc);
+
+  const playlists = playlistEntries
+    .map((entry) => {
+      const doc = playlistById.get(entry.playlistId.toString());
+      if (!doc) return null;
+      return { ...doc, addedAt: entry.addedAt };
+    })
+    .filter(Boolean)
+    .sort(sortByLibraryAddedAtDesc);
+
+  const followedArtists = artistEntries
+    .map((entry) => {
+      const doc = artistById.get(entry.artistId.toString());
+      if (!doc) return null;
+      return { ...doc, addedAt: entry.addedAt };
+    })
+    .filter(Boolean)
+    .sort(sortByLibraryAddedAtDesc);
+
+  return { albums, playlists, followedArtists };
+}
+
 export const getLibraryAlbums = async (req, res, next) => {
   try {
     const userId = req.user?.id;
@@ -74,25 +155,36 @@ export const toggleSongLikeInLibrary = async (req, res, next) => {
 
     if (!likedPlaylist) {
       likedPlaylist = new Playlist({
-        title: "Liked Songs", // Потом можно заменить на ключ локализации
-        description: "Ваши сохраненные треки",
-        imageUrl: "/liked.png", // Дефолтная картинка из папки public
+        title: "Liked Songs",
+        imageUrl: "/liked.png",
         owner: userId,
         type: "LIKED_SONGS",
         isSystem: true,
         isPublic: false,
         songs: [],
+        songLikeTimestamps: {},
       });
     }
 
-    const songIndex = likedPlaylist.songs.indexOf(songId);
+    if (!likedPlaylist.songLikeTimestamps) {
+      likedPlaylist.songLikeTimestamps = {};
+    }
+
+    const sid = songId.toString();
+    const songIndex = likedPlaylist.songs.findIndex(
+      (id) => id.toString() === sid,
+    );
     let isLikedStatus;
 
     if (songIndex > -1) {
       likedPlaylist.songs.splice(songIndex, 1);
+      delete likedPlaylist.songLikeTimestamps[sid];
+      likedPlaylist.markModified("songLikeTimestamps");
       isLikedStatus = false;
     } else {
       likedPlaylist.songs.push(songId);
+      likedPlaylist.songLikeTimestamps[sid] = new Date();
+      likedPlaylist.markModified("songLikeTimestamps");
       isLikedStatus = true;
     }
 
@@ -123,8 +215,35 @@ export const getLikedSongs = async (req, res, next) => {
 
     if (!likedPlaylist) return res.json({ songs: [], playlistId: null });
 
-    const rawSongs = likedPlaylist.songs || [];
-    const songs = rawSongs.slice().reverse();
+    const rawSongs = (likedPlaylist.songs || []).filter(Boolean);
+    const ts = {
+      ...(typeof likedPlaylist.songLikeTimestamps === "object" &&
+      likedPlaylist.songLikeTimestamps !== null
+        ? likedPlaylist.songLikeTimestamps
+        : {}),
+    };
+    const fallbackLegacy = likedPlaylist.createdAt || new Date();
+    let timestampsDirty = false;
+    for (const s of rawSongs) {
+      const id = s._id.toString();
+      if (ts[id] == null) {
+        ts[id] = fallbackLegacy;
+        timestampsDirty = true;
+      }
+    }
+    if (timestampsDirty) {
+      await Playlist.updateOne(
+        { _id: likedPlaylist._id },
+        { $set: { songLikeTimestamps: ts } },
+      );
+    }
+
+    const enriched = rawSongs.map((s) => {
+      const id = s._id.toString();
+      const likedAt = ts[id];
+      return { ...s, likedAt: likedAt ?? null };
+    });
+    const songs = enriched.slice().reverse();
     res.json({ songs, playlistId: likedPlaylist._id });
   } catch (err) {
     next(err);
@@ -267,37 +386,8 @@ export const getOwnedPlaylists = async (req, res) => {
 
 export const getLibrarySummary = async (req, res, next) => {
   try {
-    const userId = req.user?.id;
-    const library = await Library.findOne({ userId }).lean();
-
-    if (!library) {
-      return res.json({ albums: [], playlists: [], followedArtists: [] });
-    }
-
-    const albumIds = library.albums?.map((a) => a.albumId) || [];
-    const playlistIds = library.playlists?.map((p) => p.playlistId) || [];
-    const artistIds = library.followedArtists?.map((a) => a.artistId) || [];
-
-    const [albums, playlists, followedArtists] = await Promise.all([
-      mongoose
-        .model("Album")
-        .find({ _id: { $in: albumIds } })
-        .select("title imageUrl")
-        .lean(),
-      mongoose
-        .model("Playlist")
-        .find({ _id: { $in: playlistIds } })
-        .select("title imageUrl owner isPublic type isSystem")
-        .populate({ path: "owner", select: "fullName imageUrl" })
-        .lean(),
-      mongoose
-        .model("Artist")
-        .find({ _id: { $in: artistIds } })
-        .select("name imageUrl")
-        .lean(),
-    ]);
-
-    res.json({ albums, playlists, followedArtists });
+    const data = await buildLibrarySummaryForUser(req.user?.id);
+    res.json(data);
   } catch (err) {
     next(err);
   }

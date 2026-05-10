@@ -15,6 +15,12 @@ const playlistSchema = new mongoose.Schema(
 
     songs: [{ type: mongoose.Schema.Types.ObjectId, ref: "Song" }],
 
+    /** LIKED_SONGS only: map songId string -> Date (when the user liked the track) */
+    songLikeTimestamps: {
+      type: mongoose.Schema.Types.Mixed,
+      default: () => ({}),
+    },
+
     isPublic: { type: Boolean, default: false },
 
     // --- МАГИЯ УНИФИКАЦИИ ---

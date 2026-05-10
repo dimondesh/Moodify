@@ -1028,6 +1028,7 @@
     },
     "likedSongs": {
       "title": "Liked Songs",
+      "systemDescription": "Songs you have liked in one place.",
       "empty": "There are no liked songs yet. Add songs to see them here!",
       "error": "Error",
       "playlist": "Playlist",

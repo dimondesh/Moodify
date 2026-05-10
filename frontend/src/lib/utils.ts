@@ -3,6 +3,17 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import type { Artist } from "../types";
 
+/** Album `type` from API: Album | Single | EP */
+const ALBUM_KINDS = ["Album", "Single", "EP"] as const;
+export type AlbumKind = (typeof ALBUM_KINDS)[number];
+
+export function normalizeAlbumKind(raw?: string | null): AlbumKind {
+  if (raw && (ALBUM_KINDS as readonly string[]).includes(raw)) {
+    return raw as AlbumKind;
+  }
+  return "Album";
+}
+
 export const getArtistNames = (
   artistData: (Artist | string) | (Artist | string)[] | undefined,
   allArtists: Artist[] = []
