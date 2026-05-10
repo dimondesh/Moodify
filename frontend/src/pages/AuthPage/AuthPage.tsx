@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -33,9 +33,21 @@ interface AuthPageProps {
 const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, tempEmail, setTempEmail } = useAuthStore();
 
-  const [step, setStep] = useState<AuthStep>("email");
+  const rawStep = (searchParams.get("step") as AuthStep) || "email";
+  let step = rawStep;
+
+  if (
+    mode === "login" &&
+    (step === "signup_password" || step === "signup_name")
+  ) {
+    step = "email";
+  } else if (mode === "register" && step === "login_password") {
+    step = "email";
+  }
+
   const [formData, setFormData] = useState({
     email: tempEmail || "",
     password: "",
@@ -48,10 +60,16 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    setStep("email");
     setErrorItem("");
     setFormData((prev) => ({ ...prev, password: "", fullName: "" }));
+    if (searchParams.has("step")) {
+      setSearchParams({});
+    }
   }, [mode]);
+
+  useEffect(() => {
+    setErrorItem("");
+  }, [step]);
 
   useEffect(() => {
     if (user) {
@@ -127,7 +145,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
 
       if (mode === "login") {
         if (exists) {
-          setStep("login_password");
+          setSearchParams({ step: "login_password" }); // Пушим новый шаг в URL
         } else {
           setErrorItem(
             <div className="flex flex-col gap-1">
@@ -155,7 +173,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
             </div>,
           );
         } else {
-          setStep("signup_password");
+          setSearchParams({ step: "signup_password" });
         }
       }
     } catch (error) {
@@ -174,7 +192,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
       setTempEmail("");
       navigate("/");
     } catch (error: any) {
-      setErrorItem(t("auth.errorInvalidCredentials", "Неверный пароль"));
+      setErrorItem(
+        t("auth.errorInvalidCredentials", "Неверный логин или пароль"),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -199,7 +219,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
 
   const handleSignupPasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isPasswordValid) setStep("signup_name");
+    if (isPasswordValid) setSearchParams({ step: "signup_name" });
   };
 
   const handleSignupComplete = async (e: React.FormEvent) => {
@@ -266,11 +286,11 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
           {step !== "email" && (
             <button
               onClick={() => {
-                if (step === "signup_name") setStep("signup_password");
-                else setStep("email");
-                setErrorItem("");
+                if (step === "signup_name")
+                  setSearchParams({ step: "signup_password" });
+                else setSearchParams({});
               }}
-              className="absolute left-0 top-0 p-2 text-gray-400 hover:text-white rounded-full hover:bg-white/10 transition-colors z-10"
+              className="absolute -left-12 top-0 p-2 text-gray-400 hover:text-white rounded-full hover:bg-white/10 transition-colors z-10 hidden sm:block"
             >
               <ArrowLeft size={24} />
             </button>
