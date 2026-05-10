@@ -17,6 +17,16 @@ import { optimizeAndUploadImage } from "../lib/image.service.js";
 const SONG_MINIMAL_SELECT =
   "_id title imageUrl duration playCount albumId createdAt";
 
+export const populatePlaylistEmbeddedSongs = {
+  path: "songs",
+  select: SONG_MINIMAL_SELECT,
+  populate: {
+    path: "artist",
+    model: "Artist",
+    select: "name imageUrl",
+  },
+};
+
 const uploadImageToBunny = async (file) => {
   try {
     const fileName = `${uuidv4()}${path.extname(file.name)}`;
@@ -83,15 +93,7 @@ export const getMyPlaylists = async (req, res, next) => {
 
     const createdPlaylists = await Playlist.find({ owner: userId })
       .populate("owner", "fullName imageUrl")
-      .populate({
-        path: "songs",
-        select: SONG_MINIMAL_SELECT,
-        populate: {
-          path: "artist",
-          model: "Artist",
-          select: "name imageUrl",
-        },
-      })
+      .populate(populatePlaylistEmbeddedSongs)
       .lean();
 
     const userLibrary = await Library.findOne({ userId })
@@ -103,15 +105,7 @@ export const getMyPlaylists = async (req, res, next) => {
             path: "owner",
             select: "fullName imageUrl",
           },
-          {
-            path: "songs",
-            select: SONG_MINIMAL_SELECT,
-            populate: {
-              path: "artist",
-              model: "Artist",
-              select: "name imageUrl",
-            },
-          },
+          populatePlaylistEmbeddedSongs,
         ],
       })
       .lean();
@@ -149,15 +143,7 @@ export const getPlaylistById = async (req, res, next) => {
     const playlistId = req.params.id;
     const playlist = await Playlist.findById(playlistId)
       .populate("owner", "fullName imageUrl")
-      .populate({
-        path: "songs",
-        select: SONG_MINIMAL_SELECT,
-        populate: {
-          path: "artist",
-          model: "Artist",
-          select: "name imageUrl",
-        },
-      })
+      .populate(populatePlaylistEmbeddedSongs)
       .lean();
 
     if (!playlist) {
@@ -224,15 +210,7 @@ export const updatePlaylist = async (req, res, next) => {
 
     const updatedPlaylist = await Playlist.findById(playlistId)
       .populate("owner", "fullName imageUrl")
-      .populate({
-        path: "songs",
-        select: SONG_MINIMAL_SELECT,
-        populate: {
-          path: "artist",
-          model: "Artist",
-          select: "name imageUrl",
-        },
-      })
+      .populate(populatePlaylistEmbeddedSongs)
       .lean();
 
     req.io
@@ -310,11 +288,7 @@ export const addSongToPlaylist = async (req, res, next) => {
 
     const updatedPlaylist = await Playlist.findById(playlistId)
       .populate("owner", "fullName imageUrl")
-      .populate({
-        path: "songs",
-        select: SONG_MINIMAL_SELECT,
-        populate: { path: "artist", model: "Artist", select: "name imageUrl" },
-      })
+      .populate(populatePlaylistEmbeddedSongs)
       .lean();
     console.log(
       `[SOCKET EMIT] Sending 'playlist_updated' to room 'playlist-${playlistId}' after adding a song.`,
@@ -358,11 +332,7 @@ export const removeSongFromPlaylist = async (req, res, next) => {
     await playlist.save();
     const updatedPlaylist = await Playlist.findById(playlistId)
       .populate("owner", "fullName imageUrl")
-      .populate({
-        path: "songs",
-        select: SONG_MINIMAL_SELECT,
-        populate: { path: "artist", model: "Artist", select: "name imageUrl" },
-      })
+      .populate(populatePlaylistEmbeddedSongs)
       .lean();
     console.log(
       `[BACKEND] Emitting 'playlist_updated' to room 'playlist-${playlistId}' after removing a song. New song count: ${updatedPlaylist.songs.length}`,
@@ -447,15 +417,7 @@ export const getPublicPlaylists = async (
   try {
     const publicPlaylists = await Playlist.find({ isPublic: true })
       .populate("owner", "fullName imageUrl")
-      .populate({
-        path: "songs",
-        select: SONG_MINIMAL_SELECT,
-        populate: {
-          path: "artist",
-          model: "Artist",
-          select: "name imageUrl",
-        },
-      })
+      .populate(populatePlaylistEmbeddedSongs)
       .limit(18)
       .lean();
 
@@ -665,11 +627,7 @@ export const createPlaylistWithAI = async (req, res, next) => {
 
     const populatedPlaylist = await Playlist.findById(newPlaylist._id)
       .populate("owner", "fullName imageUrl")
-      .populate({
-        path: "songs",
-        select: SONG_MINIMAL_SELECT,
-        populate: { path: "artist", model: "Artist", select: "name imageUrl" },
-      })
+      .populate(populatePlaylistEmbeddedSongs)
       .lean();
 
     res.status(201).json(populatedPlaylist);

@@ -157,6 +157,16 @@ export const usePlayerStore = create<PlayerStore>()(
       const ensureSongData = async (song: Song): Promise<Song | null> => {
         // Онлайн: догружаем с сервера
         // Оффлайн: пытаемся взять из IndexedDB (songs), иначе возвращаем как есть
+        const songId = song?._id;
+        if (
+          !songId ||
+          songId === "undefined" ||
+          typeof songId !== "string"
+        ) {
+          console.error("ensureSongData: invalid song id", song);
+          return null;
+        }
+
         if (song.hlsUrl) return song;
 
         if (useOfflineStore.getState().isOffline) {
@@ -173,7 +183,7 @@ export const usePlayerStore = create<PlayerStore>()(
 
         set({ isFetchingLyrics: true });
         try {
-          const response = await axiosInstance.get(`/songs/${song._id}`);
+          const response = await axiosInstance.get(`/songs/${songId}`);
           const fullData = response.data;
 
           const completeSong = {

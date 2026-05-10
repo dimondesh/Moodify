@@ -15,6 +15,7 @@ import path from "path";
 import { ListenHistory } from "../models/listenHistory.model.js";
 import { Song } from "../models/song.model.js";
 import { Playlist } from "../models/playlist.model.js";
+import { populatePlaylistEmbeddedSongs } from "./playlist.controller.js";
 import { optimizeAndUploadImage } from "../lib/image.service.js";
 
 const SONG_MINIMAL_SELECT =
@@ -641,6 +642,7 @@ export const getPlaylistRecommendations = async (
       .sort({ createdAt: -1 })
       .limit(10)
       .populate("owner", "fullName")
+      .populate(populatePlaylistEmbeddedSongs)
       .lean();
 
     if (returnInternal) return playlists;

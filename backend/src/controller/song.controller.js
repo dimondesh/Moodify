@@ -1,5 +1,6 @@
 // backend/src/controller/song.controller.js
 
+import mongoose from "mongoose";
 import { Song } from "../models/song.model.js";
 import { ListenHistory } from "../models/listenHistory.model.js";
 import { User } from "../models/user.model.js";
@@ -416,7 +417,15 @@ export const getImageForColorAnalysis = async (req, res, next) => {
 
 export const getSongById = async (req, res, next) => {
   try {
-    const song = await Song.findById(req.params.id);
+    const { id } = req.params;
+    if (
+      !id ||
+      id === "undefined" ||
+      !mongoose.Types.ObjectId.isValid(id)
+    ) {
+      return res.status(400).json({ message: "Invalid song id" });
+    }
+    const song = await Song.findById(id);
     if (!song) return res.status(404).json({ message: "Song not found" });
     res.status(200).json(song);
   } catch (error) {
@@ -426,7 +435,15 @@ export const getSongById = async (req, res, next) => {
 
 export const getSongLyrics = async (req, res, next) => {
   try {
-    const song = await Song.findById(req.params.id).select("lyrics");
+    const { id } = req.params;
+    if (
+      !id ||
+      id === "undefined" ||
+      !mongoose.Types.ObjectId.isValid(id)
+    ) {
+      return res.status(400).json({ message: "Invalid song id" });
+    }
+    const song = await Song.findById(id).select("lyrics");
     if (!song) return res.status(404).json({ message: "Song not found" });
     res.status(200).json({ lyrics: song.lyrics });
   } catch (error) {

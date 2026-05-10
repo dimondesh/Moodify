@@ -68,16 +68,15 @@ const UniversalPlayButton = ({
     }
 
     const hasSongs = entitySongs.length > 0;
-    const hasValidSongs = entitySongs.some((song) => song.hlsUrl);
+    const populatedSongs = entitySongs.every(
+      (s) =>
+        typeof s === "object" &&
+        s !== null &&
+        typeof (s as Song)._id === "string" &&
+        (s as Song)._id.length > 0,
+    );
 
-    // Если песни есть и они валидные, не загружаем заново
-    if (hasSongs && hasValidSongs) {
-      loadedEntitiesRef.current.add(entityKey);
-      return;
-    }
-
-    // Если уже загружаем или уже загружены, не загружаем заново
-    if (entitySongs.length > 0) {
+    if (hasSongs && populatedSongs) {
       loadedEntitiesRef.current.add(entityKey);
       return;
     }
@@ -132,36 +131,44 @@ const UniversalPlayButton = ({
       case "song":
         return songs || [entity as Song];
       case "album":
-        // Проверяем, это LibraryItem или обычный Album
         if ("type" in entity && entity.type === "album") {
-          return loadedSongs; // Для LibraryItem используем загруженные песни
+          return loadedSongs;
         }
-        return (entity as Album).songs?.length > 0
-          ? (entity as Album).songs
-          : loadedSongs;
+        {
+          const a = entity as Album;
+          return loadedSongs.length > 0
+            ? loadedSongs
+            : a.songs?.length
+              ? a.songs
+              : [];
+        }
       case "playlist":
-        // Проверяем, это LibraryItem или обычный Playlist
         if ("type" in entity && entity.type === "playlist") {
-          return loadedSongs; // Для LibraryItem используем загруженные песни
+          return loadedSongs;
         }
-        return (entity as Playlist).songs?.length > 0
-          ? (entity as Playlist).songs
-          : loadedSongs;
+        {
+          const p = entity as Playlist;
+          return loadedSongs.length > 0
+            ? loadedSongs
+            : p.songs?.length
+              ? p.songs
+              : [];
+        }
       case "liked-songs":
-        // Для liked-songs всегда используем загруженные песни
         return loadedSongs;
       case "artist":
-        // Проверяем, это LibraryItem или обычный Artist
         if (
           "type" in entity &&
           entity.type === "artist" &&
           !("songs" in entity)
         ) {
-          // Это LibraryItem без песен, нужно загружать
           return loadedSongs.length > 0 ? loadedSongs.slice(0, 5) : [];
         }
-        // Для артистов из ProfileSection песни уже приходят в entity.songs
-        return (entity as Artist).songs?.slice(0, 5) || [];
+        {
+          const a = entity as Artist;
+          const slice = a.songs?.slice(0, 5) || [];
+          return loadedSongs.length > 0 ? loadedSongs.slice(0, 5) : slice;
+        }
       default:
         return [];
     }

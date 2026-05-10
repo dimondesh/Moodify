@@ -12,6 +12,7 @@ import {
 } from "./user.controller.js";
 import { Playlist } from "../models/playlist.model.js";
 import { buildLibrarySummaryForUser } from "./library.controller.js";
+import { populatePlaylistEmbeddedSongs } from "./playlist.controller.js";
 
 const HOME_SECTION_LIMIT = 12;
 
@@ -34,6 +35,7 @@ export const getSecondaryHomePageData = async (req, res, next) => {
       isPublic: true,
     })
       .limit(HOME_SECTION_LIMIT)
+      .populate(populatePlaylistEmbeddedSongs)
       .lean();
 
     // Обычные публичные плейлисты юзеров
@@ -43,6 +45,7 @@ export const getSecondaryHomePageData = async (req, res, next) => {
     })
       .limit(HOME_SECTION_LIMIT)
       .populate("owner", "fullName")
+      .populate(populatePlaylistEmbeddedSongs)
       .lean();
 
     const commonPromises = [
@@ -66,6 +69,7 @@ export const getSecondaryHomePageData = async (req, res, next) => {
         },
       })
         .limit(HOME_SECTION_LIMIT)
+        .populate(populatePlaylistEmbeddedSongs)
         .lean();
 
       userSpecificPromises = [
@@ -127,6 +131,7 @@ export const getBootstrapData = async (req, res, next) => {
       isPublic: true,
     })
       .limit(HOME_SECTION_LIMIT)
+      .populate(populatePlaylistEmbeddedSongs)
       .lean();
     const publicPlaylistsPromise = Playlist.find({
       type: "USER_CREATED",
@@ -134,6 +139,7 @@ export const getBootstrapData = async (req, res, next) => {
     })
       .limit(HOME_SECTION_LIMIT)
       .populate("owner", "fullName")
+      .populate(populatePlaylistEmbeddedSongs)
       .lean();
 
     const commonPromises = [
@@ -157,6 +163,7 @@ export const getBootstrapData = async (req, res, next) => {
         },
       })
         .limit(HOME_SECTION_LIMIT)
+        .populate(populatePlaylistEmbeddedSongs)
         .lean();
 
       userSpecificPromises = [
