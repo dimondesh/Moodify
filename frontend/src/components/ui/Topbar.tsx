@@ -3,7 +3,6 @@
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import {
-  LayoutDashboardIcon,
   Search,
   LogOut,
   Settings,

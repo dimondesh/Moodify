@@ -15,14 +15,7 @@ import {
   DrawerTrigger,
   DrawerClose,
 } from "./drawer";
-import {
-  LayoutDashboardIcon,
-  LogOut,
-  Settings,
-  UserIcon,
-  Plus,
-  MessageCircle,
-} from "lucide-react";
+import { LogOut, Settings, UserIcon, Plus, MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useChatStore } from "../../stores/useChatStore";
 
