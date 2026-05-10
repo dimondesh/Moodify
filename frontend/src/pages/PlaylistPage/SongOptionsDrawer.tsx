@@ -16,6 +16,8 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getArtistNames } from "@/lib/utils";
 import AddToPlaylistSheet from "./AddToPlaylistSheet";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth } from "@/lib/firebase";
 
 interface SongOptionsDrawerProps {
   song: Song | null;
@@ -32,6 +34,7 @@ const SongOptionsDrawer: React.FC<SongOptionsDrawerProps> = ({
   isOpen,
   onOpenChange,
 }) => {
+  const [firebaseUser] = useAuthState(auth);
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { openShareDialog, openRemoveSongFromPlaylistDialog } = useUIStore();
@@ -48,6 +51,7 @@ const SongOptionsDrawer: React.FC<SongOptionsDrawerProps> = ({
   };
 
   const handleLikeToggle = () => {
+    if (!firebaseUser) return;
     toggleSongLike(song._id);
   };
 
@@ -63,6 +67,7 @@ const SongOptionsDrawer: React.FC<SongOptionsDrawerProps> = ({
   };
 
   const handleAddToPlaylist = () => {
+    if (!firebaseUser) return;
     setIsAddToPlaylistOpen(true);
   };
 
@@ -95,7 +100,11 @@ const SongOptionsDrawer: React.FC<SongOptionsDrawerProps> = ({
             <div className="p-4 flex flex-col gap-2">
               <Button
                 variant="ghost"
-                className="justify-start p-3 h-auto"
+                className={`justify-start p-3 h-auto ${!firebaseUser ? "opacity-50" : ""}`}
+                disabled={!firebaseUser}
+                title={
+                  !firebaseUser ? t("auth.loginRequired") : undefined
+                }
                 onClick={handleLikeToggle}
               >
                 <Heart
@@ -111,7 +120,11 @@ const SongOptionsDrawer: React.FC<SongOptionsDrawerProps> = ({
               </Button>
               <Button
                 variant="ghost"
-                className="justify-start p-3 h-auto"
+                className={`justify-start p-3 h-auto ${!firebaseUser ? "opacity-50" : ""}`}
+                disabled={!firebaseUser}
+                title={
+                  !firebaseUser ? t("auth.loginRequired") : undefined
+                }
                 onClick={handleAddToPlaylist}
               >
                 <Plus className="w-5 h-5 mr-4" />

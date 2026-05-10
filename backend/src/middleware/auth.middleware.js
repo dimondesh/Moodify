@@ -34,3 +34,30 @@ export const protectRoute = async (req, res, next) => {
       .json({ error: "Authentication failed", details: error.message });
   }
 };
+
+/** Sets req.user when a valid Bearer token is sent; otherwise continues as guest (no 401). */
+export const attachUserIfPresent = async (req, res, next) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return next();
+    }
+
+    const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
+    const user = await User.findOne({ firebaseUid: decodedToken.uid });
+
+    if (user) {
+      const adminEmails = process.env.ADMIN_EMAILS?.split(",") || [];
+      req.user = {
+        id: user._id,
+        firebaseUid: user.firebaseUid,
+        email: decodedToken.email,
+        isAdmin: adminEmails.includes(decodedToken.email),
+      };
+    }
+
+    next();
+  } catch {
+    next();
+  }
+};

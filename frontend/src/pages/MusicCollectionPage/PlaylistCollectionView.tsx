@@ -332,7 +332,7 @@ const PlaylistCollectionView = () => {
   };
 
   const handleTogglePlaylistInLibrary = async () => {
-    if (!currentPlaylist || isTogglingLibrary) return;
+    if (!user || !currentPlaylist || isTogglingLibrary) return;
     setIsTogglingLibrary(true);
     try {
       await togglePlaylist(currentPlaylist._id);
@@ -496,16 +496,24 @@ const PlaylistCollectionView = () => {
             <Button
               size="icon"
               variant="ghost"
+              disabled={!user}
               className={`rounded-full size-6 sm:size-7 ${
                 songIsLiked
                   ? "text-violet-500 hover:text-violet-400"
                   : "text-zinc-400 hover:text-white opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity"
-              }`}
+              } ${!user ? "opacity-50 cursor-not-allowed md:opacity-50" : ""}`}
               onClick={(e) => {
                 e.stopPropagation();
+                if (!user) return;
                 toggleSongLike(song._id);
               }}
-              title={songIsLiked ? t("player.unlike") : t("player.like")}
+              title={
+                !user
+                  ? t("auth.loginRequired")
+                  : songIsLiked
+                    ? t("player.unlike")
+                    : t("player.like")
+              }
             >
               <Heart
                 className={`h-4 w-4 sm:h-5 sm:w-5 ${
