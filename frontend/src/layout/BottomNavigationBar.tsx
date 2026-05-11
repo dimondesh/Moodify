@@ -38,41 +38,58 @@ const BottomNavigationBar = () => {
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[#0f0f0f] via-[#0f0f0f]/97 to-[#0f0f0f]/95 h-22 flex items-center justify-around z-50 pb-4">
       {navItems.map((item) => {
-        if (item.authRequired && !user) {
-          return null;
+        const isActive = location.pathname === item.to;
+        const isDisabled = item.authRequired && !user;
+        const className = cn(
+          buttonVariants({ variant: "ghost", size: "sm" }),
+          "flex flex-col items-center justify-center p-0 h-full w-auto transition-colors duration-200 relative",
+          isDisabled
+            ? "text-zinc-600 cursor-not-allowed opacity-50 pointer-events-none"
+            : cn(
+                "text-zinc-400 hover:text-white",
+                isActive ? "text-white" : "text-zinc-400"
+              )
+        );
+
+        if (isDisabled) {
+          return (
+            <div
+              key={item.to}
+              className={className}
+              aria-disabled="true"
+            >
+              <item.icon className="size-5" />
+              <span className="text-xs mt-1">{item.label}</span>
+            </div>
+          );
         }
 
-        const isActive = location.pathname === item.to;
         return (
-          <Link
-            key={item.to}
-            to={item.to}
-            className={cn(
-              buttonVariants({ variant: "ghost", size: "sm" }),
-              "flex flex-col items-center justify-center p-0 h-full w-auto text-zinc-400 hover:text-white transition-colors duration-200 relative",
-              isActive ? "text-white" : "text-zinc-400"
-            )}
-          >
+          <Link key={item.to} to={item.to} className={className}>
             <item.icon className="size-5" />
             <span className="text-xs mt-1">{item.label}</span>
           </Link>
         );
       })}
 
-      {user && (
-        <button
-          type="button"
-          onClick={() => void quickCreatePlaylist()}
-          className={cn(
-            buttonVariants({ variant: "ghost", size: "sm" }),
-            "flex flex-col items-center justify-center p-0 h-full w-auto text-zinc-400 hover:text-white transition-colors duration-200 relative"
-          )}
-          title={t("sidebar.create")}
-        >
-          <Plus className="size-5" />
-          <span className="text-xs mt-1">{t("sidebar.create")}</span>
-        </button>
-      )}
+      <button
+        type="button"
+        disabled={!user}
+        onClick={() => {
+          if (user) void quickCreatePlaylist();
+        }}
+        className={cn(
+          buttonVariants({ variant: "ghost", size: "sm" }),
+          "flex flex-col items-center justify-center p-0 h-full w-auto transition-colors duration-200 relative",
+          user
+            ? "text-zinc-400 hover:text-white"
+            : "text-zinc-600 cursor-not-allowed opacity-50"
+        )}
+        title={t("sidebar.create")}
+      >
+        <Plus className="size-5" />
+        <span className="text-xs mt-1">{t("sidebar.create")}</span>
+      </button>
     </div>
   );
 };

@@ -111,18 +111,6 @@ const MobileHeader = ({ title }: MobileHeaderProps) => {
       </h1>
 
       <div className="flex items-center gap-2">
-        {location.pathname === "/library" && authUser && !isOffline && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="hover:bg-[#2a2a2a] h-8 w-8"
-            onClick={() => void quickCreatePlaylist()}
-            title={t("sidebar.createPlaylist")}
-          >
-            <Plus className="size-4" />
-          </Button>
-        )}
-
         {authUser ? (
           <Drawer
             direction="right"
