@@ -34,11 +34,13 @@ import ChatPage from "./pages/ChatPage/ChatPage";
 
 function App() {
   const user = useAuthStore((state) => state.user);
+  const userId = user?.id;
   const isOffline = useOfflineStore((state) => state.isOffline);
   const location = useLocation();
   const navigate = useNavigate();
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const initialDataFetchedRef = useRef(false);
+  /** Bootstrap/home data is auth-specific; refetch when guest ↔ logged-in (or user id) changes. */
+  const lastBootstrapAuthKeyRef = useRef<string | null>(null);
 
   const { fetchInitialData, setIsIosDevice } = useUIStore();
   const canonicalUrl = `https://moodify-music.com${location.pathname}`;
@@ -50,33 +52,30 @@ function App() {
   }, [setIsIosDevice]);
 
   useEffect(() => {
-    if (initialDataFetchedRef.current || !navigator.onLine) return;
+    if (!navigator.onLine) return;
 
-    const shouldFetch = user || !useAuthStore.getState().user;
+    const authKey = userId ?? "__guest__";
+    if (lastBootstrapAuthKeyRef.current === authKey) return;
 
-    if (shouldFetch) {
-      console.log("App.tsx: Fetching initial data (once)");
-      initialDataFetchedRef.current = true;
+    lastBootstrapAuthKeyRef.current = authKey;
+    console.log("App.tsx: Fetching initial data for session", authKey);
 
-      // Небольшая задержка для предотвращения race conditions
-      const timeoutId = setTimeout(() => {
-        fetchInitialData();
-      }, 100);
+    const timeoutId = setTimeout(() => {
+      void fetchInitialData();
+    }, 100);
 
-      return () => clearTimeout(timeoutId);
-    }
-  }, [user, fetchInitialData]);
+    return () => clearTimeout(timeoutId);
+  }, [userId, fetchInitialData]);
 
   const fetchDataForUser = useCallback(() => {
-    if (navigator.onLine && !initialDataFetchedRef.current) {
-      console.log("fetchDataForUser: Fetching initial data");
-      fetchInitialData();
-      initialDataFetchedRef.current = true;
+    if (!navigator.onLine) return;
 
-      const { syncLibrary } = useOfflineStore.getState().actions;
-      console.log("User is online, syncing library.");
-      syncLibrary();
-    }
+    console.log("fetchDataForUser: Fetching initial data");
+    void fetchInitialData();
+
+    const { syncLibrary } = useOfflineStore.getState().actions;
+    console.log("User is online, syncing library.");
+    syncLibrary();
   }, [fetchInitialData]);
 
   // Инициализация offline store
