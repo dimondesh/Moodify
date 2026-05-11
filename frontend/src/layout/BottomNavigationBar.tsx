@@ -6,13 +6,13 @@ import { useAuthStore } from "../stores/useAuthStore";
 import { cn } from "../lib/utils";
 import { buttonVariants } from "../components/ui/button";
 import { useTranslation } from "react-i18next";
-import { useUIStore } from "../stores/useUIStore";
+import { useQuickCreatePlaylist } from "@/hooks/useQuickCreatePlaylist";
 
 const BottomNavigationBar = () => {
   const { t } = useTranslation();
   const location = useLocation();
   const { user } = useAuthStore();
-  const { openCreatePlaylistDialog } = useUIStore();
+  const quickCreatePlaylist = useQuickCreatePlaylist();
 
   const navItems = [
     {
@@ -62,7 +62,7 @@ const BottomNavigationBar = () => {
       {user && (
         <button
           type="button"
-          onClick={openCreatePlaylistDialog}
+          onClick={() => void quickCreatePlaylist()}
           className={cn(
             buttonVariants({ variant: "ghost", size: "sm" }),
             "flex flex-col items-center justify-center p-0 h-full w-auto text-zinc-400 hover:text-white transition-colors duration-200 relative"

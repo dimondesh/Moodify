@@ -39,7 +39,6 @@ import { useChatStore } from "../stores/useChatStore";
 
 import { getArtistNames } from "@/lib/utils";
 import { useUIStore } from "@/stores/useUIStore";
-import { CreatePlaylistDialog } from "../pages/PlaylistPage/CreatePlaylistDialog";
 import { useAuthStore } from "../stores/useAuthStore";
 import { QueueDropdown } from "../components/QueueDropdown";
 import { QueueDrawer } from "../components/QueueDrawer";
@@ -113,7 +112,6 @@ const PlaybackControls = () => {
   const { fetchLikedSongs } = useLibraryStore();
 
   const {
-    isCreatePlaylistDialogOpen,
     editingPlaylist,
     isSearchAndAddDialogOpen,
     isEditProfileDialogOpen,
@@ -122,7 +120,6 @@ const PlaybackControls = () => {
   } = useUIStore();
 
   const isAnyDialogOpen =
-    isCreatePlaylistDialogOpen ||
     !!editingPlaylist ||
     isSearchAndAddDialogOpen ||
     !!shareEntity ||
@@ -1074,10 +1071,6 @@ const PlaybackControls = () => {
           entityId={currentSong._id}
         />
       )}
-      <CreatePlaylistDialog
-        isOpen={isCreatePlaylistDialogOpen}
-        onClose={closeAllDialogs}
-      />
       <QueueDrawer
         isOpen={isQueueDrawerOpen}
         onOpenChange={setIsQueueDrawerOpen}

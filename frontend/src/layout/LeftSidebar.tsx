@@ -18,7 +18,6 @@ import React, { useMemo, useEffect, useRef, useCallback } from "react";
 import { useLibraryStore } from "../stores/useLibraryStore";
 import { usePlaylistStore } from "../stores/usePlaylistStore";
 import { useAuthStore } from "../stores/useAuthStore";
-import { CreatePlaylistDialog } from "../pages/PlaylistPage/CreatePlaylistDialog";
 import {
   LibraryItem,
   AlbumItem,
@@ -35,6 +34,7 @@ import { useUIStore } from "../stores/useUIStore";
 import { getOptimizedImageUrl, normalizeAlbumKind } from "@/lib/utils";
 import UniversalPlayButton from "../components/ui/UniversalPlayButton";
 import EntityTypeFilter from "../components/ui/EntityTypeFilter";
+import { useQuickCreatePlaylist } from "@/hooks/useQuickCreatePlaylist";
 
 const LeftSidebar = () => {
   const { t } = useTranslation();
@@ -46,16 +46,13 @@ const LeftSidebar = () => {
     likedPlaylistId,
   } = useLibraryStore();
 
-  const { myPlaylists, fetchMyPlaylists } = usePlaylistStore();
+  const { myPlaylists } = usePlaylistStore();
 
   const user = useAuthStore((s) => s.user);
   const authLoading = useAuthStore((s) => s.isLoading);
   const { isOffline } = useOfflineStore();
   const { isDownloaded } = useOfflineStore((s) => s.actions);
   const {
-    isCreatePlaylistDialogOpen,
-    openCreatePlaylistDialog,
-    closeAllDialogs,
     entityTypeFilter,
     setEntityTypeFilter,
     librarySearchQuery,
@@ -67,6 +64,7 @@ const LeftSidebar = () => {
   } = useUIStore();
 
   const { artists } = useMusicStore();
+  const quickCreatePlaylist = useQuickCreatePlaylist();
   const playlistsFetchedRef = useRef(false);
   const sidebarSearchInputRef = useRef<HTMLInputElement>(null);
 
@@ -280,7 +278,7 @@ const LeftSidebar = () => {
             variant="ghost"
             size="icon"
             className="hover:bg-transparent! text-gray-300 hover:text-white! h-6 w-6"
-            onClick={openCreatePlaylistDialog}
+            onClick={() => void quickCreatePlaylist()}
             title={t("sidebar.createPlaylist")}
           >
             <Plus className="size-4" />
@@ -622,11 +620,6 @@ const LeftSidebar = () => {
         )}
       </div>
 
-      <CreatePlaylistDialog
-        isOpen={isCreatePlaylistDialogOpen}
-        onClose={closeAllDialogs}
-        onSuccess={fetchMyPlaylists}
-      />
     </div>
   );
 };

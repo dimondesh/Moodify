@@ -1090,14 +1090,32 @@
         "description": "Внесіть зміни до свого плейлиста тут. Натисніть 'Зберегти', коли закінчите.",
         "fieldTitle": "Назва",
         "fieldDescription": "Опис",
+        "fieldPrivate": "Приватний",
         "fieldPublic": "Публічний",
         "fieldCover": "Обкладинка",
-        "save": "Зберегти зміни"
+        "save": "Зберегти зміни",
+        "saveSuccess": "Плейлист оновлено."
+      },
+      "form": {
+        "titleRequired": "Назва плейлиста не може бути порожньою.",
+        "saveError": "Не вдалося зберегти плейлист.",
+        "coverEmpty": "Немає обкладинки",
+        "changeCover": "Змінити обкладинку",
+        "coverMenu": "Обкладинка",
+        "editCover": "Змінити обкладинку",
+        "deleteCover": "Видалити обкладинку",
+        "visibility": "Видимість",
+        "makePrivate": "Зробити приватним",
+        "makePublic": "Зробити публічним",
+        "chooseFile": "Обрати зображення…",
+        "titlePlaceholder": "Мій плейлист",
+        "descriptionPlaceholder": "Опис (необов’язково)"
       },
       "createDialog": {
         "title": "Створити новий плейлист",
         "description": "Введіть дані для вашого нового плейлиста.",
         "buttonText": "Створити плейлист",
+        "createSuccess": "Плейлист створено.",
         "manual": "Вручну",
         "withAi": "За допомогою ШІ",
         "aiPromptLabel": "Опишіть плейлист вашої мрії",
@@ -1108,7 +1126,10 @@
       "headers": {
         "title": "Назва",
         "dateAdded": "Дата додавання"
-      }
+      },
+      "quickCreateName": "Мій плейлист №{{n}}",
+      "quickCreateOffline": "Неможливо створити плейлист офлайн.",
+      "downloadEmptyHint": "Додайте треки, щоб завантажити плейлист."
     },
     "profile": {
       "loading": "Завантаження профілю...",

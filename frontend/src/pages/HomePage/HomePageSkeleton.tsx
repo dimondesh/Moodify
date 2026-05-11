@@ -11,7 +11,6 @@ const HomePageSkeleton = () => {
       <div className="space-y-6 sm:space-y-8">
         <HorizontalSectionSkeleton />
         <HorizontalSectionSkeleton />
-        <HorizontalSectionSkeleton />
       </div>
     </div>
   );

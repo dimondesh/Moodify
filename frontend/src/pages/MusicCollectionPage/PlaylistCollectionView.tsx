@@ -54,7 +54,6 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { useLibraryStore } from "@/stores/useLibraryStore";
-import { EditPlaylistDialog } from "@/pages/PlaylistPage/EditPlaylistDialog";
 import Equalizer from "@/components/ui/equalizer";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
@@ -107,7 +106,6 @@ const PlaylistCollectionView = () => {
     fetchRecommendations,
   } = usePlaylistStore();
   const {
-    editingPlaylist,
     openEditPlaylistDialog,
     isSearchAndAddDialogOpen,
     openSearchAndAddDialog,
@@ -628,15 +626,38 @@ const PlaylistCollectionView = () => {
       >
         <div className="relative z-10 w-full">
             <div className="flex flex-col sm:flex-row p-4 sm:p-6 gap-4 sm:gap-6 pb-8 sm:pb-8 items-center sm:items-end w-full">
-              <img
-                src={getOptimizedImageUrl(
-                  currentPlaylist.imageUrl ||
-                    "https://moodify.b-cdn.net/default-album-cover.png",
-                  500,
-                )}
-                alt={currentPlaylist.title}
-                className="w-64 h-64 sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px] shadow-xl rounded-md object-cover flex-shrink-0 mx-auto sm:mx-0"
-              />
+              {isUserEditable ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    openEditPlaylistDialog(currentPlaylist, () =>
+                      fetchPlaylistDetails(currentPlaylist._id),
+                    )
+                  }
+                  className="group w-64 h-64 sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px] shadow-xl rounded-md object-cover flex-shrink-0 mx-auto sm:mx-0 overflow-hidden border-0 p-0 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5cf6] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f0f0f]"
+                  title={t("pages.playlist.actions.edit")}
+                >
+                  <img
+                    src={getOptimizedImageUrl(
+                      currentPlaylist.imageUrl ||
+                        "https://moodify.b-cdn.net/default-album-cover.png",
+                      500,
+                    )}
+                    alt={currentPlaylist.title}
+                    className="h-full w-full object-cover transition-opacity group-hover:opacity-80"
+                  />
+                </button>
+              ) : (
+                <img
+                  src={getOptimizedImageUrl(
+                    currentPlaylist.imageUrl ||
+                      "https://moodify.b-cdn.net/default-album-cover.png",
+                    500,
+                  )}
+                  alt={currentPlaylist.title}
+                  className="w-64 h-64 sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px] shadow-xl rounded-md object-cover flex-shrink-0 mx-auto sm:mx-0"
+                />
+              )}
               <div className="flex flex-col justify-end text-center sm:text-left min-w-0 w-full">
                 <p className="text-xs sm:text-sm font-medium">
                   {playlistKindLabel(t, currentPlaylist.type)}
@@ -747,7 +768,14 @@ const PlaylistCollectionView = () => {
                 itemId={currentPlaylist._id}
                 itemType="playlists"
                 itemTitle={currentPlaylist.title}
-                disabled={!user}
+                disabled={
+                  !user || (currentPlaylist.songs?.length ?? 0) === 0
+                }
+                disabledHint={
+                  user && (currentPlaylist.songs?.length ?? 0) === 0
+                    ? t("pages.playlist.downloadEmptyHint")
+                    : undefined
+                }
               />
               {isMobile ? (
                 <Drawer>
@@ -794,7 +822,9 @@ const PlaylistCollectionView = () => {
                             variant="ghost"
                             className="justify-start p-3 h-auto text-base"
                             onClick={() =>
-                              openEditPlaylistDialog(currentPlaylist)
+                              openEditPlaylistDialog(currentPlaylist, () =>
+                                fetchPlaylistDetails(currentPlaylist._id),
+                              )
                             }
                           >
                             <Edit className="mr-4 h-5 w-5" />
@@ -850,7 +880,9 @@ const PlaylistCollectionView = () => {
                         <DropdownMenuItem
                           className="cursor-pointer hover:bg-zinc-700"
                           onSelect={() =>
-                            openEditPlaylistDialog(currentPlaylist)
+                            openEditPlaylistDialog(currentPlaylist, () =>
+                              fetchPlaylistDetails(currentPlaylist._id),
+                            )
                           }
                         >
                           <Edit className="mr-2 h-4 w-4" />
@@ -893,14 +925,6 @@ const PlaylistCollectionView = () => {
             </div>
           </div>
       </MusicCollectionShell>
-        {currentPlaylist && (
-          <EditPlaylistDialog
-            isOpen={!!editingPlaylist}
-            onClose={closeAllDialogs}
-            playlist={editingPlaylist}
-            onSuccess={() => fetchPlaylistDetails(currentPlaylist._id)}
-          />
-        )}
         <DeletePlaylistDialog
           open={!!playlistToDelete}
           onOpenChange={(isOpen) => !isOpen && closeAllDialogs()}

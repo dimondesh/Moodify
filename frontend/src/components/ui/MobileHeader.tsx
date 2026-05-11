@@ -18,6 +18,7 @@ import {
 import { LogOut, Settings, UserIcon, Plus, MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useChatStore } from "../../stores/useChatStore";
+import { useQuickCreatePlaylist } from "@/hooks/useQuickCreatePlaylist";
 
 interface MobileHeaderProps {
   title: string;
@@ -26,8 +27,8 @@ interface MobileHeaderProps {
 const MobileHeader = ({ title }: MobileHeaderProps) => {
   const { t } = useTranslation();
   const { user: authUser, logout } = useAuthStore();
-  const { isUserSheetOpen, setUserSheetOpen, openCreatePlaylistDialog } =
-    useUIStore();
+  const { isUserSheetOpen, setUserSheetOpen } = useUIStore();
+  const quickCreatePlaylist = useQuickCreatePlaylist();
   const { isOffline } = useOfflineStore();
   const location = useLocation();
   const { unreadMessages } = useChatStore();
@@ -115,7 +116,7 @@ const MobileHeader = ({ title }: MobileHeaderProps) => {
             variant="ghost"
             size="icon"
             className="hover:bg-[#2a2a2a] h-8 w-8"
-            onClick={openCreatePlaylistDialog}
+            onClick={() => void quickCreatePlaylist()}
             title={t("sidebar.createPlaylist")}
           >
             <Plus className="size-4" />

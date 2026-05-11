@@ -10,7 +10,6 @@ import React, {
 import { useMusicStore } from "../../stores/useMusicStore";
 import FeaturedSection from "./FeaturedSection";
 import { usePlayerStore } from "../../stores/usePlayerStore";
-import { usePlaylistStore } from "../../stores/usePlaylistStore";
 import { useAuthStore } from "../../stores/useAuthStore";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
@@ -28,22 +27,14 @@ const HomePageComponent = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
 
   const {
-    recentlyListenedSongs,
-    recentlyListenedEntities,
-    madeForYouSongs,
     trendingAlbums,
     featuredSongs,
-    favoriteArtists,
-    newReleases,
+    recentlyListenedSongs,
+    recentlyListenedEntities,
     fetchRecentlyListenedSongs,
     isRecentlyListenedLoading,
-    homePersonalPlaylists,
-    homeSmartPlaylists,
-    genreMixes,
-    moodMixes,
   } = useMusicStore();
   const { user } = useAuthStore();
-  const { publicPlaylists, recommendedPlaylists } = usePlaylistStore();
 
   const { isHomePageLoading, isSecondaryHomePageLoading } = useUIStore();
   const { initializeQueue, currentSong } = usePlayerStore();
@@ -56,7 +47,6 @@ const HomePageComponent = () => {
     (color: string) => {
       if (isMobile) return;
 
-      // Проверяем, не тот ли же цвет уже активен
       if (currentBgColor === color) {
         return;
       }
@@ -85,7 +75,6 @@ const HomePageComponent = () => {
     isMobile,
   ]);
 
-  // Загружаем историю прослушивания при загрузке страницы
   useEffect(() => {
     if (
       user &&
@@ -96,18 +85,15 @@ const HomePageComponent = () => {
       fetchRecentlyListenedSongs();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]); // fetchRecentlyListenedSongs стабильна из store
+  }, [user]);
 
   useEffect(() => {
     if (
       currentSong === null &&
       !isHomePageLoading &&
-      (madeForYouSongs.length > 0 ||
-        featuredSongs.length > 0 ||
-        trendingAlbums.length > 0)
+      (featuredSongs.length > 0 || trendingAlbums.length > 0)
     ) {
-      const allSongs = [...featuredSongs, ...madeForYouSongs];
-      // Добавляем песни из трендовых альбомов
+      const allSongs = [...featuredSongs];
       const trendingSongsFromAlbums = trendingAlbums.flatMap(
         (album) => album.songs || [],
       );
@@ -119,14 +105,12 @@ const HomePageComponent = () => {
     }
   }, [
     initializeQueue,
-    madeForYouSongs,
     featuredSongs,
     trendingAlbums,
     currentSong,
     isHomePageLoading,
   ]);
 
-  // Кэш для цветов, чтобы избежать повторных вычислений
   const colorCacheRef = useRef<Map<string, string>>(new Map());
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -134,12 +118,10 @@ const HomePageComponent = () => {
     (song: Song) => {
       if (isMobile) return;
 
-      // Очищаем предыдущий таймаут
       if (hoverTimeoutRef.current) {
         clearTimeout(hoverTimeoutRef.current);
       }
 
-      // Небольшая задержка для предотвращения лишних запросов
       hoverTimeoutRef.current = setTimeout(() => {
         const imageUrl = song.imageUrl;
         if (!imageUrl) {
@@ -147,19 +129,15 @@ const HomePageComponent = () => {
           return;
         }
 
-        // Проверяем кэш
         const cachedColor = colorCacheRef.current.get(imageUrl);
         if (cachedColor) {
           changeBackgroundColor(cachedColor);
           return;
         }
 
-        // Извлекаем цвет только если его нет в кэше
         extractColor(imageUrl).then((color) => {
           const finalColor = color || "#18181b";
-          // Сохраняем в кэш
           colorCacheRef.current.set(imageUrl, finalColor);
-          // Ограничиваем размер кэша
           if (colorCacheRef.current.size > 50) {
             const firstKey = colorCacheRef.current.keys().next().value;
             if (firstKey) {
@@ -175,19 +153,16 @@ const HomePageComponent = () => {
 
   const handleSongLeave = useCallback(() => {
     if (isMobile) return;
-    // Очищаем таймаут при уходе мыши
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
       hoverTimeoutRef.current = null;
     }
 
-    // Плавный возврат к дефолтному цвету с задержкой
     hoverTimeoutRef.current = setTimeout(() => {
       changeBackgroundColor(defaultColorRef.current);
     }, 250);
   }, [changeBackgroundColor, isMobile]);
 
-  // Очистка таймаута при размонтировании
   useEffect(() => {
     return () => {
       if (hoverTimeoutRef.current) {
@@ -203,32 +178,12 @@ const HomePageComponent = () => {
     return t("greetings.evening");
   };
 
-  const recommendedPlaylistsItems = useMemo(
-    () =>
-      recommendedPlaylists.map((pl) => ({
-        ...pl,
-        itemType: "playlist" as const,
-      })),
-    [recommendedPlaylists],
-  );
-  const newReleasesItems = useMemo(
-    () =>
-      newReleases.map((album) => ({ ...album, itemType: "album" as const })),
-    [newReleases],
-  );
-  const favoriteArtistsItems = useMemo(
-    () =>
-      favoriteArtists.map((artist) => ({
-        ...artist,
-        itemType: "artist" as const,
-      })),
-    [favoriteArtists],
-  );
   const trendingAlbumsItems = useMemo(
     () =>
       trendingAlbums.map((album) => ({ ...album, itemType: "album" as const })),
     [trendingAlbums],
   );
+
   const recentlyListenedItems = useMemo(
     () =>
       recentlyListenedEntities.map((entity) => ({
@@ -237,55 +192,7 @@ const HomePageComponent = () => {
       })),
     [recentlyListenedEntities],
   );
-  const genreMixesItems = useMemo(
-    () => genreMixes.map((mix) => ({ ...mix, itemType: "playlist" as const })),
-    [genreMixes],
-  );
-  const moodMixesItems = useMemo(
-    () => moodMixes.map((mix) => ({ ...mix, itemType: "playlist" as const })),
-    [moodMixes],
-  );
-  const publicPlaylistsItems = useMemo(
-    () =>
-      publicPlaylists.map((pl) => ({ ...pl, itemType: "playlist" as const })),
-    [publicPlaylists],
-  );
-  const generatedPlaylistsItems = useMemo(
-    () =>
-      homeSmartPlaylists.map((pl) => ({
-        ...pl,
-        itemType: "playlist" as const,
-      })),
-    [homeSmartPlaylists],
-  );
 
-  const personalPlaylistsItems = useMemo(
-    () =>
-      homePersonalPlaylists.map((pl) => ({
-        ...pl,
-        itemType: "playlist" as const,
-      })),
-    [homePersonalPlaylists],
-  );
-
-  // Комбинируем персональные миксы и генеративные плейлисты для секции Made For You
-  const madeForYouItems = useMemo(() => {
-    const items = [
-      ...personalPlaylistsItems,
-      ...generatedPlaylistsItems.filter(
-        (pl) => pl.type === "ON_REPEAT" || pl.type === "DISCOVER_WEEKLY",
-      ),
-    ];
-    return items;
-  }, [personalPlaylistsItems, generatedPlaylistsItems]);
-
-  const handleShowAllMadeForYou = useCallback(
-    () =>
-      navigate("/all-items/made-for-you", {
-        state: { items: madeForYouItems, title: t("homepage.madeForYou") },
-      }),
-    [navigate, madeForYouItems, t],
-  );
   const handleShowAllRecentlyListened = useCallback(
     () =>
       navigate("/all-songs/recently-listened", {
@@ -296,20 +203,7 @@ const HomePageComponent = () => {
       }),
     [navigate, recentlyListenedSongs, t],
   );
-  const handleShowAllGenreMixes = useCallback(
-    () =>
-      navigate(`/playlists/browse/genres`, {
-        state: { playlists: genreMixes, title: t("homepage.genreMixes") },
-      }),
-    [navigate, genreMixes, t],
-  );
-  const handleShowAllMoodMixes = useCallback(
-    () =>
-      navigate(`/playlists/browse/moods`, {
-        state: { playlists: moodMixes, title: t("homepage.moodMixes") },
-      }),
-    [navigate, moodMixes, t],
-  );
+
   const handleShowAllTrending = useCallback(
     () =>
       navigate("/all-albums/trending", {
@@ -324,7 +218,7 @@ const HomePageComponent = () => {
         <title>Home</title>
         <meta
           name="description"
-          content="Listen to trending music, discover personalized playlists, and explore public playlists. Moodify - your ultimate guide in the world of music."
+          content="Listen to trending music and quick picks on Moodify."
         />
       </Helmet>
       <main className="min-h-full bg-[#0f0f0f] pb-30 lg:pb-0">
@@ -362,35 +256,6 @@ const HomePageComponent = () => {
                 />
 
                 <div className="space-y-6">
-                  <HorizontalSection
-                    title={t("homepage.genreMixes")}
-                    items={genreMixesItems}
-                    isLoading={isSecondaryHomePageLoading}
-                    t={t}
-                    limit={12}
-                    onShowAll={handleShowAllGenreMixes}
-                  />
-
-                  <HorizontalSection
-                    title={t("homepage.moodMixes")}
-                    items={moodMixesItems}
-                    isLoading={isSecondaryHomePageLoading}
-                    t={t}
-                    limit={12}
-                    onShowAll={handleShowAllMoodMixes}
-                  />
-
-                  {user && (
-                    <HorizontalSection
-                      title={t("homepage.madeForYou")}
-                      items={madeForYouItems}
-                      isLoading={isSecondaryHomePageLoading}
-                      limit={12}
-                      t={t}
-                      onShowAll={handleShowAllMadeForYou}
-                    />
-                  )}
-
                   {user && recentlyListenedItems.length > 0 && (
                     <HorizontalSection
                       title={t("homepage.recentlyListened")}
@@ -409,44 +274,6 @@ const HomePageComponent = () => {
                     t={t}
                     limit={12}
                     onShowAll={handleShowAllTrending}
-                  />
-
-                  {user && (
-                    <HorizontalSection
-                      title={t("homepage.favoriteArtists")}
-                      items={favoriteArtistsItems}
-                      t={t}
-                      limit={12}
-                      isLoading={isSecondaryHomePageLoading}
-                    />
-                  )}
-
-                  {user && (
-                    <HorizontalSection
-                      title={t("homepage.newReleases")}
-                      t={t}
-                      items={newReleasesItems}
-                      isLoading={isSecondaryHomePageLoading}
-                      limit={12}
-                    />
-                  )}
-
-                  {user && (
-                    <HorizontalSection
-                      title={t("homepage.playlistsForYou")}
-                      items={recommendedPlaylistsItems}
-                      t={t}
-                      isLoading={isSecondaryHomePageLoading}
-                      limit={12}
-                    />
-                  )}
-
-                  <HorizontalSection
-                    title={t("homepage.publicPlaylists")}
-                    items={publicPlaylistsItems}
-                    t={t}
-                    isLoading={isSecondaryHomePageLoading}
-                    limit={12}
                   />
                 </div>
               </div>

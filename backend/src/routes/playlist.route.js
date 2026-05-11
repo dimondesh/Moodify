@@ -15,7 +15,6 @@ import {
   getPublicPlaylists,
   createPlaylistFromSong,
   getPlaylistRecommendations,
-  createPlaylistWithAI,
 } from "../controller/playlist.controller.js";
 
 const router = express.Router();
@@ -29,7 +28,6 @@ router.get("/:id", attachUserIfPresent, getPlaylistById);
 router.use(protectRoute);
 
 router.post("/", createPlaylist);
-router.post("/generate-ai", createPlaylistWithAI);
 router.put("/:id", updatePlaylist);
 router.delete("/:id", deletePlaylist);
 

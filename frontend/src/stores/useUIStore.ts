@@ -25,8 +25,9 @@ type EntityTypeFilter = "playlists" | "albums" | "artists" | "downloaded";
 type LibraryViewMode = "list" | "grid";
 
 interface UIStore {
-  isCreatePlaylistDialogOpen: boolean;
   editingPlaylist: Playlist | null;
+  /** Optional callback after playlist edit save (e.g. refresh details page). */
+  playlistFormOnSuccess: (() => void) | null;
   isSearchAndAddDialogOpen: boolean;
   shareEntity: ShareEntity | null;
   isEditProfileDialogOpen: boolean;
@@ -57,8 +58,7 @@ interface UIStore {
   setIsLeftSidebarSearchOpen: (isOpen: boolean) => void;
   setIsLibraryPageSearchOpen: (isOpen: boolean) => void;
 
-  openCreatePlaylistDialog: () => void;
-  openEditPlaylistDialog: (playlist: Playlist) => void;
+  openEditPlaylistDialog: (playlist: Playlist, onSuccess?: () => void) => void;
   openSearchAndAddDialog: () => void;
   openShareDialog: (entity: ShareEntity) => void;
   openEditProfileDialog: () => void;
@@ -73,8 +73,8 @@ interface UIStore {
 export const useUIStore = create<UIStore>()(
   persist(
     (set) => ({
-      isCreatePlaylistDialogOpen: false,
       editingPlaylist: null,
+      playlistFormOnSuccess: null,
       isSearchAndAddDialogOpen: false,
       shareEntity: null,
       isEditProfileDialogOpen: false,
@@ -111,8 +111,11 @@ export const useUIStore = create<UIStore>()(
       setIsLibraryPageSearchOpen: (isOpen) =>
         set({ isLibraryPageSearchOpen: isOpen }),
 
-      openCreatePlaylistDialog: () => set({ isCreatePlaylistDialogOpen: true }),
-      openEditPlaylistDialog: (playlist) => set({ editingPlaylist: playlist }),
+      openEditPlaylistDialog: (playlist, onSuccess) =>
+        set({
+          editingPlaylist: playlist,
+          playlistFormOnSuccess: onSuccess ?? null,
+        }),
       openSearchAndAddDialog: () => set({ isSearchAndAddDialogOpen: true }),
       openShareDialog: (entity) => set({ shareEntity: entity }),
       openEditProfileDialog: () => set({ isEditProfileDialogOpen: true }),
@@ -124,8 +127,8 @@ export const useUIStore = create<UIStore>()(
 
       closeAllDialogs: () =>
         set({
-          isCreatePlaylistDialogOpen: false,
           editingPlaylist: null,
+          playlistFormOnSuccess: null,
           isSearchAndAddDialogOpen: false,
           shareEntity: null,
           isEditProfileDialogOpen: false,

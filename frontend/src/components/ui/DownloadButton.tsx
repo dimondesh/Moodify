@@ -14,10 +14,18 @@ interface DownloadButtonProps {
   itemType: ItemType;
   itemTitle: string;
   disabled?: boolean;
+  /** Подсказка при `disabled` (например, пустой плейлист). Иначе для гостя — «нужен вход». */
+  disabledHint?: string;
 }
 
 export const DownloadButton = memo(
-  ({ itemId, itemType, itemTitle, disabled = false }: DownloadButtonProps) => {
+  ({
+    itemId,
+    itemType,
+    itemTitle,
+    disabled = false,
+    disabledHint,
+  }: DownloadButtonProps) => {
     const { t } = useTranslation();
 
     const isDownloaded = useOfflineStore((s) =>
@@ -60,7 +68,9 @@ export const DownloadButton = memo(
     };
 
     const getTooltipText = () => {
-      if (disabled) return t("auth.loginRequired");
+      if (disabled) {
+        return disabledHint ?? t("auth.loginRequired");
+      }
 
       switch (status) {
         case "downloaded":

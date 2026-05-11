@@ -1093,14 +1093,32 @@
         "description": "Внесите изменения в свой плейлист здесь. Нажмите 'Сохранить', когда закончите.",
         "fieldTitle": "Название",
         "fieldDescription": "Описание",
+        "fieldPrivate": "Приватный",
         "fieldPublic": "Публичный",
         "fieldCover": "Обложка",
-        "save": "Сохранить изменения"
+        "save": "Сохранить изменения",
+        "saveSuccess": "Плейлист обновлён."
+      },
+      "form": {
+        "titleRequired": "Название плейлиста не может быть пустым.",
+        "saveError": "Не удалось сохранить плейлист.",
+        "coverEmpty": "Нет обложки",
+        "changeCover": "Сменить обложку",
+        "coverMenu": "Обложка",
+        "editCover": "Изменить обложку",
+        "deleteCover": "Удалить обложку",
+        "visibility": "Видимость",
+        "makePrivate": "Сделать приватным",
+        "makePublic": "Сделать публичным",
+        "chooseFile": "Выбрать изображение…",
+        "titlePlaceholder": "Мой плейлист",
+        "descriptionPlaceholder": "Описание (необязательно)"
       },
       "createDialog": {
         "title": "Создать новый плейлист",
         "description": "Введите данные для вашего нового плейлиста.",
         "buttonText": "Создать плейлист",
+        "createSuccess": "Плейлист создан.",
         "manual": "Вручную",
         "withAi": "С помощью ИИ",
         "aiPromptLabel": "Опишите плейлист вашей мечты",
@@ -1111,7 +1129,10 @@
       "headers": {
         "title": "Название",
         "dateAdded": "Дата добавления"
-      }
+      },
+      "quickCreateName": "Мой плейлист №{{n}}",
+      "quickCreateOffline": "Нельзя создать плейлист в офлайн-режиме.",
+      "downloadEmptyHint": "Добавьте треки, чтобы скачать плейлист."
     },
     "profile": {
       "loading": "Загрузка профиля...",

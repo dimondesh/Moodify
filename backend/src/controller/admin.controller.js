@@ -43,8 +43,6 @@ import {
   getGlobalLeaseStats,
   sanitizeChunkUploadId,
 } from "../lib/adminUploadLease.service.js";
-import { getTagsFromAI, getBatchTagsFromAI } from "../lib/ai.service.js";
-
 const uploadFile = async (file, folder) => {
   try {
     const sourcePath = file.tempFilePath;
@@ -939,29 +937,11 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
     console.log(`[AdminController] Album created in DB: ${album.title}`);
     await updateArtistsContent(albumArtistIds, album._id, "albums");
 
-    const primaryAlbumArtistName =
-      spotifyAlbumData.artists?.[0]?.name || "Unknown Artist";
-    const tracksForAI = tracksToProcess.map((track, index) => {
-      const artistName = track.artists?.[0]?.name || primaryAlbumArtistName;
-      return {
-        tempId: track.id || `track_${index}`,
-        artistName: artistName,
-        trackName: track.name,
-      };
-    });
-
-    console.log(
-      `[AdminController] Requesting batch AI tags for ${tracksForAI.length} tracks...`,
-    );
-    const batchTags = await getBatchTagsFromAI(tracksForAI);
-    console.log(`[AdminController] Received batch AI tags.`);
-
     const createdSongs = [];
     let trackIndex = 0;
 
     for (const spotifyTrack of tracksToProcess) {
       const songName = spotifyTrack.name;
-      const trackTempId = spotifyTrack.id || `track_${trackIndex}`;
       trackIndex++;
 
       console.log(`[AdminController] Processing track: ${songName}`);
@@ -1009,8 +989,11 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
         const primaryArtistName = (await Artist.findById(songArtistIds[0]))
           .name;
 
-        const aiTags = batchTags[trackTempId] || { genreIds: [], moodIds: [] };
-        const { genreIds, moodIds } = aiTags;
+        const { genreIds, moodIds } = await getGenresAndMoodsForTrack(
+          primaryArtistName,
+          songName,
+          album.title,
+        );
 
         let lrcText = "";
         if (filesForTrack.lrcPath) {

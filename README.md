@@ -3,14 +3,14 @@
 </p>
 
 <h1 align="center">Moodify Music</h1>
-<p align="center">Next-generation streaming service powered by AI, real-time audio, and deep personalization.</p>
+<p align="center">Next-generation streaming service with real-time audio and personalization.</p>
 
 ---
 
 ## 🚀 Overview
 
 **Moodify Music** is a full-featured music streaming platform built with **React**, **Express**, and **HLS.js**.  
-It delivers adaptive streaming, advanced audio effects, AI-driven recommendations, playlist generation from prompts, and a real-time social layer similar to Spotify’s _Friend Activity_.  
+It delivers adaptive streaming, advanced audio effects, recommendations based on listening data and catalog metadata, and a real-time social layer similar to Spotify’s _Friend Activity_.  
 All modules are optimized for performance, scalability, and mobile usability.
 
 ---
@@ -21,8 +21,6 @@ All modules are optimized for performance, scalability, and mobile usability.
 🎚️ **Audio Effects** — Reverb, EQ, normalization, speed control via `Web Audio API`  
 📈 **Waveform Analyzer** — FL Studio-style oscilloscope for real-time visuals  
 💬 **Realtime Chat** — Built on `Socket.io`, users can share tracks, albums, and playlists  
-🧠 **AI Recommendations** — Based on Gemini-generated tags and audio features  
-🪄 **AI Playlist Generator** — Create playlists by text prompt (e.g. _“summer synthpop vibes”_)  
 👥 **Friends Activity** — See what your friends are listening to in real time  
 📱 **Offline Mode** — Works via `IndexedDB` and `Service Worker`  
 🕵️ **Anonymous Mode** — Listen privately, no traces left  
@@ -47,7 +45,7 @@ All modules are optimized for performance, scalability, and mobile usability.
 - Node.js + Express.js
 - MongoDB
 - Socket.io (chat + friend activity)
-- Gemini API (AI tagging, playlist prompts)
+- Last.fm (optional genre/mood hints for imports)
 - Spotify API (metadata and cover art)
 - Audio Analysis Microservice (audio feature extraction)
 
@@ -62,7 +60,7 @@ All modules are optimized for performance, scalability, and mobile usability.
 Frontend (React + Zustand + Tailwind)
 │
 ▼
-Backend (Express.js + MongoDB + Gemini + Spotify APIs)
+Backend (Express.js + MongoDB + Spotify APIs)
 │
 ├── Audio Analysis Microservice (Audio Features)
 ├── HLS Streaming Engine
@@ -73,8 +71,6 @@ JWT-based sessions: email/password with email verification (Resend), Google OAut
 
 🌍 Integrations
 Spotify API — Albums, artists, metadata
-
-Gemini API — AI tagging + playlist generation
 
 AudioFeatures API — Python-based track analysis
 

@@ -71,7 +71,7 @@ export default defineConfig({
         name: "Moodify",
         short_name: "Moodify",
         description:
-          "An advanced music streaming service for enthusiasts. Create complex mixes, use AI-generated playlists, and connect with friends in a rich audio environment.",
+          "An advanced music streaming service for enthusiasts. Create complex mixes and connect with friends in a rich audio environment.",
         theme_color: "#8b5cf6",
         background_color: "#18181b",
         icons: [

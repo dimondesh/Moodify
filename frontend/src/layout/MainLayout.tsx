@@ -22,6 +22,7 @@ import { useUIStore } from "../stores/useUIStore";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { cn } from "../lib/utils";
 import { useTranslation } from "react-i18next";
+import { PlaylistFormDialog } from "@/pages/PlaylistPage/PlaylistFormDialog";
 
 const MainLayout = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
@@ -64,8 +65,9 @@ const MainLayout = () => {
   } = usePlayerStore();
 
   const {
-    isCreatePlaylistDialogOpen,
     editingPlaylist,
+    playlistFormOnSuccess,
+    closeAllDialogs,
     isSearchAndAddDialogOpen,
     shareEntity,
     isEditProfileDialogOpen,
@@ -76,7 +78,6 @@ const MainLayout = () => {
   } = useUIStore();
 
   const isAnyDialogOpen =
-    isCreatePlaylistDialogOpen ||
     !!editingPlaylist ||
     isSearchAndAddDialogOpen ||
     !!shareEntity ||
@@ -273,6 +274,12 @@ const MainLayout = () => {
       {isCompactView &&
         !isFullScreenPlayerOpen &&
         !isMobileLyricsFullScreen && <BottomNavigationBar />}
+      <PlaylistFormDialog
+        isOpen={!!editingPlaylist}
+        playlist={editingPlaylist}
+        onClose={closeAllDialogs}
+        editSuccessCallback={playlistFormOnSuccess}
+      />
     </div>
   );
 };

@@ -1098,14 +1098,32 @@
         "description": "Make changes to your playlist here. Click save when you're done.",
         "fieldTitle": "Title",
         "fieldDescription": "Description",
+        "fieldPrivate": "Private",
         "fieldPublic": "Public",
         "fieldCover": "Cover",
-        "save": "Save Changes"
+        "save": "Save Changes",
+        "saveSuccess": "Playlist updated."
+      },
+      "form": {
+        "titleRequired": "Playlist title cannot be empty.",
+        "saveError": "Could not save the playlist.",
+        "coverEmpty": "No cover",
+        "changeCover": "Change cover",
+        "coverMenu": "Cover options",
+        "editCover": "Edit cover",
+        "deleteCover": "Delete cover",
+        "visibility": "Visibility",
+        "makePrivate": "Make private",
+        "makePublic": "Make public",
+        "chooseFile": "Choose image file…",
+        "titlePlaceholder": "My playlist",
+        "descriptionPlaceholder": "Optional description"
       },
       "createDialog": {
         "title": "Create New Playlist",
         "description": "Enter details for your new playlist.",
         "buttonText": "Create Playlist",
+        "createSuccess": "Playlist created.",
         "manual": "Manually",
         "withAi": "With AI",
         "aiPromptLabel": "Describe your dream playlist",
@@ -1116,7 +1134,10 @@
       "headers": {
         "title": "Title",
         "dateAdded": "Date Added"
-      }
+      },
+      "quickCreateName": "My playlist #{{n}}",
+      "quickCreateOffline": "You can't create playlists while offline.",
+      "downloadEmptyHint": "Add tracks before downloading this playlist."
     },
     "profile": {
       "loading": "Loading profile...",

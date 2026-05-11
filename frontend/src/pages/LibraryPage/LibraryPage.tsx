@@ -19,7 +19,6 @@ import {
 } from "../../types";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "../../stores/useAuthStore";
-import { CreatePlaylistDialog } from "../PlaylistPage/CreatePlaylistDialog";
 import { Plus, Grid3X3, List, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
@@ -27,6 +26,7 @@ import { Download } from "lucide-react";
 import { useOfflineStore } from "../../stores/useOfflineStore";
 import { cn, normalizeAlbumKind } from "@/lib/utils";
 import { useUIStore } from "../../stores/useUIStore";
+import { useQuickCreatePlaylist } from "@/hooks/useQuickCreatePlaylist";
 import EntityTypeFilter from "../../components/ui/EntityTypeFilter";
 
 const LibraryPage = () => {
@@ -46,9 +46,6 @@ const LibraryPage = () => {
     error: playlistsError,
   } = usePlaylistStore();
   const {
-    isCreatePlaylistDialogOpen,
-    openCreatePlaylistDialog,
-    closeAllDialogs,
     entityTypeFilter,
     setEntityTypeFilter,
     librarySearchQuery,
@@ -59,6 +56,7 @@ const LibraryPage = () => {
     setIsLibraryPageSearchOpen,
   } = useUIStore();
 
+  const quickCreatePlaylist = useQuickCreatePlaylist();
   const { artists } = useMusicStore();
   const user = useAuthStore((s) => s.user);
   const { isDownloaded, fetchAllDownloaded } = useOfflineStore(
@@ -324,7 +322,7 @@ const LibraryPage = () => {
                   variant="ghost"
                   size="icon"
                   className="hover:bg-[#2a2a2a] hidden md:flex"
-                  onClick={openCreatePlaylistDialog}
+                  onClick={() => void quickCreatePlaylist()}
                   title={t("sidebar.createPlaylist")}
                 >
                   <Plus className="size-6" />
@@ -599,10 +597,6 @@ const LibraryPage = () => {
             </div>
           </div>
         </div>
-        <CreatePlaylistDialog
-          isOpen={isCreatePlaylistDialogOpen}
-          onClose={closeAllDialogs}
-        />
       </div>
     </>
   );

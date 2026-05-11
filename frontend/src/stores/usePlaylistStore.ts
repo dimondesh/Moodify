@@ -30,7 +30,6 @@ interface PlaylistStore {
   setDominantColor: (color: string) => void;
   createPlaylistFromSong: (song: Song) => Promise<void>;
   updateCurrentPlaylistFromSocket: (playlist: Playlist) => void;
-  generateAiPlaylist: (prompt: string) => Promise<Playlist | undefined>;
   fetchMyPlaylists: () => Promise<void>;
   fetchOwnedPlaylists: () => Promise<void>;
   fetchRecommendations: (playlistId: string) => Promise<void>;
@@ -47,7 +46,8 @@ interface PlaylistStore {
     title: string,
     description: string,
     isPublic: boolean,
-    imageFile?: File | null
+    imageFile?: File | null,
+    removeImage?: boolean
   ) => Promise<Playlist | undefined>;
   deletePlaylist: (id: string) => Promise<void>;
   addSongToPlaylist: (playlistId: string, songId: string) => Promise<void>;
@@ -142,33 +142,6 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
       toast.error(`Failed to load playlist details.`);
     }
   },
-  generateAiPlaylist: async (prompt: string) => {
-    set({ isLoading: true, error: null });
-    try {
-      const response = await axiosInstance.post("/playlists/generate-ai", {
-        prompt,
-      });
-      const newPlaylist: Playlist = response.data;
-
-      get().fetchMyPlaylists();
-      get().fetchOwnedPlaylists();
-
-      toast.success(`AI плейлист "${newPlaylist.title}" успешно создан!`);
-
-      return newPlaylist;
-    } catch (err: any) {
-      console.error("Failed to generate AI playlist:", err);
-      const errorMessage =
-        err.response?.data?.message ||
-        "Не удалось сгенерировать плейлист. Попробуйте другой запрос.";
-      toast.error(errorMessage);
-      set({ error: errorMessage });
-      return undefined;
-    } finally {
-      set({ isLoading: false });
-    }
-  },
-
   fetchRecommendedPlaylists: async () => {
     if (useOfflineStore.getState().isOffline) return;
     try {
@@ -364,7 +337,7 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
     }
   },
 
-  updatePlaylist: async (id, title, description, isPublic, imageFile) => {
+  updatePlaylist: async (id, title, description, isPublic, imageFile, removeImage) => {
     set({ isLoading: true, error: null });
     try {
       const formData = new FormData();
@@ -373,6 +346,8 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
       formData.append("isPublic", String(isPublic));
       if (imageFile) {
         formData.append("image", imageFile);
+      } else if (removeImage) {
+        formData.append("removeImage", "true");
       }
 
       const response = await axiosInstance.put(`/playlists/${id}`, formData, {

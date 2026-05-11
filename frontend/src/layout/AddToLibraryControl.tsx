@@ -17,7 +17,7 @@ import { useLibraryStore } from "../stores/useLibraryStore";
 import { usePlaylistStore } from "../stores/usePlaylistStore";
 import { Song } from "../types";
 import toast from "react-hot-toast";
-import { useUIStore } from "../stores/useUIStore";
+import { useQuickCreatePlaylist } from "@/hooks/useQuickCreatePlaylist";
 
 interface AddToLibraryControlProps {
   song: Song | null;
@@ -37,7 +37,7 @@ export const AddToLibraryControl: React.FC<AddToLibraryControlProps> = ({
     addSongToPlaylist,
     removeSongFromPlaylist,
   } = usePlaylistStore();
-  const { openCreatePlaylistDialog } = useUIStore();
+  const quickCreatePlaylist = useQuickCreatePlaylist();
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [songInPlaylists, setSongInPlaylists] = useState<string[]>([]);
@@ -152,7 +152,7 @@ export const AddToLibraryControl: React.FC<AddToLibraryControlProps> = ({
           onSelect={(e) => {
             e.preventDefault();
             setIsMenuOpen(false);
-            openCreatePlaylistDialog();
+            void quickCreatePlaylist();
           }}
         >
           <Plus className="mr-2 h-4 w-4" />
