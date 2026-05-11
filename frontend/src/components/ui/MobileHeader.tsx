@@ -3,7 +3,6 @@
 import { useLocation } from "react-router-dom";
 import { useAuthStore } from "../../stores/useAuthStore";
 import { useUIStore } from "../../stores/useUIStore";
-import { useOfflineStore } from "../../stores/useOfflineStore";
 import { useTranslation } from "react-i18next";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
 import { Button } from "./button";
