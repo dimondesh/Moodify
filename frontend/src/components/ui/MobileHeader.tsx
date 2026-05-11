@@ -15,10 +15,9 @@ import {
   DrawerTrigger,
   DrawerClose,
 } from "./drawer";
-import { LogOut, Settings, UserIcon, Plus, MessageCircle } from "lucide-react";
+import { LogOut, Settings, UserIcon, MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useChatStore } from "../../stores/useChatStore";
-import { useQuickCreatePlaylist } from "@/hooks/useQuickCreatePlaylist";
 
 interface MobileHeaderProps {
   title: string;
@@ -28,8 +27,6 @@ const MobileHeader = ({ title }: MobileHeaderProps) => {
   const { t } = useTranslation();
   const { user: authUser, logout } = useAuthStore();
   const { isUserSheetOpen, setUserSheetOpen } = useUIStore();
-  const quickCreatePlaylist = useQuickCreatePlaylist();
-  const { isOffline } = useOfflineStore();
   const location = useLocation();
   const { unreadMessages } = useChatStore();
   const totalUnread = Array.from(unreadMessages.values()).reduce(
