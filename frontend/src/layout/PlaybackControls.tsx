@@ -1,6 +1,6 @@
 // src/layout/PlaybackControls.tsx
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, startTransition } from "react";
 import { Drawer } from "vaul";
 import { useDominantColor } from "@/hooks/useDominantColor";
 import { usePlayerStore } from "../stores/usePlayerStore";
@@ -314,10 +314,34 @@ const PlaybackControls = () => {
       setLyrics([]);
       return;
     }
-    if (typeof currentSong.lyrics === "string") {
-      setLyrics(currentSong.lyrics ? parseLrc(currentSong.lyrics) : []);
+    const raw = currentSong.lyrics;
+    if (typeof raw !== "string" || !raw) {
+      setLyrics([]);
+      return;
     }
-  }, [currentSong]);
+
+    let cancelled = false;
+    const apply = () => {
+      if (cancelled) return;
+      startTransition(() => {
+        if (!cancelled) setLyrics(parseLrc(raw));
+      });
+    };
+
+    if (typeof requestIdleCallback === "function") {
+      const id = requestIdleCallback(apply, { timeout: 500 });
+      return () => {
+        cancelled = true;
+        cancelIdleCallback(id);
+      };
+    }
+
+    const id = window.setTimeout(apply, 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(id);
+    };
+  }, [currentSong?._id, currentSong?.lyrics]);
 
   const toggleRepeatMode = () => {
     if (repeatMode === "off") {

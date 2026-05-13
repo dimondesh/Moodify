@@ -25,8 +25,15 @@ const migrateLocalStorageKey = (fromKey: string, toKey: string) => {
 
 migrateLocalStorageKey(
   "moodify-studio-player-storage",
-  "moodify-player-storage"
+  "moodify-player-storage",
 );
+
+/** Lyrics are large; persisting them blocks the main thread on every store write. */
+const stripLyricsForPersistence = (song: Song): Song => {
+  const rest = { ...song };
+  delete rest.lyrics;
+  return rest;
+};
 
 const isMobileDevice = () => {
   if (typeof window === "undefined") return false;
@@ -978,10 +985,10 @@ export const usePlayerStore = create<PlayerStore>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         currentSong: state.currentSong
-          ? { ...state.currentSong, lyrics: state.currentSong.lyrics }
+          ? stripLyricsForPersistence(state.currentSong)
           : null,
         isPlaying: state.isPlaying,
-        queue: state.queue.map((song) => ({ ...song, lyrics: song.lyrics })),
+        queue: state.queue.map(stripLyricsForPersistence),
         currentIndex: state.currentIndex,
         repeatMode: state.repeatMode,
         shuffleMode: state.shuffleMode,
