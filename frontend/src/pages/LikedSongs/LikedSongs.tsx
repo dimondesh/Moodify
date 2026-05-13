@@ -15,7 +15,7 @@ import EqualizerTitle from "@/components/ui/equalizer-title";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { Song } from "@/types";
 import { getArtistNames, getOptimizedImageUrl } from "@/lib/utils";
-import SongOptionsDrawer from "../PlaylistPage/SongOptionsDrawer";
+import SongOptionsDrawer from "@/components/SongOptionsDrawer";
 
 const formatDuration = (seconds: number) => {
   if (isNaN(seconds) || seconds < 0) return "0:00";
@@ -334,8 +334,9 @@ const LikedSongsPage = () => {
         </div>
       </div>
       <SongOptionsDrawer
+        context="playlist"
         song={selectedSongForMenu}
-        playlistId={""}
+        playlistId=""
         isOwner={false}
         isOpen={!!selectedSongForMenu}
         onOpenChange={(open) => !open && setSelectedSongForMenu(null)}

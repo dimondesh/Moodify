@@ -1,6 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-// frontend/src/pages/AlbumPage/AddToPlaylistSheet.tsx
-
 import React, { useEffect, useState } from "react";
 import {
   Sheet,
@@ -19,16 +17,22 @@ import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
-interface AddToPlaylistSheetProps {
+interface AddSongToPlaylistSheetProps {
   song: Song;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Success toasts when adding/removing the track from a user playlist row. */
+  notifyPlaylistMembershipChanges?: boolean;
+  /** Success toasts when toggling liked songs from this sheet. */
+  notifyLikedSongsChanges?: boolean;
 }
 
-const AddToPlaylistSheet: React.FC<AddToPlaylistSheetProps> = ({
+const AddSongToPlaylistSheet: React.FC<AddSongToPlaylistSheetProps> = ({
   song,
   isOpen,
   onOpenChange,
+  notifyPlaylistMembershipChanges = false,
+  notifyLikedSongsChanges = false,
 }) => {
   const { t } = useTranslation();
   const {
@@ -57,7 +61,7 @@ const AddToPlaylistSheet: React.FC<AddToPlaylistSheetProps> = ({
       const playlistsContainingSong = new Set(
         ownedPlaylists
           .filter((p) => p.songs.some((s) => s._id === song._id))
-          .map((p) => p._id)
+          .map((p) => p._id),
       );
       setLocalPlaylistsWithSong(playlistsContainingSong);
     }
@@ -75,8 +79,14 @@ const AddToPlaylistSheet: React.FC<AddToPlaylistSheetProps> = ({
     try {
       if (wasInPlaylist) {
         await removeSongFromPlaylist(playlistId, song._id);
+        if (notifyPlaylistMembershipChanges) {
+          toast.success(t("player.removedFromPlaylist"));
+        }
       } else {
         await addSongToPlaylist(playlistId, song._id);
+        if (notifyPlaylistMembershipChanges) {
+          toast.success(t("player.addedToPlaylist"));
+        }
       }
     } catch (e) {
       toast.error(t("player.playlistUpdateError"));
@@ -90,12 +100,20 @@ const AddToPlaylistSheet: React.FC<AddToPlaylistSheetProps> = ({
   };
 
   const handleLikeToggle = async () => {
-    setLocalIsLiked(!localIsLiked);
+    const originallyLiked = localIsLiked;
+    setLocalIsLiked(!originallyLiked);
     try {
       await toggleSongLike(song._id);
+      if (notifyLikedSongsChanges) {
+        toast.success(
+          !originallyLiked
+            ? t("player.addedToLiked")
+            : t("player.removedFromLiked"),
+        );
+      }
     } catch (e) {
       toast.error("Failed to update liked songs.");
-      setLocalIsLiked(localIsLiked);
+      setLocalIsLiked(originallyLiked);
     }
   };
 
@@ -129,7 +147,7 @@ const AddToPlaylistSheet: React.FC<AddToPlaylistSheetProps> = ({
         />
       )}
       <div className="flex-1 min-w-0">
-        <p className="font-semibold max-w-50 truncate  md:max-w-70">{title}</p>
+        <p className="font-semibold max-w-50 truncate md:max-w-70">{title}</p>
         {subtitle && <p className="text-xs text-zinc-400">{subtitle}</p>}
       </div>
       <div
@@ -137,7 +155,7 @@ const AddToPlaylistSheet: React.FC<AddToPlaylistSheetProps> = ({
           "w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors",
           checked
             ? "bg-violet-500 border-violet-500"
-            : "border-zinc-500 group-hover:border-white"
+            : "border-zinc-500 group-hover:border-white",
         )}
       >
         {checked && <Check className="w-4 h-4 text-white" />}
@@ -181,7 +199,7 @@ const AddToPlaylistSheet: React.FC<AddToPlaylistSheetProps> = ({
                 imageUrl={playlist.imageUrl}
                 title={playlist.title}
                 subtitle={`${playlist.songs.length} ${t(
-                  "sidebar.subtitle.songs"
+                  "sidebar.subtitle.songs",
                 )}`}
               />
             ))}
@@ -192,4 +210,4 @@ const AddToPlaylistSheet: React.FC<AddToPlaylistSheetProps> = ({
   );
 };
 
-export default AddToPlaylistSheet;
+export default AddSongToPlaylistSheet;

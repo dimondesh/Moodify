@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
-import type { BackgroundLayer } from "@/hooks/useCollectionDominantBackground";
+import type { CoverGradientLayer } from "@/hooks/useDominantCoverGradient";
 
-interface MusicCollectionShellProps {
-  backgrounds: BackgroundLayer[];
+interface CollectionGradientLayoutProps {
+  backgrounds: CoverGradientLayer[];
   /** Bottom color of the vertical gradient (e.g. album vs playlist page tint). */
   footerTint?: string;
   midTint?: string;
@@ -12,14 +12,15 @@ interface MusicCollectionShellProps {
   innerClassName?: string;
 }
 
-export function MusicCollectionShell({
+/** Full-page vertical gradient behind album or playlist content, driven by cover color. */
+export function CollectionGradientLayout({
   backgrounds,
   footerTint = "#18181b",
   midTint = "rgba(20, 20, 20, 0.8)",
   children,
   className = "",
   innerClassName = "relative min-h-screen pb-36 lg:pb-0",
-}: MusicCollectionShellProps) {
+}: CollectionGradientLayoutProps) {
   const top = backgrounds[0] ?? { key: 0, color: "#18181b" };
 
   return (

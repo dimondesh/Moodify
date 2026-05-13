@@ -944,7 +944,8 @@
       "tableReleaseYear": "Рік випуску",
       "tableSongs": "Треки",
       "tableActions": "Дії",
-      "share": "Поділитися"
+      "share": "Поділитися",
+      "goToArtist": "Перейти до виконавця"
     },
     "artists": {
       "title": "Бібліотека виконавців",

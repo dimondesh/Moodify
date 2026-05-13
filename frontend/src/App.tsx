@@ -14,16 +14,11 @@ import TrackRedirect from "./pages/TrackRedirect";
 import AlbumPage from "./pages/AlbumPage/AlbumPage";
 import NotFoundPage from "./pages/NotFoundPage/NotFoundPage";
 import AllSongsPage from "./pages/AllSongs/AllSongsPage";
-import PlaylistDetailsPage from "./pages/PlaylistPage/PlaylistDetailsPage";
+import PlaylistDetailsPage from "./pages/PlaylistDetailsPage/PlaylistDetailsPage";
 import ArtistPage from "./pages/ArtistPage/ArtistPage";
 import ProfilePage from "./pages/ProfilePage/ProfilePage";
 import DisplayListPage from "./pages/DisplayListPage/DisplayListPage";
 import PlaylistBrowsePage from "./pages/PlaylistBrowsePage/PlaylistBrowsePage";
-import {
-  LegacyPlaylistById,
-  LegacyPlaylistByMixId,
-  LegacyPlaylistBrowse,
-} from "./components/routing/LegacyPlaylistRedirects";
 import TopTracksPage from "./pages/TopTracksPage/TopTracksPage";
 import OfflinePage from "./pages/OfflinePage/OfflinePage";
 import LibraryPage from "./pages/LibraryPage/LibraryPage";
@@ -174,15 +169,8 @@ function App() {
             <Route path="/artists/:id" element={<ArtistPage />} />
             <Route path="/users/:userId" element={<ProfilePage />} />
             <Route path="/list" element={<DisplayListPage />} />
-            <Route path="/mixes/:mixId" element={<LegacyPlaylistByMixId />} />
-            <Route path="/personal-mixes/:id" element={<LegacyPlaylistById />} />
-            <Route path="/all-mixes/:category" element={<LegacyPlaylistBrowse />} />
             <Route path="/offline" element={<OfflinePage />} />
             <Route path="/track/:id" element={<TrackRedirect />} />
-            <Route
-              path="/generated-playlists/:id"
-              element={<LegacyPlaylistById />}
-            />
             <Route
               path="/users/:userId/top-tracks"
               element={<TopTracksPage />}

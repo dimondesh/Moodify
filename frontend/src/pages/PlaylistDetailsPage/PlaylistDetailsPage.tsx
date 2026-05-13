@@ -1,5 +1,3 @@
-// frontend/src/pages/MusicCollectionPage/PlaylistCollectionView.tsx
-
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -10,13 +8,13 @@ import { Button } from "@/components/ui/button";
 import { useChatStore } from "@/stores/useChatStore";
 import { useOfflineStore } from "@/stores/useOfflineStore";
 import EqualizerTitle from "@/components/ui/equalizer-title";
-import SongOptionsDrawer from "@/pages/PlaylistPage/SongOptionsDrawer";
+import SongOptionsDrawer from "@/components/SongOptionsDrawer";
 import { getArtistNames, getOptimizedImageUrl } from "@/lib/utils";
-import { MusicCollectionShell } from "@/components/music-collection/MusicCollectionShell";
-import { useCollectionDominantBackground } from "@/hooks/useCollectionDominantBackground";
-import { AddSongsToPlaylistDialog } from "./dialogs/AddSongsToPlaylistDialog";
-import { DeletePlaylistDialog } from "./dialogs/DeletePlaylistDialog";
-import { RemoveSongFromPlaylistDialog } from "./dialogs/RemoveSongFromPlaylistDialog";
+import { CollectionGradientLayout } from "@/components/CollectionGradientLayout";
+import { useDominantCoverGradient } from "@/hooks/useDominantCoverGradient";
+import { AddSongsToPlaylistDialog } from "./AddSongsToPlaylistDialog";
+import { DeletePlaylistDialog } from "./DeletePlaylistDialog";
+import { RemoveSongFromPlaylistDialog } from "./RemoveSongFromPlaylistDialog";
 
 import {
   Play,
@@ -87,7 +85,7 @@ function playlistKindLabel(t: (k: string) => string, kind?: PlaylistKind) {
   }
 }
 
-const PlaylistCollectionView = () => {
+const PlaylistDetailsPage = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const { socket } = useChatStore();
   const user = useAuthStore((s) => s.user);
@@ -158,7 +156,7 @@ const PlaylistCollectionView = () => {
     isUserEditable && currentPlaylist?.type !== "LIKED_SONGS",
   );
 
-  const { backgrounds } = useCollectionDominantBackground(
+  const { backgrounds } = useDominantCoverGradient(
     currentPlaylist?.imageUrl,
     playlistId,
   );
@@ -618,7 +616,7 @@ const PlaylistCollectionView = () => {
         <title>{`${currentPlaylist.title} by ${ownerName}`}</title>
         <meta name="description" content={metaDescription.substring(0, 160)} />
       </Helmet>
-      <MusicCollectionShell
+      <CollectionGradientLayout
         backgrounds={backgrounds}
         footerTint="#0f0f0f"
         midTint="rgba(20, 20, 20, 0.8)"
@@ -924,7 +922,7 @@ const PlaylistCollectionView = () => {
               </div>
             </div>
           </div>
-      </MusicCollectionShell>
+      </CollectionGradientLayout>
         <DeletePlaylistDialog
           open={!!playlistToDelete}
           onOpenChange={(isOpen) => !isOpen && closeAllDialogs()}
@@ -980,6 +978,7 @@ const PlaylistCollectionView = () => {
           />
         )}
       <SongOptionsDrawer
+        context="playlist"
         song={selectedSongForMenu}
         playlistId={currentPlaylist?._id || ""}
         isOwner={isUserEditable}
@@ -989,4 +988,4 @@ const PlaylistCollectionView = () => {
     </>
   );
 };
-export default PlaylistCollectionView;
+export default PlaylistDetailsPage;

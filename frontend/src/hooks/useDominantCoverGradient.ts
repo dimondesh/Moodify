@@ -1,21 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import { useDominantColor } from "@/hooks/useDominantColor";
 
-export interface BackgroundLayer {
+export interface CoverGradientLayer {
   key: number;
   color: string;
 }
 
 const DEFAULT_COLOR = "#18181b";
 
-export function useCollectionDominantBackground(
+/** Dominant color from cover art for album / playlist page gradients. */
+export function useDominantCoverGradient(
   imageUrl: string | null | undefined,
   entityKey: string | null | undefined,
 ) {
   const { extractColor } = useDominantColor();
   const [isColorLoading, setIsColorLoading] = useState(true);
   const backgroundKeyRef = useRef(0);
-  const [backgrounds, setBackgrounds] = useState<BackgroundLayer[]>([
+  const [backgrounds, setBackgrounds] = useState<CoverGradientLayer[]>([
     { key: 0, color: DEFAULT_COLOR },
   ]);
 
