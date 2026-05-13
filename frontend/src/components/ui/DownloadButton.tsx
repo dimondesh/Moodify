@@ -97,7 +97,7 @@ export const DownloadButton = memo(
         {status === "downloading" && (
           <div className="relative group">
             <svg
-              className="size-8 transform -rotate-90 transition-all duration-300 ease-out text-white/80 group-hover:text-white"
+              className="size-8 transform -rotate-180 transition-all duration-300 ease-out text-white/80 group-hover:text-white"
               xmlns="http://www.w3.org/2000/svg"
               width="100"
               height="100"

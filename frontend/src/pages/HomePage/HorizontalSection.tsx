@@ -289,12 +289,12 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
         className="w-full whitespace-nowrap rounded-md"
         ref={scrollContainerRef}
       >
-        <div className="flex gap-4 pb-4">
+        <div className="flex pb-4">
           {itemsToShow.map((item) => {
             return (
               <div
                 key={`${item.itemType}-${item._id}`}
-                className="bg-transparent p-0 rounded-md transition-all group cursor-pointer w-36 sm:w-44 flex-shrink-0"
+                className="bg-transparent p-2 rounded-md transition-all hover:bg-zinc-800/50 group cursor-pointer w-36 sm:w-44 flex-shrink-0"
                 onClick={() => handleItemClick(item)}
               >
                 <div className="relative mb-2">
@@ -304,7 +304,7 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
                         <AvatarImage
                           src={getOptimizedImageUrl(item.imageUrl, 200)}
                           alt={getDisplayTitle(item)}
-                          className="object-cover h-auto w-auto rounded-full transition-transform duration-300 group-hover:scale-105"
+                          className="object-cover h-auto w-auto rounded-full"
                         />
                         <AvatarFallback>
                           {getDisplayTitle(item)?.[0] || "?"}
@@ -318,7 +318,7 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
                           200,
                         )}
                         alt={getDisplayTitle(item)}
-                        className="absolute inset-0 h-full w-full object-cover rounded-md transition-transform duration-300 group-hover:scale-105"
+                        className="absolute inset-0 h-full w-full object-cover rounded-md"
                       />
                     )}
                     {isPlaylistCoverOverlayItem(item) && (

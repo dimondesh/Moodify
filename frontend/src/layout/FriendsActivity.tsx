@@ -83,7 +83,7 @@ const FriendsActivity = () => {
                 <Link
                   key={userObj._id}
                   to={`/users/${userObj._id}`}
-                  className="block hover:bg-[#2a2a2a] p-3 rounded-md transition-colors group hover-scale"
+                  className="block hover:bg-[#2a2a2a] p-3 rounded-md transition-colors group"
                 >
                   <div className="flex items-start gap-3">
                     <div className="relative flex-shrink-0">

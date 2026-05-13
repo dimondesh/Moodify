@@ -422,7 +422,7 @@ const LibraryPage = () => {
                       : t("sidebar.emptyLibrary")}
                 </p>
               ) : libraryPageViewMode === "grid" ? (
-                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5">
                   {filteredLibraryItems.map((item) => {
                     let linkPath: string = "#";
                     let subtitle: string = "";
@@ -470,7 +470,7 @@ const LibraryPage = () => {
                       <Link
                         key={`${item.type}-${item._id}`}
                         to={linkPath}
-                        className="bg-transparent p-0 rounded-md hover:bg-[#2a2a2a]/50 transition-all group cursor-pointer flex flex-col items-center text-center"
+                        className="bg-transparent p-2 rounded-md hover:bg-[#2a2a2a]/50 transition-all group cursor-pointer flex flex-col items-center text-center"
                       >
                         <div className="relative mb-2 w-full">
                           <div
@@ -513,7 +513,7 @@ const LibraryPage = () => {
                   })}
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="">
                   {filteredLibraryItems.map((item) => {
                     let linkPath: string = "#";
                     let subtitle: string = "";

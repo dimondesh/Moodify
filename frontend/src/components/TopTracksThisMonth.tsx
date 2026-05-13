@@ -164,14 +164,14 @@ const TopTracksThisMonth: React.FC<TopTracksThisMonthProps> = ({
                   <span className="group-hover:hidden">{index + 1}</span>
                 )}
                 {!isCurrentSong && (
-                  <Play className="h-4 w-4 hidden group-hover:block" />
+                  <Play className="h-4 w-4 hidden group-hover:block fill-current text-zinc-400  " />
                 )}
               </div>
               <div className="w-12 h-12 flex-shrink-0">
                 <img
                   src={getOptimizedImageUrl(
                     track.imageUrl || "/default-song-cover.png",
-                    100
+                    100,
                   )}
                   alt={track.title}
                   className="w-full h-full object-cover rounded-md"

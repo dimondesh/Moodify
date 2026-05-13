@@ -167,7 +167,7 @@ const RecentlyListenedArtists: React.FC<RecentlyListenedArtistsProps> = ({
                     "https://moodify.b-cdn.net/default-album-cover.png"
                   }
                   alt={artist.name}
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  className="w-full h-full object-cover"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src =
                       "https://moodify.b-cdn.net/default-album-cover.png";
@@ -193,12 +193,12 @@ const RecentlyListenedArtists: React.FC<RecentlyListenedArtistsProps> = ({
       </div>
 
       {/* Десктопная версия - сетка */}
-      <div className="hidden sm:grid sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+      <div className="hidden sm:grid sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {artists.map((artist) => (
           <Link
             to={`/artists/${artist._id}`}
             key={artist._id}
-            className="bg-transparent p-0 rounded-md transition-all group cursor-pointer"
+            className="bg-transparent p-2 rounded-md group cursor-pointer"
           >
             <div className="relative mb-2">
               <div className="relative aspect-square shadow-lg overflow-hidden rounded-full">
@@ -208,7 +208,7 @@ const RecentlyListenedArtists: React.FC<RecentlyListenedArtistsProps> = ({
                     "https://moodify.b-cdn.net/default-album-cover.png"
                   }
                   alt={artist.name}
-                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  className="absolute inset-0 h-full w-full object-cover"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src =
                       "https://moodify.b-cdn.net/default-album-cover.png";

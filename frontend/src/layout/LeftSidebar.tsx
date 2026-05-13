@@ -319,7 +319,7 @@ const LeftSidebar = () => {
                       setIsLeftSidebarSearchOpen(!isLeftSidebarSearchOpen)
                     }
                     className={cn(
-                      "text-gray-400 hover:text-white hover:bg-transparent! mt-0.5 h-8 w-8 p-0 transition-all duration-300 ease-in-out z-20",
+                      "text-gray-400 hover:text-white hover:bg-transparent! mt-0.5 h-8 w-8 p-0 transition-all! duration-300 ease-in-out z-20",
                       isLeftSidebarSearchOpen
                         ? "opacity-0 pointer-events-none"
                         : "opacity-100",
@@ -331,7 +331,7 @@ const LeftSidebar = () => {
                   {/* Search input - appears in place of button */}
                   <div
                     className={cn(
-                      "absolute top-0 left-0 transition-all duration-300 ease-in-out overflow-hidden z-10",
+                      "absolute top-0 left-0 transition-all! duration-300 ease-in-out overflow-hidden z-10",
                       isLeftSidebarSearchOpen
                         ? "w-full opacity-100"
                         : "w-8 opacity-0",
@@ -388,9 +388,11 @@ const LeftSidebar = () => {
               : t("sidebar.emptyLibrary")}
           </p>
         ) : (
-          <ScrollArea className={`flex-1 h-full ${leftSidebarViewMode === "list" ? "pb-7" : "pb-26"}`}>
+          <ScrollArea
+            className={`flex-1 h-full ${leftSidebarViewMode === "list" ? "pb-7" : "pb-26"}`}
+          >
             {leftSidebarViewMode === "list" ? (
-              <div className="space-y-2">
+              <div>
                 {filteredLibraryItems.map((item) => {
                   let linkPath: string = "#";
                   let subtitle: string = "";
@@ -442,7 +444,7 @@ const LeftSidebar = () => {
                     <Link
                       to={linkPath}
                       key={`${item.type}-${item._id}`}
-                      className="p-2 hover:bg-[#2a2a2a] rounded-md flex items-center gap-3 cursor-pointer relative"
+                      className="p-2 hover:bg-[#2a2a2a] rounded-md flex items-center gap-2 cursor-pointer relative"
                     >
                       <div className="relative flex-shrink-0 group">
                         <img
@@ -503,7 +505,7 @@ const LeftSidebar = () => {
                 })}
               </div>
             ) : (
-              <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,1fr))] gap-1">
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,1fr))]">
                 {filteredLibraryItems.map((item) => {
                   let linkPath: string = "#";
                   let subtitle: string = "";
@@ -555,7 +557,7 @@ const LeftSidebar = () => {
                     <Link
                       to={linkPath}
                       key={`${item.type}-${item._id}`}
-                      className="px-0 py-1 hover:bg-[#2a2a2a] rounded-md flex flex-col items-center text-center cursor-pointer relative flex-shrink-0"
+                      className="p-1 hover:bg-[#2a2a2a] rounded-md flex flex-col items-center text-center cursor-pointer relative flex-shrink-0"
                     >
                       <div className="relative flex-shrink-0 group mb-0.5">
                         <img
@@ -619,7 +621,6 @@ const LeftSidebar = () => {
           </ScrollArea>
         )}
       </div>
-
     </div>
   );
 };

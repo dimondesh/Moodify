@@ -124,7 +124,7 @@ const EntityTypeFilter = ({
               key={key}
               onClick={() => onFilterChange(currentFilter === key ? null : key)}
               className={cn(
-                "px-3 py-1.5 text-xs font-medium transition-all whitespace-nowrap rounded-full bg-white/5! flex-shrink-0",
+                "px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-full bg-white/5! flex-shrink-0",
                 currentFilter === key
                   ? "bg-white! text-black border-white hover:bg-gray-100"
                   : "bg-transparent text-white border-gray-600 hover:border-white hover:bg-white/10",

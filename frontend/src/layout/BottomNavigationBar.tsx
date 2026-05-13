@@ -42,22 +42,18 @@ const BottomNavigationBar = () => {
         const isDisabled = item.authRequired && !user;
         const className = cn(
           buttonVariants({ variant: "ghost", size: "sm" }),
-          "flex flex-col items-center justify-center p-0 h-full w-auto transition-colors duration-200 relative",
+          "flex flex-col items-center justify-center p-0 h-full w-auto transition-colors hover:bg-transparent! duration-200 relative",
           isDisabled
             ? "text-zinc-600 cursor-not-allowed opacity-50 pointer-events-none"
             : cn(
                 "text-zinc-400 hover:text-white",
-                isActive ? "text-white" : "text-zinc-400"
-              )
+                isActive ? "text-white" : "text-zinc-400",
+              ),
         );
 
         if (isDisabled) {
           return (
-            <div
-              key={item.to}
-              className={className}
-              aria-disabled="true"
-            >
+            <div key={item.to} className={className} aria-disabled="true">
               <item.icon className="size-5" />
               <span className="text-xs mt-1">{item.label}</span>
             </div>
@@ -80,10 +76,10 @@ const BottomNavigationBar = () => {
         }}
         className={cn(
           buttonVariants({ variant: "ghost", size: "sm" }),
-          "flex flex-col items-center justify-center p-0 h-full w-auto transition-colors duration-200 relative",
+          "flex flex-col items-center justify-center p-0 h-full w-auto transition-colors hover:bg-transparent! duration-200 relative",
           user
             ? "text-zinc-400 hover:text-white"
-            : "text-zinc-600 cursor-not-allowed opacity-50"
+            : "text-zinc-600 cursor-not-allowed opacity-50",
         )}
         title={t("sidebar.create")}
       >
