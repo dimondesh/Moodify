@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMusicStore } from "../../stores/useMusicStore";
 import { Loader2 } from "lucide-react";
-import type { Playlist } from "../../types";
+import type { Album, Playlist } from "../../types";
 import { useTranslation } from "react-i18next";
 import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
+import { getArtistNames, getOptimizedImageUrl } from "@/lib/utils";
 
 const PlaylistCategoryGrid = ({
   title,
@@ -63,10 +64,70 @@ const PlaylistCategoryGrid = ({
   );
 };
 
+const AlbumsBrowseGrid = ({
+  title,
+  albums,
+}: {
+  title: string;
+  albums: Album[];
+}) => {
+  const navigate = useNavigate();
+
+  if (!albums || albums.length === 0) return null;
+
+  return (
+    <div className="mb-10">
+      <h2 className="text-2xl font-bold mb-4 text-white">{title}</h2>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+        {albums.map((album) => (
+          <div
+            key={album._id}
+            onClick={() => navigate(`/albums/${album._id}`)}
+            className="bg-transparent p-1 hover:bg-zinc-800/50 rounded-md transition-all group cursor-pointer"
+          >
+            <div className="relative mb-2">
+              <div className="relative aspect-square shadow-lg overflow-hidden rounded-md">
+                <img
+                  src={getOptimizedImageUrl(
+                    album.imageUrl ||
+                      "https://moodify.b-cdn.net/default-album-cover.png",
+                    200,
+                  )}
+                  alt={album.title}
+                  className="absolute inset-0 h-full w-full object-cover rounded-md"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src =
+                      "https://moodify.b-cdn.net/default-album-cover.png";
+                  }}
+                />
+              </div>
+              <UniversalPlayButton
+                entity={album}
+                entityType="album"
+                className="absolute bottom-3 right-2 z-50"
+                size="sm"
+              />
+            </div>
+            <div className="px-1">
+              <h3 className="font-semibold text-sm truncate text-white">
+                {album.title}
+              </h3>
+              <p className="text-xs text-zinc-400 leading-tight truncate">
+                {getArtistNames(album.artist)}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const BrowseSecondaryPlaylists = () => {
   const { t } = useTranslation();
   const genreMixes = useMusicStore((s) => s.genreMixes);
   const moodMixes = useMusicStore((s) => s.moodMixes);
+  const browseRandomAlbums = useMusicStore((s) => s.browseRandomAlbums);
   const fetchSecondaryHomePlaylists = useMusicStore(
     (s) => s.fetchSecondaryHomePlaylists,
   );
@@ -74,10 +135,20 @@ const BrowseSecondaryPlaylists = () => {
   const [isFetching, setIsFetching] = useState(false);
 
   useEffect(() => {
-    if (genreMixes.length > 0 || moodMixes.length > 0) return;
+    if (
+      genreMixes.length > 0 ||
+      moodMixes.length > 0 ||
+      browseRandomAlbums.length > 0
+    )
+      return;
     setIsFetching(true);
     void fetchSecondaryHomePlaylists().finally(() => setIsFetching(false));
-  }, [fetchSecondaryHomePlaylists, genreMixes.length, moodMixes.length]);
+  }, [
+    fetchSecondaryHomePlaylists,
+    genreMixes.length,
+    moodMixes.length,
+    browseRandomAlbums.length,
+  ]);
 
   if (isFetching) {
     return (
@@ -96,6 +167,10 @@ const BrowseSecondaryPlaylists = () => {
       <PlaylistCategoryGrid
         title={t("homepage.moodMixes")}
         playlists={moodMixes}
+      />
+      <AlbumsBrowseGrid
+        title={t("searchpage.albums")}
+        albums={browseRandomAlbums}
       />
     </div>
   );

@@ -11,10 +11,27 @@ import {
   getPlaylistRecommendations,
 } from "./user.controller.js";
 import { Playlist } from "../models/playlist.model.js";
+import { Album } from "../models/album.model.js";
 import { buildLibrarySummaryForUser } from "./library.controller.js";
 import { populatePlaylistEmbeddedSongs } from "./playlist.controller.js";
 
 const HOME_SECTION_LIMIT = 12;
+const BROWSE_RANDOM_ALBUMS_LIMIT = 40;
+
+// TEMP: returns N random albums for the browse/search page so it isn't empty
+// while mixes are not generated. Remove once real mixes are back.
+const getRandomAlbumsForBrowse = async (limit = BROWSE_RANDOM_ALBUMS_LIMIT) => {
+  try {
+    const sampled = await Album.aggregate([{ $sample: { size: limit } }]);
+    const populated = await Album.populate(sampled, [
+      { path: "artist", select: "name imageUrl" },
+    ]);
+    return populated;
+  } catch (err) {
+    console.error("Failed to sample random albums for browse:", err);
+    return [];
+  }
+};
 
 export const getPrimaryHomePageData = async (req, res, next) => {
   try {
@@ -52,6 +69,7 @@ export const getSecondaryHomePageData = async (req, res, next) => {
       getTrendingSongs(req, res, next, true, HOME_SECTION_LIMIT),
       publicMixesPromise,
       publicPlaylistsPromise,
+      getRandomAlbumsForBrowse(BROWSE_RANDOM_ALBUMS_LIMIT),
     ];
 
     let userSpecificPromises = [];
@@ -82,7 +100,7 @@ export const getSecondaryHomePageData = async (req, res, next) => {
       ];
     }
 
-    const [trendingSongs, publicMixes, publicPlaylists] =
+    const [trendingSongs, publicMixes, publicPlaylists, randomAlbums] =
       await Promise.all(commonPromises);
 
     const secondaryData = {
@@ -90,6 +108,7 @@ export const getSecondaryHomePageData = async (req, res, next) => {
       genreMixes: publicMixes.filter((p) => p.type === "GENRE_MIX"),
       moodMixes: publicMixes.filter((p) => p.type === "MOOD_MIX"),
       publicPlaylists,
+      randomAlbums,
       allGeneratedPlaylists: [],
       madeForYouSongs: [],
       recentlyListenedSongs: [],

@@ -75,6 +75,8 @@ interface MusicStore {
   /** Public genre/mood playlists (GENRE_MIX / MOOD_MIX) from bootstrap or /home/secondary */
   genreMixes: Playlist[];
   moodMixes: Playlist[];
+  /** TEMP: random albums returned by /home/secondary to populate the browse page */
+  browseRandomAlbums: Album[];
   clearHomePageCache: () => void;
   fetchSecondaryHomePlaylists: () => Promise<void>;
   fetchAlbums: () => Promise<void>;
@@ -122,6 +124,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
   homeSmartPlaylists: [],
   genreMixes: [],
   moodMixes: [],
+  browseRandomAlbums: [],
   paginatedSongs: [],
   songsPage: 1,
   songsTotalPages: 1,
@@ -475,6 +478,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
       set({
         genreMixes: response.data.genreMixes || [],
         moodMixes: response.data.moodMixes || [],
+        browseRandomAlbums: response.data.randomAlbums || [],
       });
     } catch (err: unknown) {
       console.error("Failed to fetch secondary home playlists:", err);
