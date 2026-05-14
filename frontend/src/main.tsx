@@ -5,7 +5,7 @@ import { BrowserRouter } from "react-router-dom";
 import AuthProvider from "./Providers/AuthProvider.tsx";
 import "./lib/i18n.ts";
 import { HelmetProvider } from "react-helmet-async";
-import { registerSW } from "virtual:pwa-register";
+import { registerPwaAutoUpdate } from "./lib/register-pwa";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim() || "";
@@ -28,9 +28,4 @@ createRoot(document.getElementById("root")!).render(
   ),
 );
 
-const updateSW = registerSW({
-  immediate: true,
-  onNeedRefresh() {
-    updateSW(true);
-  },
-});
+registerPwaAutoUpdate();

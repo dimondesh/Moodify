@@ -194,16 +194,9 @@
 .vertical-slider [data-radix-slider-track] {
     background-color: var(--radix-slider-track-bg, #52525B); /* Цвет трека */
 }
-.dialog-open-blur {
-  filter: blur(5px); /* Можете настроить силу размытия */
-  transition: filter 0.3s ease-in-out;
-  pointer-events: none; /* Блокирует клики и другие события на фоне */
-  
-}
-
-.player-dialog-blur {
-  filter: blur(5px);
-  transition: filter 0.3s ease-in-out;
+/* Blocks interaction with main content behind global dialogs (no backdrop blur). */
+.dialog-open-root-lock {
+  pointer-events: none;
 }
 
  .main-layout-sheet-open {

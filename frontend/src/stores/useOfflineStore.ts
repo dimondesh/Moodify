@@ -24,6 +24,8 @@ import i18n from "@/lib/i18n";
 type ItemType = "albums" | "playlists";
 const HLS_ASSETS_CACHE_NAME = "moodify-hls-assets-cache";
 
+let offlineNetworkListenersAttached = false;
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const parseM3u8KeyUris = (manifestText: string): string[] => {
@@ -172,6 +174,13 @@ export const useOfflineStore = create<OfflineState>()(
           const isCurrentlyOffline = !navigator.onLine;
           set({ isOffline: isCurrentlyOffline });
 
+          if (!offlineNetworkListenersAttached) {
+            offlineNetworkListenersAttached = true;
+            const onChange = get().actions.checkOnlineStatus;
+            window.addEventListener("online", onChange);
+            window.addEventListener("offline", onChange);
+          }
+
           if (!userId) {
             set({ downloadedItemIds: new Set(), downloadedSongIds: new Set() });
             return;
@@ -201,9 +210,6 @@ export const useOfflineStore = create<OfflineState>()(
             console.log("[Offline Startup] Forcing data fetch from IndexedDB.");
             useMusicStore.getState().fetchArtists();
           }
-
-          window.addEventListener("online", get().actions.checkOnlineStatus);
-          window.addEventListener("offline", get().actions.checkOnlineStatus);
         },
 
         checkOnlineStatus: () => {

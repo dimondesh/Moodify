@@ -10,6 +10,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
+      injectRegister: null,
       devOptions: {
         enabled: false,
       },
@@ -68,6 +69,8 @@ export default defineConfig({
         "ir/large-hall.wav",
       ],
       manifest: {
+        start_url: "/",
+        scope: "/",
         name: "Moodify",
         short_name: "Moodify",
         description:
