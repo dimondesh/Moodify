@@ -8,6 +8,8 @@ import { Button } from "../../components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useDominantColor } from "@/hooks/useDominantColor";
+import { CoverDominantBackdrop } from "@/components/CoverDominantBackdrop";
 
 interface LyricLine {
   time: number;
@@ -90,6 +92,26 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
 
   const { song: displaySong, lyrics } = displayState;
   const realCurrentTime = currentTime;
+
+  const coverImageUrl = currentSong?.imageUrl ?? displaySong?.imageUrl;
+
+  const { extractColor } = useDominantColor();
+  const [backdropColor, setBackdropColor] = useState("#27272a");
+
+  useEffect(() => {
+    let alive = true;
+    const url = coverImageUrl;
+    if (!url) {
+      setBackdropColor("#27272a");
+      return;
+    }
+    void extractColor(url).then((color) => {
+      if (alive) setBackdropColor(color);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [coverImageUrl, extractColor]);
 
   useEffect(() => {
     setIsUserScrolling(false);
@@ -209,26 +231,13 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
 
   return (
     <div
-      className={`overflow-hidden bg-black overscroll-none ${
+      className={`isolate overflow-hidden overscroll-none bg-zinc-950 flex flex-col ${
         isMobileFullScreen
-          ? "fixed inset-0 z-[100]"
-          : "relative min-h-[100dvh] w-full"
+          ? "fixed inset-0 z-[100] min-h-0"
+          : "relative h-full min-h-0 w-full flex flex-col"
       }`}
     >
-      {displaySong?.imageUrl && (
-        <div
-          className="absolute inset-0 z-0 pointer-events-none transition-all duration-700 ease-in-out origin-center transform-gpu"
-          style={{
-            backgroundImage: `url(${displaySong.imageUrl})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            filter: "blur(80px)",
-            WebkitFilter: "blur(80px)",
-          }}
-        />
-      )}
-
-      <div className="absolute inset-0 z-0 bg-black/60 pointer-events-none" />
+      <CoverDominantBackdrop accentColor={backdropColor} />
 
       <div className="flex flex-col items-center justify-start h-full p-4 pt-12 sm:p-8 text-white relative z-10 w-full">
         <div className="flex justify-between items-center w-full max-w-4xl mb-4">
@@ -256,7 +265,7 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
         </div>
 
         <ScrollArea
-          className="flex-1 w-full max-w-4xl text-center h-full relative z-10 overflow-hidden"
+          className="flex-1 w-full max-w-4xl text-left h-full relative z-10 overflow-hidden"
           ref={lyricsScrollAreaRef}
           style={{
             maskImage: isMobile
@@ -272,7 +281,7 @@ const LyricsPage: React.FC<LyricsPageProps> = ({
           {lyrics.map((line, index) => (
             <p
               key={index}
-              className={`py-1 text-2xl px-2 sm:text-3xl font-semibold transition-all duration-200 lyric-line-${index} cursor-pointer hover:text-white drop-shadow-md ${
+              className={`py-1 text-3xl px-2 sm:text-3xl font-semibold transition-all duration-200 lyric-line-${index} cursor-pointer hover:text-white drop-shadow-md ${
                 realCurrentTime >= line.time &&
                 (index === lyrics.length - 1 ||
                   realCurrentTime < lyrics[index + 1].time)

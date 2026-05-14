@@ -242,7 +242,9 @@ const MainLayout = () => {
                 <LyricsPage isMobileFullScreen={true} />
               </div>
             ) : !isCompactView && isDesktopLyricsOpen ? (
-              <LyricsPage isMobileFullScreen={false} />
+              <div className="relative h-full w-full min-h-0">
+                <LyricsPage isMobileFullScreen={false} />
+              </div>
             ) : (
               <Outlet />
             )}

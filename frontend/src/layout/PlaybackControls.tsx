@@ -13,6 +13,7 @@ import { Maximize, Share, Shuffle } from "lucide-react";
 import { ShareDialog } from "@/components/ui/ShareDialog";
 import { AddToPlaylistControl } from "./AddToPlaylistControl";
 import Repeat from "@/components/ui/repeat-icon";
+import { CoverDominantBackdrop } from "@/components/CoverDominantBackdrop";
 
 import {
   Pause,
@@ -75,75 +76,6 @@ const parseLrc = (lrcContent: string): LyricLine[] => {
   parsedLyrics.sort((a, b) => a.time - b.time);
   return parsedLyrics;
 };
-
-/** iOS WebKit: full-viewport CSS blur + frequent re-renders is very expensive. */
-function isPlaybackIos(): boolean {
-  if (typeof navigator === "undefined") return false;
-  if (/iPad|iPhone|iPod/.test(navigator.userAgent)) return true;
-  return (
-    navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1
-  );
-}
-
-type BgQueueItem = { id: string; url: string; loaded: boolean };
-
-const BlurredCoverBackdrop = memo(function BlurredCoverBackdrop({
-  queue,
-  onItemLoad,
-}: {
-  queue: BgQueueItem[];
-  onItemLoad: (id: string) => void;
-}) {
-  return (
-    <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none bg-zinc-950">
-      <div className="absolute inset-0 opacity-60">
-        {queue.map((bg) => (
-          <img
-            key={bg.id}
-            src={bg.url}
-            alt=""
-            onLoad={() => onItemLoad(bg.id)}
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
-              bg.loaded ? "opacity-100" : "opacity-0"
-            }`}
-            style={{
-              filter: "blur(80px)",
-              WebkitFilter: "blur(80px)",
-              transform: "scale(1.5) translateZ(0)",
-              WebkitTransform: "scale(1.5) translateZ(0)",
-              backfaceVisibility: "hidden",
-              WebkitBackfaceVisibility: "hidden",
-              willChange: "opacity",
-            }}
-          />
-        ))}
-      </div>
-      <div className="absolute inset-0 bg-black/40" />
-    </div>
-  );
-});
-
-const DominantTintBackdrop = memo(function DominantTintBackdrop({
-  accentColor,
-}: {
-  accentColor: string;
-}) {
-  return (
-    <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none bg-zinc-950">
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundColor: accentColor,
-          backgroundImage: [
-            "radial-gradient(ellipse 100% 65% at 50% 0%, rgba(255,255,255,0.14) 0%, transparent 52%)",
-            "linear-gradient(180deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.78) 100%)",
-          ].join(", "),
-        }}
-      />
-      <div className="absolute inset-0 bg-black/40" />
-    </div>
-  );
-});
 
 const MiniPlayerSeekIndicator = memo(function MiniPlayerSeekIndicator() {
   const currentTime = usePlayerStore((s) => s.currentTime);
@@ -227,7 +159,7 @@ const DrawerLyricsPreviewBlock = memo(function DrawerLyricsPreviewBlock({
       }}
     >
       <div
-        className="w-full rounded-2xl p-4 sm:p-6 shadow-xl transition-colors duration-1000 relative overflow-hidden"
+        className="w-full rounded-2xl p-4 sm:p-6 shadow-xl relative overflow-hidden"
         style={{
           backgroundColor: lyricsBgColor,
           backgroundImage:
@@ -363,10 +295,6 @@ const PlaybackControls = () => {
   const [lyrics, setLyrics] = useState<LyricLine[]>([]);
   const [isQueueDrawerOpen, setIsQueueDrawerOpen] = useState(false);
 
-  // Очередь фонов для безупречного кроссфейда
-  const [bgQueue, setBgQueue] = useState<
-    { id: string; url: string; loaded: boolean }[]
-  >([]);
   const { extractColor } = useDominantColor();
   const [lyricsBgColor, setLyricsBgColor] = useState<string>("#27272a");
 
@@ -477,40 +405,6 @@ const PlaybackControls = () => {
     playPrevious,
     togglePlay,
   ]);
-
-  // Обновленная логика фонов
-  useEffect(() => {
-    if (isPlaybackIos()) {
-      setBgQueue([]);
-      return;
-    }
-    const url = currentSong?.imageUrl;
-    if (!url) {
-      setBgQueue([]);
-      return;
-    }
-
-    setBgQueue((prev) => {
-      // Если обложка не изменилась, ничего не делаем
-      if (prev.length > 0 && prev[prev.length - 1].url === url) {
-        return prev;
-      }
-
-      // Находим последнюю картинку, которая УЖЕ полностью загрузилась.
-      // Это спасет от мерцания, если быстро переключать треки.
-      const lastLoaded = [...prev].reverse().find((img) => img.loaded);
-      const newImg = { id: Math.random().toString(), url, loaded: false };
-
-      // Держим в массиве ровно 2 элемента: старый фон (как подложку) и новый (который будет появляться)
-      return lastLoaded ? [lastLoaded, newImg] : [newImg];
-    });
-  }, [currentSong?.imageUrl]);
-
-  const handleBgLoad = useCallback((id: string) => {
-    setBgQueue((prev) =>
-      prev.map((bg) => (bg.id === id ? { ...bg, loaded: true } : bg)),
-    );
-  }, []);
 
   useEffect(() => {
     fetchLikedSongs();
@@ -692,25 +586,18 @@ const PlaybackControls = () => {
           <Drawer.Root
             open={isFullScreenPlayerOpen}
             onOpenChange={setIsFullScreenPlayerOpen}
-            {...(isPlaybackIos()
-              ? { shouldScaleBackground: false, setBackgroundColorOnScale: false }
-              : {})}
           >
             <Drawer.Portal>
               <Drawer.Overlay className="fixed bg-black/40 z-[70] max-w-none " />
               <Drawer.Content
                 aria-describedby={undefined}
-                className={`bg-zinc-950 flex flex-col  w-auto max-w-none h-full max-h-[100%] mt-24 min-w-screen overflow-hidden  fixed bottom-0 left-0 right-0 z-[70]  ${
+                className={`isolate bg-zinc-950 flex flex-col w-auto max-w-none h-full max-h-[100%] mt-24 min-w-screen overflow-hidden fixed bottom-0 left-0 right-0 z-[70] ${
                   isAnyDialogOpen ? "player-dialog-blur" : ""
                 }`}
               >
-                {isPlaybackIos() ? (
-                  <DominantTintBackdrop accentColor={lyricsBgColor} />
-                ) : (
-                  <BlurredCoverBackdrop queue={bgQueue} onItemLoad={handleBgLoad} />
-                )}
+                <CoverDominantBackdrop accentColor={lyricsBgColor} />
 
-                <div className=" w-full mx-auto p-0  overflow-auto  hide-scrollbar">
+                <div className="relative z-10 flex flex-1 min-h-0 w-full mx-auto flex-col overflow-auto hide-scrollbar">
                   <Drawer.Title className="sr-only">
                     {currentSong?.title || t("player.nowPlaying")} -{" "}
                     {getArtistNames(
