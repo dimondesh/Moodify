@@ -1,6 +1,6 @@
 // src/layout/PlaybackControls.tsx
 
-import { useEffect, useState, startTransition, useMemo } from "react";
+import { useEffect, useState, startTransition } from "react";
 import { Drawer } from "vaul";
 import { useDominantColor } from "@/hooks/useDominantColor";
 import { usePlayerStore } from "../stores/usePlayerStore";
@@ -37,7 +37,7 @@ import {
 } from "../components/ui/dropdown-menu";
 import { useChatStore } from "../stores/useChatStore";
 
-import { getArtistNames, getOptimizedImageUrl } from "@/lib/utils";
+import { getArtistNames } from "@/lib/utils";
 import { useUIStore } from "@/stores/useUIStore";
 import { useAuthStore } from "../stores/useAuthStore";
 import { QueueDropdown } from "../components/QueueDropdown";
@@ -81,15 +81,6 @@ const PlaybackControls = () => {
   const navigate = useNavigate();
   const { isIosDevice } = useUIStore();
   const user = useAuthStore((s) => s.user);
-
-  /** UA-based: store flag may still be false on first paint before App.tsx runs. */
-  const isPlaybackIos = useMemo(() => {
-    if (typeof navigator === "undefined") return false;
-    return (
-      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
-    );
-  }, []);
 
   const {
     currentSong,
@@ -274,12 +265,8 @@ const PlaybackControls = () => {
     }
   }, [currentTime, duration, isPlaying, currentSong]);
 
-  // Обновленная логика фонов (без blur-стека на iOS — Safari сильно просаживается)
+  // Обновленная логика фонов
   useEffect(() => {
-    if (isPlaybackIos) {
-      setBgQueue([]);
-      return;
-    }
     const url = currentSong?.imageUrl;
     if (!url) {
       setBgQueue([]);
@@ -300,7 +287,7 @@ const PlaybackControls = () => {
       // Держим в массиве ровно 2 элемента: старый фон (как подложку) и новый (который будет появляться)
       return lastLoaded ? [lastLoaded, newImg] : [newImg];
     });
-  }, [currentSong?.imageUrl, isPlaybackIos]);
+  }, [currentSong?.imageUrl]);
 
   const handleBgLoad = (id: string) => {
     setBgQueue((prev) =>
@@ -429,17 +416,8 @@ const PlaybackControls = () => {
               >
                 <div className="relative w-10 h-10 rounded-md overflow-hidden flex-shrink-0">
                   <img
-                    src={
-                      isPlaybackIos
-                        ? getOptimizedImageUrl(
-                            currentSong.imageUrl ||
-                              "/default-song-cover.png",
-                            120,
-                          )
-                        : currentSong.imageUrl || "/default-song-cover.png"
-                    }
+                    src={currentSong.imageUrl || "/default-song-cover.png"}
                     alt={currentSong.title}
-                    decoding="async"
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -498,9 +476,6 @@ const PlaybackControls = () => {
           <Drawer.Root
             open={isFullScreenPlayerOpen}
             onOpenChange={setIsFullScreenPlayerOpen}
-            {...(isPlaybackIos
-              ? { shouldScaleBackground: false, setBackgroundColorOnScale: false }
-              : {})}
           >
             <Drawer.Portal>
               <Drawer.Overlay className="fixed bg-black/40 z-[70] max-w-none " />
@@ -511,44 +486,28 @@ const PlaybackControls = () => {
                 }`}
               >
                 <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none bg-zinc-950">
-                  {isPlaybackIos ? (
-                    <div
-                      className="absolute inset-0 opacity-80"
-                      style={{
-                        backgroundColor: lyricsBgColor,
-                        ...(currentSong?.imageUrl
-                          ? {
-                              backgroundImage: `linear-gradient(rgba(0,0,0,0.72), rgba(0,0,0,0.78)), url(${getOptimizedImageUrl(currentSong.imageUrl, 720)})`,
-                              backgroundSize: "cover",
-                              backgroundPosition: "center",
-                            }
-                          : {}),
-                      }}
-                    />
-                  ) : (
-                    <div className="absolute inset-0 opacity-60">
-                      {bgQueue.map((bg) => (
-                        <img
-                          key={bg.id}
-                          src={bg.url}
-                          alt=""
-                          onLoad={() => handleBgLoad(bg.id)}
-                          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
-                            bg.loaded ? "opacity-100" : "opacity-0"
-                          }`}
-                          style={{
-                            filter: "blur(80px)",
-                            WebkitFilter: "blur(80px)", // Принудительно для Safari
-                            transform: "scale(1.5) translateZ(0)",
-                            WebkitTransform: "scale(1.5) translateZ(0)",
-                            backfaceVisibility: "hidden", // Убирает мерцание задней поверхности в Safari
-                            WebkitBackfaceVisibility: "hidden",
-                            willChange: "opacity", // Заранее предупреждаем браузер, что будем менять прозрачность
-                          }}
-                        />
-                      ))}
-                    </div>
-                  )}
+                  <div className="absolute inset-0 opacity-60">
+                    {bgQueue.map((bg) => (
+                      <img
+                        key={bg.id}
+                        src={bg.url}
+                        alt=""
+                        onLoad={() => handleBgLoad(bg.id)}
+                        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
+                          bg.loaded ? "opacity-100" : "opacity-0"
+                        }`}
+                        style={{
+                          filter: "blur(80px)",
+                          WebkitFilter: "blur(80px)", // Принудительно для Safari
+                          transform: "scale(1.5) translateZ(0)",
+                          WebkitTransform: "scale(1.5) translateZ(0)",
+                          backfaceVisibility: "hidden", // Убирает мерцание задней поверхности в Safari
+                          WebkitBackfaceVisibility: "hidden",
+                          willChange: "opacity", // Заранее предупреждаем браузер, что будем менять прозрачность
+                        }}
+                      />
+                    ))}
+                  </div>
                   <div className="absolute inset-0 bg-black/40" />
                 </div>
 
@@ -589,17 +548,9 @@ const PlaybackControls = () => {
                       {currentSong ? (
                         <img
                           src={
-                            isPlaybackIos
-                              ? getOptimizedImageUrl(
-                                  currentSong.imageUrl ||
-                                    "/default-song-cover.png",
-                                  800,
-                                )
-                              : currentSong.imageUrl ||
-                                "/default-song-cover.png"
+                            currentSong.imageUrl || "/default-song-cover.png"
                           }
                           alt={currentSong.title}
-                          decoding="async"
                           className="w-full max-w-md aspect-square object-cover rounded-lg shadow-2xl mb-10"
                         />
                       ) : (
