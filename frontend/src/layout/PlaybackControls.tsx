@@ -82,7 +82,7 @@ const MiniPlayerSeekIndicator = memo(function MiniPlayerSeekIndicator() {
   const duration = usePlayerStore((s) => s.duration);
   const pct = duration > 0 ? (currentTime / duration) * 100 : 0;
   return (
-    <div className="absolute left-0 right-0 bottom-0 h-[2px] bg-white/15">
+    <div className="absolute left-0 right-0 bottom-0 z-10 h-[2px] bg-white/15">
       <div
         className="h-full bg-white transition-all duration-100"
         style={{ width: `${pct || 0}%` }}
@@ -526,57 +526,68 @@ const PlaybackControls = () => {
       {isCompactView ? (
         <>
           {!isFullScreenPlayerOpen && (
-            <footer className="fixed bottom-21 left-0 right-0 h-14 sm:h-16 mx-1 mb-[4px] rounded-md bg-[#1a1a1a]/80 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between z-[60] relative overflow-hidden">
+            <footer className="fixed bottom-21 left-0 right-0 h-14 sm:h-16 mx-1 mb-[4px] rounded-md px-3 sm:px-4 z-[60] relative overflow-hidden isolate flex items-center">
               <div
-                className="flex items-center gap-3 flex-1 cursor-pointer min-w-0"
-                onClick={() => setIsFullScreenPlayerOpen(true)}
-              >
-                <div className="relative w-10 h-10 rounded-md overflow-hidden flex-shrink-0">
-                  <img
-                    src={currentSong.imageUrl || "/default-song-cover.png"}
-                    alt={currentSong.title}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-
-                <div className="flex flex-col flex-1 min-w-0">
-                  <div className="font-medium truncate text-white text-sm">
-                    {currentSong.title}
-                  </div>
-                  <div className="text-xs text-zinc-400 truncate">
-                    {Array.isArray(currentSong.artist)
-                      ? currentSong.artist.map((artist, index) => (
-                          <span key={artist._id}>
-                            {artist.name}
-                            {index < currentSong.artist.length - 1 && ", "}
-                          </span>
-                        ))
-                      : "Unknown Artist"}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <AddToPlaylistControl
-                  song={currentSong}
-                  className="size-5.5"
-                  iconClassName="size-5.5"
-                  disabled={!user}
-                />
-                <Button
-                  size="icon"
-                  className="bg-white hover:bg-white/90 text-black rounded-full h-9 w-9 sm:h-10 sm:w-10 flex items-center justify-center"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    togglePlay();
-                  }}
+                aria-hidden
+                className="pointer-events-none absolute inset-0 rounded-md"
+                style={{ backgroundColor: lyricsBgColor }}
+              />
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 rounded-md bg-black/60"
+              />
+              <div className="relative z-10 flex w-full min-w-0 flex-1 items-center justify-between gap-3">
+                <div
+                  className="flex min-w-0 flex-1 cursor-pointer items-center gap-3"
+                  onClick={() => setIsFullScreenPlayerOpen(true)}
                 >
-                  {isPlaying ? (
-                    <Pause className="h-5 w-5 sm:h-6 sm:w-6 fill-current" />
-                  ) : (
-                    <Play className="h-5 w-5 sm:h-6 sm:w-6 fill-current" />
-                  )}
-                </Button>
+                  <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md">
+                    <img
+                      src={currentSong.imageUrl || "/default-song-cover.png"}
+                      alt={currentSong.title}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <div className="truncate text-sm font-medium text-white">
+                      {currentSong.title}
+                    </div>
+                    <div className="truncate text-xs text-zinc-400">
+                      {Array.isArray(currentSong.artist)
+                        ? currentSong.artist.map((artist, index) => (
+                            <span key={artist._id}>
+                              {artist.name}
+                              {index < currentSong.artist.length - 1 && ", "}
+                            </span>
+                          ))
+                        : "Unknown Artist"}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-shrink-0 items-center gap-2">
+                  <AddToPlaylistControl
+                    song={currentSong}
+                    className="size-5.5"
+                    iconClassName="size-5.5"
+                    disabled={!user}
+                  />
+                  <Button
+                    size="icon"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-black hover:bg-white/90 sm:h-10 sm:w-10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      togglePlay();
+                    }}
+                  >
+                    {isPlaying ? (
+                      <Pause className="h-5 w-5 fill-current sm:h-6 sm:w-6" />
+                    ) : (
+                      <Play className="h-5 w-5 fill-current sm:h-6 sm:w-6" />
+                    )}
+                  </Button>
+                </div>
               </div>
 
               <MiniPlayerSeekIndicator />
