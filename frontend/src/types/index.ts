@@ -199,3 +199,18 @@ export type LibraryItem =
 export interface LibraryPlaylist extends Playlist {
   addedAt?: string;
 }
+
+/** Row in profile followers/following or home horizontal sections */
+export type UserSectionItem = {
+  _id: string;
+  name: string;
+  imageUrl: string;
+  itemType: "user";
+};
+
+export type DisplayItem =
+  | (Song & { itemType: "song" })
+  | (Album & { itemType: "album" })
+  | (Playlist & { itemType: "playlist" })
+  | (Artist & { itemType: "artist" })
+  | UserSectionItem;

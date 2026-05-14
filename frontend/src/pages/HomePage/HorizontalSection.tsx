@@ -7,34 +7,16 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { ScrollArea, ScrollBar } from "../../components/ui/scroll-area";
-import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
-import {
-  getArtistNames,
-  getOptimizedImageUrl,
-  normalizeAlbumKind,
-} from "../../lib/utils";
-import { useMusicStore } from "../../stores/useMusicStore";
-import type { Song, Album, Playlist, Artist } from "../../types";
+import type { Song } from "../../types";
 import HorizontalSectionSkeleton from "./HorizontalSectionSkeleton";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TFunction } from "i18next";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-
-type DisplayItem =
-  | (Song & { itemType: "song" })
-  | (Album & { itemType: "album" })
-  | (Playlist & { itemType: "playlist" })
-  | (Artist & { itemType: "artist" });
-
-function isPlaylistCoverOverlayItem(item: DisplayItem): boolean {
-  if (item.itemType !== "playlist") return false;
-  const k = (item as Playlist).type;
-  return k === "GENRE_MIX" || k === "MOOD_MIX" || k === "PERSONAL_MIX";
-}
+import type { DisplayItem } from "@/types";
+import { isValidDisplayItem } from "@/lib/entitySection";
+import EntitySectionCard from "./EntitySectionCard";
 
 interface HorizontalSectionProps {
   title: string;
@@ -53,34 +35,14 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
   limit = 6,
   t,
 }) => {
-  const navigate = useNavigate();
-  const { artists: allArtists } = useMusicStore();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
-  const isValidItem = useCallback((item: DisplayItem): boolean => {
-    if (!item || !item._id || !item.itemType) return false;
-
-    switch (item.itemType) {
-      case "song":
-      case "album":
-      case "playlist":
-        return !!(item as Song | Album | Playlist).title;
-      case "artist":
-        return (
-          !!(item as Artist).name ||
-          !!(item as Artist & { title?: string }).title
-        );
-      default:
-        return false;
-    }
-  }, []);
-
   const validItems = useMemo(
-    () => items.filter(isValidItem),
-    [items, isValidItem],
+    () => items.filter(isValidDisplayItem),
+    [items],
   );
 
   const itemsToShow = useMemo(
@@ -95,7 +57,8 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
   const songsOnly = useMemo(
     () =>
       validItems.filter(
-        (item): item is Song & { itemType: "song" } => item.itemType === "song",
+        (item): item is Song & { itemType: "song" } =>
+          item.itemType === "song",
       ),
     [validItems],
   );
@@ -164,91 +127,6 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
     return null;
   }
 
-  const handleItemClick = (item: DisplayItem) => {
-    switch (item.itemType) {
-      case "song":
-        navigate(`/albums/${(item as Song).albumId}`);
-        break;
-      case "album":
-        navigate(`/albums/${item._id}`);
-        break;
-      case "playlist":
-        navigate(`/playlists/${item._id}`);
-        break;
-      case "artist":
-        navigate(`/artists/${item._id}`);
-        break;
-    }
-  };
-
-  const getDisplayTitle = (item: DisplayItem): string => {
-    if (item.itemType === "artist") {
-      return (
-        (item as Artist).name ||
-        (item as Artist & { title?: string }).title ||
-        "Unknown Artist"
-      );
-    }
-    if (item.itemType === "playlist") {
-      const pl = item as Playlist;
-      return pl.title || "Unknown Title";
-    }
-    return item.title || "Unknown Title";
-  };
-
-  const getSubtitle = (item: DisplayItem): string => {
-    switch (item.itemType) {
-      case "song":
-        return getArtistNames((item as Song).artist, allArtists);
-      case "album": {
-        const album = item as Album;
-        const kind = normalizeAlbumKind(album.type);
-        const albumArtists = album.artist
-          ? getArtistNames(album.artist, allArtists)
-          : t("common.unknownArtist");
-        return `${t(`sidebar.subtitle.${kind}`)} • ${albumArtists}`;
-      }
-      case "playlist": {
-        const playlist = item as Playlist;
-        if (
-          playlist.type === "GENRE_MIX" ||
-          playlist.type === "MOOD_MIX" ||
-          playlist.type === "PERSONAL_MIX"
-        ) {
-          if (!playlist.songs || playlist.songs.length === 0) {
-            return t("sidebar.subtitle.dailyMix");
-          }
-          const songArtists = playlist.songs.flatMap((song) => song.artist);
-          const uniqueArtists = songArtists.filter(
-            (artist, index, self) =>
-              index === self.findIndex((a) => a._id === artist._id),
-          );
-          const firstTwoUniqueArtists = uniqueArtists.slice(0, 2);
-          const artistNames = getArtistNames(firstTwoUniqueArtists, allArtists);
-          if (uniqueArtists.length > 2) {
-            return `${artistNames} ${t("common.andMore")}`;
-          }
-          return artistNames;
-        }
-        if (
-          playlist.type === "ON_REPEAT" ||
-          playlist.type === "DISCOVER_WEEKLY" ||
-          playlist.type === "ON_REPEAT_REWIND" ||
-          playlist.type === "NEW_RELEASES"
-        ) {
-          return `${t("sidebar.subtitle.playlist")} • Moodify`;
-        }
-        return t("sidebar.subtitle.byUser", {
-          name: playlist.owner?.fullName || t("sidebar.subtitle.user"),
-        });
-      }
-      case "artist":
-        return t("sidebar.subtitle.artist");
-      default:
-        return "";
-    }
-  };
-
   return (
     <div className="mb-4 sm:mb-8 relative group/section">
       <div className="flex items-center justify-between mb-2 sm:mb-4">
@@ -290,78 +168,13 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
         ref={scrollContainerRef}
       >
         <div className="flex pb-4">
-          {itemsToShow.map((item) => {
-            return (
-              <div
-                key={`${item.itemType}-${item._id}`}
-                className="bg-transparent p-2 rounded-md transition-all hover:bg-zinc-800/50 group cursor-pointer w-36 sm:w-44 flex-shrink-0"
-                onClick={() => handleItemClick(item)}
-              >
-                <div className="relative mb-2">
-                  <div className="relative aspect-square shadow-lg overflow-hidden rounded-md">
-                    {item.itemType === "artist" ? (
-                      <Avatar className="absolute inset-0 h-full w-full object-cover rounded-full">
-                        <AvatarImage
-                          src={getOptimizedImageUrl(item.imageUrl, 200)}
-                          alt={getDisplayTitle(item)}
-                          className="object-cover h-auto w-auto rounded-full"
-                        />
-                        <AvatarFallback>
-                          {getDisplayTitle(item)?.[0] || "?"}
-                        </AvatarFallback>
-                      </Avatar>
-                    ) : (
-                      <img
-                        src={getOptimizedImageUrl(
-                          item.imageUrl ||
-                            "https://moodify.b-cdn.net/default-album-cover.png",
-                          200,
-                        )}
-                        alt={getDisplayTitle(item)}
-                        className="absolute inset-0 h-full w-full object-cover rounded-md"
-                      />
-                    )}
-                    {isPlaylistCoverOverlayItem(item) && (
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-2 pt-6 z-10">
-                        <h3 className="text-white text-sm font-bold drop-shadow-lg break-words">
-                          {getDisplayTitle(item)}
-                        </h3>
-                      </div>
-                    )}
-                  </div>
-                  <UniversalPlayButton
-                    entity={item}
-                    entityType={item.itemType}
-                    songs={item.itemType === "song" ? songsOnly : undefined}
-                    className={`absolute bottom-3 right-2 ${
-                      isPlaylistCoverOverlayItem(item) ? "z-50" : ""
-                    }`}
-                    size="sm"
-                  />
-                </div>
-                <div className="px-1">
-                  {!isPlaylistCoverOverlayItem(item) && (
-                    <h3 className="font-semibold text-sm truncate">
-                      {getDisplayTitle(item)}
-                    </h3>
-                  )}
-                  <p
-                    className="text-xs text-zinc-400 leading-tight"
-                    style={{
-                      display: "-webkit-box",
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: "vertical",
-                      overflow: "hidden",
-                      wordWrap: "break-word",
-                      wordBreak: "break-word",
-                    }}
-                  >
-                    {getSubtitle(item)}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
+          {itemsToShow.map((item) => (
+            <EntitySectionCard
+              key={`${item.itemType}-${item._id}`}
+              item={item}
+              songsOnly={songsOnly}
+            />
+          ))}
         </div>
         <ScrollBar orientation="horizontal" className="hidden" />
       </ScrollArea>

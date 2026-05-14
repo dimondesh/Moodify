@@ -1,58 +1,36 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Play, Heart } from "lucide-react";
 import { usePlayerStore } from "../stores/usePlayerStore";
 import { useLibraryStore } from "../stores/useLibraryStore";
-import { axiosInstance } from "../lib/axios";
 import Equalizer from "./ui/equalizer";
 import { getOptimizedImageUrl } from "../lib/utils";
 import type { Song } from "../types";
-
-interface TopTracksThisMonthProps {
-  userId: string;
-  isMyProfile: boolean;
-}
+import { Button } from "./ui/button";
 
 interface TopTrack extends Song {
   listenCount: number;
   lastListened: string;
 }
 
+interface TopTracksThisMonthProps {
+  userId: string;
+  isMyProfile: boolean;
+  tracks: TopTrack[];
+  errorMessage: string | null;
+}
+
 const TopTracksThisMonth: React.FC<TopTracksThisMonthProps> = ({
   userId,
   isMyProfile,
+  tracks,
+  errorMessage,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [tracks, setTracks] = useState<TopTrack[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { currentSong, isPlaying, playAlbum, togglePlay } = usePlayerStore();
   const { isSongLiked, toggleSongLike } = useLibraryStore();
-
-  useEffect(() => {
-    const fetchTopTracks = async () => {
-      if (!isMyProfile) return; // Показываем только владельцу профиля
-
-      try {
-        setIsLoading(true);
-        setError(null);
-        const response = await axiosInstance.get(
-          `/users/${userId}/top-tracks-this-month`
-        );
-        setTracks(response.data.tracks);
-      } catch (err: any) {
-        console.error("Error fetching top tracks:", err);
-        setError(err.response?.data?.message || "Failed to load top tracks");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchTopTracks();
-  }, [userId, isMyProfile]);
 
   const handlePlaySpecificSong = (song: TopTrack, index: number) => {
     if (currentSong?._id === song._id && isPlaying) {
@@ -72,43 +50,18 @@ const TopTracksThisMonth: React.FC<TopTracksThisMonthProps> = ({
     navigate(`/users/${userId}/top-tracks`);
   };
 
-  // Не показываем секцию, если это не профиль владельца
   if (!isMyProfile) {
     return null;
   }
 
-  if (isLoading) {
+  if (errorMessage) {
     return (
       <div className="mt-12">
-        <h2 className="text-2xl font-bold mb-4">
-          {t("pages.profile.topTracksThisMonth")}
-        </h2>
-        <div className="flex flex-col gap-2">
-          {[...Array(5)].map((_, index) => (
-            <div
-              key={index}
-              className="flex items-center gap-4 p-2 rounded-md animate-pulse"
-            >
-              <div className="w-4 h-4 bg-zinc-800 rounded"></div>
-              <div className="w-12 h-12 bg-zinc-800 rounded-md"></div>
-              <div className="flex-1">
-                <div className="h-4 bg-zinc-800 rounded mb-2 w-3/4"></div>
-                <div className="h-3 bg-zinc-800 rounded w-1/2"></div>
-              </div>
-              <div className="w-12 h-4 bg-zinc-800 rounded"></div>
-            </div>
-          ))}
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl sm:text-2xl font-bold">
+            {t("pages.profile.topTracksThisMonth")}
+          </h2>
         </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="mt-12">
-        <h2 className="text-2xl font-bold mb-4">
-          {t("pages.profile.topTracksThisMonth")}
-        </h2>
         <div className="text-center py-8">
           <p className="text-gray-400">{t("pages.profile.topTracksError")}</p>
         </div>
@@ -119,9 +72,11 @@ const TopTracksThisMonth: React.FC<TopTracksThisMonthProps> = ({
   if (tracks.length === 0) {
     return (
       <div className="mt-12">
-        <h2 className="text-2xl font-bold mb-4">
-          {t("pages.profile.topTracksThisMonth")}
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl sm:text-2xl font-bold">
+            {t("pages.profile.topTracksThisMonth")}
+          </h2>
+        </div>
         <div className="text-center py-8">
           <p className="text-gray-400">
             {t("pages.profile.noTopTracksThisMonth")}
@@ -134,17 +89,16 @@ const TopTracksThisMonth: React.FC<TopTracksThisMonthProps> = ({
   return (
     <div className="mt-12">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold">
+        <h2 className="text-xl sm:text-2xl font-bold">
           {t("pages.profile.topTracksThisMonth")}
         </h2>
-        {tracks.length > 0 && (
-          <button
-            onClick={handleShowAllTracks}
-            className="text-sm text-zinc-400 hover:text-white transition-colors"
-          >
-            {t("pages.profile.showAll")}
-          </button>
-        )}
+        <Button
+          variant="link"
+          className="text-sm text-zinc-400 hover:text-white p-0 h-auto"
+          onClick={handleShowAllTracks}
+        >
+          {t("pages.profile.showAll")}
+        </Button>
       </div>
       <div className="flex flex-col gap-2">
         {tracks.map((track, index) => {
@@ -188,7 +142,7 @@ const TopTracksThisMonth: React.FC<TopTracksThisMonthProps> = ({
                 </p>
               </div>
               <div className="flex items-center gap-2 text-sm text-zinc-400">
-                <span>{formatTime(track.duration)}</span>
+                <span>{formatTime(track.duration ?? 0)}</span>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();

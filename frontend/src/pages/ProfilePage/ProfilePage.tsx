@@ -1,10 +1,11 @@
 // frontend/src/pages/ProfilePage/ProfilePage.tsx
 
-import { useCallback, useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useMemo, useCallback, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { axiosInstance } from "../../lib/axios";
 import { useAuthStore } from "../../stores/useAuthStore";
-import type { User, Playlist } from "../../types";
+import { useProfileStore } from "../../stores/useProfileStore";
+import type { Playlist, Artist } from "../../types";
+import type { DisplayItem } from "@/types";
 import {
   Avatar,
   AvatarFallback,
@@ -13,7 +14,6 @@ import {
 import { Button } from "../../components/ui/button";
 import StandardLoader from "../../components/ui/StandardLoader";
 import { EditProfileDialog } from "./EditProfileDialog";
-import ProfileSection from "./ProfileSection";
 import { useDominantColor } from "../../hooks/useDominantColor";
 import PlaylistRow from "./PlaylistRow";
 import { useTranslation } from "react-i18next";
@@ -22,65 +22,73 @@ import { useUIStore } from "../../stores/useUIStore";
 import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
 import RecentlyListenedArtists from "../../components/RecentlyListenedArtists";
 import TopTracksThisMonth from "../../components/TopTracksThisMonth";
+import FixedRowEntitySection from "../HomePage/FixedRowEntitySection";
+import type { ProfileListItem } from "../../stores/useProfileStore";
 
-interface ListItem {
-  _id: string;
-  name: string;
-  imageUrl: string;
-  type: "user" | "artist" | "playlist";
+function relationToDisplayItem(item: ProfileListItem): DisplayItem {
+  switch (item.type) {
+    case "user":
+      return {
+        _id: item._id,
+        name: item.name,
+        imageUrl: item.imageUrl,
+        itemType: "user",
+      };
+    case "artist":
+      return {
+        _id: item._id,
+        name: item.name,
+        imageUrl: item.imageUrl,
+        itemType: "artist",
+      } as Artist & { itemType: "artist" };
+    case "playlist":
+      return {
+        _id: item._id,
+        title: item.name,
+        imageUrl: item.imageUrl,
+        itemType: "playlist",
+      } as Playlist & { itemType: "playlist" };
+  }
 }
 
 const ProfilePage = () => {
   const { t } = useTranslation();
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-  const { user: currentUser } = useAuthStore();
   const { isEditProfileDialogOpen, openEditProfileDialog, closeAllDialogs } =
     useUIStore();
 
+  const profileData = useProfileStore((s) => s.profileData);
+  const followers = useProfileStore((s) => s.followers);
+  const following = useProfileStore((s) => s.following);
+  const recentlyListenedArtists = useProfileStore(
+    (s) => s.recentlyListenedArtists,
+  );
+  const recentlyListenedStatus = useProfileStore(
+    (s) => s.recentlyListenedStatus,
+  );
+  const topTracksThisMonth = useProfileStore((s) => s.topTracksThisMonth);
+  const topTracksError = useProfileStore((s) => s.topTracksError);
+  const isLoading = useProfileStore((s) => s.isLoading);
+  const isFollowingUser = useProfileStore((s) => s.isFollowingUser);
+  const loadProfile = useProfileStore((s) => s.loadProfile);
+  const toggleFollow = useProfileStore((s) => s.toggleFollow);
+
   const { extractColor } = useDominantColor();
-  const [profileData, setProfileData] = useState<User | null>(null);
-  const [followers, setFollowers] = useState<ListItem[]>([]);
-  const [following, setFollowing] = useState<ListItem[]>([]);
-
-  const [isColorLoading, setIsColorLoading] = useState(true);
-
   const backgroundKeyRef = useRef(0);
   const [backgrounds, setBackgrounds] = useState([
     { key: 0, color: "#18181b" },
   ]);
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [isFollowingUser, setIsFollowingUser] = useState(false);
-
-  const fetchProfileData = useCallback(async () => {
-    if (!userId) return;
-
-    backgroundKeyRef.current += 1;
-    setBackgrounds([{ key: backgroundKeyRef.current, color: "#18181b" }]);
-
-    setIsLoading(true);
-    try {
-      const [profileRes, followersRes, followingRes] = await Promise.all([
-        axiosInstance.get(`/users/${userId}`),
-        axiosInstance.get(`/users/${userId}/followers`),
-        axiosInstance.get(`/users/${userId}/following`),
-      ]);
-      const profile = profileRes.data;
-      setProfileData(profile);
-      setFollowers(followersRes.data.items);
-      setFollowing(followingRes.data.items);
-      setIsFollowingUser(profile.followers.includes(currentUser?.id));
-    } catch (error) {
-      console.error("Failed to fetch profile data:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [userId, currentUser?.id]);
+  const { user: liveCurrentUser } = useAuthStore();
+  const isMyProfile = liveCurrentUser?.id === userId;
 
   useEffect(() => {
-    fetchProfileData();
-  }, [fetchProfileData]);
+    if (!userId) return;
+    backgroundKeyRef.current += 1;
+    setBackgrounds([{ key: backgroundKeyRef.current, color: "#18181b" }]);
+    void loadProfile(userId);
+  }, [userId, loadProfile]);
 
   useEffect(() => {
     const updateBackgroundColor = (color: string) => {
@@ -90,32 +98,18 @@ const ProfilePage = () => {
     };
 
     if (profileData?.imageUrl) {
-      setIsColorLoading(true);
-      extractColor(profileData.imageUrl)
-        .then((color) => updateBackgroundColor(color || "#18181b"))
-        .finally(() => setIsColorLoading(false));
+      extractColor(profileData.imageUrl).then((color) =>
+        updateBackgroundColor(color || "#18181b"),
+      );
     } else if (profileData) {
       updateBackgroundColor("#18181b");
-      setIsColorLoading(false);
     }
   }, [profileData, extractColor]);
 
-  const handleFollow = async () => {
+  const handleFollow = useCallback(() => {
     if (!userId) return;
-    try {
-      await axiosInstance.post(`/users/${userId}/follow`);
-      setIsFollowingUser(!isFollowingUser);
-      setProfileData((prev) => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          followersCount: prev.followersCount! + (isFollowingUser ? -1 : 1),
-        };
-      });
-    } catch (error) {
-      console.error("Failed to follow/unfollow:", error);
-    }
-  };
+    void toggleFollow(userId, isFollowingUser);
+  }, [userId, isFollowingUser, toggleFollow]);
 
   const handleShowAllPlaylists = () => {
     navigate("/list", {
@@ -126,10 +120,16 @@ const ProfilePage = () => {
     });
   };
 
-  const { user: liveCurrentUser } = useAuthStore();
-  const isMyProfile = liveCurrentUser?.id === userId;
+  const followerDisplayItems = useMemo(
+    () => followers.map(relationToDisplayItem),
+    [followers],
+  );
+  const followingDisplayItems = useMemo(
+    () => following.map(relationToDisplayItem),
+    [following],
+  );
 
-  if (isLoading || isColorLoading) {
+  if (isLoading) {
     return (
       <>
         <Helmet>
@@ -294,31 +294,35 @@ const ProfilePage = () => {
             </div>
           )}
 
-          {/* Показываем секцию только если это профиль владельца или секция не скрыта */}
           {userId && (
             <RecentlyListenedArtists
-              userId={userId}
               isMyProfile={isMyProfile}
               showRecentlyListenedArtists={
                 profileData?.showRecentlyListenedArtists
               }
+              artists={recentlyListenedArtists}
+              fetchStatus={recentlyListenedStatus}
             />
           )}
 
-          {/* Топ треки этого месяца - только для владельца профиля */}
           {userId && (
-            <TopTracksThisMonth userId={userId} isMyProfile={isMyProfile} />
+            <TopTracksThisMonth
+              userId={userId}
+              isMyProfile={isMyProfile}
+              tracks={topTracksThisMonth}
+              errorMessage={topTracksError}
+            />
           )}
 
           <div className="hidden sm:block mt-12 space-y-12">
-            <ProfileSection
+            <FixedRowEntitySection
               title={t("pages.profile.followersSection")}
-              items={followers}
+              items={followerDisplayItems}
               apiEndpoint={`/users/${userId}/followers`}
             />
-            <ProfileSection
+            <FixedRowEntitySection
               title={t("pages.profile.followingSection")}
-              items={following}
+              items={followingDisplayItems}
               apiEndpoint={`/users/${userId}/following`}
             />
 
@@ -381,7 +385,9 @@ const ProfilePage = () => {
           user={profileData}
           isOpen={isEditProfileDialogOpen}
           onClose={closeAllDialogs}
-          onSuccess={fetchProfileData}
+          onSuccess={() => {
+            if (userId) void loadProfile(userId);
+          }}
         />
       )}
     </>

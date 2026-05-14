@@ -708,7 +708,7 @@ const SettingsPage: React.FC = () => {
                   />
                 </Button>
               </div>
-              <div className="bg-zinc-800/50/50 p-4 rounded-md">
+              <div className="bg-zinc-800/50 p-4 rounded-md">
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-gray-400">
                     {t("settings.downloadedContent")}

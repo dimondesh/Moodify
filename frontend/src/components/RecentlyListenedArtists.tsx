@@ -1,128 +1,66 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // frontend/src/components/RecentlyListenedArtists.tsx
 
-import React, { useEffect, useState } from "react";
+import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { axiosInstance } from "../lib/axios";
 import UniversalPlayButton from "./ui/UniversalPlayButton";
-import { Artist } from "../types";
-
-interface RecentlyListenedArtist extends Artist {
-  listenCount: number;
-  lastListened: string;
-  songs: any[];
-}
+import type { Artist } from "../types";
+import FixedRowEntitySection from "@/pages/HomePage/FixedRowEntitySection";
 
 interface RecentlyListenedArtistsProps {
-  userId: string;
   isMyProfile: boolean;
   showRecentlyListenedArtists?: boolean;
+  artists: Artist[];
+  fetchStatus: "ok" | "private" | "error";
 }
 
 const RecentlyListenedArtists: React.FC<RecentlyListenedArtistsProps> = ({
-  userId,
   isMyProfile,
   showRecentlyListenedArtists = true,
+  artists,
+  fetchStatus,
 }) => {
   const { t } = useTranslation();
-  const [artists, setArtists] = useState<RecentlyListenedArtist[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showSkeleton, setShowSkeleton] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchRecentlyListenedArtists = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
+  const displayItems = useMemo(
+    () =>
+      artists.map(
+        (a) =>
+          ({ ...a, itemType: "artist" as const }) as Artist & {
+            itemType: "artist";
+          },
+      ),
+    [artists],
+  );
 
-        // Показываем скелетон через 200ms, если загрузка еще идет
-        const skeletonTimer = setTimeout(() => {
-          setShowSkeleton(true);
-        }, 200);
+  const listPageItems = useMemo(
+    () =>
+      artists.map((a) => ({
+        _id: a._id,
+        name: a.name,
+        imageUrl: a.imageUrl || "",
+        type: "artist" as const,
+        itemType: "artist" as const,
+      })),
+    [artists],
+  );
 
-        const response = await axiosInstance.get(
-          `/users/${userId}/recently-listened-artists`
-        );
-
-        clearTimeout(skeletonTimer);
-        setArtists(response.data.artists);
-      } catch (err: any) {
-        if (err.response?.status === 403) {
-          setError("recentlyListenedArtists.private");
-        } else {
-          setError("recentlyListenedArtists.error");
-        }
-      } finally {
-        setIsLoading(false);
-        setShowSkeleton(false);
-      }
-    };
-
-    fetchRecentlyListenedArtists();
-  }, [userId]);
-
-  if (isLoading && showSkeleton) {
-    return (
-      <div className="px-6 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl sm:text-2xl font-bold text-white">
-            {t("pages.profile.recentlyListenedArtists")}
-          </h2>
-        </div>
-        {/* Мобильная версия скелетона - список */}
-        <div className="flex flex-col gap-2 sm:hidden">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <div
-              key={index}
-              className="flex items-center gap-4 p-2 rounded-md animate-pulse"
-            >
-              <div className="w-4 h-4 bg-zinc-800/50 rounded"></div>
-              <div className="w-12 h-12 bg-zinc-800/50 rounded-full"></div>
-              <div className="flex-1">
-                <div className="h-4 bg-zinc-800/50 rounded mb-2 w-3/4"></div>
-                <div className="h-3 bg-zinc-800/50 rounded w-1/2"></div>
-              </div>
-              <div className="w-8 h-8 bg-zinc-800/50 rounded-full"></div>
-            </div>
-          ))}
-        </div>
-
-        {/* Десктопная версия скелетона - сетка */}
-        <div className="hidden sm:grid sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <div key={index} className="space-y-3">
-              <div className="aspect-square bg-zinc-800/50 rounded-lg animate-pulse"></div>
-              <div className="space-y-2">
-                <div className="h-4 bg-zinc-800/50 rounded animate-pulse"></div>
-                <div className="h-3 bg-zinc-800/50 rounded w-2/3 animate-pulse"></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+  if (fetchStatus === "private" && !isMyProfile) {
+    return null;
   }
 
-  if (error) {
-    // Если это не профиль владельца и секция скрыта - не показываем ничего
-    if (error === "recentlyListenedArtists.private" && !isMyProfile) {
-      return null;
-    }
+  if (fetchStatus === "private" && isMyProfile) {
+    return null;
+  }
 
-    // Если это профиль владельца, но секция скрыта - не показываем ничего
-    if (error === "recentlyListenedArtists.private" && isMyProfile) {
-      return null;
-    }
-
+  if (fetchStatus === "error") {
     return null;
   }
 
   if (artists.length === 0) {
     return (
-      <div className="px-6 py-8">
-        <div className="flex items-center justify-between mb-6">
+      <div className="mt-12">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl sm:text-2xl font-bold text-white">
             {t("pages.profile.recentlyListenedArtists")}
           </h2>
@@ -138,100 +76,71 @@ const RecentlyListenedArtists: React.FC<RecentlyListenedArtistsProps> = ({
     );
   }
 
-  return (
-    <div className="mt-12">
-      <h2 className="text-xl sm:text-2xl font-bold mb-4">
-        {t("pages.profile.recentlyListenedArtists")}
-      </h2>
-      {isMyProfile && showRecentlyListenedArtists === false && (
-        <p className="text-xs text-gray-400 mb-4">
-          {t("pages.profile.visibleOnlyToYou")}
-        </p>
-      )}
-      {/* Мобильная версия - список */}
-      <div className="flex flex-col gap-2 sm:hidden">
-        {artists.slice(0, 4).map((artist, index) => (
-          <Link
-            to={`/artists/${artist._id}`}
-            key={artist._id}
-            className="flex items-center gap-4 p-2 rounded-md hover:bg-zinc-800/50 cursor-pointer group"
-          >
-            <div className="flex items-center justify-center w-4 text-zinc-400">
-              <span className="group-hover:hidden">{index + 1}</span>
-            </div>
-            <div className="w-12 h-12 flex-shrink-0">
-              <div className="relative aspect-square shadow-lg overflow-hidden rounded-full">
-                <img
-                  src={
-                    artist.imageUrl ||
-                    "https://moodify.b-cdn.net/default-album-cover.png"
-                  }
-                  alt={artist.name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src =
-                      "https://moodify.b-cdn.net/default-album-cover.png";
-                  }}
-                />
-              </div>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-white truncate">
-                {artist.name}
-              </h3>
-              <p className="text-sm text-zinc-400 truncate">
-                {t("pages.profile.artist")}
-              </p>
-            </div>
-            <UniversalPlayButton
-              entity={artist}
-              entityType="artist"
-              size="sm"
-            />
-          </Link>
-        ))}
-      </div>
+  const noticeSlot =
+    isMyProfile && showRecentlyListenedArtists === false ? (
+      <p className="text-xs text-gray-400 mb-4">
+        {t("pages.profile.visibleOnlyToYou")}
+      </p>
+    ) : undefined;
 
-      {/* Десктопная версия - сетка */}
-      <div className="hidden sm:grid sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-        {artists.map((artist) => (
-          <Link
-            to={`/artists/${artist._id}`}
-            key={artist._id}
-            className="bg-transparent p-2 rounded-md group cursor-pointer"
-          >
-            <div className="relative mb-2">
-              <div className="relative aspect-square shadow-lg overflow-hidden rounded-full">
-                <img
-                  src={
-                    artist.imageUrl ||
-                    "https://moodify.b-cdn.net/default-album-cover.png"
-                  }
-                  alt={artist.name}
-                  className="absolute inset-0 h-full w-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src =
-                      "https://moodify.b-cdn.net/default-album-cover.png";
-                  }}
-                />
+  return (
+    <div>
+      <div className="sm:hidden mt-12">
+        <h2 className="text-xl sm:text-2xl font-bold mb-4 text-white">
+          {t("pages.profile.recentlyListenedArtists")}
+        </h2>
+        {noticeSlot}
+        <div className="flex flex-col gap-2">
+          {artists.slice(0, 4).map((artist, index) => (
+            <Link
+              to={`/artists/${artist._id}`}
+              key={artist._id}
+              className="flex items-center gap-4 p-2 rounded-md hover:bg-zinc-800/50 cursor-pointer group"
+            >
+              <div className="flex items-center justify-center w-4 text-zinc-400">
+                <span className="group-hover:hidden">{index + 1}</span>
+              </div>
+              <div className="w-12 h-12 flex-shrink-0">
+                <div className="relative aspect-square shadow-lg overflow-hidden rounded-full">
+                  <img
+                    src={
+                      artist.imageUrl ||
+                      "https://moodify.b-cdn.net/default-album-cover.png"
+                    }
+                    alt={artist.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        "https://moodify.b-cdn.net/default-album-cover.png";
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-white truncate">
+                  {artist.name}
+                </h3>
+                <p className="text-sm text-zinc-400 truncate">
+                  {t("pages.profile.artist")}
+                </p>
               </div>
               <UniversalPlayButton
                 entity={artist}
                 entityType="artist"
-                className="absolute bottom-3 right-2"
                 size="sm"
               />
-            </div>
-            <div className="px-1">
-              <h3 className="font-semibold text-sm truncate text-white">
-                {artist.name}
-              </h3>
-              <p className="text-xs text-zinc-400 leading-tight truncate">
-                {t("pages.profile.artist")}
-              </p>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      <div className="hidden sm:block">
+        <FixedRowEntitySection
+          title={t("pages.profile.recentlyListenedArtists")}
+          items={displayItems}
+          listPageItems={listPageItems}
+          noticeSlot={noticeSlot}
+        />
       </div>
     </div>
   );
