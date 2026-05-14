@@ -267,7 +267,8 @@ const LyricsPage: React.FC<LyricsPageProps> = ({ variant = "desktop" }) => {
   if (!displaySong || (!isLoading && !lyrics.length)) {
     if (variant === "mobile-drawer") {
       return (
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden overscroll-none bg-zinc-950 text-zinc-400">
+        <div className="isolate relative flex min-h-0 flex-1 flex-col overflow-hidden overscroll-none bg-zinc-950">
+          <CoverDominantBackdrop accentColor={backdropColor} />
           {displaySong ? (
             <MobileDominantDrawerHeader backdropColor={backdropColor}>
               <div className="flex w-full items-start gap-1 px-2 pb-3 pt-2">
@@ -316,10 +317,16 @@ const LyricsPage: React.FC<LyricsPageProps> = ({ variant = "desktop" }) => {
               </div>
             </MobileDominantDrawerHeader>
           )}
-          <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-10">
-            <p>{t("player.noLyrics")}</p>
+          <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center px-8 pb-10 pt-6 text-center">
+            <p className="max-w-md text-balance text-2xl font-bold leading-snug tracking-tight text-white drop-shadow-md sm:text-3xl">
+              {t("player.noLyrics")}
+            </p>
             <Drawer.Close asChild>
-              <Button variant="ghost" className="mt-4" data-vaul-no-drag>
+              <Button
+                variant="ghost"
+                className="mt-8 text-zinc-300"
+                data-vaul-no-drag
+              >
                 {t("player.close")}
               </Button>
             </Drawer.Close>
@@ -329,11 +336,20 @@ const LyricsPage: React.FC<LyricsPageProps> = ({ variant = "desktop" }) => {
     }
 
     return (
-      <div className="flex min-h-[100dvh] w-full flex-col items-center justify-center bg-black text-zinc-400">
-        <p>{t("player.noLyrics")}</p>
-        <Button variant="ghost" className="mt-4" onClick={handleClose}>
-          {t("player.close")}
-        </Button>
+      <div className="isolate relative flex h-full min-h-0 w-full flex-col overflow-hidden overscroll-none bg-zinc-950">
+        <CoverDominantBackdrop accentColor={backdropColor} />
+        <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center px-8 py-12 text-center">
+          <p className="max-w-lg text-balance text-2xl font-bold leading-snug tracking-tight text-white drop-shadow-md sm:text-3xl md:text-4xl">
+            {t("player.noLyrics")}
+          </p>
+          <Button
+            variant="ghost"
+            className="mt-8 text-zinc-300 hover:text-white"
+            onClick={handleClose}
+          >
+            {t("player.close")}
+          </Button>
+        </div>
       </div>
     );
   }
