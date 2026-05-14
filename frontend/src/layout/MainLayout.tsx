@@ -23,6 +23,7 @@ import { useMediaQuery } from "../hooks/useMediaQuery";
 import { cn } from "../lib/utils";
 import { useTranslation } from "react-i18next";
 import { PlaylistFormDialog } from "@/components/PlaylistFormDialog";
+import { Drawer } from "vaul";
 
 const MainLayout = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
@@ -61,6 +62,7 @@ const MainLayout = () => {
     isMobileLyricsFullScreen,
     setIsDesktopLyricsOpen,
     setIsMobileLyricsFullScreen,
+    setIsFullScreenPlayerOpen,
     togglePlay,
   } = usePlayerStore();
 
@@ -237,13 +239,34 @@ const MainLayout = () => {
             ref={scrollContainerRef}
             className="h-full w-full overflow-y-auto hide-scrollbar "
           >
-            {isMobileLyricsFullScreen ? (
-              <div className="fixed inset-0 z-[80] bg-[#0f0f0f]">
-                <LyricsPage isMobileFullScreen={true} />
-              </div>
+            {isMobile ? (
+              <>
+                <Outlet />
+                <Drawer.Root
+                  dismissible
+                  closeThreshold={0.15}
+                  open={isMobileLyricsFullScreen}
+                  onOpenChange={(open) => {
+                    if (!open) {
+                      setIsMobileLyricsFullScreen(false);
+                      setIsFullScreenPlayerOpen(true);
+                    }
+                  }}
+                >
+                  <Drawer.Portal>
+                    <Drawer.Overlay className="fixed inset-0 bg-black/50 z-[80]" />
+                    <Drawer.Content
+                      aria-describedby={undefined}
+                      className="isolate bg-zinc-950 flex flex-col pt-0! w-full max-w-none h-[100dvh] max-h-[100dvh] min-h-0 overflow-hidden fixed bottom-0 left-0 right-0 z-[80] outline-none border-0 pt-[max(env(safe-area-inset-top),0.5rem)]"
+                    >
+                      <LyricsPage variant="mobile-drawer" />
+                    </Drawer.Content>
+                  </Drawer.Portal>
+                </Drawer.Root>
+              </>
             ) : !isCompactView && isDesktopLyricsOpen ? (
               <div className="relative h-full w-full min-h-0">
-                <LyricsPage isMobileFullScreen={false} />
+                <LyricsPage variant="desktop" />
               </div>
             ) : (
               <Outlet />
