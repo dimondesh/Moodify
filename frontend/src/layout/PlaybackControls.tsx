@@ -272,22 +272,6 @@ const PlaybackControls = () => {
 
   const { fetchLikedSongs } = useLibraryStore();
 
-  const {
-    editingPlaylist,
-    isSearchAndAddDialogOpen,
-    isEditProfileDialogOpen,
-    playlistToDelete,
-    songToRemoveFromPlaylist,
-  } = useUIStore();
-
-  const isAnyDialogOpen =
-    !!editingPlaylist ||
-    isSearchAndAddDialogOpen ||
-    !!shareEntity ||
-    isEditProfileDialogOpen ||
-    !!playlistToDelete ||
-    !!songToRemoveFromPlaylist;
-
   const [previousMasterVolume, setPreviousMasterVolume] =
     useState(masterVolume);
 
@@ -602,9 +586,7 @@ const PlaybackControls = () => {
               <Drawer.Overlay className="fixed bg-black/40 z-[70] max-w-none " />
               <Drawer.Content
                 aria-describedby={undefined}
-                className={`isolate bg-zinc-950 flex flex-col w-auto max-w-none h-full max-h-[100%] mt-24 min-w-screen overflow-hidden fixed bottom-0 left-0 right-0 z-[70] ${
-                  isAnyDialogOpen ? "player-dialog-blur" : ""
-                }`}
+                className="isolate bg-zinc-950 flex flex-col w-auto max-w-none h-full max-h-[100%] mt-24 min-w-screen overflow-hidden fixed bottom-0 left-0 right-0 z-[70]"
               >
                 <CoverDominantBackdrop accentColor={lyricsBgColor} />
 
@@ -799,7 +781,7 @@ const PlaybackControls = () => {
                               <DropdownMenuContent
                                 side="top"
                                 align="center"
-                                className="w-48 bg-zinc-800/50 border-zinc-700 p-3 rounded-md backdrop-blur-md shadow-lg z-70"
+                                className="w-48 bg-zinc-800 border-zinc-700 p-3 rounded-md shadow-lg z-70"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <DropdownMenuItem className="focus:bg-transparent">

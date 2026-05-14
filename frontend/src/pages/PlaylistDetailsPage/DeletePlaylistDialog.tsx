@@ -27,7 +27,7 @@ export function DeletePlaylistDialog({
 }: DeletePlaylistDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="bg-zinc-900/70 backdrop-blur-md text-white border-zinc-700">
+      <AlertDialogContent className="bg-zinc-900 text-white border-0">
         <AlertDialogHeader>
           <AlertDialogTitle className="text-white">
             {t("pages.playlist.deleteDialog.title")}

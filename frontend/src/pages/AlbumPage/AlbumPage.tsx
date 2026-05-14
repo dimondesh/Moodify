@@ -349,152 +349,152 @@ const AlbumPage = () => {
         innerClassName="relative min-h-screen pb-36 lg:pb-0"
       >
         <div className="relative z-10">
-            <div className="flex flex-col sm:flex-row p-4 sm:p-6 gap-4 sm:gap-6 pb-8 sm:pb-8 items-center sm:items-end">
-              <img
-                src={getOptimizedImageUrl(currentAlbum.imageUrl, 500)}
-                alt={currentAlbum.title}
-                onClick={() => {
-                  if (!isMobile) setIsCoverModalOpen(true);
-                }}
-                className={`w-64 h-64 sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px] shadow-xl rounded object-cover ${
-                  !isMobile
-                    ? "cursor-pointer hover:opacity-80 transition-opacity"
-                    : ""
-                }`}
-              />
-              <div className="flex flex-col justify-end text-center sm:text-left min-w-0">
-                <p className="text-xs sm:text-sm font-medium ">
-                  {t(`pages.album.${type}`) || currentAlbum.type}
-                </p>
-                <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold mt-2 mb-2 sm:my-4 break-words">
-                  {currentAlbum.title}
-                </h1>
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 text-xs sm:text-sm text-gray-100">
-                  <span className="font-medium text-white">
-                    {currentAlbum.artist.map((artist, index) => (
-                      <span key={artist._id}>
-                        <button
-                          onClick={() => handleArtistClick(artist._id)}
-                          className="hover:text-[#8b5cf6] focus:outline-none focus:text-[#8b5cf6] cursor-pointer"
-                        >
-                          {artist.name}
-                        </button>
-                        {index < currentAlbum.artist.length - 1 && ", "}
-                      </span>
-                    ))}
-                  </span>
-                  <span>
-                    • {currentAlbum.songs.length}{" "}
-                    {currentAlbum.songs.length !== 1
-                      ? t("pages.album.songs")
-                      : t("pages.album.song")}
-                  </span>
-                  <span>• {currentAlbum.releaseYear}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="px-4 sm:px-6 pb-4 flex items-center gap-1">
-              <Button
-                onClick={handlePlayAlbum}
-                size="icon"
-                className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white hover:bg-white/90 hover:scale-105 transition-all duration-100"
-              >
-                {isPlaying &&
-                currentAlbum.songs.some(
-                  (song) => song._id === currentSong?._id,
-                ) ? (
-                  <Pause className="w-6 h-6 sm:w-8 sm:h-8 text-black fill-current" />
-                ) : (
-                  <Play className="w-6 h-6 sm:w-8 sm:h-8 text-black fill-current" />
-                )}
-              </Button>
-              {currentAlbum && (
-                <Button
-                  onClick={handleToggleAlbum}
-                  disabled={isToggling || !user}
-                  variant="ghost2"
-                  size="icon"
-                  className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full p-2 transition-colors group ${
-                    !user ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
-                  title={
-                    !user
-                      ? t("auth.loginRequired")
-                      : inLibrary
-                        ? t("pages.album.actions.removeFromLibrary")
-                        : t("pages.album.actions.addToLibrary")
-                  }
-                >
-                  {inLibrary ? (
-                    <CheckedIcon className="size-8 text-[#8b5cf6]" />
-                  ) : (
-                    <PlusCircle className="size-8 text-white/80 group-hover:text-white transition-colors" />
-                  )}
-                </Button>
-              )}
-              <DownloadButton
-                itemId={currentAlbum._id}
-                itemType="albums"
-                itemTitle={currentAlbum.title}
-                disabled={!user}
-              />
-              <Button
-                variant="ghost2"
-                size="icon"
-                className={`w-12 h-12 sm:w-14 sm:h-14 rounded-md p-2 transition-colors group ${
-                  !user ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-                title={!user ? t("auth.loginRequired") : t("common.share")}
-                onClick={() =>
-                  openShareDialog({ type: "album", id: currentAlbum._id })
-                }
-                disabled={!user}
-              >
-                <Share className="size-8 text-white/80 group-hover:text-white transition-colors" />
-              </Button>
-            </div>
-
-            <div className="bg-black/20 backdrop-blur-sm">
-              {!isMobile && (
-                <div className="grid grid-cols-[16px_4fr_2.5fr_auto] gap-4 px-4 sm:px-6 md:px-10 py-2 text-sm text-gray-400 border-b border-[#2a2a2a]">
-                  <div>#</div>
-                  <div>{t("pages.album.headers.title")}</div>
-                  <div className="hidden md:block">
-                    {t("pages.album.headers.releaseDate")}
-                  </div>
-                  <div className="text-right">
-                    <Clock className="h-4 w-4 inline-block" />
-                  </div>
-                </div>
-              )}
-              <div className="px-2 sm:px-6">
-                <div className="space-y-1 sm:space-y-2 py-4">
-                  {isMobile ? renderMobileSongList() : renderDesktopSongList()}
-                </div>
+          <div className="flex flex-col sm:flex-row p-4 sm:p-6 gap-4 sm:gap-6 pb-8 sm:pb-8 items-center sm:items-end">
+            <img
+              src={getOptimizedImageUrl(currentAlbum.imageUrl, 500)}
+              alt={currentAlbum.title}
+              onClick={() => {
+                if (!isMobile) setIsCoverModalOpen(true);
+              }}
+              className={`w-64 h-64 sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px] shadow-xl rounded object-cover ${
+                !isMobile
+                  ? "cursor-pointer hover:opacity-80 transition-opacity"
+                  : ""
+              }`}
+            />
+            <div className="flex flex-col justify-end text-center sm:text-left min-w-0">
+              <p className="text-xs sm:text-sm font-medium ">
+                {t(`pages.album.${type}`) || currentAlbum.type}
+              </p>
+              <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold mt-2 mb-2 sm:my-4 break-words">
+                {currentAlbum.title}
+              </h1>
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 text-xs sm:text-sm text-gray-100">
+                <span className="font-medium text-white">
+                  {currentAlbum.artist.map((artist, index) => (
+                    <span key={artist._id}>
+                      <button
+                        onClick={() => handleArtistClick(artist._id)}
+                        className="hover:text-[#8b5cf6] focus:outline-none focus:text-[#8b5cf6] cursor-pointer"
+                      >
+                        {artist.name}
+                      </button>
+                      {index < currentAlbum.artist.length - 1 && ", "}
+                    </span>
+                  ))}
+                </span>
+                <span>
+                  • {currentAlbum.songs.length}{" "}
+                  {currentAlbum.songs.length !== 1
+                    ? t("pages.album.songs")
+                    : t("pages.album.song")}
+                </span>
+                <span>• {currentAlbum.releaseYear}</span>
               </div>
             </div>
           </div>
+
+          <div className="px-4 sm:px-6 pb-4 flex items-center gap-1">
+            <Button
+              onClick={handlePlayAlbum}
+              size="icon"
+              className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white hover:bg-white/90 hover:scale-105 transition-all duration-100"
+            >
+              {isPlaying &&
+              currentAlbum.songs.some(
+                (song) => song._id === currentSong?._id,
+              ) ? (
+                <Pause className="w-6 h-6 sm:w-8 sm:h-8 text-black fill-current" />
+              ) : (
+                <Play className="w-6 h-6 sm:w-8 sm:h-8 text-black fill-current" />
+              )}
+            </Button>
+            {currentAlbum && (
+              <Button
+                onClick={handleToggleAlbum}
+                disabled={isToggling || !user}
+                variant="ghost2"
+                size="icon"
+                className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full p-2 transition-colors group ${
+                  !user ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+                title={
+                  !user
+                    ? t("auth.loginRequired")
+                    : inLibrary
+                      ? t("pages.album.actions.removeFromLibrary")
+                      : t("pages.album.actions.addToLibrary")
+                }
+              >
+                {inLibrary ? (
+                  <CheckedIcon className="size-8 text-[#8b5cf6]" />
+                ) : (
+                  <PlusCircle className="size-8 text-white/80 group-hover:text-white transition-colors" />
+                )}
+              </Button>
+            )}
+            <DownloadButton
+              itemId={currentAlbum._id}
+              itemType="albums"
+              itemTitle={currentAlbum.title}
+              disabled={!user}
+            />
+            <Button
+              variant="ghost2"
+              size="icon"
+              className={`w-12 h-12 sm:w-14 sm:h-14 rounded-md p-2 transition-colors group ${
+                !user ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+              title={!user ? t("auth.loginRequired") : t("common.share")}
+              onClick={() =>
+                openShareDialog({ type: "album", id: currentAlbum._id })
+              }
+              disabled={!user}
+            >
+              <Share className="size-8 text-white/80 group-hover:text-white transition-colors" />
+            </Button>
+          </div>
+
+          <div className="bg-black/20">
+            {!isMobile && (
+              <div className="grid grid-cols-[16px_4fr_2.5fr_auto] gap-4 px-4 sm:px-6 md:px-10 py-2 text-sm text-gray-400 border-b border-[#2a2a2a]">
+                <div>#</div>
+                <div>{t("pages.album.headers.title")}</div>
+                <div className="hidden md:block">
+                  {t("pages.album.headers.releaseDate")}
+                </div>
+                <div className="text-right">
+                  <Clock className="h-4 w-4 inline-block" />
+                </div>
+              </div>
+            )}
+            <div className="px-2 sm:px-6">
+              <div className="space-y-1 sm:space-y-2 py-4">
+                {isMobile ? renderMobileSongList() : renderDesktopSongList()}
+              </div>
+            </div>
+          </div>
+        </div>
       </CollectionGradientLayout>
-        {currentAlbum && (
-          <ShareDialog
-            isOpen={
-              shareEntity?.type === "album" &&
-              shareEntity?.id === currentAlbum._id
-            }
-            onClose={closeAllDialogs}
-            entityType="album"
-            entityId={currentAlbum._id}
-          />
-        )}
-        {shareEntity?.type === "song" && (
-          <ShareDialog
-            isOpen={true}
-            onClose={closeAllDialogs}
-            entityType="song"
-            entityId={shareEntity.id}
-          />
-        )}
+      {currentAlbum && (
+        <ShareDialog
+          isOpen={
+            shareEntity?.type === "album" &&
+            shareEntity?.id === currentAlbum._id
+          }
+          onClose={closeAllDialogs}
+          entityType="album"
+          entityId={currentAlbum._id}
+        />
+      )}
+      {shareEntity?.type === "song" && (
+        <ShareDialog
+          isOpen={true}
+          onClose={closeAllDialogs}
+          entityType="song"
+          entityId={shareEntity.id}
+        />
+      )}
       <SongOptionsDrawer
         context="album"
         song={selectedSongForMenu}

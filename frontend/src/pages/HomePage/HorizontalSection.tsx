@@ -268,7 +268,7 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
         <Button
           variant="ghost"
           size="icon"
-          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-20 bg-black/50 backdrop-blur-md hover:bg-black/80 rounded-full size-10 opacity-0 group-hover/section:opacity-100 transition-opacity"
+          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-20 bg-black/50 hover:bg-black/80 rounded-full size-10 opacity-0 group-hover/section:opacity-100 transition-opacity"
           onClick={() => scroll("left")}
         >
           <ChevronLeft className="h-6 w-6" />
@@ -278,7 +278,7 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
         <Button
           variant="ghost"
           size="icon"
-          className="absolute right-0 top-1/2 -translate-y-1/2 backdrop-blur-md translate-x-1/2 z-20 bg-black/50 hover:bg-black/80 rounded-full size-10 opacity-0 group-hover/section:opacity-100 transition-opacity"
+          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-20 bg-black/50 hover:bg-black/80 rounded-full size-10 opacity-0 group-hover/section:opacity-100 transition-opacity"
           onClick={() => scroll("right")}
         >
           <ChevronRight className="h-6 w-6" />

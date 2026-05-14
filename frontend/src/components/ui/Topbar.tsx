@@ -187,7 +187,7 @@ const Topbar = () => {
   );
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 sticky top-0 bg-[#0f0f0f]/95 backdrop-blur-md z-20 border-b border-[#2a2a2a]">
+    <div className="flex items-center justify-between px-4 py-3 sticky top-0 bg-[#0f0f0f] z-20 border-b border-[#2a2a2a]">
       <div className="flex-1 flex justify-start">
         <div
           className={`flex gap-4 items-center ${

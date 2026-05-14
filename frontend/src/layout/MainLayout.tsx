@@ -107,14 +107,14 @@ const MainLayout = () => {
     const rootElement = document.getElementById("root");
     if (rootElement) {
       if (isAnyDialogOpen && !isFullScreenPlayerOpen && !isUserSheetOpen) {
-        rootElement.classList.add("dialog-open-blur");
+        rootElement.classList.add("dialog-open-root-lock");
       } else {
-        rootElement.classList.remove("dialog-open-blur");
+        rootElement.classList.remove("dialog-open-root-lock");
       }
     }
     return () => {
       if (rootElement) {
-        rootElement.classList.remove("dialog-open-blur");
+        rootElement.classList.remove("dialog-open-root-lock");
       }
       document.body.style.pointerEvents = "";
     };

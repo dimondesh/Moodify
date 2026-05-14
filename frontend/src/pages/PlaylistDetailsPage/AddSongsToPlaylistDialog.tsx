@@ -50,7 +50,7 @@ export function AddSongsToPlaylistDialog({
 }: AddSongsToPlaylistDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:w-[60%vw] w-[40%vw] bg-zinc-900/70 backdrop-blur-md text-white border-zinc-700">
+      <DialogContent className="sm:w-[60%vw] w-[40%vw] bg-zinc-900text-white border-0">
         <DialogHeader>
           <DialogTitle className="text-white max-w-[80vw]">
             {t("pages.playlist.addSongDialog.title")}
@@ -118,7 +118,9 @@ export function AddSongsToPlaylistDialog({
                             (s) => s._id === song._id,
                           )}
                         >
-                          {currentPlaylist?.songs.some((s) => s._id === song._id)
+                          {currentPlaylist?.songs.some(
+                            (s) => s._id === song._id,
+                          )
                             ? t("pages.playlist.addSongDialog.added")
                             : t("pages.playlist.addSongDialog.add")}
                         </Button>
@@ -174,7 +176,9 @@ export function AddSongsToPlaylistDialog({
                             (s) => s._id === song._id,
                           )}
                         >
-                          {currentPlaylist?.songs.some((s) => s._id === song._id)
+                          {currentPlaylist?.songs.some(
+                            (s) => s._id === song._id,
+                          )
                             ? t("pages.playlist.addSongDialog.added")
                             : t("pages.playlist.addSongDialog.add")}
                         </Button>

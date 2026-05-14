@@ -295,7 +295,7 @@ const AddToPlaylistControlInner: React.FC<AddToPlaylistControlProps> = ({
           <SheetContent
             aria-describedby={undefined}
             side="bottom"
-            className="bg-zinc-900/80 backdrop-blur-lg border-zinc-800 text-white rounded-t-2xl h-full z-100 px-4"
+            className="bg-zinc-900 border-0 text-white rounded-t-2xl h-full z-100 px-4"
           >
             <SheetHeader className="text-center">
               <SheetTitle>{t("player.addToPlaylist")}</SheetTitle>
@@ -321,7 +321,7 @@ const AddToPlaylistControlInner: React.FC<AddToPlaylistControlProps> = ({
           <PopoverContent
             side="top"
             align="end"
-            className="w-80 bg-[#0f0f0f]/70 backdrop-blur-md border-zinc-700 text-white p-4"
+            className="w-80 bg-[#0f0f0f]/95 border-zinc-700 text-white p-4"
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
             <PlaylistMenuContent

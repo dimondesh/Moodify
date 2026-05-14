@@ -82,7 +82,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-zinc-900/70 backdrop-blur-md text-white border-zinc-700 z-[150]">
+      <DialogContent className="bg-zinc-900 text-white border-zinc-700 z-[150]">
         <DialogHeader>
           <DialogTitle>{t("common.shareWithFriend")}</DialogTitle>
           <DialogDescription>

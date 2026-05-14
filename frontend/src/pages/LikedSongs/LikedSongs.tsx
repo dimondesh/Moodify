@@ -323,7 +323,7 @@ const LikedSongsPage = () => {
               </Button>
             </div>
 
-            <div className="bg-black/20 backdrop-blur-sm">
+            <div className="bg-black/20">
               <div className="px-2 sm:px-6">
                 <div className="space-y-1 py-4">
                   {isMobile ? renderMobileSongList() : renderDesktopSongList()}

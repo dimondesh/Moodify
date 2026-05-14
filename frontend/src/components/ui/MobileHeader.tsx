@@ -101,7 +101,7 @@ const MobileHeader = ({ title }: MobileHeaderProps) => {
   }
 
   return (
-    <div className="flex items-center justify-between px-4 py-2 sticky top-0 bg-[#0f0f0f]/80 backdrop-blur-md z-20 md:hidden">
+    <div className="flex items-center justify-between px-4 py-2 sticky top-0 bg-[#0f0f0f] z-20 md:hidden">
       <h1 className="text-lg font-semibold text-white truncate flex-1">
         {title}
       </h1>

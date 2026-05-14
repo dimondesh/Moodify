@@ -98,7 +98,7 @@ const EntityTypeFilter = ({
       {isDesktop && canScrollLeft && (
         <button
           onClick={() => scroll("left")}
-          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-20 bg-black/50 backdrop-blur-md hover:bg-black/80 rounded-full size-10 opacity-0 group-hover/section:opacity-100 transition-opacity flex items-center justify-center"
+          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-20 bg-black/50 hover:bg-black/80 rounded-full size-10 opacity-0 group-hover/section:opacity-100 transition-opacity flex items-center justify-center"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
@@ -108,7 +108,7 @@ const EntityTypeFilter = ({
       {isDesktop && canScrollRight && (
         <button
           onClick={() => scroll("right")}
-          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-20 bg-black/50 backdrop-blur-md hover:bg-black/80 rounded-full size-10 opacity-0 group-hover/section:opacity-100 transition-opacity flex items-center justify-center"
+          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-20 bg-black/50 hover:bg-black/80 rounded-full size-10 opacity-0 group-hover/section:opacity-100 transition-opacity flex items-center justify-center"
         >
           <ChevronRight className="h-4 w-4" />
         </button>

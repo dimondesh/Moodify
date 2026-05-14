@@ -165,8 +165,7 @@ const LoginPrompt = () => {
     <div className="h-full flex flex-col items-center justify-center p-4 text-center space-y-4">
       <div className="relative">
         <div
-          className="absolute -inset-1 bg-gradient-to-r from-[#8b5cf6] to-[#7c3aed] rounded-full blur-lg
-         opacity-75 animate-pulse"
+          className="absolute -inset-1 bg-gradient-to-r from-[#8b5cf6] to-[#7c3aed] rounded-full opacity-75 animate-pulse"
           aria-hidden="true"
         />
         <div className="relative bg-[#0f0f0f] rounded-full p-4">

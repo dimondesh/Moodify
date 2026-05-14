@@ -903,7 +903,7 @@ const PlaylistDetailsPage = () => {
               )}
             </div>
 
-            <div className="bg-black/20 backdrop-blur-sm">
+            <div className="bg-black/20">
               <div className="hidden md:grid md:grid-cols-[16px_4fr_2fr_1fr_0.6fr] gap-4 px-4 sm:px-6 md:px-10 py-2 text-sm text-zinc-400 border-b border-white/5">
                 <div>#</div>
                 <div>{t("pages.playlist.headers.title")}</div>
