@@ -20,7 +20,6 @@ import PlaylistRow from "./PlaylistRow";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import { useUIStore } from "../../stores/useUIStore";
-import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
 import RecentlyListenedArtists from "../../components/RecentlyListenedArtists";
 import TopTracksThisMonth from "../../components/TopTracksThisMonth";
 import FixedRowEntitySection from "../HomePage/FixedRowEntitySection";
@@ -110,6 +109,17 @@ const ProfilePage = () => {
   const followingDisplayItems = useMemo(
     () => following.map(relationToDisplayItem),
     [following],
+  );
+
+  const publicPlaylistDisplayItems = useMemo(
+    () =>
+      (profileData?.playlists ?? []).map(
+        (p): Playlist & { itemType: "playlist" } => ({
+          ...p,
+          itemType: "playlist",
+        }),
+      ),
+    [profileData?.playlists],
   );
 
   if (isLoading || (profileData && isColorLoading)) {
@@ -299,55 +309,12 @@ const ProfilePage = () => {
               apiEndpoint={`/users/${userId}/following`}
             />
 
-            {profileData.playlists && profileData.playlists.length > 0 && (
-              <div className="mt-12">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-2xl font-bold">
-                    {t("pages.profile.playlistsSection")}
-                  </h2>
-                  <button
-                    onClick={handleShowAllPlaylists}
-                    className="text-sm font-bold text-zinc-400 hover:underline"
-                  >
-                    {t("pages.profile.showAll")}
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                  {profileData.playlists.map((playlist: Playlist) => (
-                    <Link
-                      to={`/playlists/${playlist._id}`}
-                      key={playlist._id}
-                      className="bg-transparent p-0 rounded-md transition-all group cursor-pointer"
-                    >
-                      <div className="relative mb-2">
-                        <div className="relative aspect-square shadow-lg overflow-hidden rounded-md">
-                          <img
-                            src={playlist.imageUrl || "/liked.png"}
-                            alt={playlist.title}
-                            className="absolute inset-0 h-full w-full object-cover rounded-md transition-transform duration-300 group-hover:scale-105"
-                          />
-                        </div>
-                        <UniversalPlayButton
-                          entity={playlist}
-                          entityType="playlist"
-                          className="absolute bottom-3 right-2"
-                          size="sm"
-                        />
-                      </div>
-                      <div className="px-1">
-                        <h3 className="font-semibold text-sm truncate">
-                          {playlist.title}
-                        </h3>
-                        {playlist.owner && (
-                          <p className="text-xs text-zinc-400 leading-tight truncate">
-                            {t("pages.profile.by")} {playlist.owner.fullName}
-                          </p>
-                        )}
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
+            {publicPlaylistDisplayItems.length > 0 && (
+              <FixedRowEntitySection
+                title={t("pages.profile.playlistsSection")}
+                items={publicPlaylistDisplayItems}
+                apiEndpoint={`/users/${userId}/playlists`}
+              />
             )}
           </div>
         </div>
