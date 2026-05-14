@@ -156,7 +156,7 @@ const PlaylistDetailsPage = () => {
     isUserEditable && currentPlaylist?.type !== "LIKED_SONGS",
   );
 
-  const { backgrounds } = useDominantCoverGradient(
+  const { backgrounds, isColorLoading } = useDominantCoverGradient(
     currentPlaylist?.imageUrl,
     playlistId,
   );
@@ -538,7 +538,7 @@ const PlaylistDetailsPage = () => {
     });
   };
 
-  if (localIsLoading) {
+  if (localIsLoading || isColorLoading) {
     return (
       <>
         <Helmet>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useDominantColor } from "@/hooks/useDominantColor";
 
 export interface CoverGradientLayer {
@@ -19,6 +19,13 @@ export function useDominantCoverGradient(
   const [backgrounds, setBackgrounds] = useState<CoverGradientLayer[]>([
     { key: 0, color: DEFAULT_COLOR },
   ]);
+
+  // Flip loading before paint so pages that gate on isColorLoading never flash the default gradient.
+  useLayoutEffect(() => {
+    if (imageUrl) {
+      setIsColorLoading(true);
+    }
+  }, [imageUrl]);
 
   useEffect(() => {
     const updateBackgroundColor = (color: string) => {
