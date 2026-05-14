@@ -1,6 +1,6 @@
 // frontend/src/pages/ProfilePage/ProfilePage.tsx
 
-import { useEffect, useRef, useMemo, useCallback, useState } from "react";
+import { useEffect, useMemo, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../stores/useAuthStore";
 import { useProfileStore } from "../../stores/useProfileStore";
@@ -14,7 +14,8 @@ import {
 import { Button } from "../../components/ui/button";
 import StandardLoader from "../../components/ui/StandardLoader";
 import { EditProfileDialog } from "./EditProfileDialog";
-import { useDominantColor } from "../../hooks/useDominantColor";
+import { CoverDominantBackdrop } from "@/components/CoverDominantBackdrop";
+import { useDominantCoverGradient } from "@/hooks/useDominantCoverGradient";
 import PlaylistRow from "./PlaylistRow";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
@@ -74,37 +75,19 @@ const ProfilePage = () => {
   const loadProfile = useProfileStore((s) => s.loadProfile);
   const toggleFollow = useProfileStore((s) => s.toggleFollow);
 
-  const { extractColor } = useDominantColor();
-  const backgroundKeyRef = useRef(0);
-  const [backgrounds, setBackgrounds] = useState([
-    { key: 0, color: "#18181b" },
-  ]);
+  const { backgrounds, isColorLoading } = useDominantCoverGradient(
+    isLoading ? undefined : profileData?.imageUrl,
+    userId,
+  );
+  const heroAccent = backgrounds[0]?.color ?? "#18181b";
 
   const { user: liveCurrentUser } = useAuthStore();
   const isMyProfile = liveCurrentUser?.id === userId;
 
   useEffect(() => {
     if (!userId) return;
-    backgroundKeyRef.current += 1;
-    setBackgrounds([{ key: backgroundKeyRef.current, color: "#18181b" }]);
     void loadProfile(userId);
   }, [userId, loadProfile]);
-
-  useEffect(() => {
-    const updateBackgroundColor = (color: string) => {
-      backgroundKeyRef.current += 1;
-      const newKey = backgroundKeyRef.current;
-      setBackgrounds((prev) => [{ key: newKey, color }, ...prev.slice(0, 1)]);
-    };
-
-    if (profileData?.imageUrl) {
-      extractColor(profileData.imageUrl).then((color) =>
-        updateBackgroundColor(color || "#18181b"),
-      );
-    } else if (profileData) {
-      updateBackgroundColor("#18181b");
-    }
-  }, [profileData, extractColor]);
 
   const handleFollow = useCallback(() => {
     if (!userId) return;
@@ -129,7 +112,7 @@ const ProfilePage = () => {
     [following],
   );
 
-  if (isLoading) {
+  if (isLoading || (profileData && isColorLoading)) {
     return (
       <>
         <Helmet>
@@ -169,21 +152,11 @@ const ProfilePage = () => {
         <meta name="description" content={metaDescription} />
       </Helmet>
       <div className="relative min-h-screen pb-40 lg:pb-0 bg-[#0f0f0f]">
-        <div className="absolute inset-0 pointer-events-none h-[40vh]">
-          {backgrounds
-            .slice(0, 2)
-            .reverse()
-            .map((bg, index) => (
-              <div
-                key={bg.key}
-                className={`absolute inset-0 ${
-                  index === 1 ? "animate-fade-in" : ""
-                }`}
-                style={{
-                  background: `linear-gradient(to bottom, ${bg.color}, transparent)`,
-                }}
-              />
-            ))}
+        <div className="absolute inset-x-0 top-0 pointer-events-none h-[40vh] z-0">
+          <CoverDominantBackdrop
+            accentColor={heroAccent}
+            variant="hero"
+          />
         </div>
         <div className="relative z-10 p-4 pt-8 sm:pt-16 sm:p-8">
           <div className="flex flex-col items-center sm:flex-row sm:items-end gap-4">
