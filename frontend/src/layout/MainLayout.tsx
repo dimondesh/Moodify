@@ -225,7 +225,7 @@ const MainLayout = () => {
             </ResizablePanel>
             <ResizableHandle
               id="left-handle"
-              className="w-1 bg-[#2a2a2a] transition-colors hidden lg:block hover:bg-[#8b5cf6]"
+              className="w-1 bg-zinc-800/50 transition-colors hidden lg:block hover:bg-[#8b5cf6]"
             />
           </>
         )}
@@ -278,7 +278,7 @@ const MainLayout = () => {
           <>
             <ResizableHandle
               id="right-handle"
-              className="w-1 bg-[#2a2a2a] transition-colors hover:bg-[#8b5cf6]"
+              className="w-1 bg-zinc-800/50 transition-colors hover:bg-[#8b5cf6]"
             />
             <ResizablePanel
               id="friends-activity-panel"

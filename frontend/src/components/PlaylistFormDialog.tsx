@@ -143,7 +143,7 @@ export const PlaylistFormDialog: React.FC<PlaylistFormDialogProps> = ({
       <DialogContent
         showCloseButton
         className={cn(
-          "max-w-[calc(100vw-1.5rem)] gap-0 rounded-none border-0 bg-[#2a2a2a] p-0 text-white shadow-xl sm:max-w-[560px]",
+          "max-w-[calc(100vw-1.5rem)] gap-0 rounded-none border-0 bg-zinc-800/50 p-0 text-white shadow-xl sm:max-w-[560px]",
           "[&_[data-slot=dialog-close]]:text-zinc-300 [&_[data-slot=dialog-close]]:hover:text-white",
         )}
       >
@@ -200,7 +200,7 @@ export const PlaylistFormDialog: React.FC<PlaylistFormDialogProps> = ({
                       className="min-w-[10rem] rounded-none border border-[#3d3d3d] bg-[#1f1f1f] p-0 text-white"
                     >
                       <DropdownMenuItem
-                        className="rounded-none focus:bg-[#2a2a2a] focus:text-white"
+                        className="rounded-none focus:bg-zinc-800/50 focus:text-white"
                         onSelect={() => {
                           setTimeout(() => handleEditCover(), 0);
                         }}
@@ -208,7 +208,7 @@ export const PlaylistFormDialog: React.FC<PlaylistFormDialogProps> = ({
                         {t("pages.playlist.form.editCover")}
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        className="rounded-none text-red-400 focus:bg-[#2a2a2a] focus:text-red-300"
+                        className="rounded-none text-red-400 focus:bg-zinc-800/50 focus:text-red-300"
                         disabled={!canDeleteCover}
                         onSelect={() => {
                           if (canDeleteCover) handleDeleteCover();

@@ -76,7 +76,7 @@ const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "flex items-center gap-2 p-2 rounded-md hover:bg-[#2a2a2a] group cursor-pointer",
+        "flex items-center gap-2 p-2 rounded-md hover:bg-zinc-800/50 group cursor-pointer",
         isCurrent && "bg-[#8b5cf6]/20",
       )}
       onClick={(e) => onPlay(song, e)}

@@ -110,7 +110,7 @@ export const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
             <Button
               type="button"
               variant="outline"
-              className="bg-[#1a1a1a] hover:bg-[#2a2a2a] border-[#2a2a2a] text-white hover:text-white"
+              className="bg-[#1a1a1a] hover:bg-zinc-800/50 border-[#2a2a2a] text-white hover:text-white"
               onClick={() => fileInputRef.current?.click()}
             >
               {t("pages.editProfileDialog.changePhoto")}
@@ -142,7 +142,7 @@ export const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
             onClick={handleClose}
             variant="outline"
             disabled={isLoading}
-            className="bg-zinc-700 text-white hover:bg-zinc-600 border-none"
+            className="bg-zinc-800/50 text-white hover:bg-zinc-600 border-none"
           >
             {t("pages.editProfileDialog.cancel")}
           </Button>

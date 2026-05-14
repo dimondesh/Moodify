@@ -92,8 +92,8 @@ const UsersList = ({
                   onClick={() => onUserSelect(user)}
                   className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
                     selectedUser?._id === user._id
-                      ? "bg-[#2a2a2a] hover:bg-[#2a2a2a]"
-                      : "hover:bg-[#2a2a2a]"
+                      ? "bg-zinc-800/50 hover:bg-zinc-800/50"
+                      : "hover:bg-zinc-800/50"
                   }`}
                 >
                   <div className="relative">

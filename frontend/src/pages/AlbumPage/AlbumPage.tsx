@@ -194,7 +194,7 @@ const AlbumPage = () => {
         <div
           key={song._id}
           onClick={() => handlePlaySong(index)}
-          className={`grid grid-cols-[16px_4fr_2fr_auto] items-center gap-4 px-4 py-2 text-sm text-gray-400 hover:bg-[#2a2a2a] rounded-md group cursor-pointer `}
+          className={`grid grid-cols-[16px_4fr_2fr_auto] items-center gap-4 px-4 py-2 text-sm text-gray-400 hover:bg-zinc-800/50 rounded-md group cursor-pointer `}
         >
           <div className="flex items-center justify-center">
             {isCurrentSong && isPlaying ? (

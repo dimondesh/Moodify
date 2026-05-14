@@ -118,7 +118,7 @@ const SearchPage = () => {
                       placeholder={t("topbar.searchPlaceholder")}
                       value={query}
                       onChange={handleChange}
-                      className="w-full bg-[#2a2a2a] rounded-full py-2 pl-10 pr-4 text-base text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#8b5cf6] transition duration-150 ease-in-out"
+                      className="w-full bg-zinc-800/50 rounded-full py-2 pl-10 pr-4 text-base text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#8b5cf6] transition duration-150 ease-in-out"
                       spellCheck={false}
                       autoComplete="off"
                     />

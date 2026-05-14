@@ -284,7 +284,7 @@ const Topbar = () => {
                 placeholder={t("topbar.searchPlaceholder")}
                 value={query}
                 onChange={handleChange}
-                className="w-full bg-[#2a2a2a] rounded-full py-2 pl-10 pr-12 text-sm text-white placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#8b5cf6] transition cursor-pointer"
+                className="w-full bg-zinc-800/50 rounded-full py-2 pl-10 pr-12 text-sm text-white placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#8b5cf6] transition cursor-pointer"
                 spellCheck={false}
                 autoComplete="off"
               />
@@ -469,15 +469,15 @@ const Topbar = () => {
                   align="end"
                 >
                   {authUser.fullName && (
-                    <DropdownMenuItem className="text-sm font-semibold cursor-default text-white p-2 opacity-100 hover:bg-[#2a2a2a]">
+                    <DropdownMenuItem className="text-sm font-semibold cursor-default text-white p-2 opacity-100 hover:bg-zinc-800/50">
                       {authUser.fullName}
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuSeparator className="bg-[#2a2a2a]" />
+                  <DropdownMenuSeparator className="bg-zinc-800/50" />
                   <DropdownMenuItem asChild className="p-0">
                     <Link
                       to={`/users/${authUser?.id}`}
-                      className="flex items-center w-full p-2 cursor-pointer hover:bg-[#2a2a2a] rounded-sm"
+                      className="flex items-center w-full p-2 cursor-pointer hover:bg-zinc-800/50 rounded-sm"
                     >
                       <UserIcon className="w-4 h-4 mr-2" />
                       {t("topbar.profile")}
@@ -486,7 +486,7 @@ const Topbar = () => {
                   <DropdownMenuItem asChild className="p-0">
                     <Link
                       to="/settings"
-                      className="flex items-center w-full p-2 cursor-pointer hover:bg-[#2a2a2a] rounded-sm"
+                      className="flex items-center w-full p-2 cursor-pointer hover:bg-zinc-800/50 rounded-sm"
                     >
                       <Settings className="w-4 h-4 mr-2" />
                       {t("topbar.settings")}
@@ -495,7 +495,7 @@ const Topbar = () => {
 
                   <DropdownMenuItem
                     onClick={handleLogout}
-                    className="text-red-400 p-2 cursor-pointer hover:bg-[#2a2a2a]"
+                    className="text-red-400 p-2 cursor-pointer hover:bg-zinc-800/50"
                   >
                     <LogOut className="w-4 h-4 mr-2" />
                     {t("topbar.logout")}
@@ -508,7 +508,7 @@ const Topbar = () => {
               <Button
                 asChild
                 variant="ghost"
-                className="text-gray-300 hover:text-white hover:bg-[#2a2a2a]"
+                className="text-gray-300 hover:text-white hover:bg-zinc-800/50"
               >
                 <Link to="/register" state={{ mode: "signup" }}>
                   Sign Up

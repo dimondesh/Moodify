@@ -519,7 +519,7 @@ const PlaylistDetailsPage = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="rounded-full size-6 sm:size-7 hover:bg-zinc-700 text-zinc-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="rounded-full size-6 sm:size-7 hover:bg-zinc-800/50 text-zinc-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={(e) => {
                   e.stopPropagation();
                   openRemoveSongFromPlaylistDialog({
@@ -860,7 +860,7 @@ const PlaylistDetailsPage = () => {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-48 bg-zinc-800 text-white border-zinc-700">
                     <DropdownMenuItem
-                      className={`cursor-pointer hover:bg-zinc-700 `}
+                      className={`cursor-pointer hover:bg-zinc-800/50 `}
                       onSelect={() =>
                         openShareDialog({
                           type: "playlist",
@@ -874,9 +874,9 @@ const PlaylistDetailsPage = () => {
                     </DropdownMenuItem>
                     {isUserEditable && (
                       <>
-                        <DropdownMenuSeparator className="bg-zinc-700" />
+                        <DropdownMenuSeparator className="bg-zinc-800/50" />
                         <DropdownMenuItem
-                          className="cursor-pointer hover:bg-zinc-700"
+                          className="cursor-pointer hover:bg-zinc-800/50"
                           onSelect={() =>
                             openEditPlaylistDialog(currentPlaylist, () =>
                               fetchPlaylistDetails(currentPlaylist._id),
@@ -887,7 +887,7 @@ const PlaylistDetailsPage = () => {
                           {t("pages.playlist.actions.edit")}
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          className="cursor-pointer text-red-400 hover:bg-zinc-700 hover:text-red-300"
+                          className="cursor-pointer text-red-400 hover:bg-zinc-800/50 hover:text-red-300"
                           onSelect={(e) => {
                             e.preventDefault();
                             openDeletePlaylistDialog(currentPlaylist);

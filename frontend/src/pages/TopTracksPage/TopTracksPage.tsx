@@ -140,7 +140,7 @@ const TopTracksPage = () => {
                     </span>
                   )}
                   {!isCurrentSong && (
-                    <Play className="h-3 w-3 sm:h-4 sm:w-4 hidden group-hover:block" />
+                    <Play className="h-3 w-3 sm:h-4 sm:w-4 hidden group-hover:block fill-current text-zinc-400" />
                   )}
                 </div>
                 <div className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0">
@@ -172,7 +172,7 @@ const TopTracksPage = () => {
                       e.stopPropagation();
                       toggleSongLike(track._id);
                     }}
-                    className="p-2 sm:p-1 hover:bg-zinc-700 rounded-full transition-colors"
+                    className="p-2 sm:p-1 hover:bg-zinc-800/50 rounded-full"
                   >
                     <Heart
                       className={`h-4 w-4 sm:h-4 sm:w-4 ${

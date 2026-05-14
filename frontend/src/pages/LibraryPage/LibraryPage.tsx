@@ -321,7 +321,7 @@ const LibraryPage = () => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="hover:bg-[#2a2a2a] hidden md:flex"
+                  className="hover:bg-zinc-800/50 hidden md:flex"
                   onClick={() => void quickCreatePlaylist()}
                   title={t("sidebar.createPlaylist")}
                 >
@@ -358,7 +358,7 @@ const LibraryPage = () => {
                         setIsLibraryPageSearchOpen(!isLibraryPageSearchOpen)
                       }
                       className={cn(
-                        "text-gray-400 hover:text-white hover:bg-[#2a2a2a] h-12 w-12 p-0 transition-all duration-300 ease-in-out z-20",
+                        "text-gray-400 hover:text-white hover:bg-zinc-800/50 h-12 w-12 p-0 transition-all duration-300 ease-in-out z-20",
                         isLibraryPageSearchOpen
                           ? "opacity-0 pointer-events-none"
                           : "opacity-100",
@@ -384,7 +384,7 @@ const LibraryPage = () => {
                         value={librarySearchQuery}
                         onChange={(e) => setLibrarySearchQuery(e.target.value)}
                         onBlur={() => setIsLibraryPageSearchOpen(false)}
-                        className="w-full bg-[#2a2a2a] rounded-md py-3 pl-12 pr-4 text-base text-white placeholder:text-gray-400 focus:outline-none transition duration-150 ease-in-out"
+                        className="w-full bg-zinc-800/50 rounded-md py-3 pl-12 pr-4 text-base text-white placeholder:text-gray-400 focus:outline-none transition duration-150 ease-in-out"
                         spellCheck={false}
                         autoComplete="off"
                       />
@@ -401,7 +401,7 @@ const LibraryPage = () => {
                       libraryPageViewMode === "grid" ? "list" : "grid",
                     )
                   }
-                  className="text-gray-400 hover:text-white hover:bg-[#2a2a2a] h-12 w-12 p-0 flex-shrink-0"
+                  className="text-gray-400 hover:text-white hover:bg-zinc-800/50 h-12 w-12 p-0 flex-shrink-0"
                 >
                   {libraryPageViewMode === "grid" ? (
                     <List className="w-5 h-5" />
@@ -470,7 +470,7 @@ const LibraryPage = () => {
                       <Link
                         key={`${item.type}-${item._id}`}
                         to={linkPath}
-                        className="bg-transparent p-2 rounded-md hover:bg-[#2a2a2a]/50 transition-all group cursor-pointer flex flex-col items-center text-center"
+                        className="bg-transparent p-2 rounded-md hover:bg-zinc-800/50 transition-all group cursor-pointer flex flex-col items-center text-center"
                       >
                         <div className="relative mb-2 w-full">
                           <div
@@ -563,7 +563,7 @@ const LibraryPage = () => {
                       <Link
                         key={`${item.type}-${item._id}`}
                         to={linkPath}
-                        className="bg-transparent p-3 rounded-md hover:bg-[#2a2a2a]/50 transition-all group cursor-pointer flex items-center gap-4"
+                        className="bg-transparent p-3 rounded-md hover:bg-zinc-800/50 transition-all group cursor-pointer flex items-center gap-4"
                       >
                         <div className="relative flex-shrink-0">
                           <img

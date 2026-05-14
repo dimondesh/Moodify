@@ -253,7 +253,7 @@ const SettingsPage: React.FC = () => {
                 value={i18n.language}
                 onValueChange={handleLanguageChange}
               >
-                <SelectTrigger className="w-full bg-[#2a2a2a] border-[#2a2a2a] text-white">
+                <SelectTrigger className="w-full bg-zinc-800/50 border-[#2a2a2a] text-white">
                   <SelectValue placeholder={t("settings.language")} />
                 </SelectTrigger>
                 <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a] text-white">
@@ -339,7 +339,7 @@ const SettingsPage: React.FC = () => {
                     onChange={(e) => setOldPassword(e.target.value)}
                     placeholder="••••••••"
                     required
-                    className="bg-[#2a2a2a] focus:ring-0! border-[#3a3a3a] text-white focus-visible:ring-violet-500"
+                    className="bg-zinc-800/50 focus:ring-0! border-[#3a3a3a] text-white focus-visible:ring-violet-500"
                   />
                 </div>
 
@@ -355,7 +355,7 @@ const SettingsPage: React.FC = () => {
                     placeholder="••••••••"
                     required
                     minLength={6}
-                    className="bg-[#2a2a2a] border-[#3a3a3a] focus:ring-0! text-white focus-visible:ring-violet-500"
+                    className="bg-zinc-800/50 border-[#3a3a3a] focus:ring-0! text-white focus-visible:ring-violet-500"
                   />
                 </div>
 
@@ -371,7 +371,7 @@ const SettingsPage: React.FC = () => {
                     placeholder="••••••••"
                     required
                     minLength={6}
-                    className="bg-[#2a2a2a] border-[#3a3a3a] focus:ring-0! text-white focus-visible:ring-violet-500"
+                    className="bg-zinc-800/50 border-[#3a3a3a] focus:ring-0! text-white focus-visible:ring-violet-500"
                   />
                 </div>
                 <Button
@@ -412,7 +412,7 @@ const SettingsPage: React.FC = () => {
                           onValueChange={handlePresetChange}
                           value={activePresetName}
                         >
-                          <SelectTrigger className="w-full bg-[#2a2a2a] border-[#3a3a3a] text-white">
+                          <SelectTrigger className="w-full bg-zinc-800/50 border-[#3a3a3a] text-white">
                             <SelectValue
                               placeholder={t("settings.selectPreset")}
                             />
@@ -486,7 +486,7 @@ const SettingsPage: React.FC = () => {
                           value={reverbRoomSize}
                           onValueChange={handleReverbRoomSizeChange}
                         >
-                          <SelectTrigger className="w-full bg-[#2a2a2a] border-[#3a3a3a] text-white">
+                          <SelectTrigger className="w-full bg-zinc-800/50 border-[#3a3a3a] text-white">
                             <SelectValue
                               placeholder={t("settings.selectRoomSize")}
                             />
@@ -591,7 +591,7 @@ const SettingsPage: React.FC = () => {
                       setNormalizationMode(value)
                     }
                   >
-                    <SelectTrigger className="w-full bg-[#2a2a2a] border-[#3a3a3a] text-white">
+                    <SelectTrigger className="w-full bg-zinc-800/50 border-[#3a3a3a] text-white">
                       <SelectValue placeholder={t("settings.selectMode")} />
                     </SelectTrigger>
                     <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a] text-white">
@@ -647,7 +647,7 @@ const SettingsPage: React.FC = () => {
                                   ${
                                     analyzerSmoothness === mode
                                       ? "bg-violet-600 text-white"
-                                      : "bg-[#2a2a2a] text-gray-400 hover:bg-[#3a3a3a]"
+                                      : "bg-zinc-800/50 text-gray-400 hover:bg-[#3a3a3a]"
                                   }
                                   ${index === 0 ? "rounded-l-md" : ""}
                                   ${index === arr.length - 1 ? "rounded-r-md" : ""}
@@ -708,7 +708,7 @@ const SettingsPage: React.FC = () => {
                   />
                 </Button>
               </div>
-              <div className="bg-[#2a2a2a]/50 p-4 rounded-md">
+              <div className="bg-zinc-800/50/50 p-4 rounded-md">
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-gray-400">
                     {t("settings.downloadedContent")}
@@ -756,7 +756,7 @@ const SettingsPage: React.FC = () => {
                 <Button
                   onClick={clearAppCache}
                   variant="outline"
-                  className="w-full bg-[#2a2a2a] hover:bg-[#3a3a3a] border-[#3a3a3a]"
+                  className="w-full bg-zinc-800/50 hover:bg-[#3a3a3a] border-[#3a3a3a]"
                 >
                   {t("settings.clearAppCache", "Очистить кэш приложения")}
                 </Button>

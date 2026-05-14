@@ -105,7 +105,7 @@ const PlaylistMenuContent: React.FC<PlaylistMenuContentProps> = memo(
       subtitle?: string;
     }) => (
       <div
-        className="flex items-center gap-3 p-2 rounded-md hover:bg-[#2a2a2a] cursor-pointer"
+        className="flex items-center gap-3 p-2 rounded-md hover:bg-zinc-800/50 cursor-pointer"
         onClick={() => onCheckedChange(!checked)}
       >
         {imageUrl && (
@@ -147,7 +147,7 @@ const PlaylistMenuContent: React.FC<PlaylistMenuContentProps> = memo(
             placeholder={t("player.findPlaylist")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="bg-[#2a2a2a]/80 border-[#2a2a2a] pl-9"
+            className="bg-zinc-800/50 border-[#2a2a2a] pl-9"
             onClick={(e) => e.stopPropagation()}
           />
         </div>

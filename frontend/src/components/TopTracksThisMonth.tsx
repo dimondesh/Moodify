@@ -194,7 +194,7 @@ const TopTracksThisMonth: React.FC<TopTracksThisMonthProps> = ({
                     e.stopPropagation();
                     toggleSongLike(track._id);
                   }}
-                  className="p-1 hover:bg-zinc-700 rounded-full transition-colors"
+                  className="p-1 hover:bg-zinc-800/50 rounded-full transition-colors"
                 >
                   <Heart
                     className={`h-4 w-4 ${

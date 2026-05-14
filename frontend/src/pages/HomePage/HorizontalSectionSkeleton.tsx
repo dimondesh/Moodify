@@ -15,9 +15,9 @@ const HorizontalSectionSkeleton = () => {
               key={i}
               className="bg-zinc-800/40 p-4 rounded-md animate-pulse w-40 sm:w-48 flex-shrink-0"
             >
-              <div className="aspect-square rounded-md bg-zinc-700 mb-4" />
-              <div className="h-4 bg-zinc-700 rounded w-3/4 mb-2" />
-              <div className="h-4 bg-zinc-700 rounded w-1/2" />
+              <div className="aspect-square rounded-md bg-zinc-800/50 mb-4" />
+              <div className="h-4 bg-zinc-800/50 rounded w-3/4 mb-2" />
+              <div className="h-4 bg-zinc-800/50 rounded w-1/2" />
             </div>
           ))}
         </div>

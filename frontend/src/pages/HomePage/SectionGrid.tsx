@@ -142,7 +142,7 @@ const SectionGrid = ({
           return (
             <div
               key={song._id}
-              className="bg-[#1a1a1a] p-3 rounded-md hover:bg-[#2a2a2a] transition-all group cursor-pointer hover-scale"
+              className="bg-[#1a1a1a] p-3 rounded-md hover:bg-zinc-800/50 transition-all group cursor-pointer hover-scale"
               onClick={() => {
                 if (song.albumId) {
                   const albumIdStr = String(song.albumId);

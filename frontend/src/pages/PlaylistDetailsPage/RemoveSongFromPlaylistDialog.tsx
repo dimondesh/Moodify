@@ -39,7 +39,7 @@ export function RemoveSongFromPlaylistDialog({
         <AlertDialogFooter>
           <AlertDialogCancel
             onClick={onCancel}
-            className="bg-zinc-700 text-white hover:bg-zinc-600 border-none"
+            className="bg-zinc-800/50 text-white hover:bg-zinc-600 border-none"
           >
             {t("pages.playlist.removeSongDialog.cancel")}
           </AlertDialogCancel>

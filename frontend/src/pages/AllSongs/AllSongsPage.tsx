@@ -83,7 +83,7 @@ const AllSongsPage = () => {
         {songs.map((song, index) => (
           <div
             key={song._id}
-            className=" p-3 rounded-md hover:bg-zinc-700/40 transition-all group cursor-pointer flex flex-col"
+            className=" p-3 rounded-md hover:bg-zinc-800/50 transition-all group cursor-pointer flex flex-col"
             onClick={() => handleNavigateToAlbum(song.albumId)}
           >
             <div className="relative mb-3">

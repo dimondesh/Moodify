@@ -178,7 +178,7 @@ const LikedSongsPage = () => {
           key={song._id}
           onClick={() => handlePlaySpecificSong(song, index)}
           className={`flex items-center justify-between gap-4 p-2 rounded-md group cursor-pointer ${
-            isCurrentSong ? "bg-[#2a2a2a]" : "hover:bg-[#2a2a2a]"
+            isCurrentSong ? "bg-zinc-800/50" : "hover:bg-zinc-800/50"
           }`}
         >
           <div className="flex items-center gap-3 flex-1 min-w-0">

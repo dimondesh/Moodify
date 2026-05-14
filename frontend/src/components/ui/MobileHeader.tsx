@@ -42,7 +42,7 @@ const MobileHeader = ({ title }: MobileHeaderProps) => {
       <DrawerClose asChild>
         <Link
           to="/chat"
-          className="flex items-center p-2 cursor-pointer hover:bg-zinc-700 rounded-md relative"
+          className="flex items-center p-2 cursor-pointer hover:bg-zinc-800/50 rounded-md relative"
         >
           <MessageCircle className="w-4 h-4 mr-2" />
           {t("sidebar.messages")}
@@ -56,7 +56,7 @@ const MobileHeader = ({ title }: MobileHeaderProps) => {
       <DrawerClose asChild>
         <Link
           to={`/users/${authUser?.id}`}
-          className="flex items-center p-2 cursor-pointer hover:bg-zinc-700 rounded-md"
+          className="flex items-center p-2 cursor-pointer hover:bg-zinc-800/50 rounded-md"
         >
           <UserIcon className="w-4 h-4 mr-2" />
           {t("topbar.profile")}
@@ -65,18 +65,18 @@ const MobileHeader = ({ title }: MobileHeaderProps) => {
       <DrawerClose asChild>
         <Link
           to="/settings"
-          className="flex items-center p-2 cursor-pointer hover:bg-zinc-700 rounded-md"
+          className="flex items-center p-2 cursor-pointer hover:bg-zinc-800/50 rounded-md"
         >
           <Settings className="w-4 h-4 mr-2" />
           {t("topbar.settings")}
         </Link>
       </DrawerClose>
 
-      <div className="w-full h-px bg-zinc-700 my-1" />
+      <div className="w-full h-px bg-zinc-800/50 my-1" />
       <DrawerClose asChild>
         <div
           onClick={handleLogout}
-          className="flex items-center text-red-400 p-2 cursor-pointer hover:bg-zinc-700 rounded-md"
+          className="flex items-center text-red-400 p-2 cursor-pointer hover:bg-zinc-800/50 rounded-md"
         >
           <LogOut className="w-4 h-4 mr-2" />
           {t("topbar.logout")}
@@ -117,7 +117,7 @@ const MobileHeader = ({ title }: MobileHeaderProps) => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="relative h-8 w-8 rounded-full hover:bg-[#2a2a2a] flex-shrink-0"
+                className="relative h-8 w-8 rounded-full hover:bg-zinc-800/50 flex-shrink-0"
               >
                 <Avatar className="w-8 h-8 object-cover">
                   <AvatarImage
@@ -165,7 +165,7 @@ const MobileHeader = ({ title }: MobileHeaderProps) => {
               asChild
               variant="ghost"
               size="sm"
-              className="text-gray-300 hover:text-white hover:bg-[#2a2a2a]"
+              className="text-gray-300 hover:text-white hover:bg-zinc-800/50"
             >
               <Link to="/register" state={{ mode: "signup" }}>
                 Sign Up

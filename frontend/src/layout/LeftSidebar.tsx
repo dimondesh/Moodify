@@ -345,7 +345,7 @@ const LeftSidebar = () => {
                       value={librarySearchQuery}
                       onChange={(e) => setLibrarySearchQuery(e.target.value)}
                       onBlur={() => setIsLeftSidebarSearchOpen(false)}
-                      className="w-full bg-[#2a2a2a] rounded-md py-2 pl-10 pr-4 text-sm text-white placeholder:text-gray-400 focus:outline-none transition duration-150 ease-in-out cursor-pointer"
+                      className="w-full bg-zinc-800/50 rounded-md py-2 pl-10 pr-4 text-sm text-white placeholder:text-gray-400 focus:outline-none transition duration-150 ease-in-out cursor-pointer"
                       spellCheck={false}
                       autoComplete="off"
                     />
@@ -444,7 +444,7 @@ const LeftSidebar = () => {
                     <Link
                       to={linkPath}
                       key={`${item.type}-${item._id}`}
-                      className="p-2 hover:bg-[#2a2a2a] rounded-md flex items-center gap-2 cursor-pointer relative"
+                      className="p-2 hover:bg-zinc-800/50 rounded-md flex items-center gap-2 cursor-pointer relative"
                     >
                       <div className="relative flex-shrink-0 group">
                         <img
@@ -557,7 +557,7 @@ const LeftSidebar = () => {
                     <Link
                       to={linkPath}
                       key={`${item.type}-${item._id}`}
-                      className="p-1 hover:bg-[#2a2a2a] rounded-md flex flex-col items-center text-center cursor-pointer relative flex-shrink-0"
+                      className="p-1 hover:bg-zinc-800/50 rounded-md flex flex-col items-center text-center cursor-pointer relative flex-shrink-0"
                     >
                       <div className="relative flex-shrink-0 group mb-0.5">
                         <img
