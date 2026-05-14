@@ -200,7 +200,16 @@ interface AddToPlaylistControlProps {
   disabled?: boolean;
 }
 
-export const AddToPlaylistControl: React.FC<AddToPlaylistControlProps> = ({
+const addToPlaylistControlPropsAreEqual = (
+  prev: AddToPlaylistControlProps,
+  next: AddToPlaylistControlProps,
+) =>
+  prev.song?._id === next.song?._id &&
+  prev.disabled === next.disabled &&
+  prev.className === next.className &&
+  prev.iconClassName === next.iconClassName;
+
+const AddToPlaylistControlInner: React.FC<AddToPlaylistControlProps> = ({
   song,
   className,
   iconClassName = "size-5",
@@ -218,12 +227,19 @@ export const AddToPlaylistControl: React.FC<AddToPlaylistControlProps> = ({
     }
   }, [song, fetchOwnedPlaylists]);
 
+  const playlistsWithSong = useMemo(
+    () =>
+      song
+        ? ownedPlaylists
+            .filter((p) => p.songs.some((s) => s._id === song._id))
+            .map((p) => p._id)
+        : [],
+    [ownedPlaylists, song],
+  );
+
   if (!song) return null;
 
   const isLiked = isSongLiked(song._id);
-  const playlistsWithSong = ownedPlaylists
-    .filter((p) => p.songs.some((s) => s._id === song._id))
-    .map((p) => p._id);
 
   const isAdded = isLiked || playlistsWithSong.length > 0;
 
@@ -321,3 +337,8 @@ export const AddToPlaylistControl: React.FC<AddToPlaylistControlProps> = ({
     </>
   );
 };
+
+export const AddToPlaylistControl = memo(
+  AddToPlaylistControlInner,
+  addToPlaylistControlPropsAreEqual,
+);
