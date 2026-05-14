@@ -1,6 +1,6 @@
 // src/layout/PlaybackControls.tsx
 
-import { useEffect, useState, startTransition } from "react";
+import { useEffect, useState, startTransition, memo, useCallback } from "react";
 import { Drawer } from "vaul";
 import { useDominantColor } from "@/hooks/useDominantColor";
 import { usePlayerStore } from "../stores/usePlayerStore";
@@ -76,33 +76,262 @@ const parseLrc = (lrcContent: string): LyricLine[] => {
   return parsedLyrics;
 };
 
+/** iOS WebKit: full-viewport CSS blur + frequent re-renders is very expensive. */
+function isPlaybackIos(): boolean {
+  if (typeof navigator === "undefined") return false;
+  if (/iPad|iPhone|iPod/.test(navigator.userAgent)) return true;
+  return (
+    navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1
+  );
+}
+
+type BgQueueItem = { id: string; url: string; loaded: boolean };
+
+const BlurredCoverBackdrop = memo(function BlurredCoverBackdrop({
+  queue,
+  onItemLoad,
+}: {
+  queue: BgQueueItem[];
+  onItemLoad: (id: string) => void;
+}) {
+  return (
+    <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none bg-zinc-950">
+      <div className="absolute inset-0 opacity-60">
+        {queue.map((bg) => (
+          <img
+            key={bg.id}
+            src={bg.url}
+            alt=""
+            onLoad={() => onItemLoad(bg.id)}
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
+              bg.loaded ? "opacity-100" : "opacity-0"
+            }`}
+            style={{
+              filter: "blur(80px)",
+              WebkitFilter: "blur(80px)",
+              transform: "scale(1.5) translateZ(0)",
+              WebkitTransform: "scale(1.5) translateZ(0)",
+              backfaceVisibility: "hidden",
+              WebkitBackfaceVisibility: "hidden",
+              willChange: "opacity",
+            }}
+          />
+        ))}
+      </div>
+      <div className="absolute inset-0 bg-black/40" />
+    </div>
+  );
+});
+
+const DominantTintBackdrop = memo(function DominantTintBackdrop({
+  accentColor,
+}: {
+  accentColor: string;
+}) {
+  return (
+    <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none bg-zinc-950">
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundColor: accentColor,
+          backgroundImage: [
+            "radial-gradient(ellipse 100% 65% at 50% 0%, rgba(255,255,255,0.14) 0%, transparent 52%)",
+            "linear-gradient(180deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.78) 100%)",
+          ].join(", "),
+        }}
+      />
+      <div className="absolute inset-0 bg-black/40" />
+    </div>
+  );
+});
+
+const MiniPlayerSeekIndicator = memo(function MiniPlayerSeekIndicator() {
+  const currentTime = usePlayerStore((s) => s.currentTime);
+  const duration = usePlayerStore((s) => s.duration);
+  const pct = duration > 0 ? (currentTime / duration) * 100 : 0;
+  return (
+    <div className="absolute left-0 right-0 bottom-0 h-[2px] bg-white/15">
+      <div
+        className="h-full bg-white transition-all duration-100"
+        style={{ width: `${pct || 0}%` }}
+      />
+    </div>
+  );
+});
+
+const DrawerSeekBlock = memo(function DrawerSeekBlock() {
+  const currentTime = usePlayerStore((s) => s.currentTime);
+  const duration = usePlayerStore((s) => s.duration);
+  const seekToTime = usePlayerStore((s) => s.seekToTime);
+  return (
+    <div className="w-full flex flex-col gap-2 mb-2 px-2">
+      <Slider
+        value={[currentTime]}
+        max={duration || 100}
+        step={1}
+        className="w-full hover:cursor-grab active:cursor-grabbing"
+        onValueChange={(value) => seekToTime(value[0])}
+      />
+      <div className="w-full flex items-center justify-between">
+        <div className="text-xs text-zinc-400 font-mono">
+          {formatTime(currentTime)}
+        </div>
+        <div className="text-xs text-zinc-400 font-mono">
+          {formatTime(duration)}
+        </div>
+      </div>
+    </div>
+  );
+});
+
+const DesktopSeekRow = memo(function DesktopSeekRow() {
+  const currentTime = usePlayerStore((s) => s.currentTime);
+  const duration = usePlayerStore((s) => s.duration);
+  const seekToTime = usePlayerStore((s) => s.seekToTime);
+  return (
+    <div className="flex items-center gap-3 w-full">
+      <div className="text-xs text-gray-400 font-mono">
+        {formatTime(currentTime)}
+      </div>
+      <Slider
+        value={[currentTime]}
+        max={duration || 100}
+        step={1}
+        className="w-full hover:cursor-pointer"
+        onValueChange={(value) => seekToTime(value[0])}
+      />
+      <div className="text-xs text-gray-400 font-mono">
+        {formatTime(duration)}
+      </div>
+    </div>
+  );
+});
+
+const DrawerLyricsPreviewBlock = memo(function DrawerLyricsPreviewBlock({
+  lyrics,
+  lyricsBgColor,
+  onOpenFullscreenLyrics,
+}: {
+  lyrics: LyricLine[];
+  lyricsBgColor: string;
+  onOpenFullscreenLyrics: () => void;
+}) {
+  const { t } = useTranslation();
+  const currentTime = usePlayerStore((s) => s.currentTime);
+  return (
+    <div
+      className="w-full px-4 mx-auto mt-0 mb-4 flex-shrink-0 cursor-pointer animate-in slide-in-from-bottom-8 fade-in duration-700 ease-out"
+      onClick={(e) => {
+        e.stopPropagation();
+        onOpenFullscreenLyrics();
+      }}
+    >
+      <div
+        className="w-full rounded-2xl p-4 sm:p-6 shadow-xl transition-colors duration-1000 relative overflow-hidden"
+        style={{
+          backgroundColor: lyricsBgColor,
+          backgroundImage:
+            "linear-gradient(rgba(0,0,0,0.25), rgba(0,0,0,0.25))",
+        }}
+      >
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-base font-bold text-white">
+            {t("player.lyricsPreview", "Lyrics")}
+          </h3>
+          <div className="text-[10px] font-bold px-1.5 py-1.5 bg-black/20 rounded-full text-white uppercase tracking-wider border border-white/10">
+            <Maximize className="size-5" />
+          </div>
+        </div>
+
+        <div className="w-full text-left relative">
+          {(() => {
+            const { playbackRateEnabled, playbackRate } =
+              useAudioSettingsStore.getState();
+            const currentRate = playbackRateEnabled ? playbackRate : 1.0;
+            const realCurrentTime = currentTime / currentRate;
+            const preview = lyrics.slice(0, 5);
+
+            return preview.map((line, index) => {
+              const isActive =
+                realCurrentTime >= line.time &&
+                (index === preview.length - 1 ||
+                  (lyrics[index + 1] !== undefined &&
+                    realCurrentTime < lyrics[index + 1].time));
+
+              return (
+                <p
+                  key={index}
+                  className={`py-1 text-lg sm:text-xl font-bold transition-all duration-300
+                    ${isActive ? "text-white" : "text-white mix-blend-overlay"}`}
+                >
+                  {line.text}
+                </p>
+              );
+            });
+          })()}
+        </div>
+      </div>
+    </div>
+  );
+});
+
+/** Isolated: updates lock screen / control center position without re-rendering the whole bar. */
+function MediaSessionPositionSync() {
+  const currentTime = usePlayerStore((s) => s.currentTime);
+  const duration = usePlayerStore((s) => s.duration);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const currentSong = usePlayerStore((s) => s.currentSong);
+
+  useEffect(() => {
+    if (
+      typeof navigator === "undefined" ||
+      !("mediaSession" in navigator) ||
+      !("setPositionState" in navigator.mediaSession)
+    ) {
+      return;
+    }
+    if (currentSong && duration > 0) {
+      const safePosition = Math.min(currentTime, duration);
+      navigator.mediaSession.setPositionState({
+        duration: duration,
+        playbackRate: 1,
+        position: safePosition,
+      });
+      navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+    }
+  }, [currentTime, duration, isPlaying, currentSong]);
+
+  return null;
+}
+
 const PlaybackControls = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { isIosDevice } = useUIStore();
   const user = useAuthStore((s) => s.user);
 
-  const {
-    currentSong,
-    isPlaying,
-    togglePlay,
-    playNext,
-    playPrevious,
-    repeatMode,
-    setRepeatMode,
-    shuffleMode,
-    toggleShuffle,
-    isFullScreenPlayerOpen,
-    setIsFullScreenPlayerOpen,
-    isDesktopLyricsOpen,
-    setIsDesktopLyricsOpen,
-    setIsMobileLyricsFullScreen,
-    masterVolume,
-    setMasterVolume,
-    currentTime,
-    duration,
-    seekToTime,
-  } = usePlayerStore();
+  const currentSong = usePlayerStore((s) => s.currentSong);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const togglePlay = usePlayerStore((s) => s.togglePlay);
+  const playNext = usePlayerStore((s) => s.playNext);
+  const playPrevious = usePlayerStore((s) => s.playPrevious);
+  const repeatMode = usePlayerStore((s) => s.repeatMode);
+  const setRepeatMode = usePlayerStore((s) => s.setRepeatMode);
+  const shuffleMode = usePlayerStore((s) => s.shuffleMode);
+  const toggleShuffle = usePlayerStore((s) => s.toggleShuffle);
+  const isFullScreenPlayerOpen = usePlayerStore((s) => s.isFullScreenPlayerOpen);
+  const setIsFullScreenPlayerOpen = usePlayerStore(
+    (s) => s.setIsFullScreenPlayerOpen,
+  );
+  const isDesktopLyricsOpen = usePlayerStore((s) => s.isDesktopLyricsOpen);
+  const setIsDesktopLyricsOpen = usePlayerStore(
+    (s) => s.setIsDesktopLyricsOpen,
+  );
+  const setIsMobileLyricsFullScreen = usePlayerStore(
+    (s) => s.setIsMobileLyricsFullScreen,
+  );
+  const masterVolume = usePlayerStore((s) => s.masterVolume);
+  const setMasterVolume = usePlayerStore((s) => s.setMasterVolume);
 
   const { shareEntity, openShareDialog, closeAllDialogs } = useUIStore();
 
@@ -216,23 +445,27 @@ const PlaybackControls = () => {
       navigator.mediaSession.setActionHandler("pause", () => togglePlay());
       navigator.mediaSession.setActionHandler("nexttrack", () => playNext());
       navigator.mediaSession.setActionHandler("previoustrack", () => {
+        const { currentTime, seekToTime, playPrevious } =
+          usePlayerStore.getState();
         if (currentTime > 3) {
           seekToTime(0);
         } else {
-          playPrevious();
+          void playPrevious();
         }
       });
 
       navigator.mediaSession.setActionHandler("seekto", (details) => {
         if (details.seekTime != null) {
-          seekToTime(details.seekTime);
+          usePlayerStore.getState().seekToTime(details.seekTime);
         }
       });
       navigator.mediaSession.setActionHandler("seekforward", (details) => {
+        const { currentTime, seekToTime } = usePlayerStore.getState();
         const newTime = currentTime + (details.seekOffset || 10);
         seekToTime(newTime);
       });
       navigator.mediaSession.setActionHandler("seekbackward", (details) => {
+        const { currentTime, seekToTime } = usePlayerStore.getState();
         const newTime = currentTime - (details.seekOffset || 10);
         seekToTime(newTime);
       });
@@ -243,30 +476,14 @@ const PlaybackControls = () => {
     playNext,
     playPrevious,
     togglePlay,
-    currentTime,
-    seekToTime,
   ]);
-
-  useEffect(() => {
-    if (
-      "mediaSession" in navigator &&
-      "setPositionState" in navigator.mediaSession
-    ) {
-      if (currentSong && duration > 0) {
-        const safePosition = Math.min(currentTime, duration);
-
-        navigator.mediaSession.setPositionState({
-          duration: duration,
-          playbackRate: 1,
-          position: safePosition,
-        });
-        navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
-      }
-    }
-  }, [currentTime, duration, isPlaying, currentSong]);
 
   // Обновленная логика фонов
   useEffect(() => {
+    if (isPlaybackIos()) {
+      setBgQueue([]);
+      return;
+    }
     const url = currentSong?.imageUrl;
     if (!url) {
       setBgQueue([]);
@@ -289,11 +506,11 @@ const PlaybackControls = () => {
     });
   }, [currentSong?.imageUrl]);
 
-  const handleBgLoad = (id: string) => {
+  const handleBgLoad = useCallback((id: string) => {
     setBgQueue((prev) =>
       prev.map((bg) => (bg.id === id ? { ...bg, loaded: true } : bg)),
     );
-  };
+  }, []);
 
   useEffect(() => {
     fetchLikedSongs();
@@ -353,6 +570,11 @@ const PlaybackControls = () => {
     }
   };
 
+  const openDrawerLyricsFullscreen = useCallback(() => {
+    setIsMobileLyricsFullScreen(true);
+    setIsFullScreenPlayerOpen(false);
+  }, [setIsMobileLyricsFullScreen, setIsFullScreenPlayerOpen]);
+
   useEffect(() => {
     const socket = useChatStore.getState().socket;
     if (socket) {
@@ -406,6 +628,7 @@ const PlaybackControls = () => {
 
   return (
     <>
+      <MediaSessionPositionSync />
       {isCompactView ? (
         <>
           {!isFullScreenPlayerOpen && (
@@ -462,20 +685,16 @@ const PlaybackControls = () => {
                 </Button>
               </div>
 
-              <div className="absolute left-0 right-0 bottom-0 h-[2px] bg-white/15">
-                <div
-                  className="h-full bg-white transition-all duration-100"
-                  style={{
-                    width: `${(currentTime / duration) * 100 || 0}%`,
-                  }}
-                />
-              </div>
+              <MiniPlayerSeekIndicator />
             </footer>
           )}
 
           <Drawer.Root
             open={isFullScreenPlayerOpen}
             onOpenChange={setIsFullScreenPlayerOpen}
+            {...(isPlaybackIos()
+              ? { shouldScaleBackground: false, setBackgroundColorOnScale: false }
+              : {})}
           >
             <Drawer.Portal>
               <Drawer.Overlay className="fixed bg-black/40 z-[70] max-w-none " />
@@ -485,31 +704,11 @@ const PlaybackControls = () => {
                   isAnyDialogOpen ? "player-dialog-blur" : ""
                 }`}
               >
-                <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none bg-zinc-950">
-                  <div className="absolute inset-0 opacity-60">
-                    {bgQueue.map((bg) => (
-                      <img
-                        key={bg.id}
-                        src={bg.url}
-                        alt=""
-                        onLoad={() => handleBgLoad(bg.id)}
-                        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
-                          bg.loaded ? "opacity-100" : "opacity-0"
-                        }`}
-                        style={{
-                          filter: "blur(80px)",
-                          WebkitFilter: "blur(80px)", // Принудительно для Safari
-                          transform: "scale(1.5) translateZ(0)",
-                          WebkitTransform: "scale(1.5) translateZ(0)",
-                          backfaceVisibility: "hidden", // Убирает мерцание задней поверхности в Safari
-                          WebkitBackfaceVisibility: "hidden",
-                          willChange: "opacity", // Заранее предупреждаем браузер, что будем менять прозрачность
-                        }}
-                      />
-                    ))}
-                  </div>
-                  <div className="absolute inset-0 bg-black/40" />
-                </div>
+                {isPlaybackIos() ? (
+                  <DominantTintBackdrop accentColor={lyricsBgColor} />
+                ) : (
+                  <BlurredCoverBackdrop queue={bgQueue} onItemLoad={handleBgLoad} />
+                )}
 
                 <div className=" w-full mx-auto p-0  overflow-auto  hide-scrollbar">
                   <Drawer.Title className="sr-only">
@@ -602,23 +801,7 @@ const PlaybackControls = () => {
                         )}
                       </div>
 
-                      <div className="w-full flex flex-col gap-2 mb-2 px-2">
-                        <Slider
-                          value={[currentTime]}
-                          max={duration || 100}
-                          step={1}
-                          className="w-full hover:cursor-grab active:cursor-grabbing"
-                          onValueChange={(value) => seekToTime(value[0])}
-                        />
-                        <div className="w-full flex items-center justify-between">
-                          <div className="text-xs text-zinc-400 font-mono">
-                            {formatTime(currentTime)}
-                          </div>
-                          <div className="text-xs text-zinc-400 font-mono">
-                            {formatTime(duration)}
-                          </div>
-                        </div>
-                      </div>
+                      <DrawerSeekBlock />
 
                       <div className="flex items-center justify-between w-full mb-6 px-2">
                         <Button
@@ -644,10 +827,12 @@ const PlaybackControls = () => {
                           variant="ghost"
                           className="hover:text-white text-zinc-400"
                           onClick={() => {
+                            const { currentTime, seekToTime, playPrevious } =
+                              usePlayerStore.getState();
                             if (currentTime > 3) {
                               seekToTime(0);
                             } else {
-                              playPrevious();
+                              void playPrevious();
                             }
                           }}
                         >
@@ -775,61 +960,11 @@ const PlaybackControls = () => {
                       </div>
                     </div>
                     {currentSong?.lyrics !== "" && lyrics.length > 0 && (
-                      <div
-                        className="w-full px-4 mx-auto mt-0 mb-4 flex-shrink-0 cursor-pointer animate-in slide-in-from-bottom-8 fade-in duration-700 ease-out"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsMobileLyricsFullScreen(true);
-                          setIsFullScreenPlayerOpen(false);
-                        }}
-                      >
-                        <div
-                          className="w-full rounded-2xl p-4 sm:p-6 shadow-xl transition-colors duration-1000 relative overflow-hidden"
-                          style={{
-                            backgroundColor: lyricsBgColor,
-                            // Слегка затемняем фон, чтобы белый текст всегда читался
-                            backgroundImage:
-                              "linear-gradient(rgba(0,0,0,0.25), rgba(0,0,0,0.25))",
-                          }}
-                        >
-                          <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-base font-bold text-white">
-                              {t("player.lyricsPreview", "Lyrics")}
-                            </h3>
-                            <div className="text-[10px] font-bold px-1.5 py-1.5 bg-black/20 rounded-full text-white uppercase tracking-wider border border-white/10">
-                              <Maximize className="size-5" />
-                            </div>
-                          </div>
-
-                          <div className="w-full text-left relative">
-                            {(() => {
-                              const { playbackRateEnabled, playbackRate } =
-                                useAudioSettingsStore.getState();
-                              const currentRate = playbackRateEnabled
-                                ? playbackRate
-                                : 1.0;
-                              const realCurrentTime = currentTime / currentRate;
-
-                              return lyrics.slice(0, 5).map((line, index) => {
-                                const isActive =
-                                  realCurrentTime >= line.time &&
-                                  (index === lyrics.length - 1 ||
-                                    realCurrentTime < lyrics[index + 1].time);
-
-                                return (
-                                  <p
-                                    key={index}
-                                    className={`py-1 text-lg sm:text-xl font-bold transition-all duration-300
-                                    ${isActive ? "text-white" : "text-white mix-blend-overlay"}`}
-                                  >
-                                    {line.text}
-                                  </p>
-                                );
-                              });
-                            })()}
-                          </div>
-                        </div>
-                      </div>
+                      <DrawerLyricsPreviewBlock
+                        lyrics={lyrics}
+                        lyricsBgColor={lyricsBgColor}
+                        onOpenFullscreenLyrics={openDrawerLyricsFullscreen}
+                      />
                     )}
                     <div className="h-20 w-full flex-shrink-0"></div>
                   </div>
@@ -914,10 +1049,12 @@ const PlaybackControls = () => {
                   variant="ghost"
                   className="hover:text-white hover:bg-transparent! text-gray-400 h-8 w-8"
                   onClick={() => {
+                    const { currentTime, seekToTime, playPrevious } =
+                      usePlayerStore.getState();
                     if (currentTime > 3) {
                       seekToTime(0);
                     } else {
-                      playPrevious();
+                      void playPrevious();
                     }
                   }}
                   disabled={!currentSong}
@@ -961,21 +1098,7 @@ const PlaybackControls = () => {
                   )}
                 </Button>
               </div>
-              <div className="flex items-center gap-3 w-full">
-                <div className="text-xs text-gray-400 font-mono">
-                  {formatTime(currentTime)}
-                </div>
-                <Slider
-                  value={[currentTime]}
-                  max={duration || 100}
-                  step={1}
-                  className="w-full hover:cursor-pointer"
-                  onValueChange={(value) => seekToTime(value[0])}
-                />
-                <div className="text-xs text-gray-400 font-mono">
-                  {formatTime(duration)}
-                </div>
-              </div>
+              <DesktopSeekRow />
             </div>
             <div className="flex items-center gap-4 min-w-[180px] w-[30%] justify-end">
               {!isIosDevice && (
