@@ -394,17 +394,17 @@ const LyricsPage: React.FC<LyricsPageProps> = ({ variant = "desktop" }) => {
                 variant="ghost"
                 size="icon"
                 data-vaul-no-drag
-                className="-mt-0.5 shrink-0 text-zinc-300 hover:text-white"
+                className="shrink-0 text-zinc-300 hover:text-white"
                 aria-label={t("player.close")}
               >
                 <ChevronDown className="h-6 w-6" />
               </Button>
             </Drawer.Close>
             <div className="flex min-w-0 flex-1 flex-col items-center px-1 text-center">
-              <Drawer.Title className="m-0 text-balance text-lg font-bold leading-snug text-white">
+              <Drawer.Title className="m-0 text-balance text-md font-bold leading-snug text-white">
                 {displaySong.title}
               </Drawer.Title>
-              <Drawer.Description className="mt-1 block text-balance text-sm font-normal leading-snug text-zinc-300">
+              <Drawer.Description className="mt-0 block text-balance text-xs font-normal leading-snug text-zinc-300">
                 {getArtistNames(displaySong.artist, [])}
               </Drawer.Description>
             </div>
