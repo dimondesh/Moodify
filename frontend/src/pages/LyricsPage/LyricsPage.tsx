@@ -79,7 +79,7 @@ function MobileDominantDrawerHeader({
         aria-hidden
       >
         <div
-          className="pointer-events-none absolute inset-0"
+          className="pointer-events-none absolute inset-0 transition-[background-color] duration-300 ease-out"
           style={{ backgroundColor: backdropColor }}
         />
         <div className="pointer-events-none absolute inset-0 bg-black/60" />

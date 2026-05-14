@@ -9,7 +9,7 @@ export const CoverDominantBackdrop = memo(function CoverDominantBackdrop({
   return (
     <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden bg-zinc-950">
       <div
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none absolute inset-0 transition-[background-color] duration-300 ease-out"
         style={{ backgroundColor: accentColor }}
       />
       <div className="pointer-events-none absolute inset-0 bg-black/60" />
