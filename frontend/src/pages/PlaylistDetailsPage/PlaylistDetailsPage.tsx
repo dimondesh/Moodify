@@ -25,7 +25,6 @@ import {
   Plus,
   MoreHorizontal,
   X,
-  Heart,
   Lock,
   Unlock,
   Share,
@@ -59,6 +58,7 @@ import { DownloadButton } from "@/components/ui/DownloadButton";
 import { ShareDialog } from "@/components/ui/ShareDialog";
 import { useUIStore } from "@/stores/useUIStore";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { SaveSongToLibraryControl } from "@/layout/SaveSongToLibraryControl";
 
 const formatDuration = (seconds: number): string => {
   const minutes = Math.floor(seconds / 60);
@@ -120,8 +120,6 @@ const PlaylistDetailsPage = () => {
   const {
     playlists: libraryPlaylists,
     togglePlaylist,
-    likedSongs,
-    toggleSongLike,
   } = useLibraryStore();
   const [searchTerm, setSearchTerm] = useState("");
   const [isTogglingLibrary, setIsTogglingLibrary] = useState(false);
@@ -406,9 +404,6 @@ const PlaylistDetailsPage = () => {
     if (!currentPlaylist?.songs) return null;
     return currentPlaylist.songs.map((song, index) => {
       const isCurrentlyPlaying = currentSong?._id === song._id;
-      const songIsLiked = likedSongs.some(
-        (likedSong) => likedSong._id === song._id,
-      );
       return (
         <div
           key={song._id}
@@ -488,34 +483,12 @@ const PlaylistDetailsPage = () => {
             {formatDuration(song.duration)}
           </div>
           <div className="flex items-center justify-end gap-1 sm:gap-2 flex-shrink-0">
-            <Button
-              size="icon"
-              variant="ghost"
+            <SaveSongToLibraryControl
+              song={song}
               disabled={!user}
-              className={`rounded-full size-6 sm:size-7 ${
-                songIsLiked
-                  ? "text-violet-500 hover:text-violet-400"
-                  : "text-zinc-400 hover:text-white opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity"
-              } ${!user ? "opacity-50 cursor-not-allowed md:opacity-50" : ""}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (!user) return;
-                toggleSongLike(song._id);
-              }}
-              title={
-                !user
-                  ? t("auth.loginRequired")
-                  : songIsLiked
-                    ? t("player.unlike")
-                    : t("player.like")
-              }
-            >
-              <Heart
-                className={`h-4 w-4 sm:h-5 sm:w-5 ${
-                  songIsLiked ? "fill-violet-500" : ""
-                }`}
-              />
-            </Button>
+              className={`rounded-full size-6 sm:size-7 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity ${!user ? "md:opacity-50" : ""}`}
+              iconClassName="h-4 w-4 sm:h-5 sm:w-5"
+            />
             {isUserEditable && (
               <Button
                 variant="ghost"

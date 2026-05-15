@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useLibraryStore } from "../../stores/useLibraryStore";
 import { usePlayerStore } from "../../stores/usePlayerStore";
 import { Button } from "../../components/ui/button";
-import { Heart, Pause, Play, MoreHorizontal } from "lucide-react";
+import { Pause, Play, MoreHorizontal } from "lucide-react";
 import Equalizer from "../../components/ui/equalizer";
 import LikedSongsSkeleton from "../../components/ui/skeletons/LikedSongsSkeleton";
 import { useTranslation } from "react-i18next";
@@ -16,6 +16,8 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { Song } from "@/types";
 import { getArtistNames, getOptimizedImageUrl } from "@/lib/utils";
 import SongOptionsDrawer from "@/components/SongOptionsDrawer";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { SaveSongToLibraryControl } from "@/layout/SaveSongToLibraryControl";
 
 const formatDuration = (seconds: number) => {
   if (isNaN(seconds) || seconds < 0) return "0:00";
@@ -28,7 +30,8 @@ const LikedSongsPage = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { likedSongs, isLoading, error, fetchLikedSongs, toggleSongLike } =
+  const user = useAuthStore((s) => s.user);
+  const { likedSongs, isLoading, error, fetchLikedSongs } =
     useLibraryStore();
   const { currentSong, isPlaying, playAlbum, togglePlay } = usePlayerStore();
   const [selectedSongForMenu, setSelectedSongForMenu] = useState<Song | null>(
@@ -152,18 +155,12 @@ const LikedSongsPage = () => {
             {formatDuration(song.duration)}
           </div>
           <div className="flex items-center justify-end gap-1 sm:gap-2 flex-shrink-0">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="rounded-full size-6 sm:size-7 text-[#8b5cf6] hover:text-[#7c3aed]"
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleSongLike(song._id);
-              }}
-              title={t("player.unlike")}
-            >
-              <Heart className="h-4 w-4 sm:h-5 sm:w-5 fill-current" />
-            </Button>
+            <SaveSongToLibraryControl
+              song={song}
+              disabled={!user}
+              className="rounded-full size-6 sm:size-7"
+              iconClassName="h-4 w-4 sm:h-5 sm:w-5"
+            />
           </div>
         </div>
       );

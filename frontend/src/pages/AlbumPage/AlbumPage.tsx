@@ -2,14 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useMusicStore } from "@/stores/useMusicStore";
 import { Button } from "@/components/ui/button";
-import {
-  Clock,
-  Pause,
-  Play,
-  PlusCircle,
-  Heart,
-  MoreHorizontal,
-} from "lucide-react";
+import { Clock, Pause, Play, PlusCircle, MoreHorizontal } from "lucide-react";
 import CheckedIcon from "@/components/ui/checkedIcon";
 import { usePlayerStore } from "@/stores/usePlayerStore";
 import Equalizer from "@/components/ui/equalizer";
@@ -31,6 +24,7 @@ import { getOptimizedImageUrl } from "@/lib/utils";
 import { CollectionGradientLayout } from "@/components/CollectionGradientLayout";
 import { useDominantCoverGradient } from "@/hooks/useDominantCoverGradient";
 import { AlbumCoverDialog } from "./AlbumCoverDialog";
+import { SaveSongToLibraryControl } from "@/layout/SaveSongToLibraryControl";
 
 const formatDuration = (seconds: number) => {
   if (isNaN(seconds) || seconds < 0) return "0:00";
@@ -55,7 +49,7 @@ const AlbumPage = () => {
     isLoading: isAlbumDataLoading,
   } = useMusicStore();
   const { currentSong, isPlaying, playAlbum, togglePlay } = usePlayerStore();
-  const { albums, toggleAlbum, likedSongs, toggleSongLike } = useLibraryStore();
+  const { albums, toggleAlbum } = useLibraryStore();
   const [inLibrary, setInLibrary] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
   const [selectedSongForMenu, setSelectedSongForMenu] = useState<Song | null>(
@@ -187,10 +181,6 @@ const AlbumPage = () => {
   const renderDesktopSongList = () =>
     currentAlbum.songs.map((song, index) => {
       const isCurrentSong = currentSong?._id === song._id;
-      const songIsLiked = likedSongs.some(
-        (likedSong) => likedSong._id === song._id,
-      );
-
       return (
         <div
           key={song._id}
@@ -254,24 +244,12 @@ const AlbumPage = () => {
               : "N/A"}
           </div>
           <div className="flex items-center justify-end gap-2">
-            <Button
-              size="icon"
-              variant="ghost"
-              className={`rounded-full ${
-                songIsLiked
-                  ? "text-[#8b5cf6] hover:text-[#7c3aed]"
-                  : "text-gray-400 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
-              }`}
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleSongLike(song._id);
-              }}
-              title={songIsLiked ? t("player.unlike") : t("player.like")}
-            >
-              <Heart
-                className={`h-5 w-5 ${songIsLiked ? "fill-[#8b5cf6]" : ""}`}
-              />
-            </Button>
+            <SaveSongToLibraryControl
+              song={song}
+              disabled={!user}
+              className="rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              iconClassName="h-5 w-5"
+            />
             <span className="w-10 text-right">
               {formatDuration(song.duration)}
             </span>

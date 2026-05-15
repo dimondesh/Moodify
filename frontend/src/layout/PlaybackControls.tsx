@@ -11,7 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Maximize, Share, Shuffle } from "lucide-react";
 import { ShareDialog } from "@/components/ui/ShareDialog";
-import { AddToPlaylistControl } from "./AddToPlaylistControl";
+import { SaveSongToLibraryControl } from "./SaveSongToLibraryControl";
 import Repeat from "@/components/ui/repeat-icon";
 import { CoverDominantBackdrop } from "@/components/CoverDominantBackdrop";
 
@@ -554,7 +554,7 @@ const PlaybackControls = () => {
                 </div>
 
                 <div className="flex flex-shrink-0 items-center gap-2">
-                  <AddToPlaylistControl
+                  <SaveSongToLibraryControl
                     song={currentSong}
                     className="size-5.5"
                     iconClassName="size-5.5"
@@ -675,7 +675,7 @@ const PlaybackControls = () => {
                         </div>
                         {currentSong && (
                           <div className="flex-shrink-0 ml-2 flex items-center gap-2">
-                            <AddToPlaylistControl
+                            <SaveSongToLibraryControl
                               song={currentSong}
                               iconClassName="size-7"
                               disabled={!user}
@@ -905,7 +905,7 @@ const PlaybackControls = () => {
                         : "Unknown Artist"}
                     </div>
                   </div>
-                  <AddToPlaylistControl song={currentSong} disabled={!user} />
+                  <SaveSongToLibraryControl song={currentSong} disabled={!user} />
                 </>
               )}
             </div>

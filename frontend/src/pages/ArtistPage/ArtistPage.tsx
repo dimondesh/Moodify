@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
-import { Play, Heart, UserPlus, UserCheck, Pause } from "lucide-react";
+import { Play, UserPlus, UserCheck, Pause } from "lucide-react";
 import StandardLoader from "../../components/ui/StandardLoader";
 import { usePlayerStore } from "../../stores/usePlayerStore";
 import toast from "react-hot-toast";
@@ -15,14 +15,17 @@ import { Helmet } from "react-helmet-async";
 import { useMusicStore } from "../../stores/useMusicStore";
 import { getOptimizedImageUrl } from "@/lib/utils";
 import HorizontalSection from "../HomePage/HorizontalSection";
+import { SaveSongToLibraryControl } from "@/layout/SaveSongToLibraryControl";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 const ArtistPage = () => {
   const { t } = useTranslation();
+  const user = useAuthStore((s) => s.user);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentSong, isPlaying, playAlbum, setCurrentSong, togglePlay } =
     usePlayerStore();
-  const { isSongLiked, toggleSongLike, isArtistFollowed, toggleArtistFollow } =
+  const { isArtistFollowed, toggleArtistFollow } =
     useLibraryStore();
 
   const {
@@ -334,26 +337,12 @@ const ArtistPage = () => {
                         {song.playCount?.toLocaleString() || 0}{" "}
                         {t("pages.artist.plays")}
                       </span>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className={`hover:text-white ${
-                          isSongLiked(song._id)
-                            ? "text-violet-500"
-                            : "text-zinc-400 opacity-100 lg:opacity-0 group-hover:opacity-100"
-                        } w-8 h-8`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleSongLike(song._id);
-                        }}
-                        title={
-                          isSongLiked(song._id)
-                            ? t("player.unlike")
-                            : t("player.like")
-                        }
-                      >
-                        <Heart className="h-4 w-4 fill-current" />
-                      </Button>
+                      <SaveSongToLibraryControl
+                        song={song}
+                        disabled={!user}
+                        className={`w-8 h-8 hover:text-white opacity-100 lg:opacity-0 group-hover:opacity-100 ${!user ? "opacity-50" : ""}`}
+                        iconClassName="h-4 w-4"
+                      />
                       <span className="text-zinc-400 text-sm ml-2">
                         {formatTime(song.duration)}
                       </span>

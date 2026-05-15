@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-// src/layout/AddToPlaylistControl.tsx
+// src/layout/SaveSongToLibraryControl.tsx
 
 import React, { useEffect, useState, useMemo, memo } from "react";
 import { Button } from "../components/ui/button";
@@ -133,7 +133,7 @@ const PlaylistMenuContent: React.FC<PlaylistMenuContentProps> = memo(
     );
 
     return (
-      <div className="flex flex-col gap-4]">
+      <div className="flex flex-col gap-4">
         <Button
           variant="secondary"
           className="w-[200px] justify-center rounded-md bg-violet-700 hover:bg-violet-500 mx-auto mb-4"
@@ -193,23 +193,23 @@ const useMediaQuery = (query: string) => {
   return matches;
 };
 
-interface AddToPlaylistControlProps {
+interface SaveSongToLibraryControlProps {
   song: Song | null;
   className?: string;
   iconClassName?: string;
   disabled?: boolean;
 }
 
-const addToPlaylistControlPropsAreEqual = (
-  prev: AddToPlaylistControlProps,
-  next: AddToPlaylistControlProps,
+const saveSongToLibraryControlPropsAreEqual = (
+  prev: SaveSongToLibraryControlProps,
+  next: SaveSongToLibraryControlProps,
 ) =>
   prev.song?._id === next.song?._id &&
   prev.disabled === next.disabled &&
   prev.className === next.className &&
   prev.iconClassName === next.iconClassName;
 
-const AddToPlaylistControlInner: React.FC<AddToPlaylistControlProps> = ({
+const SaveSongToLibraryControlInner: React.FC<SaveSongToLibraryControlProps> = ({
   song,
   className,
   iconClassName = "size-5",
@@ -338,7 +338,7 @@ const AddToPlaylistControlInner: React.FC<AddToPlaylistControlProps> = ({
   );
 };
 
-export const AddToPlaylistControl = memo(
-  AddToPlaylistControlInner,
-  addToPlaylistControlPropsAreEqual,
+export const SaveSongToLibraryControl = memo(
+  SaveSongToLibraryControlInner,
+  saveSongToLibraryControlPropsAreEqual,
 );

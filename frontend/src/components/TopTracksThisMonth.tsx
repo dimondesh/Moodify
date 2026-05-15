@@ -1,13 +1,14 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { Play, Heart } from "lucide-react";
+import { Play } from "lucide-react";
 import { usePlayerStore } from "../stores/usePlayerStore";
-import { useLibraryStore } from "../stores/useLibraryStore";
 import Equalizer from "./ui/equalizer";
 import { getOptimizedImageUrl } from "../lib/utils";
 import type { Song } from "../types";
 import { Button } from "./ui/button";
+import { useAuthStore } from "../stores/useAuthStore";
+import { SaveSongToLibraryControl } from "../layout/SaveSongToLibraryControl";
 
 interface TopTrack extends Song {
   listenCount: number;
@@ -30,7 +31,7 @@ const TopTracksThisMonth: React.FC<TopTracksThisMonthProps> = ({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { currentSong, isPlaying, playAlbum, togglePlay } = usePlayerStore();
-  const { isSongLiked, toggleSongLike } = useLibraryStore();
+  const user = useAuthStore((s) => s.user);
 
   const handlePlaySpecificSong = (song: TopTrack, index: number) => {
     if (currentSong?._id === song._id && isPlaying) {
@@ -103,7 +104,6 @@ const TopTracksThisMonth: React.FC<TopTracksThisMonthProps> = ({
       <div className="flex flex-col gap-2">
         {tracks.map((track, index) => {
           const isCurrentSong = currentSong?._id === track._id;
-          const isLiked = isSongLiked(track._id);
 
           return (
             <div
@@ -143,21 +143,12 @@ const TopTracksThisMonth: React.FC<TopTracksThisMonthProps> = ({
               </div>
               <div className="flex items-center gap-2 text-sm text-zinc-400">
                 <span>{formatTime(track.duration ?? 0)}</span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleSongLike(track._id);
-                  }}
-                  className="p-1 hover:bg-zinc-800/50 rounded-full transition-colors"
-                >
-                  <Heart
-                    className={`h-4 w-4 ${
-                      isLiked
-                        ? "text-violet-600 fill-violet-600"
-                        : "text-zinc-400"
-                    }`}
-                  />
-                </button>
+                <SaveSongToLibraryControl
+                  song={track}
+                  disabled={!user}
+                  className="shrink-0"
+                  iconClassName="h-4 w-4"
+                />
               </div>
             </div>
           );
