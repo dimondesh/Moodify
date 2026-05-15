@@ -8,10 +8,9 @@ import { Album } from "../models/album.model.js";
 import { Playlist } from "../models/playlist.model.js";
 import { Artist } from "../models/artist.model.js";
 import { getVibeMatchTracks } from "../lib/recommendation.service.js";
-import axios from "axios";
 
 const SONG_MINIMAL_SELECT =
-  "_id title artist albumId imageUrl duration playCount";
+  "_id title artist albumId imageUrl coverAccentHex duration playCount";
 
 export const getAllSongs = async (req, res, next) => {
   try {
@@ -382,36 +381,6 @@ export const getListenHistory = async (
   } catch (error) {
     if (returnInternal) return { entities: [] };
     next(error);
-  }
-};
-
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-export const getImageForColorAnalysis = async (req, res, next) => {
-  const { url } = req.query;
-  if (!url) return res.status(400).send({ message: "Image URL is required" });
-
-  const decodedUrl = decodeURIComponent(url);
-  const maxRetries = 3;
-  const retryDelay = 500;
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      const response = await axios({
-        method: "get",
-        url: decodedUrl,
-        responseType: "stream",
-        timeout: 5000,
-      });
-
-      res.setHeader("Content-Type", response.headers["content-type"]);
-      response.data.pipe(res);
-      return;
-    } catch (error) {
-      if (attempt === maxRetries)
-        return next(new Error("Failed to proxy image after multiple attempts"));
-      await delay(retryDelay);
-    }
   }
 };
 

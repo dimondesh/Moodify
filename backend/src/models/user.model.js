@@ -4,6 +4,7 @@ const userSchema = new mongoose.Schema(
   {
     fullName: String,
     imageUrl: String,
+    coverAccentHex: { type: String, default: null },
     email: { type: String, required: true, unique: true, lowercase: true },
     passwordHash: { type: String, default: null },
     googleId: { type: String, sparse: true, unique: true },

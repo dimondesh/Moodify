@@ -26,6 +26,7 @@ export interface AuthUser {
   email: string;
   fullName: string;
   imageUrl?: string | null;
+  coverAccentHex?: string | null;
   isAdmin?: boolean;
   language?: string;
   isAnonymous?: boolean;
@@ -43,6 +44,7 @@ function mapBackendUser(u: any): AuthUser {
     email: u.email,
     fullName: u.fullName || u.email,
     imageUrl: u.imageUrl || null,
+    coverAccentHex: u.coverAccentHex ?? null,
     language: u.language,
     isAnonymous: u.isAnonymous,
     showRecentlyListenedArtists: u.showRecentlyListenedArtists,

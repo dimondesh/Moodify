@@ -30,6 +30,7 @@ export interface Song {
   canvasUrl?: string;
   duration: number;
   playCount: number;
+  coverAccentHex?: string | null;
   genres?: Genre[];
   moods?: Mood[];
   createdAt: string;
@@ -66,6 +67,7 @@ export interface Album {
   createdAt: string;
   updatedAt: string;
   addedAt?: string;
+  coverAccentHex?: string | null;
 }
 
 export interface Stats {
@@ -108,6 +110,7 @@ export interface User {
   followingArtistsCount?: number;
   publicPlaylistsCount?: number;
   showRecentlyListenedArtists?: boolean;
+  coverAccentHex?: string | null;
 }
 
 export interface SearchState {
@@ -160,6 +163,7 @@ export interface Playlist {
   sourceId?: string;
   searchableNames?: string[];
   lastGeneratedAt?: string;
+  coverAccentHex?: string | null;
 }
 
 export interface BaseLibraryItem {

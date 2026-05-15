@@ -66,6 +66,7 @@ const AlbumPage = () => {
   const { backgrounds, isColorLoading } = useDominantCoverGradient(
     currentAlbum?.imageUrl,
     albumId,
+    currentAlbum?.coverAccentHex,
   );
 
   useEffect(() => {

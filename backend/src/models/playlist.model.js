@@ -9,6 +9,7 @@ const playlistSchema = new mongoose.Schema(
       default: "https://moodify.b-cdn.net/default-album-cover.png",
     },
     imagePublicId: { type: String, default: null }, // Для загруженных обложек
+    coverAccentHex: { type: String, default: null },
 
     // owner === null означает, что это глобальный системный микс (например, Жанр/Настроение)
     owner: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },

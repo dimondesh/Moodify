@@ -28,6 +28,10 @@ const songSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    coverAccentHex: {
+      type: String,
+      default: null,
+    },
     canvasUrl: {
       type: String,
       default: null,

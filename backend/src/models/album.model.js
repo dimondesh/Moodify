@@ -20,6 +20,10 @@ const albumSchema = new mongoose.Schema(
     imagePublicId: {
       type: String,
     },
+    coverAccentHex: {
+      type: String,
+      default: null,
+    },
     releaseYear: {
       type: Number,
       required: false,

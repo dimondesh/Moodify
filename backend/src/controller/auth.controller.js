@@ -6,6 +6,10 @@ import {
   signPasswordResetToken,
   verifyPasswordResetToken,
 } from "../lib/jwt.js";
+import {
+  extractCoverAccentHexFromUrl,
+  isSkippableCoverImageUrl,
+} from "../lib/coverAccent.service.js";
 
 const BCRYPT_ROUNDS = 12;
 const CODE_EXPIRY_MS = 15 * 60 * 1000;
@@ -65,12 +69,26 @@ function buildAuthPayload(user) {
       email: user.email,
       fullName: user.fullName,
       imageUrl: user.imageUrl,
+      coverAccentHex: user.coverAccentHex ?? null,
       language: user.language,
       isAnonymous: user.isAnonymous,
       showRecentlyListenedArtists: user.showRecentlyListenedArtists,
       isAdmin,
     },
   };
+}
+
+async function applyCoverAccentHexFromProfilePhoto(userDoc) {
+  const url = userDoc.imageUrl;
+  if (!url || isSkippableCoverImageUrl(url)) {
+    userDoc.coverAccentHex = null;
+    return;
+  }
+  try {
+    userDoc.coverAccentHex = await extractCoverAccentHexFromUrl(url);
+  } catch {
+    userDoc.coverAccentHex = null;
+  }
 }
 
 async function sendVerificationEmailToUser(user, normalizedEmail, code) {
@@ -318,6 +336,7 @@ export const googleAuth = async (req, res) => {
         byEmail.emailVerified = true;
         if (payload.picture && !byEmail.imageUrl) {
           byEmail.imageUrl = payload.picture;
+          await applyCoverAccentHexFromProfilePhoto(byEmail);
         }
         if (payload.name && !byEmail.fullName) {
           byEmail.fullName = payload.name;
@@ -334,6 +353,10 @@ export const googleAuth = async (req, res) => {
           language: "en",
           isAnonymous: false,
         });
+        if (user.imageUrl) {
+          await applyCoverAccentHexFromProfilePhoto(user);
+          await user.save();
+        }
       }
     }
 

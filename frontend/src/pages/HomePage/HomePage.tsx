@@ -58,7 +58,10 @@ const HomePageComponent = () => {
 
   useEffect(() => {
     if (featuredSongs.length > 0 && !isHomePageLoading && !isMobile) {
-      extractColor(featuredSongs[0].imageUrl).then((color) => {
+      extractColor(
+        featuredSongs[0].imageUrl,
+        featuredSongs[0].coverAccentHex,
+      ).then((color) => {
         const newDefaultColor = color || "#18181b";
         defaultColorRef.current = newDefaultColor;
         if (currentBgColor === "#18181b") {
@@ -135,7 +138,7 @@ const HomePageComponent = () => {
           return;
         }
 
-        extractColor(imageUrl).then((color) => {
+        extractColor(imageUrl, song.coverAccentHex).then((color) => {
           const finalColor = color || "#18181b";
           colorCacheRef.current.set(imageUrl, finalColor);
           if (colorCacheRef.current.size > 50) {

@@ -4,7 +4,7 @@ import { Playlist } from "../models/playlist.model.js";
 import { User } from "../models/user.model.js";
 
 const SONG_MINIMAL_SELECT =
-  "_id title artist albumId imageUrl duration playCount";
+  "_id title artist albumId imageUrl coverAccentHex duration playCount";
 
 const sortByLibraryAddedAtDesc = (a, b) => {
   const ta = new Date(a.addedAt ?? 0).getTime();

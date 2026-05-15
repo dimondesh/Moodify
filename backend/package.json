@@ -8,7 +8,8 @@
     "dev": "nodemon src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "seed:songs": "node src/seeds/songs.js",
-    "seed:albums": "node src/seeds/albums.js"
+    "seed:albums": "node src/seeds/albums.js",
+    "backfill:cover-accent": "node scripts/backfill-cover-accent.js"
   },
   "keywords": [],
   "type": "module",
@@ -32,6 +33,7 @@
     "multer": "^2.0.1",
     "music-metadata": "^11.6.0",
     "node-cron": "^4.2.0",
+    "node-vibrant": "^4.0.4",
     "redis": "^5.11.0",
     "resend": "^4.0.1",
     "sharp": "^0.34.3",

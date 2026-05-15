@@ -287,7 +287,10 @@ const PlaybackControls = () => {
     let isMounted = true;
     const fetchColor = async () => {
       if (currentSong?.imageUrl) {
-        const color = await extractColor(currentSong.imageUrl);
+        const color = await extractColor(
+          currentSong.imageUrl,
+          currentSong.coverAccentHex,
+        );
         if (isMounted) setLyricsBgColor(color);
       }
     };
@@ -295,7 +298,7 @@ const PlaybackControls = () => {
     return () => {
       isMounted = false;
     };
-  }, [currentSong?.imageUrl, extractColor]);
+  }, [currentSong?.imageUrl, currentSong?.coverAccentHex, extractColor]);
 
   useEffect(() => {
     if ("mediaSession" in navigator) {

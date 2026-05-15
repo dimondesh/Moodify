@@ -159,6 +159,7 @@ const PlaylistDetailsPage = () => {
   const { backgrounds, isColorLoading } = useDominantCoverGradient(
     currentPlaylist?.imageUrl,
     playlistId,
+    currentPlaylist?.coverAccentHex,
   );
 
   const { isDownloaded, downloadItem } = useOfflineStore((s) => s.actions);

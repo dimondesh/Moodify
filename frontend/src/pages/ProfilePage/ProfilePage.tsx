@@ -77,6 +77,7 @@ const ProfilePage = () => {
   const { backgrounds, isColorLoading } = useDominantCoverGradient(
     isLoading ? undefined : profileData?.imageUrl,
     userId,
+    profileData?.coverAccentHex,
   );
   const heroAccent = backgrounds[0]?.color ?? "#18181b";
 

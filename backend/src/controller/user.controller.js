@@ -12,14 +12,16 @@ import {
   uploadToBunny,
 } from "../lib/bunny.service.js";
 import path from "path";
+import fs from "fs/promises";
 import { ListenHistory } from "../models/listenHistory.model.js";
 import { Song } from "../models/song.model.js";
 import { Playlist } from "../models/playlist.model.js";
 import { populatePlaylistEmbeddedSongs } from "./playlist.controller.js";
 import { optimizeAndUploadImage } from "../lib/image.service.js";
+import { extractCoverAccentHexFromBuffer } from "../lib/coverAccent.service.js";
 
 const SONG_MINIMAL_SELECT =
-  "_id title artist albumId imageUrl duration playCount";
+  "_id title artist albumId imageUrl coverAccentHex duration playCount";
 
 export const getAllUsers = async (req, res, next) => {
   try {
@@ -178,6 +180,9 @@ export const updateUserProfile = async (req, res, next) => {
         const oldImagePath = getPathFromUrl(currentUser.imageUrl);
         if (oldImagePath) await deleteFromBunny(oldImagePath);
       }
+      const coverBuf = await fs.readFile(file.tempFilePath);
+      updateDataMongo.coverAccentHex =
+        await extractCoverAccentHexFromBuffer(coverBuf);
       const result = await optimizeAndUploadImage(
         file,
         file.name,

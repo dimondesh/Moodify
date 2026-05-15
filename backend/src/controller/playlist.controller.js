@@ -7,9 +7,15 @@ import { v4 as uuidv4 } from "uuid";
 import path from "path";
 import { getMadeForYouSongs, getTrendingSongs } from "./song.controller.js";
 import { optimizeAndUploadImage } from "../lib/image.service.js";
+import fs from "fs/promises";
+import {
+  extractCoverAccentHexFromBuffer,
+  extractCoverAccentHexFromUrl,
+  isSkippableCoverImageUrl,
+} from "../lib/coverAccent.service.js";
 
 const SONG_MINIMAL_SELECT =
-  "_id title imageUrl duration playCount albumId createdAt";
+  "_id title imageUrl coverAccentHex duration playCount albumId createdAt";
 
 export const populatePlaylistEmbeddedSongs = {
   path: "songs",
@@ -47,8 +53,11 @@ export const createPlaylist = async (req, res, next) => {
 
     let imageUrl = "https://moodify.b-cdn.net/default-album-cover.png";
     let imagePublicId = null;
+    let coverAccentHex = null;
 
     if (req.files && req.files.image) {
+      const coverBuf = await fs.readFile(req.files.image.tempFilePath);
+      coverAccentHex = await extractCoverAccentHexFromBuffer(coverBuf);
       const imageUpload = await optimizeAndUploadImage(
         req.files.image,
         req.files.image.name,
@@ -63,6 +72,7 @@ export const createPlaylist = async (req, res, next) => {
       description,
       imageUrl,
       imagePublicId,
+      coverAccentHex,
       owner: ownerId,
       isPublic: isPublic === "true",
       songs: [],
@@ -191,6 +201,9 @@ export const updatePlaylist = async (req, res, next) => {
       if (playlist.imagePublicId) {
         await deleteFromBunny(playlist.imagePublicId);
       }
+      const coverBuf = await fs.readFile(req.files.image.tempFilePath);
+      playlist.coverAccentHex =
+        await extractCoverAccentHexFromBuffer(coverBuf);
       const imageUpload = await optimizeAndUploadImage(
         req.files.image,
         req.files.image.name,
@@ -204,6 +217,7 @@ export const updatePlaylist = async (req, res, next) => {
       }
       playlist.imageUrl = "https://moodify.b-cdn.net/default-album-cover.png";
       playlist.imagePublicId = null;
+      playlist.coverAccentHex = null;
     }
 
     await playlist.save();
@@ -445,12 +459,20 @@ export const createPlaylistFromSong = async (req, res, next) => {
         .json({ message: "Title and initial song ID are required." });
     }
 
+    const resolvedImageUrl =
+      imageUrl || "https://moodify.b-cdn.net/default-album-cover.png";
+    let coverAccentHex = null;
+    if (!isSkippableCoverImageUrl(resolvedImageUrl)) {
+      coverAccentHex = await extractCoverAccentHexFromUrl(resolvedImageUrl);
+    }
+
     const newPlaylist = new Playlist({
       title,
       description: ``,
       isPublic: true,
       owner: ownerId,
-      imageUrl: imageUrl || "https://moodify.b-cdn.net/default-album-cover.png",
+      imageUrl: resolvedImageUrl,
+      coverAccentHex,
       songs: [initialSongId],
     });
 

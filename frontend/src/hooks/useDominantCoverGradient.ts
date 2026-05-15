@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useDominantColor } from "@/hooks/useDominantColor";
 
 export interface CoverGradientLayer {
   key: number;
@@ -8,24 +7,28 @@ export interface CoverGradientLayer {
 
 const DEFAULT_COLOR = "#18181b";
 
-/** Dominant color from cover art for album / playlist page gradients. */
+function validAccentHex(hex: string): string | null {
+  const t = hex.trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(t)) return t.toLowerCase();
+  if (/^[0-9a-fA-F]{6}$/.test(t)) return `#${t.toLowerCase()}`;
+  return null;
+}
+
+/** Фон страницы альбома / плейлиста: только `coverAccentHex` с API или дефолт. */
 export function useDominantCoverGradient(
   imageUrl: string | null | undefined,
   entityKey: string | null | undefined,
+  coverAccentHex?: string | null,
 ) {
-  const { extractColor } = useDominantColor();
   const [isColorLoading, setIsColorLoading] = useState(true);
   const backgroundKeyRef = useRef(0);
   const [backgrounds, setBackgrounds] = useState<CoverGradientLayer[]>([
     { key: 0, color: DEFAULT_COLOR },
   ]);
 
-  // Flip loading before paint so pages that gate on isColorLoading never flash the default gradient.
   useLayoutEffect(() => {
-    if (imageUrl) {
-      setIsColorLoading(true);
-    }
-  }, [imageUrl]);
+    setIsColorLoading(false);
+  }, [imageUrl, coverAccentHex, entityKey]);
 
   useEffect(() => {
     const updateBackgroundColor = (color: string) => {
@@ -34,16 +37,16 @@ export function useDominantCoverGradient(
       setBackgrounds([{ key: newKey, color }]);
     };
 
-    if (imageUrl) {
-      setIsColorLoading(true);
-      extractColor(imageUrl)
-        .then((color) => updateBackgroundColor(color || DEFAULT_COLOR))
-        .finally(() => setIsColorLoading(false));
-    } else if (entityKey) {
-      updateBackgroundColor(DEFAULT_COLOR);
-      setIsColorLoading(false);
+    const validHex = coverAccentHex ? validAccentHex(coverAccentHex) : null;
+    if (validHex) {
+      updateBackgroundColor(validHex);
+      return;
     }
-  }, [imageUrl, entityKey, extractColor]);
+
+    if (imageUrl || entityKey) {
+      updateBackgroundColor(DEFAULT_COLOR);
+    }
+  }, [imageUrl, entityKey, coverAccentHex]);
 
   return { backgrounds, isColorLoading };
 }

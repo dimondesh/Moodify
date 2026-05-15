@@ -43,6 +43,12 @@ import {
   getGlobalLeaseStats,
   sanitizeChunkUploadId,
 } from "../lib/adminUploadLease.service.js";
+import os from "os";
+import {
+  extractCoverAccentHexFromBuffer,
+  isSkippableCoverImageUrl,
+} from "../lib/coverAccent.service.js";
+
 const uploadFile = async (file, folder) => {
   try {
     const sourcePath = file.tempFilePath;
@@ -138,10 +144,15 @@ export const createSong = async (req, res, next) => {
       let imageUpload = { url: null, publicId: null };
       let finalAlbumId = albumId && albumId !== "none" ? albumId : null;
       const artistIds = JSON.parse(artistIdsJsonString);
+      let songCoverAccentHex = null;
 
       if (!finalAlbumId) {
         if (!req.files.imageFile)
           throw new Error("Image file is required for singles.");
+
+        const coverBuf = await fs.readFile(req.files.imageFile.tempFilePath);
+        const coverAccentHex =
+          await extractCoverAccentHexFromBuffer(coverBuf);
 
         imageUpload = await uploadFile(req.files.imageFile, "songs/images");
 
@@ -152,15 +163,18 @@ export const createSong = async (req, res, next) => {
           imagePublicId: imageUpload.publicId,
           releaseYear: releaseYear || new Date().getFullYear(),
           type: "Single",
+          coverAccentHex,
         });
         await newAlbum.save();
         finalAlbumId = newAlbum._id;
+        songCoverAccentHex = coverAccentHex;
         await updateArtistsContent(artistIds, newAlbum._id, "albums");
       } else {
         const existingAlbum = await Album.findById(finalAlbumId);
         if (!existingAlbum) throw new Error("Album not found.");
         imageUpload.url = existingAlbum.imageUrl;
         imageUpload.publicId = existingAlbum.imagePublicId;
+        songCoverAccentHex = existingAlbum.coverAccentHex ?? null;
       }
 
       const song = new Song({
@@ -169,6 +183,7 @@ export const createSong = async (req, res, next) => {
         albumId: finalAlbumId,
         imageUrl: imageUpload.url,
         imagePublicId: imageUpload.publicId,
+        coverAccentHex: songCoverAccentHex,
         hlsUrl,
         sourceAudioPublicId,
         duration,
@@ -298,6 +313,9 @@ export const updateSong = async (req, res, next) => {
         if (song.imagePublicId) {
           await deleteFromBunny(getPathFromUrl(song.imageUrl));
         }
+        const coverBuf = await fs.readFile(imageFile.tempFilePath);
+        song.coverAccentHex =
+          await extractCoverAccentHexFromBuffer(coverBuf);
         const imageUpload = await uploadFile(imageFile, "songs/images");
         song.imageUrl = imageUpload.url;
         song.imagePublicId = imageUpload.publicId;
@@ -410,15 +428,18 @@ export const createAlbum = async (req, res, next) => {
       type = "Album",
     } = req.body;
     const artistIds = JSON.parse(artistIdsJsonString);
+    const coverBuf = await fs.readFile(req.files.imageFile.tempFilePath);
+    const coverAccentHex = await extractCoverAccentHexFromBuffer(coverBuf);
     const imageUpload = await uploadToBunny(req.files.imageFile, "albums");
 
     const album = new Album({
       title,
       artist: artistIds,
       imageUrl: imageUpload.url,
-      imagePublicId: imageUpload.publicId,
+      imagePublicId: imageUpload.path,
       releaseYear,
       type,
+      coverAccentHex,
     });
     await album.save();
     await updateArtistsContent(artistIds, album._id, "albums");
@@ -494,6 +515,8 @@ export const updateAlbum = async (req, res, next) => {
       if (album.imagePublicId) {
         await deleteFromBunny(album.imagePublicId);
       }
+      const coverBuf = await fs.readFile(imageFile.tempFilePath);
+      album.coverAccentHex = await extractCoverAccentHexFromBuffer(coverBuf);
       const imageUpload = await uploadToBunny(imageFile, "albums");
       album.imageUrl = imageUpload.url;
       album.imagePublicId = imageUpload.path;
@@ -505,6 +528,13 @@ export const updateAlbum = async (req, res, next) => {
     album.type = type || album.type;
 
     await album.save();
+
+    if (imageFile) {
+      await Song.updateMany(
+        { albumId: album._id },
+        { $set: { coverAccentHex: album.coverAccentHex ?? null } },
+      );
+    }
     res.status(200).json(album);
   } catch (error) {
     console.error("Error in updateAlbum:", error);
@@ -921,7 +951,27 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
 
     const albumImageUrl =
       spotifyAlbumData.images?.[0]?.url || DEFAULT_ALBUM_IMAGE_URL;
-    const albumImageUpload = await uploadToBunny(albumImageUrl, "albums");
+    let albumCoverAccentHex = null;
+    let albumImageUpload;
+
+    if (!isSkippableCoverImageUrl(albumImageUrl)) {
+      const imgRes = await axios.get(albumImageUrl, {
+        responseType: "arraybuffer",
+        timeout: 20000,
+        maxContentLength: 8 * 1024 * 1024,
+      });
+      const imgBuf = Buffer.from(imgRes.data);
+      albumCoverAccentHex = await extractCoverAccentHexFromBuffer(imgBuf);
+      const tmpAlbumImg = path.join(os.tmpdir(), `albcov_${uuidv4()}.jpg`);
+      await fs.writeFile(tmpAlbumImg, imgBuf);
+      try {
+        albumImageUpload = await uploadToBunny(tmpAlbumImg, "albums");
+      } finally {
+        await fs.unlink(tmpAlbumImg).catch(() => {});
+      }
+    } else {
+      albumImageUpload = await uploadToBunny(albumImageUrl, "albums");
+    }
     uploadedBunnyPaths.push(albumImageUpload.path);
 
     album = new Album({
@@ -932,6 +982,7 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
       releaseYear: parseInt(spotifyAlbumData.release_date.split("-")[0]),
       type: albumType,
       songs: [],
+      coverAccentHex: albumCoverAccentHex,
     });
     await album.save();
     console.log(`[AdminController] Album created in DB: ${album.title}`);
@@ -1022,6 +1073,7 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
           duration,
           imageUrl: album.imageUrl,
           imagePublicId: album.imagePublicId,
+          coverAccentHex: albumCoverAccentHex,
           genres: genreIds,
           moods: moodIds,
         });

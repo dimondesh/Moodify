@@ -150,6 +150,8 @@ const LyricsPage: React.FC<LyricsPageProps> = ({ variant = "desktop" }) => {
   const realCurrentTime = currentTime;
 
   const coverImageUrl = currentSong?.imageUrl ?? displaySong?.imageUrl;
+  const coverAccentHex =
+    currentSong?.coverAccentHex ?? displaySong?.coverAccentHex;
 
   const { extractColor } = useDominantColor();
   const [backdropColor, setBackdropColor] = useState("#27272a");
@@ -161,13 +163,13 @@ const LyricsPage: React.FC<LyricsPageProps> = ({ variant = "desktop" }) => {
       setBackdropColor("#27272a");
       return;
     }
-    void extractColor(url).then((color) => {
+    void extractColor(url, coverAccentHex).then((color) => {
       if (alive) setBackdropColor(color);
     });
     return () => {
       alive = false;
     };
-  }, [coverImageUrl, extractColor]);
+  }, [coverImageUrl, coverAccentHex, extractColor]);
 
   useEffect(() => {
     setIsUserScrolling(false);

@@ -2,7 +2,6 @@ import { Router } from "express";
 import { protectRoute } from "../middleware/auth.middleware.js";
 import {
   getAllSongs,
-  getImageForColorAnalysis,
   getListenHistory,
   getMadeForYouSongs,
   getTrendingSongs,
@@ -23,7 +22,6 @@ router.get("/:id/lyrics", getSongLyrics);
 router.post("/:id/listen", protectRoute, recordListen);
 router.get("/:id/radio", protectRoute, getRecommendedSongs);
 router.get("/history", protectRoute, getListenHistory);
-router.get("/image-proxy", getImageForColorAnalysis);
 router.get("/:id", getSongById);
 
 export default router;

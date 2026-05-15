@@ -5,7 +5,7 @@ import { Artist } from "../models/artist.model.js";
 import { User } from "../models/user.model.js";
 
 const SONG_MINIMAL_SELECT =
-  "_id title artist albumId imageUrl duration playCount";
+  "_id title artist albumId imageUrl coverAccentHex duration playCount";
 
 export const searchSongs = async (req, res, next) => {
   try {
