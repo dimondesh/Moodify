@@ -22,7 +22,7 @@ import {
 import toast from "react-hot-toast";
 
 const PANEL_CLASS =
-  "flex w-[min(22rem,calc(100vw-1.5rem))] flex-col gap-3 rounded-md bg-zinc-900 p-2.5 text-zinc-100 shadow-lg";
+  "flex w-[min(16rem,calc(100vw-1.5rem))] flex-col gap-2 rounded-md bg-zinc-900 p-2 text-zinc-100 shadow-lg";
 
 type ShareDensity = "compact" | "comfortable";
 
@@ -85,17 +85,25 @@ function SharePanel({
   return (
     <>
       {showHeading ? (
-        <div className="shrink-0 space-y-1 px-0.5">
+        <div
+          className={cn(
+            "shrink-0 px-0.5",
+            comfortable ? "space-y-1" : "space-y-0.5",
+          )}
+        >
           <p
             className={cn(
-              "font-semibold text-zinc-100",
-              comfortable ? "text-base" : "text-sm",
+              "font-semibold text-zinc-100 leading-tight",
+              comfortable ? "text-base" : "text-xs",
             )}
           >
             {t("common.shareWithFriend")}
           </p>
           <p
-            className={cn("text-zinc-500", comfortable ? "text-sm" : "text-xs")}
+            className={cn(
+              "text-zinc-500 leading-snug",
+              comfortable ? "text-sm" : "text-[11px]",
+            )}
           >
             {t("common.selectFriendToShare", {
               entity: t(`common.entities.instrumental.${entityType}`),
@@ -108,8 +116,10 @@ function SharePanel({
         type="button"
         variant="secondary"
         className={cn(
-          "mx-auto w-full shrink-0 rounded-3xl bg-white font-medium text-[#1f1f1f] hover:bg-zinc-200 md:rounded-lg md:bg-zinc-800/50 md:text-white md:hover:bg-zinc-800",
-          comfortable ? "h-10 max-w-50 text-sm" : "h-8 max-w-50 text-xs",
+          "mx-auto w-full shrink-0 rounded-3xl bg-white font-medium text-[#1f1f1f] hover:bg-zinc-200 md:rounded-md md:bg-zinc-800/50 md:text-white md:hover:bg-zinc-800",
+          comfortable
+            ? "h-10 max-w-50 text-sm"
+            : "h-7 max-w-none text-[11px] px-2",
           isCopied
             ? "bg-emerald-500 transition-colors text-white hover:bg-emerald-600"
             : "",
@@ -120,36 +130,40 @@ function SharePanel({
         {isCopied ? (
           <Check
             className={cn(
-              "mr-1.5 shrink-0 white",
-              comfortable ? "size-4" : "size-3.5",
+              "mr-1 shrink-0 text-white md:text-emerald-500",
+              comfortable ? "size-4" : "size-3",
             )}
           />
         ) : (
           <Link2
-            className={cn(
-              "mr-1.5 shrink-0",
-              comfortable ? "size-4" : "size-3.5",
-            )}
+            className={cn("mr-1 shrink-0", comfortable ? "size-4" : "size-3")}
           />
         )}
         {t("common.copyLink")}
       </Button>
 
-      <div className="flex shrink-0 items-center gap-2">
-        <Separator className="flex-1 bg-zinc-700 my-8" />
-        <span className="text-xs uppercase text-zinc-500">
+      <div className="flex shrink-0 items-center gap-1.5 py-6">
+        <Separator className="flex-1 bg-zinc-700" />
+        <span
+          className={cn(
+            "shrink-0 uppercase text-zinc-500",
+            comfortable ? "text-xs" : "text-[10px] tracking-wide",
+          )}
+        >
           {t("common.orSendToFriend")}
         </span>
         <Separator className="flex-1 bg-zinc-700" />
       </div>
 
       <ScrollArea
-        className={cn(comfortable ? "min-h-0 flex-1 pr-1" : "h-64 pr-1")}
+        className={cn(
+          comfortable ? "min-h-0 flex-1 pr-1" : "max-h-44 h-44 pr-1",
+        )}
       >
         <div
           className={cn(
             "flex flex-col",
-            comfortable ? "gap-1 pb-1" : "space-y-2",
+            comfortable ? "gap-1 pb-1" : "gap-0.5",
           )}
         >
           {users.length > 0 ? (
@@ -158,22 +172,37 @@ function SharePanel({
                 key={friend._id}
                 className={cn(
                   "flex items-center justify-between rounded-md hover:bg-zinc-800/50",
-                  comfortable ? "gap-3 p-2.5" : "p-2",
+                  comfortable ? "gap-3 p-2.5" : "gap-2 px-1 py-1",
                 )}
               >
-                <div className="flex min-w-0 flex-1 items-center gap-3">
+                <div
+                  className={cn(
+                    "flex min-w-0 flex-1 items-center",
+                    comfortable ? "gap-3" : "gap-2",
+                  )}
+                >
                   <Avatar
-                    className={comfortable ? "size-11" : "size-9 shrink-0"}
+                    className={comfortable ? "size-11" : "size-7 shrink-0"}
                   >
                     <AvatarImage src={friend.imageUrl} />
                     <AvatarFallback>{friend.fullName[0]}</AvatarFallback>
                   </Avatar>
-                  <span className="truncate text-sm">{friend.fullName}</span>
+                  <span
+                    className={cn(
+                      "truncate",
+                      comfortable ? "text-sm" : "text-xs",
+                    )}
+                  >
+                    {friend.fullName}
+                  </span>
                 </div>
                 <Button
                   type="button"
                   size={comfortable ? "default" : "sm"}
-                  className="shrink-0"
+                  className={cn(
+                    "shrink-0",
+                    !comfortable && "h-7 px-2 text-[11px]",
+                  )}
                   data-vaul-no-drag
                   onClick={() => handleSend(friend._id)}
                 >
@@ -182,7 +211,14 @@ function SharePanel({
               </div>
             ))
           ) : (
-            <div className="mt-10 flex h-full items-center justify-center text-sm text-zinc-500">
+            <div
+              className={cn(
+                "flex items-center justify-center text-zinc-500",
+                comfortable
+                  ? "mt-10 h-full text-sm"
+                  : "py-6 text-xs text-center px-1",
+              )}
+            >
               {t("common.noFriendsFound", "Нет друзей для отправки")}
             </div>
           )}
@@ -366,19 +402,19 @@ export const ShareDialog: React.FC<ShareDialogProps> = (props) => {
     <Dialog open={floatingOpen} onOpenChange={handleFloatingOpenChange}>
       <DialogContent
         showCloseButton
-        className="z-[150] max-h-[min(32rem,85vh)] gap-3 overflow-hidden border-zinc-700 bg-zinc-900 p-4 text-white sm:max-w-[min(22rem,calc(100vw-2rem))]"
+        className="z-[150] max-h-[min(28rem,82vh)] gap-2 overflow-hidden border-0 bg-zinc-900 p-3 text-white sm:max-w-[min(16rem,calc(100vw-2rem))]"
       >
-        <DialogHeader className="shrink-0 space-y-1 text-left">
-          <DialogTitle className="text-base text-zinc-100">
+        <DialogHeader className="shrink-0 space-y-0.5 pr-6 text-left">
+          <DialogTitle className="text-sm font-semibold leading-tight text-zinc-100">
             {t("common.shareWithFriend")}
           </DialogTitle>
-          <DialogDescription className="text-xs text-zinc-500">
+          <DialogDescription className="text-[11px] leading-snug text-zinc-500">
             {t("common.selectFriendToShare", {
               entity: t(`common.entities.instrumental.${entityType}`),
             })}
           </DialogDescription>
         </DialogHeader>
-        <div className="flex min-h-0 flex-1 flex-col gap-3">
+        <div className="flex min-h-0 flex-1 flex-col gap-2">
           <SharePanel
             entityType={entityType}
             entityId={entityId}
