@@ -1,9 +1,10 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // src/layout/SaveSongToLibraryControl.tsx
 
-import React, { useEffect, useState, useMemo, memo } from "react";
+import React, { useEffect, useState, useMemo, memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
+import { Plus, PlusCircle, Search } from "lucide-react";
 import { Button } from "../components/ui/button";
-import { Check, Plus, Search } from "lucide-react";
+import { Input } from "../components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -16,182 +17,190 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "../components/ui/sheet";
+import { ScrollArea } from "../components/ui/scroll-area";
+import CheckedIcon from "@/components/ui/checkedIcon";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { cn } from "@/lib/utils";
 import { useLibraryStore } from "../stores/useLibraryStore";
 import { usePlaylistStore } from "../stores/usePlaylistStore";
-import { Playlist, Song } from "../types";
+import type { Playlist, Song } from "../types";
 import toast from "react-hot-toast";
-import { ScrollArea } from "../components/ui/scroll-area";
-import { Input } from "../components/ui/input";
-import { useTranslation } from "react-i18next";
-import { cn } from "../lib/utils";
-import CheckedIcon from "@/components/ui/checkedIcon";
 
-interface PlaylistMenuContentProps {
+/** Inner panel (popover wrapper is transparent so theme tokens do not leak). */
+const PANEL_CLASS =
+  "flex w-[min(16rem,calc(100vw-1.5rem))] flex-col gap-2 rounded-md bg-zinc-900 p-2.5 text-zinc-100 shadow-lg";
+
+type LibraryPickerRowProps = {
+  checked: boolean;
+  imageUrl?: string;
+  title: string;
+  subtitle?: string;
+  onToggle: () => void;
+};
+
+const LibraryPickerRow = memo(function LibraryPickerRow({
+  checked,
+  imageUrl,
+  title,
+  subtitle,
+  onToggle,
+}: LibraryPickerRowProps) {
+  return (
+    <button
+      type="button"
+      className="group flex w-full items-center gap-1.5 rounded-md p-1 text-left hover:bg-zinc-800/50"
+      onClick={onToggle}
+    >
+      {imageUrl ? (
+        <img
+          src={imageUrl}
+          alt=""
+          className="size-8 shrink-0 rounded bg-zinc-800 object-cover"
+        />
+      ) : null}
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-xs font-medium text-zinc-100">{title}</p>
+        {subtitle ? (
+          <p className="truncate text-xs text-zinc-500">{subtitle}</p>
+        ) : null}
+      </div>
+      <span className="flex size-9 shrink-0 items-center justify-center">
+        {checked ? (
+          <CheckedIcon className="size-5 text-[#8b5cf6]" />
+        ) : (
+          <PlusCircle className="size-5 text-zinc-400 group-hover:text-white" />
+        )}
+      </span>
+    </button>
+  );
+});
+
+type SongLibraryPickerPanelProps = {
   song: Song;
-  isLikedInitial: boolean;
-  playlistsWithSongInitial: string[];
-  allOwnedPlaylists: Playlist[];
-  onClose: () => void;
-}
+  isLiked: boolean;
+  playlistIdsContainingSong: string[];
+  ownedPlaylists: Playlist[];
+  onRequestClose: () => void;
+};
 
-const PlaylistMenuContent: React.FC<PlaylistMenuContentProps> = memo(
-  ({
-    song,
-    isLikedInitial,
-    playlistsWithSongInitial,
-    allOwnedPlaylists,
-    onClose,
-  }) => {
-    const { t } = useTranslation();
-    const { toggleSongLike, fetchLibrary } = useLibraryStore();
-    const {
-      addSongToPlaylist,
-      removeSongFromPlaylist,
-      createPlaylistFromSong,
-      fetchMyPlaylists,
-    } = usePlaylistStore();
+/**
+ * Body: new playlist → search → scrollable liked + playlists.
+ * Background comes from the parent surface (zinc-900).
+ */
+const SongLibraryPickerPanel = memo(function SongLibraryPickerPanel({
+  song,
+  isLiked,
+  playlistIdsContainingSong,
+  ownedPlaylists,
+  onRequestClose,
+}: SongLibraryPickerPanelProps) {
+  const { t } = useTranslation();
+  const { toggleSongLike, fetchLibrary } = useLibraryStore();
+  const {
+    addSongToPlaylist,
+    removeSongFromPlaylist,
+    createPlaylistFromSong,
+    fetchMyPlaylists,
+  } = usePlaylistStore();
 
-    const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
-    const filteredPlaylists = useMemo(
-      () =>
-        allOwnedPlaylists.filter((playlist) =>
-          playlist.title.toLowerCase().includes(searchTerm.toLowerCase()),
-        ),
-      [allOwnedPlaylists, searchTerm],
-    );
+  const filteredPlaylists = useMemo(
+    () =>
+      ownedPlaylists.filter((p) =>
+        p.title.toLowerCase().includes(searchTerm.toLowerCase()),
+      ),
+    [ownedPlaylists, searchTerm],
+  );
 
-    const handlePlaylistToggle = async (
-      playlistId: string,
-      shouldBeInPlaylist: boolean,
-    ) => {
+  const refreshAfterLibraryChange = useCallback(async () => {
+    await Promise.all([fetchLibrary(), fetchMyPlaylists()]);
+  }, [fetchLibrary, fetchMyPlaylists]);
+
+  const togglePlaylistMembership = useCallback(
+    async (playlistId: string, shouldBeInPlaylist: boolean) => {
       try {
         if (shouldBeInPlaylist) {
           await addSongToPlaylist(playlistId, song._id);
         } else {
           await removeSongFromPlaylist(playlistId, song._id);
         }
-        // Refresh library and playlists after successful operation
-        await Promise.all([fetchLibrary(), fetchMyPlaylists()]);
-      } catch (e) {
+        await refreshAfterLibraryChange();
+      } catch {
         toast.error(t("player.playlistUpdateError"));
       }
-    };
+    },
+    [
+      addSongToPlaylist,
+      removeSongFromPlaylist,
+      refreshAfterLibraryChange,
+      song._id,
+      t,
+    ],
+  );
 
-    const handleCreateAndAdd = async () => {
-      onClose();
-      await createPlaylistFromSong(song);
-      // Refresh library and playlists after creating new playlist
-      await Promise.all([fetchLibrary(), fetchMyPlaylists()]);
-    };
+  const createPlaylist = useCallback(async () => {
+    onRequestClose();
+    await createPlaylistFromSong(song);
+    await refreshAfterLibraryChange();
+  }, [createPlaylistFromSong, onRequestClose, refreshAfterLibraryChange, song]);
 
-    const handleLikeToggle = async (_shouldBeLiked: boolean) => {
-      await toggleSongLike(song._id);
-      // Refresh library after toggling liked songs
-      await fetchLibrary();
-    };
+  const toggleLiked = useCallback(async () => {
+    await toggleSongLike(song._id);
+    await fetchLibrary();
+  }, [fetchLibrary, song._id, toggleSongLike]);
 
-    const CheckboxItem = ({
-      checked,
-      onCheckedChange,
-      imageUrl,
-      title,
-      subtitle,
-    }: {
-      checked: boolean;
-      onCheckedChange: (checked: boolean) => void;
-      imageUrl?: string;
-      title: string;
-      subtitle?: string;
-    }) => (
-      <div
-        className="flex items-center gap-3 p-2 rounded-md hover:bg-zinc-800/50 cursor-pointer"
-        onClick={() => onCheckedChange(!checked)}
+  return (
+    <>
+      <Button
+        type="button"
+        variant="secondary"
+        className="h-8 w-full shrink-0 rounded-md bg-violet-600 text-xs font-medium text-white hover:bg-violet-500"
+        onClick={createPlaylist}
       >
-        {imageUrl && (
-          <img
-            src={imageUrl}
-            alt={title}
-            className="w-12 h-12 object-cover rounded-md"
-          />
-        )}
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold truncate max-w-50">{title}</p>
-          {subtitle && <p className="text-xs text-gray-400">{subtitle}</p>}
-        </div>
-        <div
-          className={cn(
-            "w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0",
-            checked
-              ? "bg-violet-600 border-violet-600"
-              : "border-gray-500 group-hover:border-white",
-          )}
-        >
-          {checked && <Check className="w-4 h-4 text-white" />}
-        </div>
-      </div>
-    );
+        <Plus className="mr-1.5 size-3.5 shrink-0" />
+        {t("player.newPlaylist")}
+      </Button>
 
-    return (
-      <div className="flex flex-col gap-4">
-        <Button
-          variant="secondary"
-          className="w-[200px] justify-center rounded-md bg-violet-700 hover:bg-violet-500 mx-auto mb-4"
-          onClick={handleCreateAndAdd}
-        >
-          <Plus className="mr-2 h-5 w-5" /> {t("player.newPlaylist")}
-        </Button>
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <Input
-            placeholder={t("player.findPlaylist")}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="bg-zinc-800/50 border-[#2a2a2a] pl-9"
-            onClick={(e) => e.stopPropagation()}
+      <div className="relative shrink-0">
+        <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-zinc-500" />
+        <Input
+          placeholder={t("player.findPlaylist")}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="h-8 border-zinc-700 bg-zinc-950 pl-8 text-xs text-zinc-100 placeholder:text-zinc-500"
+          onClick={(e) => e.stopPropagation()}
+        />
+      </div>
+
+      <ScrollArea className="max-h-[min(20rem,48vh)] pr-1">
+        <div className="flex flex-col gap-0.5 pb-1">
+          <LibraryPickerRow
+            checked={isLiked}
+            imageUrl="/liked.png"
+            title={t("sidebar.likedSongs")}
+            onToggle={toggleLiked}
           />
-        </div>
-        <ScrollArea className="h-[70vh] max-h-[70vh] pr-3 lg:max-h-[30vh] lg:min-h-[20vh] overflow-hidden">
-          <div className="space-y-1">
-            <CheckboxItem
-              checked={isLikedInitial}
-              onCheckedChange={handleLikeToggle}
-              imageUrl="/liked.png"
-              title={t("sidebar.likedSongs")}
+          {filteredPlaylists.map((playlist) => (
+            <LibraryPickerRow
+              key={playlist._id}
+              checked={playlistIdsContainingSong.includes(playlist._id)}
+              imageUrl={playlist.imageUrl}
+              title={playlist.title}
+              subtitle={`${playlist.songs.length} ${t("sidebar.subtitle.songs")}`}
+              onToggle={() =>
+                void togglePlaylistMembership(
+                  playlist._id,
+                  !playlistIdsContainingSong.includes(playlist._id),
+                )
+              }
             />
-            {filteredPlaylists.map((playlist) => (
-              <CheckboxItem
-                key={playlist._id}
-                checked={playlistsWithSongInitial.includes(playlist._id)}
-                onCheckedChange={(checked) =>
-                  handlePlaylistToggle(playlist._id, checked)
-                }
-                imageUrl={playlist.imageUrl}
-                title={playlist.title}
-                subtitle={`${playlist.songs.length} ${t(
-                  "sidebar.subtitle.songs",
-                )}`}
-              />
-            ))}
-          </div>
-        </ScrollArea>
-      </div>
-    );
-  },
-);
-PlaylistMenuContent.displayName = "PlaylistMenuContent";
-
-const useMediaQuery = (query: string) => {
-  const [matches, setMatches] = useState(false);
-  useEffect(() => {
-    const media = window.matchMedia(query);
-    if (media.matches !== matches) setMatches(media.matches);
-    const listener = () => setMatches(media.matches);
-    window.addEventListener("resize", listener);
-    return () => window.removeEventListener("resize", listener);
-  }, [matches, query]);
-  return matches;
-};
+          ))}
+        </div>
+      </ScrollArea>
+    </>
+  );
+});
 
 interface SaveSongToLibraryControlProps {
   song: Song | null;
@@ -200,145 +209,146 @@ interface SaveSongToLibraryControlProps {
   disabled?: boolean;
 }
 
-const saveSongToLibraryControlPropsAreEqual = (
+function propsAreEqual(
   prev: SaveSongToLibraryControlProps,
   next: SaveSongToLibraryControlProps,
-) =>
-  prev.song?._id === next.song?._id &&
-  prev.disabled === next.disabled &&
-  prev.className === next.className &&
-  prev.iconClassName === next.iconClassName;
+) {
+  return (
+    prev.song?._id === next.song?._id &&
+    prev.disabled === next.disabled &&
+    prev.className === next.className &&
+    prev.iconClassName === next.iconClassName
+  );
+}
 
-const SaveSongToLibraryControlInner: React.FC<SaveSongToLibraryControlProps> = ({
+function SaveSongToLibraryControlInner({
   song,
   className,
   iconClassName = "size-5",
   disabled = false,
-}) => {
+}: SaveSongToLibraryControlProps) {
   const { t } = useTranslation();
   const { isSongLiked, toggleSongLike, fetchLibrary } = useLibraryStore();
   const { ownedPlaylists, fetchOwnedPlaylists } = usePlaylistStore();
   const isMobile = useMediaQuery("(max-width: 1024px)");
-  const [isOpen, setIsOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    if (song) {
-      fetchOwnedPlaylists();
-    }
+    if (song) void fetchOwnedPlaylists();
   }, [song, fetchOwnedPlaylists]);
 
-  const playlistsWithSong = useMemo(
-    () =>
-      song
-        ? ownedPlaylists
-            .filter((p) => p.songs.some((s) => s._id === song._id))
-            .map((p) => p._id)
-        : [],
-    [ownedPlaylists, song],
-  );
+  const playlistIdsContainingSong = useMemo(() => {
+    if (!song) return [];
+    return ownedPlaylists
+      .filter((p) => p.songs.some((s) => s._id === song._id))
+      .map((p) => p._id);
+  }, [ownedPlaylists, song]);
 
   if (!song) return null;
 
-  const isLiked = isSongLiked(song._id);
+  const liked = isSongLiked(song._id);
+  const inLibrary = liked || playlistIdsContainingSong.length > 0;
 
-  const isAdded = isLiked || playlistsWithSong.length > 0;
-
-  const handleInitialAdd = async (e: React.MouseEvent) => {
+  const addToLikedFirst = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!isAdded) {
-      await toggleSongLike(song._id);
-      // Refresh library after adding to liked songs
-      await fetchLibrary();
-      toast.success(t("player.addedToLiked"));
-    }
+    if (inLibrary) return;
+    await toggleSongLike(song._id);
+    await fetchLibrary();
+    toast.success(t("player.addedToLiked"));
   };
 
-  const handleOpenChange = (open: boolean) => {
-    if (isAdded) {
-      setIsOpen(open);
-    }
+  const onMenuOpenChange = (open: boolean) => {
+    if (inLibrary) setMenuOpen(open);
   };
 
-  const TriggerButton = (
+  const trigger = (
     <Button
+      type="button"
+      variant="ghost2"
       size="icon"
-      variant="ghost"
       className={cn(
-        "hover:text-white hover:bg-transparent!",
-        isAdded ? "text-violet-500" : "text-zinc-400",
-        disabled && "opacity-50 cursor-not-allowed",
+        "rounded-full p-0 transition-colors group",
+        disabled && "cursor-not-allowed opacity-50",
         className,
       )}
-      onClick={disabled ? undefined : handleInitialAdd}
+      onClick={disabled ? undefined : addToLikedFirst}
       disabled={disabled}
       title={
         disabled
           ? t("auth.loginRequired")
-          : isAdded
+          : inLibrary
             ? t("player.addToPlaylist")
             : t("player.saveToLibrary")
       }
     >
-      {isAdded ? (
-        <CheckedIcon className={cn(iconClassName)} />
+      {inLibrary ? (
+        <CheckedIcon className={cn(iconClassName, "text-[#8b5cf6]")} />
       ) : (
-        <Plus className={cn(iconClassName)} />
+        <PlusCircle
+          className={cn(iconClassName, "text-zinc-400 group-hover:text-white")}
+        />
       )}
     </Button>
   );
 
-  return (
-    <>
-      {isMobile ? (
-        <Sheet open={isAdded && isOpen} onOpenChange={handleOpenChange}>
-          <SheetTrigger asChild>{TriggerButton}</SheetTrigger>
-          <SheetContent
-            aria-describedby={undefined}
-            side="bottom"
-            className="bg-zinc-900 border-0 text-white rounded-t-2xl h-full z-100 px-4"
-          >
-            <SheetHeader className="text-center">
-              <SheetTitle>{t("player.addToPlaylist")}</SheetTitle>
-            </SheetHeader>
-            <PlaylistMenuContent
-              song={song}
-              isLikedInitial={isLiked}
-              playlistsWithSongInitial={playlistsWithSong}
-              allOwnedPlaylists={ownedPlaylists}
-              onClose={() => setIsOpen(false)}
-            />
+  const picker = (
+    <SongLibraryPickerPanel
+      song={song}
+      isLiked={liked}
+      playlistIdsContainingSong={playlistIdsContainingSong}
+      ownedPlaylists={ownedPlaylists}
+      onRequestClose={() => setMenuOpen(false)}
+    />
+  );
+
+  if (isMobile) {
+    return (
+      <Sheet open={inLibrary && menuOpen} onOpenChange={onMenuOpenChange}>
+        <SheetTrigger asChild>{trigger}</SheetTrigger>
+        <SheetContent
+          aria-describedby={undefined}
+          side="bottom"
+          className="z-[100] flex max-h-[min(85dvh,520px)] flex-col rounded-t-2xl border-x border-t border-zinc-800 bg-zinc-900 p-0 text-zinc-100 shadow-2xl"
+        >
+          <SheetHeader className="shrink-0 border-b border-zinc-800 px-2.5 pb-1.5 pt-10 text-center">
+            <SheetTitle className="text-sm font-semibold text-zinc-100">
+              {t("player.addToPlaylist")}
+            </SheetTitle>
+          </SheetHeader>
+          <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-2.5 py-2">
+            {picker}
+          </div>
+          <div className="shrink-0 border-t border-zinc-800 px-2.5 pb-3 pt-1.5">
             <Button
-              onClick={() => setIsOpen(false)}
-              className="w-[80px] mt-4 bg-violet-700 hover:bg-violet-600 mx-auto absolute inset-0 top-[90%]"
+              type="button"
+              onClick={() => setMenuOpen(false)}
+              className="h-9 w-full rounded-md bg-zinc-800 text-xs font-medium text-zinc-100 hover:bg-zinc-700"
             >
               {t("player.done")}
             </Button>
-          </SheetContent>
-        </Sheet>
-      ) : (
-        <Popover open={isAdded && isOpen} onOpenChange={handleOpenChange}>
-          <PopoverTrigger asChild>{TriggerButton}</PopoverTrigger>
-          <PopoverContent
-            side="top"
-            align="end"
-            className="w-80 bg-[#0f0f0f]/95 border-zinc-700 text-white p-4"
-            onOpenAutoFocus={(e) => e.preventDefault()}
-          >
-            <PlaylistMenuContent
-              song={song}
-              isLikedInitial={isLiked}
-              playlistsWithSongInitial={playlistsWithSong}
-              allOwnedPlaylists={ownedPlaylists}
-              onClose={() => setIsOpen(false)}
-            />
-          </PopoverContent>
-        </Popover>
-      )}
-    </>
+          </div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  return (
+    <Popover open={inLibrary && menuOpen} onOpenChange={onMenuOpenChange}>
+      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+      <PopoverContent
+        side="top"
+        align="end"
+        sideOffset={6}
+        className="w-auto border-0 bg-transparent p-0 shadow-none"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
+        <div className={PANEL_CLASS}>{picker}</div>
+      </PopoverContent>
+    </Popover>
   );
-};
+}
 
 export const SaveSongToLibraryControl = memo(
   SaveSongToLibraryControlInner,
-  saveSongToLibraryControlPropsAreEqual,
+  propsAreEqual,
 );
