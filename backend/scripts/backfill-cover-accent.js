@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * One-off: compute coverAccentHex for albums/playlists/songs/users via node-vibrant.
- * Run from repo: cd backend && npm run backfill:cover-accent
+ * Compute coverAccentHex (Spotify-style scoring + dark-UI tune) for albums/playlists/songs/users.
+ * Run: cd backend && npm run backfill:cover-accent
+ * Re-run all after algorithm change: npm run backfill:cover-accent -- --force
  */
 import "dotenv/config";
 import mongoose from "mongoose";
@@ -15,6 +16,9 @@ import {
 } from "../src/lib/coverAccent.service.js";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const force = process.argv.includes("--force");
+
+const missingAccentFilter = {};
 
 async function main() {
   if (!process.env.MONGO_URI) {
@@ -22,11 +26,16 @@ async function main() {
     process.exit(1);
   }
 
+  if (force) {
+    console.log(
+      "[backfill] --force: recalculating coverAccentHex for all entities with images",
+    );
+  }
+
   await mongoose.connect(process.env.MONGO_URI);
 
-  const albums = await Album.find({
-    $or: [{ coverAccentHex: null }, { coverAccentHex: { $exists: false } }],
-  }).lean();
+  const albumQuery = force ? {} : missingAccentFilter;
+  const albums = await Album.find(albumQuery).lean();
 
   console.log(`Albums to process: ${albums.length}`);
   for (const al of albums) {
@@ -39,9 +48,8 @@ async function main() {
     await sleep(120);
   }
 
-  const playlists = await Playlist.find({
-    $or: [{ coverAccentHex: null }, { coverAccentHex: { $exists: false } }],
-  }).lean();
+  const playlistQuery = force ? {} : missingAccentFilter;
+  const playlists = await Playlist.find(playlistQuery).lean();
 
   console.log(`Playlists to process: ${playlists.length}`);
   for (const pl of playlists) {
@@ -57,33 +65,40 @@ async function main() {
       { _id: pl._id },
       { $set: { coverAccentHex: hex } },
     );
+    console.log(`Playlist "${pl.title}": ${hex ?? "null"}`);
     await sleep(120);
   }
 
-  const albumsWithHex = await Album.find({
-    coverAccentHex: { $nin: [null, ""] },
-  })
-    .select("_id coverAccentHex")
-    .lean();
+  if (!force) {
+    const albumsWithHex = await Album.find({
+      coverAccentHex: { $nin: [null, ""] },
+    })
+      .select("_id coverAccentHex")
+      .lean();
 
-  for (const al of albumsWithHex) {
-    await Song.updateMany(
-      {
-        albumId: al._id,
-        $or: [{ coverAccentHex: null }, { coverAccentHex: { $exists: false } }],
-      },
-      { $set: { coverAccentHex: al.coverAccentHex } },
+    for (const al of albumsWithHex) {
+      await Song.updateMany(
+        {
+          albumId: al._id,
+          ...missingAccentFilter,
+        },
+        { $set: { coverAccentHex: al.coverAccentHex } },
+      );
+    }
+  } else {
+    console.log(
+      "[backfill] --force: song accents synced per album in album loop",
     );
   }
 
-  const orphanSongs = await Song.find({
-    albumId: null,
-    $or: [{ coverAccentHex: null }, { coverAccentHex: { $exists: false } }],
-  })
+  const orphanQuery = force
+    ? { albumId: null }
+    : { albumId: null, ...missingAccentFilter };
+  const orphanSongs = await Song.find(orphanQuery)
     .select("_id title imageUrl")
     .lean();
 
-  console.log(`Songs without album (optional): ${orphanSongs.length}`);
+  console.log(`Songs without album: ${orphanSongs.length}`);
   for (const s of orphanSongs) {
     if (isSkippableCoverImageUrl(s.imageUrl)) continue;
     const hex = await extractCoverAccentHexFromUrl(s.imageUrl);
@@ -91,10 +106,13 @@ async function main() {
     await sleep(120);
   }
 
-  const users = await User.find({
-    imageUrl: { $exists: true, $nin: [null, ""] },
-    $or: [{ coverAccentHex: null }, { coverAccentHex: { $exists: false } }],
-  })
+  const userQuery = force
+    ? { imageUrl: { $exists: true, $nin: [null, ""] } }
+    : {
+        imageUrl: { $exists: true, $nin: [null, ""] },
+        ...missingAccentFilter,
+      };
+  const users = await User.find(userQuery)
     .select("_id fullName imageUrl")
     .lean();
 
