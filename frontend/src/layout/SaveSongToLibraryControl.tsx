@@ -155,7 +155,7 @@ const SongLibraryPickerPanel = memo(function SongLibraryPickerPanel({
       <Button
         type="button"
         variant="secondary"
-        className="h-8 w-full shrink-0 rounded-md bg-violet-600 text-xs font-medium text-white hover:bg-violet-500"
+        className="h-8 w-full mx-auto max-w-40 shrink-0 rounded-md bg-violet-600 text-xs font-medium text-white hover:bg-violet-500"
         onClick={createPlaylist}
       >
         <Plus className="mr-1.5 size-3.5 shrink-0" />
