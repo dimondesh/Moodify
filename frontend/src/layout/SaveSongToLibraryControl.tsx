@@ -27,6 +27,8 @@ const PANEL_CLASS =
 const ROW_ICON = "size-5 text-[#8b5cf6]";
 const ROW_ICON_OUTLINE = "size-5 text-zinc-400 group-hover:text-white";
 
+type LibraryPickerDensity = "compact" | "comfortable";
+
 type LibraryPickerRowProps = {
   checked: boolean;
   imageUrl?: string;
@@ -34,6 +36,7 @@ type LibraryPickerRowProps = {
   subtitle?: string;
   actionLabel: string;
   onToggle: () => void | Promise<void>;
+  density?: LibraryPickerDensity;
 };
 
 /** Row body is display-only; only the trailing control toggles (matches desktop UX). */
@@ -44,21 +47,50 @@ const LibraryPickerRow = memo(function LibraryPickerRow({
   subtitle,
   actionLabel,
   onToggle,
+  density = "compact",
 }: LibraryPickerRowProps) {
+  const comfortable = density === "comfortable";
   return (
-    <div className="flex w-full items-center gap-1.5 rounded-md p-1 hover:bg-zinc-800/50">
-      <div className="flex min-w-0 flex-1 items-center gap-1.5">
+    <div
+      className={cn(
+        "flex w-full items-center rounded-md hover:bg-zinc-800/50",
+        comfortable ? "gap-3 p-2.5" : "gap-1.5 p-1",
+      )}
+    >
+      <div
+        className={cn(
+          "flex min-w-0 flex-1 items-center",
+          comfortable ? "gap-3" : "gap-1.5",
+        )}
+      >
         {imageUrl ? (
           <img
             src={imageUrl}
             alt=""
-            className="size-8 shrink-0 rounded bg-zinc-800 object-cover"
+            className={cn(
+              "shrink-0 rounded bg-zinc-800 object-cover",
+              comfortable ? "size-11" : "size-8",
+            )}
           />
         ) : null}
         <div className="min-w-0 flex-1 text-left">
-          <p className="truncate text-xs font-medium text-zinc-100">{title}</p>
+          <p
+            className={cn(
+              "truncate font-medium text-zinc-100",
+              comfortable ? "text-sm" : "text-xs",
+            )}
+          >
+            {title}
+          </p>
           {subtitle ? (
-            <p className="truncate text-xs text-zinc-500">{subtitle}</p>
+            <p
+              className={cn(
+                "truncate text-zinc-500",
+                comfortable ? "text-sm" : "text-xs",
+              )}
+            >
+              {subtitle}
+            </p>
           ) : null}
         </div>
       </div>
@@ -66,7 +98,10 @@ const LibraryPickerRow = memo(function LibraryPickerRow({
         type="button"
         variant="ghost2"
         size="icon"
-        className="group size-9 shrink-0 rounded-full p-0"
+        className={cn(
+          "group shrink-0 rounded-full p-0",
+          comfortable ? "size-11" : "size-9",
+        )}
         aria-label={actionLabel}
         aria-pressed={checked}
         title={actionLabel}
@@ -77,9 +112,17 @@ const LibraryPickerRow = memo(function LibraryPickerRow({
         }}
       >
         {checked ? (
-          <CheckedIcon className={ROW_ICON} />
+          <CheckedIcon
+            className={comfortable ? "size-6 text-[#8b5cf6]" : ROW_ICON}
+          />
         ) : (
-          <PlusCircle className={ROW_ICON_OUTLINE} />
+          <PlusCircle
+            className={
+              comfortable
+                ? "size-6 text-zinc-400 group-hover:text-white"
+                : ROW_ICON_OUTLINE
+            }
+          />
         )}
       </Button>
     </div>
@@ -92,6 +135,7 @@ type SongLibraryPickerPanelProps = {
   playlistIdsContainingSong: string[];
   ownedPlaylists: Playlist[];
   onRequestClose: () => void;
+  density?: LibraryPickerDensity;
 };
 
 /**
@@ -104,6 +148,7 @@ const SongLibraryPickerPanel = memo(function SongLibraryPickerPanel({
   playlistIdsContainingSong,
   ownedPlaylists,
   onRequestClose,
+  density = "compact",
 }: SongLibraryPickerPanelProps) {
   const { t } = useTranslation();
   const { toggleSongLike, fetchLibrary } = useLibraryStore();
@@ -167,36 +212,61 @@ const SongLibraryPickerPanel = memo(function SongLibraryPickerPanel({
   }, [refreshAfterLibraryChange, song._id, toggleSongLike]);
 
   const likedActionLabel = isLiked ? t("player.unlike") : t("player.like");
+  const comfortable = density === "comfortable";
 
-  return (
+  const body = (
     <>
       <Button
         type="button"
         variant="secondary"
-        className="mx-auto h-8 w-full max-w-40 shrink-0 rounded-md bg-violet-600 text-xs font-medium text-white hover:bg-violet-500"
+        className={cn(
+          "mx-auto w-full shrink-0 rounded-3xl bg-white md:bg-zinc-800/50 font-medium max-w-50 text-[#1f1f1f] md:text-white hover:bg-zinc-200 md:hover:bg-zinc-800 md:rounded-lg",
+          comfortable ? "h-10 text-sm" : "h-8 text-xs",
+        )}
         data-vaul-no-drag
         onClick={createPlaylist}
       >
-        <Plus className="mr-1.5 size-3.5 shrink-0" />
+        <Plus
+          className={cn("mr-1.5 shrink-0", comfortable ? "size-4" : "size-3.5")}
+        />
         {t("player.newPlaylist")}
       </Button>
 
       <div className="relative shrink-0">
-        <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-zinc-500" />
+        <Search
+          className={cn(
+            "pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-zinc-500",
+            comfortable ? "size-4" : "size-3.5",
+          )}
+        />
         <Input
           placeholder={t("player.findPlaylist")}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="h-8 border-zinc-700 bg-zinc-950 pl-8 text-xs text-zinc-100 placeholder:text-zinc-500"
+          className={cn(
+            "border-0 rounded-3xl bg-zinc-800/50 text-zinc-100 placeholder:text-zinc-500",
+            comfortable ? "h-10 pl-9 text-sm" : "h-8 pl-8 text-xs",
+          )}
           data-vaul-no-drag
           onClick={(e) => e.stopPropagation()}
         />
       </div>
 
-      <ScrollArea className="max-h-[min(20rem,48vh)] pr-1">
-        <div className="flex flex-col gap-0.5 pb-1">
+      <ScrollArea
+        className={cn(
+          "pr-1",
+          comfortable ? "min-h-0 flex-1" : "max-h-[min(20rem,48vh)]",
+        )}
+      >
+        <div
+          className={cn(
+            "flex flex-col pb-1",
+            comfortable ? "gap-1" : "gap-0.5",
+          )}
+        >
           <LibraryPickerRow
             checked={isLiked}
+            density={density}
             imageUrl="/liked.png"
             title={t("sidebar.likedSongs")}
             actionLabel={likedActionLabel}
@@ -208,6 +278,7 @@ const SongLibraryPickerPanel = memo(function SongLibraryPickerPanel({
               <LibraryPickerRow
                 key={playlist._id}
                 checked={inPl}
+                density={density}
                 imageUrl={playlist.imageUrl}
                 title={playlist.title}
                 subtitle={`${playlist.songs.length} ${t("sidebar.subtitle.songs")}`}
@@ -226,6 +297,12 @@ const SongLibraryPickerPanel = memo(function SongLibraryPickerPanel({
       </ScrollArea>
     </>
   );
+
+  if (comfortable) {
+    return <div className="flex min-h-0 flex-1 flex-col gap-3">{body}</div>;
+  }
+
+  return body;
 });
 
 interface SaveSongToLibraryControlProps {
@@ -325,6 +402,7 @@ function SaveSongToLibraryControlInner({
       playlistIdsContainingSong={playlistIdsContainingSong}
       ownedPlaylists={ownedPlaylists}
       onRequestClose={() => setMenuOpen(false)}
+      density={isMobile ? "comfortable" : "compact"}
     />
   );
 
@@ -341,46 +419,38 @@ function SaveSongToLibraryControlInner({
           <Drawer.Content
             aria-describedby={undefined}
             className={cn(
-              "fixed inset-x-0 bottom-0 z-[100] flex max-h-[min(92dvh,640px)] flex-col rounded-t-2xl border-x border-t border-zinc-800 bg-zinc-900 text-zinc-100 outline-none",
+              "fixed inset-0 z-[100] flex h-[100dvh] max-h-[100dvh] flex-col rounded-none border-0 bg-zinc-900 text-zinc-100 outline-none",
             )}
           >
-            <div
-              className="flex flex-col items-center pt-2 pb-1"
-              aria-hidden
-              data-vaul-no-drag
-            >
-              <div className="mb-2 h-1 w-9 rounded-full bg-zinc-600" />
-            </div>
-
-            <div className="flex shrink-0 items-center gap-2 border-b border-zinc-800 px-2 pb-2">
+            <div className="flex shrink-0 cursor-grab select-none items-center gap-2 px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] active:cursor-grabbing">
               <Drawer.Close asChild>
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
                   data-vaul-no-drag
-                  className="shrink-0 text-zinc-400 hover:text-white"
+                  className="size-11 shrink-0 text-zinc-400 hover:text-white"
                   aria-label={t("player.close")}
                 >
-                  <ChevronDown className="size-6" />
+                  <ChevronDown className="size-7" />
                 </Button>
               </Drawer.Close>
-              <Drawer.Title className="min-w-0 flex-1 pr-2 text-center text-sm font-semibold text-zinc-100">
+              <Drawer.Title className="min-w-0 flex-1 pr-2 text-center text-base font-semibold text-zinc-100">
                 {t("player.addToPlaylist")}
               </Drawer.Title>
-              <div className="size-10 shrink-0" aria-hidden />
+              <div className="size-11 shrink-0" aria-hidden />
             </div>
 
-            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain px-2.5 py-2">
+            <div className="flex min-h-0 flex-1 flex-col overscroll-contain px-3 py-3">
               {picker}
             </div>
 
-            <div className="shrink-0 border-t border-zinc-800 px-2.5 pb-6 pt-2">
+            <div className="shrink-0 flex justify-center px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
               <Drawer.Close asChild>
                 <Button
                   type="button"
                   data-vaul-no-drag
-                  className="h-9 w-full rounded-md bg-zinc-800 text-xs font-medium text-zinc-100 hover:bg-zinc-700"
+                  className="h-11 w-full rounded-3xl max-w-30 bg-violet-500 text-sm font-medium text-[#1f1f1f]"
                 >
                   {t("player.done")}
                 </Button>
