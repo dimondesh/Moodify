@@ -265,8 +265,6 @@ const PlaybackControls = () => {
   const masterVolume = usePlayerStore((s) => s.masterVolume);
   const setMasterVolume = usePlayerStore((s) => s.setMasterVolume);
 
-  const { shareEntity, openShareDialog, closeAllDialogs } = useUIStore();
-
   const { reverbEnabled, reverbMix, setReverbEnabled, setReverbMix } =
     useAudioSettingsStore();
 
@@ -809,27 +807,26 @@ const PlaybackControls = () => {
                         </div>
 
                         <div className="flex items-center gap-2 justify-end">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className={`hover:text-white text-zinc-400 ${
-                              !user ? "opacity-50 cursor-not-allowed" : ""
-                            }`}
-                            onClick={() =>
-                              openShareDialog({
-                                type: "song",
-                                id: currentSong._id,
-                              })
-                            }
-                            disabled={!user}
-                            title={
-                              !user
-                                ? t("auth.loginRequired")
-                                : t("player.share")
-                            }
+                          <ShareDialog
+                            entityType="song"
+                            entityId={currentSong._id}
                           >
-                            <Share className="size-5" />
-                          </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className={`hover:text-white text-zinc-400 ${
+                                !user ? "opacity-50 cursor-not-allowed" : ""
+                              }`}
+                              disabled={!user}
+                              title={
+                                !user
+                                  ? t("auth.loginRequired")
+                                  : t("player.share")
+                              }
+                            >
+                              <Share className="size-5" />
+                            </Button>
+                          </ShareDialog>
                           <Button
                             size="icon"
                             variant="ghost"
@@ -1041,20 +1038,19 @@ const PlaybackControls = () => {
                 </DropdownMenu>
               )}
 
-              <Button
-                size="icon"
-                variant="ghost"
-                className={`hover:text-white hover:bg-transparent! text-gray-400 h-5 w-5 ${
-                  !user ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-                onClick={() =>
-                  openShareDialog({ type: "song", id: currentSong._id })
-                }
-                disabled={!user}
-                title={!user ? t("auth.loginRequired") : t("player.share")}
-              >
-                <Share className="size-4.5" />
-              </Button>
+              <ShareDialog entityType="song" entityId={currentSong._id}>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className={`hover:text-white hover:bg-transparent! text-gray-400 h-5 w-5 ${
+                    !user ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                  disabled={!user}
+                  title={!user ? t("auth.loginRequired") : t("player.share")}
+                >
+                  <Share className="size-4.5" />
+                </Button>
+              </ShareDialog>
               <div className="flex items-center gap-3">
                 <Button
                   size="icon"
@@ -1091,16 +1087,6 @@ const PlaybackControls = () => {
         </footer>
       )}
 
-      {currentSong && (
-        <ShareDialog
-          isOpen={
-            shareEntity?.type === "song" && shareEntity?.id === currentSong._id
-          }
-          onClose={closeAllDialogs}
-          entityType="song"
-          entityId={currentSong._id}
-        />
-      )}
       <QueueDrawer
         isOpen={isQueueDrawerOpen}
         onOpenChange={setIsQueueDrawerOpen}

@@ -41,7 +41,7 @@ const AlbumPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const playSongId = searchParams.get("play");
   const navigate = useNavigate();
-  const { openShareDialog, closeAllDialogs, shareEntity } = useUIStore();
+  const { closeAllDialogs, shareEntity } = useUIStore();
 
   const {
     fetchAlbumbyId,
@@ -418,20 +418,22 @@ const AlbumPage = () => {
               itemTitle={currentAlbum.title}
               disabled={!user}
             />
-            <Button
-              variant="ghost2"
-              size="icon"
-              className={`w-12 h-12 sm:w-14 sm:h-14 rounded-md p-2 transition-colors group ${
-                !user ? "opacity-50 cursor-not-allowed" : ""
-              }`}
-              title={!user ? t("auth.loginRequired") : t("common.share")}
-              onClick={() =>
-                openShareDialog({ type: "album", id: currentAlbum._id })
-              }
-              disabled={!user}
+            <ShareDialog
+              entityType="album"
+              entityId={currentAlbum._id}
             >
-              <Share className="size-8 text-white/80 group-hover:text-white transition-colors" />
-            </Button>
+              <Button
+                variant="ghost2"
+                size="icon"
+                className={`w-12 h-12 sm:w-14 sm:h-14 rounded-md p-2 transition-colors group ${
+                  !user ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+                title={!user ? t("auth.loginRequired") : t("common.share")}
+                disabled={!user}
+              >
+                <Share className="size-8 text-white/80 group-hover:text-white transition-colors" />
+              </Button>
+            </ShareDialog>
           </div>
 
           <div className="bg-black/20">
@@ -455,17 +457,6 @@ const AlbumPage = () => {
           </div>
         </div>
       </CollectionGradientLayout>
-      {currentAlbum && (
-        <ShareDialog
-          isOpen={
-            shareEntity?.type === "album" &&
-            shareEntity?.id === currentAlbum._id
-          }
-          onClose={closeAllDialogs}
-          entityType="album"
-          entityId={currentAlbum._id}
-        />
-      )}
       {shareEntity?.type === "song" && (
         <ShareDialog
           isOpen={true}
