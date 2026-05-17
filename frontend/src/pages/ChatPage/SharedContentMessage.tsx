@@ -5,6 +5,8 @@ import { Loader2, Music, Play, Plus, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePlayerStore } from "@/stores/usePlayerStore";
 import { useLibraryStore } from "@/stores/useLibraryStore";
+import { usePlaylistStore } from "@/stores/usePlaylistStore";
+import { useIsSongLiked } from "@/hooks/useLikedSongs";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -31,14 +33,16 @@ export const SharedContentMessage: React.FC<SharedContentMessageProps> = ({
 
   const { setCurrentSong, playAlbum } = usePlayerStore();
   const {
-    toggleSongLike,
     toggleAlbum,
     togglePlaylist,
-    isSongLiked,
     isAlbumInLibrary,
     isPlaylistInLibrary,
     fetchLibrary,
   } = useLibraryStore();
+  const toggleSongLike = usePlaylistStore((s) => s.toggleSongLike);
+  const isSongLiked = useIsSongLiked(
+    entityType === "song" && entity ? entity._id : undefined,
+  );
 
   useEffect(() => {
     const fetchEntity = async () => {
@@ -80,13 +84,14 @@ export const SharedContentMessage: React.FC<SharedContentMessageProps> = ({
     try {
       if (entityType === "song") {
         await toggleSongLike(entity._id);
-      } else if (entityType === "album") {
-        await toggleAlbum(entity._id);
-      } else if (entityType === "playlist") {
-        await togglePlaylist(entity._id);
+      } else {
+        if (entityType === "album") {
+          await toggleAlbum(entity._id);
+        } else if (entityType === "playlist") {
+          await togglePlaylist(entity._id);
+        }
+        await fetchLibrary();
       }
-
-      await fetchLibrary();
     } catch (err) {
       console.error("Failed to update library.", err);
       toast.error(t("common.failedToUpdateLibrary"));
@@ -125,7 +130,7 @@ export const SharedContentMessage: React.FC<SharedContentMessageProps> = ({
 
   const isAdded =
     entityType === "song"
-      ? isSongLiked(entity._id)
+      ? isSongLiked
       : entityType === "album"
         ? isAlbumInLibrary(entity._id)
         : isPlaylistInLibrary(entity._id);

@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { CDN_LIKED_PLAYLIST_COVER } from "@/lib/cdn";
 import { useLibraryStore } from "../stores/useLibraryStore";
 import { usePlaylistStore } from "../stores/usePlaylistStore";
+import { useIsSongLiked } from "@/hooks/useLikedSongs";
 import type { Playlist, Song } from "../types";
 import toast from "react-hot-toast";
 
@@ -152,8 +153,9 @@ const SongLibraryPickerPanel = memo(function SongLibraryPickerPanel({
   density = "compact",
 }: SongLibraryPickerPanelProps) {
   const { t } = useTranslation();
-  const { toggleSongLike, fetchLibrary } = useLibraryStore();
+  const { fetchLibrary } = useLibraryStore();
   const {
+    toggleSongLike,
     addSongToPlaylist,
     removeSongFromPlaylist,
     createPlaylistFromSong,
@@ -211,8 +213,7 @@ const SongLibraryPickerPanel = memo(function SongLibraryPickerPanel({
 
   const toggleLiked = useCallback(async () => {
     await toggleSongLike(song._id);
-    await refreshAfterLibraryChange();
-  }, [refreshAfterLibraryChange, song._id, toggleSongLike]);
+  }, [song._id, toggleSongLike]);
 
   const likedActionLabel = isLiked ? t("player.unlike") : t("player.like");
   const comfortable = density === "comfortable";
@@ -334,8 +335,9 @@ function SaveSongToLibraryControlInner({
   disabled = false,
 }: SaveSongToLibraryControlProps) {
   const { t } = useTranslation();
-  const { isSongLiked, toggleSongLike, fetchLibrary } = useLibraryStore();
-  const { ownedPlaylists, fetchOwnedPlaylists } = usePlaylistStore();
+  const { toggleSongLike, ownedPlaylists, fetchOwnedPlaylists } =
+    usePlaylistStore();
+  const liked = useIsSongLiked(song?._id);
   const isMobile = useMediaQuery("(max-width: 1024px)");
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -352,14 +354,12 @@ function SaveSongToLibraryControlInner({
 
   if (!song) return null;
 
-  const liked = isSongLiked(song._id);
   const inLibrary = liked || playlistIdsContainingSong.length > 0;
 
   const addToLikedFirst = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (inLibrary) return;
     await toggleSongLike(song._id);
-    await fetchLibrary();
     await fetchOwnedPlaylists();
     toast.success(t("player.addedToLiked"));
   };

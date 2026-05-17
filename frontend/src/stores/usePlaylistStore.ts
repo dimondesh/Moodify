@@ -8,6 +8,12 @@ import toast from "react-hot-toast";
 import { useOfflineStore } from "./useOfflineStore";
 import { getUserItem, getAllUserPlaylists } from "@/lib/offline-db";
 import { useAuthStore } from "./useAuthStore";
+import {
+  findLikedPlaylist,
+  isSongInPlaylist,
+  LIKED_PLAYLIST_TYPE,
+} from "@/lib/likedPlaylist";
+import i18n from "@/lib/i18n";
 
 interface CachedPlaylist {
   data: Playlist;
@@ -57,6 +63,9 @@ interface PlaylistStore {
   removePlaylistLike: (playlistId: string) => Promise<void>;
   resetCurrentPlaylist: () => void;
   fetchPlaylistDetails: (playlistId: string) => Promise<void>;
+  getLikedPlaylist: () => Playlist | undefined;
+  isSongLiked: (songId: string) => boolean;
+  toggleSongLike: (songId: string) => Promise<void>;
 }
 
 const CACHE_DURATION = 60 * 60 * 1000;
@@ -503,4 +512,38 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
   },
 
   resetCurrentPlaylist: () => set({ currentPlaylist: null }),
+
+  getLikedPlaylist: () => findLikedPlaylist(get().myPlaylists),
+
+  isSongLiked: (songId: string) => {
+    const liked = findLikedPlaylist(get().myPlaylists);
+    if (!liked) return false;
+    return isSongInPlaylist(liked, songId);
+  },
+
+  toggleSongLike: async (songId: string) => {
+    if (useOfflineStore.getState().isOffline) return;
+    try {
+      const res = await axiosInstance.post("/library/songs/toggle-like", {
+        songId,
+      });
+      const playlistId = res.data.playlistId as string | undefined;
+      await get().fetchMyPlaylists();
+
+      const { currentPlaylist, fetchPlaylistDetails, cachedPlaylists } = get();
+      if (
+        playlistId &&
+        currentPlaylist?._id === playlistId &&
+        currentPlaylist.type === LIKED_PLAYLIST_TYPE
+      ) {
+        const nextCache = new Map(cachedPlaylists);
+        nextCache.delete(playlistId);
+        set({ cachedPlaylists: nextCache });
+        await fetchPlaylistDetails(playlistId);
+      }
+    } catch (err) {
+      console.error("Toggle song like error", err);
+      set({ error: i18n.t("errors.toggleSongLikeError") });
+    }
+  },
 }));

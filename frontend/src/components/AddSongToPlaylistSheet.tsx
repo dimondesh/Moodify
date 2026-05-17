@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Check, Plus } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { usePlaylistStore } from "@/stores/usePlaylistStore";
-import { useLibraryStore } from "@/stores/useLibraryStore";
+import { useIsSongLiked } from "@/hooks/useLikedSongs";
 import { Song } from "@/types";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
@@ -42,8 +42,9 @@ const AddSongToPlaylistSheet: React.FC<AddSongToPlaylistSheetProps> = ({
     addSongToPlaylist,
     removeSongFromPlaylist,
     createPlaylistFromSong,
+    toggleSongLike,
   } = usePlaylistStore();
-  const { isSongLiked, toggleSongLike } = useLibraryStore();
+  const isLiked = useIsSongLiked(song._id);
 
   const [localPlaylistsWithSong, setLocalPlaylistsWithSong] = useState<
     Set<string>
@@ -58,7 +59,7 @@ const AddSongToPlaylistSheet: React.FC<AddSongToPlaylistSheetProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      setLocalIsLiked(isSongLiked(song._id));
+      setLocalIsLiked(isLiked);
       const playlistsContainingSong = new Set(
         ownedPlaylists
           .filter((p) => p.songs.some((s) => s._id === song._id))
@@ -66,7 +67,7 @@ const AddSongToPlaylistSheet: React.FC<AddSongToPlaylistSheetProps> = ({
       );
       setLocalPlaylistsWithSong(playlistsContainingSong);
     }
-  }, [isOpen, song, ownedPlaylists, isSongLiked]);
+  }, [isOpen, song, ownedPlaylists, isLiked]);
 
   const handlePlaylistToggle = async (playlistId: string) => {
     const wasInPlaylist = localPlaylistsWithSong.has(playlistId);
