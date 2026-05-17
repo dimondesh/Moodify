@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import { useMusicStore } from "../../stores/useMusicStore";
 import { getOptimizedImageUrl } from "@/lib/utils";
+import { CDN_DEFAULT_ARTIST_IMAGE } from "@/lib/cdn";
 import HorizontalSection from "../HomePage/HorizontalSection";
 import { SaveSongToLibraryControl } from "@/layout/SaveSongToLibraryControl";
 import { useAuthStore } from "@/stores/useAuthStore";
@@ -222,7 +223,7 @@ const ArtistPage = () => {
               backgroundImage: `url(${getOptimizedImageUrl(
                 (window.innerWidth >= 1024
                   ? artist.bannerUrl
-                  : artist.imageUrl) || "https://moodify.b-cdn.net/artist.jpeg",
+                  : artist.imageUrl) || CDN_DEFAULT_ARTIST_IMAGE,
                 800,
               )})`,
             }}

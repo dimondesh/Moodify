@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { CDN_DEFAULT_ALBUM_COVER } from "../constants/cdn.js";
 
 const playlistSchema = new mongoose.Schema(
   {
@@ -6,7 +7,7 @@ const playlistSchema = new mongoose.Schema(
     description: { type: String, default: "", trim: true },
     imageUrl: {
       type: String,
-      default: "https://moodify.b-cdn.net/default-album-cover.png",
+      default: CDN_DEFAULT_ALBUM_COVER,
     },
     imagePublicId: { type: String, default: null }, // Для загруженных обложек
     coverAccentHex: { type: String, default: null },

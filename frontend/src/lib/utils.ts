@@ -60,3 +60,30 @@ export const formatDuration = (seconds: number): string => {
   const remainingSeconds = Math.floor(seconds % 60);
   return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
 };
+
+type DurationTranslate = (
+  key: string,
+  options?: Record<string, number>,
+) => string;
+
+/** Total length for playlist headers (not per-track m:ss). */
+export const formatPlaylistTotalDuration = (
+  totalSeconds: number,
+  t: DurationTranslate,
+): string => {
+  if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return "";
+
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = Math.floor(totalSeconds % 60);
+
+  if (hours > 0) {
+    return minutes > 0
+      ? t("duration.hoursMinutes", { hours, minutes })
+      : t("duration.hoursOnly", { hours });
+  }
+  if (minutes > 0) {
+    return t("duration.minutesOnly", { minutes });
+  }
+  return formatDuration(seconds);
+};

@@ -61,7 +61,7 @@ interface PlayerStore {
   originalDuration: number;
   seekVersion: number;
   currentPlaybackContext: {
-    type: "song" | "album" | "playlist" | "artist" | "liked-songs";
+    type: "song" | "album" | "playlist" | "artist";
     entityId?: string;
     entityTitle?: string;
   } | null;
@@ -117,8 +117,7 @@ function normalizePlaybackContextType(
     raw === "song" ||
     raw === "album" ||
     raw === "playlist" ||
-    raw === "artist" ||
-    raw === "liked-songs"
+    raw === "artist"
   ) {
     return raw;
   }

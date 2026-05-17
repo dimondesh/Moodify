@@ -19,8 +19,9 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { Lock, MoreHorizontal, Unlock } from "lucide-react";
 
-const DEFAULT_PLAYLIST_COVER =
-  "https://moodify.b-cdn.net/default-album-cover.png";
+import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
+
+const DEFAULT_PLAYLIST_COVER = CDN_DEFAULT_ALBUM_COVER;
 
 function isDefaultPlaylistCoverUrl(url: string | null | undefined): boolean {
   if (!url) return true;

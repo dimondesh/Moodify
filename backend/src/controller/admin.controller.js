@@ -48,6 +48,10 @@ import {
   extractCoverAccentHexFromBuffer,
   isSkippableCoverImageUrl,
 } from "../lib/coverAccent.service.js";
+import {
+  CDN_DEFAULT_ALBUM_COVER,
+  CDN_DEFAULT_ARTIST_IMAGE,
+} from "../constants/cdn.js";
 
 const uploadFile = async (file, folder) => {
   try {
@@ -780,8 +784,8 @@ export const uploadChunk = async (req, res, next) => {
 export const uploadFullAlbumAuto = async (req, res, next) => {
   console.log("🚀 Reached HLS /admin/albums/upload-full-album route");
 
-  const DEFAULT_ARTIST_IMAGE_URL = `https://moodify.b-cdn.net/artist.jpeg`;
-  const DEFAULT_ALBUM_IMAGE_URL = `https://moodify.b-cdn.net/default-album-cover.png`;
+  const DEFAULT_ARTIST_IMAGE_URL = CDN_DEFAULT_ARTIST_IMAGE;
+  const DEFAULT_ALBUM_IMAGE_URL = CDN_DEFAULT_ALBUM_COVER;
 
   if (!req.user || !req.user.isAdmin) {
     return res

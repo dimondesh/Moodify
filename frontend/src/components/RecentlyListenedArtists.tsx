@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import UniversalPlayButton from "./ui/UniversalPlayButton";
 import type { Artist } from "../types";
 import FixedRowEntitySection from "@/pages/HomePage/FixedRowEntitySection";
+import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 
 interface RecentlyListenedArtistsProps {
   isMyProfile: boolean;
@@ -105,13 +106,13 @@ const RecentlyListenedArtists: React.FC<RecentlyListenedArtistsProps> = ({
                   <img
                     src={
                       artist.imageUrl ||
-                      "https://moodify.b-cdn.net/default-album-cover.png"
+                      CDN_DEFAULT_ALBUM_COVER
                     }
                     alt={artist.name}
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src =
-                        "https://moodify.b-cdn.net/default-album-cover.png";
+                        CDN_DEFAULT_ALBUM_COVER;
                     }}
                   />
                 </div>

@@ -214,7 +214,6 @@ export const getBootstrapData = async (req, res, next) => {
       recommendedPlaylists: [],
       library: {
         albums: [],
-        likedSongs: [],
         playlists: [],
         followedArtists: [],
       },

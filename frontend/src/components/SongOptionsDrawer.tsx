@@ -204,7 +204,7 @@ const SongOptionsDrawer: React.FC<SongOptionsDrawerProps> = ({
           song={song}
           isOpen={isAddToPlaylistOpen}
           notifyPlaylistMembershipChanges={notifySheet}
-          notifyLikedSongsChanges={notifySheet}
+          notifyLibraryChanges={notifySheet}
           onOpenChange={(open) => {
             setIsAddToPlaylistOpen(open);
             if (!open) {

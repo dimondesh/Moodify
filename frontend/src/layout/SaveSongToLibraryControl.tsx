@@ -15,6 +15,7 @@ import { ScrollArea } from "../components/ui/scroll-area";
 import CheckedIcon from "@/components/ui/checkedIcon";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
+import { CDN_LIKED_PLAYLIST_COVER } from "@/lib/cdn";
 import { useLibraryStore } from "../stores/useLibraryStore";
 import { usePlaylistStore } from "../stores/usePlaylistStore";
 import type { Playlist, Song } from "../types";
@@ -164,8 +165,10 @@ const SongLibraryPickerPanel = memo(function SongLibraryPickerPanel({
 
   const filteredPlaylists = useMemo(
     () =>
-      ownedPlaylists.filter((p) =>
-        p.title.toLowerCase().includes(searchTerm.toLowerCase()),
+      ownedPlaylists.filter(
+        (p) =>
+          p.type !== "LIKED_SONGS" &&
+          p.title.toLowerCase().includes(searchTerm.toLowerCase()),
       ),
     [ownedPlaylists, searchTerm],
   );
@@ -267,7 +270,7 @@ const SongLibraryPickerPanel = memo(function SongLibraryPickerPanel({
           <LibraryPickerRow
             checked={isLiked}
             density={density}
-            imageUrl="/liked.png"
+            imageUrl={CDN_LIKED_PLAYLIST_COVER}
             title={t("sidebar.likedSongs")}
             actionLabel={likedActionLabel}
             onToggle={toggleLiked}

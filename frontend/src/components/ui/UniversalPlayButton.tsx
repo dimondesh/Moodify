@@ -6,12 +6,7 @@ import { usePlayerStore } from "@/stores/usePlayerStore";
 import { axiosInstance } from "@/lib/axios";
 import type { Song, Album, Playlist, Artist, LibraryItem } from "@/types";
 
-type EntityType =
-  | "song"
-  | "album"
-  | "playlist"
-  | "artist"
-  | "liked-songs";
+type EntityType = "song" | "album" | "playlist" | "artist";
 
 type UniversalPlayButtonProps = {
   entity: Song | Album | Playlist | Artist | LibraryItem;
@@ -49,12 +44,7 @@ const UniversalPlayButton = ({
 
   // Загружаем песни для сущности при монтировании компонента
   useEffect(() => {
-    const needsSongs = [
-      "artist",
-      "album",
-      "playlist",
-      "liked-songs",
-    ].includes(entityType);
+    const needsSongs = ["artist", "album", "playlist"].includes(entityType);
 
     if (!needsSongs || isLoadingSongs) {
       return;
@@ -94,22 +84,15 @@ const UniversalPlayButton = ({
       case "playlist":
         apiEndpoint = `/playlists/${entity._id}`;
         break;
-      case "liked-songs":
-        apiEndpoint = `/library/liked-songs`;
-        break;
     }
 
     if (apiEndpoint) {
       axiosInstance
         .get(apiEndpoint)
         .then((response) => {
-          // Для альбомов данные приходят в формате { album: ... }
-          // Для liked-songs данные приходят в формате { songs: ... }
           const songs =
             entityType === "album"
               ? response.data.album?.songs || []
-              : entityType === "liked-songs"
-              ? response.data.songs || []
               : response.data.songs || [];
           setLoadedSongs(songs);
           loadedEntitiesRef.current.add(entityKey);
@@ -154,8 +137,6 @@ const UniversalPlayButton = ({
               ? p.songs
               : [];
         }
-      case "liked-songs":
-        return loadedSongs;
       case "artist":
         if (
           "type" in entity &&
@@ -193,12 +174,6 @@ const UniversalPlayButton = ({
           type: "playlist" as const,
           entityId: entity._id,
           entityTitle: (entity as Playlist).title,
-        };
-      case "liked-songs":
-        return {
-          type: "liked-songs" as const,
-          entityId: entity._id,
-          entityTitle: (entity as LibraryItem).title,
         };
       case "artist":
         return {

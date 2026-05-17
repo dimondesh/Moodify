@@ -9,7 +9,13 @@ import { useChatStore } from "@/stores/useChatStore";
 import { useOfflineStore } from "@/stores/useOfflineStore";
 import EqualizerTitle from "@/components/ui/equalizer-title";
 import SongOptionsDrawer from "@/components/SongOptionsDrawer";
-import { getArtistNames, getOptimizedImageUrl } from "@/lib/utils";
+import {
+  formatDuration,
+  formatPlaylistTotalDuration,
+  getArtistNames,
+  getOptimizedImageUrl,
+} from "@/lib/utils";
+import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 import { CollectionGradientLayout } from "@/components/CollectionGradientLayout";
 import { useDominantCoverGradient } from "@/hooks/useDominantCoverGradient";
 import { AddSongsToPlaylistDialog } from "./AddSongsToPlaylistDialog";
@@ -59,12 +65,6 @@ import { ShareDialog } from "@/components/ui/ShareDialog";
 import { useUIStore } from "@/stores/useUIStore";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { SaveSongToLibraryControl } from "@/layout/SaveSongToLibraryControl";
-
-const formatDuration = (seconds: number): string => {
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = Math.floor(seconds % 60);
-  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
-};
 
 function playlistKindLabel(t: (k: string) => string, kind?: PlaylistKind) {
   switch (kind) {
@@ -475,9 +475,13 @@ const PlaylistDetailsPage = () => {
             </div>
           </div>
           <div className="items-center hidden md:flex text-xs">
-            {song.createdAt
-              ? format(new Date(song.createdAt), "MMM dd, yyyy")
-              : "N/A"}
+            {currentPlaylist.type === "LIKED_SONGS"
+              ? song.likedAt
+                ? format(new Date(song.likedAt), "MMM dd, yyyy")
+                : "N/A"
+              : song.createdAt
+                ? format(new Date(song.createdAt), "MMM dd, yyyy")
+                : "N/A"}
           </div>
           <div className="flex items-center text-xs sm:text-sm flex-shrink-0 justify-end md:mr-10">
             {formatDuration(song.duration)}
@@ -558,11 +562,11 @@ const PlaylistDetailsPage = () => {
 
   const totalDurationSeconds =
     currentPlaylist.songs?.reduce((acc, song) => acc + song.duration, 0) || 0;
-  const totalMinutes = Math.floor(totalDurationSeconds / 60);
-  const remainingSeconds = totalDurationSeconds % 60;
-  const formattedDuration = `${totalMinutes}:${remainingSeconds
-    .toString()
-    .padStart(2, "0")}`;
+  const formattedDuration = formatPlaylistTotalDuration(
+    totalDurationSeconds,
+    t,
+  );
+  const isLikedSongsPlaylist = currentPlaylist.type === "LIKED_SONGS";
   const isCurrentPlaylistPlaying =
     isPlaying &&
     currentPlaylist.songs?.length > 0 &&
@@ -611,8 +615,7 @@ const PlaylistDetailsPage = () => {
                 >
                   <img
                     src={getOptimizedImageUrl(
-                      currentPlaylist.imageUrl ||
-                        "https://moodify.b-cdn.net/default-album-cover.png",
+                      currentPlaylist.imageUrl || CDN_DEFAULT_ALBUM_COVER,
                       500,
                     )}
                     alt={currentPlaylist.title}
@@ -623,7 +626,7 @@ const PlaylistDetailsPage = () => {
                 <img
                   src={getOptimizedImageUrl(
                     currentPlaylist.imageUrl ||
-                      "https://moodify.b-cdn.net/default-album-cover.png",
+                      CDN_DEFAULT_ALBUM_COVER,
                     500,
                   )}
                   alt={currentPlaylist.title}
@@ -882,7 +885,9 @@ const PlaylistDetailsPage = () => {
                 <div>#</div>
                 <div>{t("pages.playlist.headers.title")}</div>
                 <div className="hidden md:block">
-                  {t("pages.playlist.headers.dateAdded")}
+                  {isLikedSongsPlaylist
+                    ? t("pages.likedSongs.headers.dateAdded")
+                    : t("pages.playlist.headers.dateAdded")}
                 </div>
                 <div className="flex items-center justify-end md:mr-10">
                   <Clock className="h-4 w-4" />

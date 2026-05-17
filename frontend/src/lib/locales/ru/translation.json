@@ -1,4 +1,9 @@
 {
+  "duration": {
+    "hoursMinutes": "{{hours}} ч {{minutes}} мин",
+    "hoursOnly": "{{hours}} ч",
+    "minutesOnly": "{{minutes}} мин"
+  },
   "sidebar": {
     "home": "Главная",
     "search": "Поиск",

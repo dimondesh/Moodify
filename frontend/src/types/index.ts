@@ -130,7 +130,6 @@ export interface SearchState {
 
 export interface UserLibrary {
   userId: string;
-  likedSongs: Song[];
   albums: Album[];
 }
 
@@ -173,11 +172,6 @@ export interface BaseLibraryItem {
   createdAt: Date;
 }
 
-export interface LikedSongsItem extends BaseLibraryItem {
-  type: "liked-songs";
-  songsCount: number;
-}
-
 export interface AlbumItem extends BaseLibraryItem {
   type: "album";
   artist: Artist[];
@@ -195,11 +189,7 @@ export interface FollowedArtistItem extends BaseLibraryItem {
   addedAt?: string;
 }
 
-export type LibraryItem =
-  | LikedSongsItem
-  | AlbumItem
-  | PlaylistItem
-  | FollowedArtistItem;
+export type LibraryItem = AlbumItem | PlaylistItem | FollowedArtistItem;
 export interface LibraryPlaylist extends Playlist {
   addedAt?: string;
 }

@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SectionGridSkeleton from "@/components/ui/skeletons/PlaylistSkeleton";
 import { useTranslation } from "react-i18next";
 import { getOptimizedImageUrl, getArtistNames } from "@/lib/utils";
+import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 import { Artist, User } from "@/types";
 import UniversalPlayButton from "@/components/ui/UniversalPlayButton";
 
@@ -124,7 +125,8 @@ const DisplayListPage = () => {
                   <div className="relative aspect-square shadow-lg overflow-hidden rounded-md">
                     <img
                       src={
-                        getOptimizedImageUrl(item.imageUrl, 300) || "/liked.png"
+                        getOptimizedImageUrl(item.imageUrl, 300) ||
+                          CDN_DEFAULT_ALBUM_COVER
                       }
                       alt={item.title || t("common.itemCover")}
                       className="absolute inset-0 h-full w-full object-cover rounded-md transition-transform duration-300 group-hover:scale-105"

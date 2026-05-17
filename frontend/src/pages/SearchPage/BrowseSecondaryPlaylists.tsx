@@ -6,6 +6,7 @@ import type { Album, Playlist } from "../../types";
 import { useTranslation } from "react-i18next";
 import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
 import { getArtistNames, getOptimizedImageUrl } from "@/lib/utils";
+import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 
 const PlaylistCategoryGrid = ({
   title,
@@ -90,14 +91,14 @@ const AlbumsBrowseGrid = ({
                 <img
                   src={getOptimizedImageUrl(
                     album.imageUrl ||
-                      "https://moodify.b-cdn.net/default-album-cover.png",
+                      CDN_DEFAULT_ALBUM_COVER,
                     200,
                   )}
                   alt={album.title}
                   className="absolute inset-0 h-full w-full object-cover rounded-md"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src =
-                      "https://moodify.b-cdn.net/default-album-cover.png";
+                      CDN_DEFAULT_ALBUM_COVER;
                   }}
                 />
               </div>

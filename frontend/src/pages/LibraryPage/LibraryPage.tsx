@@ -12,7 +12,6 @@ import {
   AlbumItem,
   PlaylistItem,
   Artist,
-  LikedSongsItem,
   FollowedArtistItem,
   Album,
   Playlist,
@@ -25,6 +24,7 @@ import { Helmet } from "react-helmet-async";
 import { Download } from "lucide-react";
 import { useOfflineStore } from "../../stores/useOfflineStore";
 import { cn, normalizeAlbumKind } from "@/lib/utils";
+import { CDN_DEFAULT_ALBUM_COVER, CDN_LIKED_PLAYLIST_COVER } from "@/lib/cdn";
 import { useUIStore } from "../../stores/useUIStore";
 import { useQuickCreatePlaylist } from "@/hooks/useQuickCreatePlaylist";
 import EntityTypeFilter from "../../components/ui/EntityTypeFilter";
@@ -32,13 +32,11 @@ import EntityTypeFilter from "../../components/ui/EntityTypeFilter";
 const LibraryPage = () => {
   const { t } = useTranslation();
   const {
-    likedSongs,
     albums,
     playlists,
     followedArtists,
     isLoading: isLoadingLibrary,
     error: libraryError,
-    likedPlaylistId,
   } = useLibraryStore();
   const {
     myPlaylists,
@@ -178,14 +176,18 @@ const LibraryPage = () => {
     );
 
     [...(myPlaylists || []), ...(playlists || [])].forEach((playlist) => {
-      if (playlist.type === "LIKED_SONGS") return;
-      if (likedPlaylistId && playlist._id === likedPlaylistId) return;
       if (!libraryItemsMap.has(playlist._id)) {
         libraryItemsMap.set(playlist._id, {
           _id: playlist._id,
           type: "playlist",
-          title: playlist.title,
-          imageUrl: playlist.imageUrl,
+          title:
+            playlist.type === "LIKED_SONGS"
+              ? t("sidebar.likedSongs")
+              : playlist.title,
+          imageUrl:
+            playlist.type === "LIKED_SONGS"
+              ? playlist.imageUrl || CDN_LIKED_PLAYLIST_COVER
+              : playlist.imageUrl,
           createdAt: new Date(
             (playlist as { addedAt?: string }).addedAt ||
               playlist.updatedAt ||
@@ -208,19 +210,6 @@ const LibraryPage = () => {
       } as FollowedArtistItem),
     );
 
-    if (likedSongs.length > 0) {
-      libraryItemsMap.set("liked-songs", {
-        _id: "liked-songs",
-        type: "liked-songs",
-        title: t("sidebar.likedSongs"),
-        imageUrl: "/liked.png",
-        createdAt: new Date(
-          likedSongs[0]?.addedAt || likedSongs[0]?.likedAt || Date.now(),
-        ),
-        songsCount: likedSongs.length,
-      });
-    }
-
     return Array.from(libraryItemsMap.values()).sort(
       (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
     );
@@ -229,8 +218,6 @@ const LibraryPage = () => {
     myPlaylists,
     playlists,
     followedArtists,
-    likedSongs,
-    likedPlaylistId,
     t,
   ]);
 
@@ -241,10 +228,7 @@ const LibraryPage = () => {
     if (entityTypeFilter) {
       switch (entityTypeFilter) {
         case "playlists":
-          filtered = filtered.filter(
-            (item) =>
-              item.type === "playlist" || item.type === "liked-songs",
-          );
+          filtered = filtered.filter((item) => item.type === "playlist");
           break;
         case "albums":
           filtered = filtered.filter((item) => item.type === "album");
@@ -439,23 +423,24 @@ const LibraryPage = () => {
                       case "playlist": {
                         const playlistItem = item as PlaylistItem;
                         linkPath = `/playlists/${playlistItem._id}`;
-                        subtitle = `${t("sidebar.subtitle.playlist")} • ${
-                          playlistItem.owner?.fullName ||
-                          t("common.unknownArtist")
-                        }`;
-                        break;
-                      }
-                      case "liked-songs": {
-                        const likedItem = item as LikedSongsItem;
-                        linkPath = "/liked-songs";
-                        subtitle = `${t("sidebar.subtitle.playlist")} • ${
-                          likedItem.songsCount
-                        } ${
-                          likedItem.songsCount !== 1
-                            ? t("sidebar.subtitle.songs")
-                            : t("sidebar.subtitle.song")
-                        }`;
-                        coverImageUrl = item.imageUrl;
+                        if (playlistItem.playlistKind === "LIKED_SONGS") {
+                          const likedPl = myPlaylists.find(
+                            (p) => p._id === playlistItem._id,
+                          );
+                          const count = likedPl?.songs?.length ?? 0;
+                          subtitle = `${t("sidebar.subtitle.playlist")} • ${count} ${
+                            count !== 1
+                              ? t("sidebar.subtitle.songs")
+                              : t("sidebar.subtitle.song")
+                          }`;
+                          coverImageUrl =
+                            item.imageUrl || CDN_LIKED_PLAYLIST_COVER;
+                        } else {
+                          subtitle = `${t("sidebar.subtitle.playlist")} • ${
+                            playlistItem.owner?.fullName ||
+                            t("common.unknownArtist")
+                          }`;
+                        }
                         break;
                       }
                       case "artist": {
@@ -482,15 +467,12 @@ const LibraryPage = () => {
                             )}
                           >
                             <img
-                              src={
-                                coverImageUrl ||
-                                "https://moodify.b-cdn.net/default-album-cover.png"
-                              }
+                              src={coverImageUrl || CDN_DEFAULT_ALBUM_COVER}
                               alt={item.title}
                               className="absolute inset-0 w-full h-full object-cover duration-300 "
                               onError={(e) => {
                                 (e.target as HTMLImageElement).src =
-                                  "https://moodify.b-cdn.net/default-album-cover.png";
+                                  CDN_DEFAULT_ALBUM_COVER;
                               }}
                             />
                           </div>
@@ -517,8 +499,7 @@ const LibraryPage = () => {
                   {filteredLibraryItems.map((item) => {
                     let linkPath: string = "#";
                     let subtitle: string = "";
-                    let fallbackImage: string =
-                      "https://moodify.b-cdn.net/default-album-cover.png";
+                    let fallbackImage: string = CDN_DEFAULT_ALBUM_COVER;
                     let imageClass = "rounded-md";
 
                     switch (item.type) {
@@ -531,23 +512,23 @@ const LibraryPage = () => {
                       case "playlist": {
                         const playlistItem = item as PlaylistItem;
                         linkPath = `/playlists/${playlistItem._id}`;
-                        subtitle = `${t("sidebar.subtitle.playlist")} • ${
-                          playlistItem.owner?.fullName ||
-                          t("common.unknownArtist")
-                        }`;
-                        break;
-                      }
-                      case "liked-songs": {
-                        const likedItem = item as LikedSongsItem;
-                        linkPath = "/liked-songs";
-                        subtitle = `${t("sidebar.subtitle.playlist")} • ${
-                          likedItem.songsCount
-                        } ${
-                          likedItem.songsCount !== 1
-                            ? t("sidebar.subtitle.songs")
-                            : t("sidebar.subtitle.song")
-                        }`;
-                        fallbackImage = "/liked.png";
+                        if (playlistItem.playlistKind === "LIKED_SONGS") {
+                          const likedPl = myPlaylists.find(
+                            (p) => p._id === playlistItem._id,
+                          );
+                          const count = likedPl?.songs?.length ?? 0;
+                          subtitle = `${t("sidebar.subtitle.playlist")} • ${count} ${
+                            count !== 1
+                              ? t("sidebar.subtitle.songs")
+                              : t("sidebar.subtitle.song")
+                          }`;
+                          fallbackImage = CDN_LIKED_PLAYLIST_COVER;
+                        } else {
+                          subtitle = `${t("sidebar.subtitle.playlist")} • ${
+                            playlistItem.owner?.fullName ||
+                            t("common.unknownArtist")
+                          }`;
+                        }
                         break;
                       }
                       case "artist": {

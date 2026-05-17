@@ -24,7 +24,6 @@ import OfflinePage from "./pages/OfflinePage/OfflinePage";
 import LibraryPage from "./pages/LibraryPage/LibraryPage";
 import SettingsPage from "./pages/SettingsPage/SettingsPage";
 import SearchPage from "./pages/SearchPage/SearchPage";
-import LikedSongs from "./pages/LikedSongs/LikedSongs";
 import ChatPage from "./pages/ChatPage/ChatPage";
 
 function App() {
@@ -112,12 +111,7 @@ function App() {
 
   // Редирект на offline страницу
   useEffect(() => {
-    const exactSafePaths = [
-      "/library",
-      "/settings",
-      "/liked-songs",
-      "/offline",
-    ];
+    const exactSafePaths = ["/library", "/settings", "/offline"];
     const prefixSafePaths = ["/albums/", "/playlists/"];
 
     const isExactSafe = exactSafePaths.includes(location.pathname);
@@ -155,7 +149,6 @@ function App() {
             <Route path="/albums/:albumId" element={<AlbumPage />} />
             <Route path="*" element={<NotFoundPage />} />
             <Route path="/search" element={<SearchPage />} />
-            <Route path="/liked-songs" element={<LikedSongs />} />
             <Route path="/library" element={<LibraryPage />} />
             <Route
               path="/playlists/browse/:category"

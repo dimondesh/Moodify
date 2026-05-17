@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { Library } from "../models/library.model.js";
 import { Playlist } from "../models/playlist.model.js";
 import { User } from "../models/user.model.js";
+import { CDN_LIKED_PLAYLIST_COVER } from "../constants/cdn.js";
 
 const SONG_MINIMAL_SELECT =
   "_id title artist albumId imageUrl coverAccentHex duration playCount";
@@ -156,7 +157,7 @@ export const toggleSongLikeInLibrary = async (req, res, next) => {
     if (!likedPlaylist) {
       likedPlaylist = new Playlist({
         title: "Liked Songs",
-        imageUrl: "/liked.png",
+        imageUrl: CDN_LIKED_PLAYLIST_COVER,
         owner: userId,
         type: "LIKED_SONGS",
         isSystem: true,
@@ -199,56 +200,6 @@ export const toggleSongLikeInLibrary = async (req, res, next) => {
   }
 };
 
-export const getLikedSongs = async (req, res, next) => {
-  try {
-    const userId = req.user?.id;
-    const likedPlaylist = await Playlist.findOne({
-      owner: userId,
-      type: "LIKED_SONGS",
-    })
-      .populate({
-        path: "songs",
-        select: SONG_MINIMAL_SELECT,
-        populate: { path: "artist", select: "name imageUrl" },
-      })
-      .lean();
-
-    if (!likedPlaylist) return res.json({ songs: [], playlistId: null });
-
-    const rawSongs = (likedPlaylist.songs || []).filter(Boolean);
-    const ts = {
-      ...(typeof likedPlaylist.songLikeTimestamps === "object" &&
-      likedPlaylist.songLikeTimestamps !== null
-        ? likedPlaylist.songLikeTimestamps
-        : {}),
-    };
-    const fallbackLegacy = likedPlaylist.createdAt || new Date();
-    let timestampsDirty = false;
-    for (const s of rawSongs) {
-      const id = s._id.toString();
-      if (ts[id] == null) {
-        ts[id] = fallbackLegacy;
-        timestampsDirty = true;
-      }
-    }
-    if (timestampsDirty) {
-      await Playlist.updateOne(
-        { _id: likedPlaylist._id },
-        { $set: { songLikeTimestamps: ts } },
-      );
-    }
-
-    const enriched = rawSongs.map((s) => {
-      const id = s._id.toString();
-      const likedAt = ts[id];
-      return { ...s, likedAt: likedAt ?? null };
-    });
-    const songs = enriched.slice().reverse();
-    res.json({ songs, playlistId: likedPlaylist._id });
-  } catch (err) {
-    next(err);
-  }
-};
 // ------------------------------------
 
 export const getPlaylistsInLibrary = async (req, res, next) => {

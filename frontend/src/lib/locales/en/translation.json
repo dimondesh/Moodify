@@ -1,4 +1,9 @@
 {
+  "duration": {
+    "hoursMinutes": "{{hours}} hr {{minutes}} min",
+    "hoursOnly": "{{hours}} hr",
+    "minutesOnly": "{{minutes}} min"
+  },
   "sidebar": {
     "home": "Home",
     "search": "Search",

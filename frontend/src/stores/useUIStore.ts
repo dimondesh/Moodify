@@ -7,7 +7,6 @@ import { useMusicStore } from "./useMusicStore";
 import { useLibraryStore } from "./useLibraryStore";
 import { usePlaylistStore } from "./usePlaylistStore";
 import { axiosInstance } from "../lib/axios";
-import { useAuthStore } from "./useAuthStore";
 import toast from "react-hot-toast";
 
 interface ShareEntity {
@@ -166,10 +165,6 @@ export const useUIStore = create<UIStore>()(
             playlists: data.library.playlists || [],
             followedArtists: data.library.followedArtists || [],
           });
-
-          if (useAuthStore.getState().user) {
-            void useLibraryStore.getState().fetchLikedSongs();
-          }
 
           usePlaylistStore.setState({
             publicPlaylists: data.publicPlaylists || [],

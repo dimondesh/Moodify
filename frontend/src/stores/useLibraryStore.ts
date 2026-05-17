@@ -1,29 +1,35 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from "zustand";
 import { axiosInstance } from "../lib/axios";
-import type { Album, Song, LibraryPlaylist, Artist } from "../types";
+import type { Album, LibraryPlaylist, Artist, Playlist, Song } from "../types";
 import { useOfflineStore } from "./useOfflineStore";
-import {
-  getAllUserAlbums,
-  getAllUserPlaylists,
-  getAllUserSongs,
-} from "../lib/offline-db";
+import { getAllUserAlbums, getAllUserPlaylists } from "../lib/offline-db";
 import { useAuthStore } from "./useAuthStore";
+import { usePlaylistStore } from "./usePlaylistStore";
 import i18n from "@/lib/i18n";
+
+function getLikedPlaylist(): Playlist | undefined {
+  return usePlaylistStore
+    .getState()
+    .myPlaylists.find((p) => p.type === "LIKED_SONGS");
+}
+
+function playlistContainsSong(playlist: Playlist, songId: string): boolean {
+  return (playlist.songs ?? []).some((s) => {
+    const id = typeof s === "string" ? s : (s as Song)._id;
+    return id === songId;
+  });
+}
 
 interface LibraryStore {
   albums: Album[];
-  likedSongs: Song[];
   playlists: LibraryPlaylist[];
   followedArtists: Artist[];
-  /** Mongo id of the user's LIKED_SONGS playlist when it exists */
-  likedPlaylistId: string | null;
 
   isLoading: boolean;
   error: string | null;
 
   fetchLibrary: () => Promise<void>;
-  fetchLikedSongs: () => Promise<void>;
   fetchFollowedArtists: () => Promise<void>;
 
   toggleAlbum: (albumId: string) => Promise<void>;
@@ -35,14 +41,13 @@ interface LibraryStore {
   isPlaylistInLibrary: (playlistId: string) => boolean;
   isSongLiked: (songId: string) => boolean;
   isArtistFollowed: (artistId: string) => boolean;
+  getLikedPlaylist: () => Playlist | undefined;
 }
 
 export const useLibraryStore = create<LibraryStore>((set, get) => ({
   albums: [],
-  likedSongs: [],
   playlists: [],
   followedArtists: [],
-  likedPlaylistId: null,
   isLoading: false,
   error: null,
 
@@ -60,16 +65,14 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
         return;
       }
       try {
-        const [albums, playlists, songs] = await Promise.all([
+        const [albums, playlists] = await Promise.all([
           getAllUserAlbums(userId),
           getAllUserPlaylists(userId),
-          getAllUserSongs(userId),
         ]);
 
         set({
           albums,
           playlists: playlists as LibraryPlaylist[],
-          likedSongs: songs,
           followedArtists: [],
         });
       } catch (err: any) {
@@ -93,47 +96,6 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
     } catch (err: any) {
       set({
         error: err.message || i18n.t("errors.fetchLibraryError"),
-      });
-    } finally {
-      set({ isLoading: false });
-    }
-  },
-
-  fetchLikedSongs: async () => {
-    const { isOffline } = useOfflineStore.getState();
-    const userId = useAuthStore.getState().user?.id;
-    set({ isLoading: true, error: null });
-
-    if (isOffline) {
-      if (!userId) {
-        set({
-          error: i18n.t("errors.userNotAvailableOffline"),
-        });
-        return;
-      }
-      console.log(
-        "[Offline] Fetching liked songs (all downloaded songs) from IndexedDB.",
-      );
-      try {
-        const allDownloadedSongs = await getAllUserSongs(userId);
-        set({ likedSongs: allDownloadedSongs, likedPlaylistId: null });
-      } catch (err: any) {
-        set({
-          error: err.message || i18n.t("errors.fetchOfflineSongsError"),
-        });
-      }
-      return;
-    }
-
-    try {
-      const res = await axiosInstance.get("/library/liked-songs");
-      set({
-        likedSongs: res.data.songs,
-        likedPlaylistId: res.data.playlistId ?? null,
-      });
-    } catch (err: any) {
-      set({
-        error: err.message || i18n.t("errors.fetchLikedSongsError"),
       });
     } finally {
       set({ isLoading: false });
@@ -169,8 +131,24 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
   toggleSongLike: async (songId: string) => {
     if (useOfflineStore.getState().isOffline) return;
     try {
-      await axiosInstance.post("/library/songs/toggle-like", { songId });
-      await Promise.all([get().fetchLibrary(), get().fetchLikedSongs()]);
+      const res = await axiosInstance.post("/library/songs/toggle-like", {
+        songId,
+      });
+      const playlistId = res.data.playlistId as string | undefined;
+      await usePlaylistStore.getState().fetchMyPlaylists();
+
+      const { currentPlaylist, fetchPlaylistDetails, cachedPlaylists } =
+        usePlaylistStore.getState();
+      if (
+        playlistId &&
+        currentPlaylist?._id === playlistId &&
+        currentPlaylist.type === "LIKED_SONGS"
+      ) {
+        const nextCache = new Map(cachedPlaylists);
+        nextCache.delete(playlistId);
+        usePlaylistStore.setState({ cachedPlaylists: nextCache });
+        await fetchPlaylistDetails(playlistId);
+      }
     } catch (err) {
       console.error("Toggle song like error", err);
       set({ error: i18n.t("errors.toggleSongLikeError") });
@@ -203,8 +181,12 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
     get().albums.some((album) => album._id === albumId),
   isPlaylistInLibrary: (playlistId: string) =>
     get().playlists.some((playlist) => playlist._id === playlistId),
-  isSongLiked: (songId: string) =>
-    get().likedSongs.some((song) => song._id === songId),
+  isSongLiked: (songId: string) => {
+    const liked = getLikedPlaylist();
+    if (!liked) return false;
+    return playlistContainsSong(liked, songId);
+  },
   isArtistFollowed: (artistId: string) =>
     get().followedArtists.some((artist) => artist._id === artistId),
+  getLikedPlaylist,
 }));

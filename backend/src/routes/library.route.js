@@ -2,7 +2,6 @@ import express from "express";
 import {
   toggleAlbumInLibrary,
   getLibraryAlbums,
-  getLikedSongs,
   toggleSongLikeInLibrary,
   getPlaylistsInLibrary,
   togglePlaylistInLibrary,
@@ -20,7 +19,6 @@ router.get("/summary", protectRoute, getLibrarySummary);
 router.get("/albums", protectRoute, getLibraryAlbums);
 router.post("/albums/toggle", protectRoute, toggleAlbumInLibrary);
 
-router.get("/liked-songs", protectRoute, getLikedSongs);
 router.post("/songs/toggle-like", protectRoute, toggleSongLikeInLibrary);
 
 router.get("/playlists", protectRoute, getPlaylistsInLibrary);

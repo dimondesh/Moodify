@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import UniversalPlayButton from "@/components/ui/UniversalPlayButton";
 import { getOptimizedImageUrl } from "@/lib/utils";
+import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 import { useMusicStore } from "@/stores/useMusicStore";
 import type { Song, Album, Playlist, Artist } from "@/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -74,7 +75,7 @@ const EntitySectionCardComponent: React.FC<EntitySectionCardProps> = ({
             <img
               src={getOptimizedImageUrl(
                 item.imageUrl ||
-                  "https://moodify.b-cdn.net/default-album-cover.png",
+                  CDN_DEFAULT_ALBUM_COVER,
                 200,
               )}
               alt={title}

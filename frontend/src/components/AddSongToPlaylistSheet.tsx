@@ -16,6 +16,7 @@ import { Song } from "@/types";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { CDN_LIKED_PLAYLIST_COVER } from "@/lib/cdn";
 
 interface AddSongToPlaylistSheetProps {
   song: Song;
@@ -24,7 +25,7 @@ interface AddSongToPlaylistSheetProps {
   /** Success toasts when adding/removing the track from a user playlist row. */
   notifyPlaylistMembershipChanges?: boolean;
   /** Success toasts when toggling liked songs from this sheet. */
-  notifyLikedSongsChanges?: boolean;
+  notifyLibraryChanges?: boolean;
 }
 
 const AddSongToPlaylistSheet: React.FC<AddSongToPlaylistSheetProps> = ({
@@ -32,7 +33,7 @@ const AddSongToPlaylistSheet: React.FC<AddSongToPlaylistSheetProps> = ({
   isOpen,
   onOpenChange,
   notifyPlaylistMembershipChanges = false,
-  notifyLikedSongsChanges = false,
+  notifyLibraryChanges = false,
 }) => {
   const { t } = useTranslation();
   const {
@@ -104,7 +105,7 @@ const AddSongToPlaylistSheet: React.FC<AddSongToPlaylistSheetProps> = ({
     setLocalIsLiked(!originallyLiked);
     try {
       await toggleSongLike(song._id);
-      if (notifyLikedSongsChanges) {
+      if (notifyLibraryChanges) {
         toast.success(
           !originallyLiked
             ? t("player.addedToLiked")
@@ -188,10 +189,12 @@ const AddSongToPlaylistSheet: React.FC<AddSongToPlaylistSheetProps> = ({
             <CheckboxItem
               checked={localIsLiked}
               onClick={handleLikeToggle}
-              imageUrl="/liked.png"
+              imageUrl={CDN_LIKED_PLAYLIST_COVER}
               title={t("sidebar.likedSongs")}
             />
-            {ownedPlaylists.map((playlist) => (
+            {ownedPlaylists
+              .filter((p) => p.type !== "LIKED_SONGS")
+              .map((playlist) => (
               <CheckboxItem
                 key={playlist._id}
                 checked={localPlaylistsWithSong.has(playlist._id)}

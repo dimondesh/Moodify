@@ -7,6 +7,7 @@ import SectionGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton"
 import { useSearchStore } from "@/stores/useSearchStore";
 import { useTranslation } from "react-i18next";
 import { getArtistNames, getOptimizedImageUrl } from "@/lib/utils";
+import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
 
 type AlbumGridProps = {
@@ -57,14 +58,14 @@ const AlbumGridComponent = ({ title, albums, isLoading }: AlbumGridProps) => {
                 <img
                   src={getOptimizedImageUrl(
                     album.imageUrl ||
-                      "https://moodify.b-cdn.net/default-album-cover.png",
+                      CDN_DEFAULT_ALBUM_COVER,
                     200
                   )}
                   alt={album.title}
                   className="absolute inset-0 h-full w-full object-cover rounded-md transition-transform duration-300 group-hover:scale-105"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src =
-                      "https://moodify.b-cdn.net/default-album-cover.png";
+                      CDN_DEFAULT_ALBUM_COVER;
                   }}
                 />
               </div>

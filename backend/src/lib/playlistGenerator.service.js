@@ -3,9 +3,14 @@ import mongoose from "mongoose";
 import { ListenHistory } from "../models/listenHistory.model.js";
 import { Song } from "../models/song.model.js";
 import { Library } from "../models/library.model.js";
+import {
+  CDN_ON_REPEAT_IMAGE,
+  CDN_DISCOVER_WEEKLY_IMAGE,
+  CDN_ON_REPEAT_REWIND_IMAGE,
+} from "../constants/cdn.js";
 
 const ON_REPEAT_SONG_COUNT = 30;
-const ON_REPEAT_IMAGE_URL = "https://moodify.b-cdn.net/on-repeat.png";
+const ON_REPEAT_IMAGE_URL = CDN_ON_REPEAT_IMAGE;
 
 export const generateOnRepeatPlaylistForUser = async (userId) => {
   console.log(`Generating 'On Repeat' playlist for user: ${userId}`);
@@ -135,7 +140,7 @@ export const generateDiscoverWeeklyForUser = async (userId) => {
       type: "DISCOVER_WEEKLY",
       nameKey: "generatedPlaylists.discoverWeekly.title",
       descriptionKey: "generatedPlaylists.discoverWeekly.description",
-      imageUrl: "https://moodify.b-cdn.net/discover-weekly.png",
+      imageUrl: CDN_DISCOVER_WEEKLY_IMAGE,
       songs: finalTracks.map((song) => song._id),
       generatedOn: new Date(),
     };
@@ -212,7 +217,7 @@ export const generateOnRepeatRewindForUser = async (userId) => {
       type: "ON_REPEAT_REWIND",
       nameKey: "generatedPlaylists.onRepeatRewind.title",
       descriptionKey: "generatedPlaylists.onRepeatRewind.description",
-      imageUrl: "https://moodify.b-cdn.net/on-repeat-rewind2.png",
+      imageUrl: CDN_ON_REPEAT_REWIND_IMAGE,
       songs: finalTracks.map((song) => song._id),
       generatedOn: new Date(),
     };

@@ -13,6 +13,7 @@ import {
   extractCoverAccentHexFromUrl,
   isSkippableCoverImageUrl,
 } from "../lib/coverAccent.service.js";
+import { CDN_DEFAULT_ALBUM_COVER } from "../constants/cdn.js";
 
 const SONG_MINIMAL_SELECT =
   "_id title imageUrl coverAccentHex duration playCount albumId createdAt";
@@ -51,7 +52,7 @@ export const createPlaylist = async (req, res, next) => {
       return res.status(400).json({ message: "Playlist title is required" });
     }
 
-    let imageUrl = "https://moodify.b-cdn.net/default-album-cover.png";
+    let imageUrl = CDN_DEFAULT_ALBUM_COVER;
     let imagePublicId = null;
     let coverAccentHex = null;
 
@@ -142,6 +143,46 @@ export const getMyPlaylists = async (req, res, next) => {
   }
 };
 
+async function enrichLikedSongsPlaylist(payload) {
+  const rawSongs = (payload.songs || []).filter(Boolean);
+  const ts = {
+    ...(typeof payload.songLikeTimestamps === "object" &&
+    payload.songLikeTimestamps !== null
+      ? payload.songLikeTimestamps
+      : {}),
+  };
+  const fallbackLegacy = payload.createdAt || new Date();
+  let timestampsDirty = false;
+  for (const s of rawSongs) {
+    const id = s._id.toString();
+    if (ts[id] == null) {
+      ts[id] = fallbackLegacy;
+      timestampsDirty = true;
+    }
+  }
+  if (timestampsDirty) {
+    await Playlist.updateOne(
+      { _id: payload._id },
+      { $set: { songLikeTimestamps: ts } },
+    );
+    payload.songLikeTimestamps = ts;
+  }
+
+  const enriched = rawSongs.map((s) => {
+    const id = s._id.toString();
+    const likedAt = ts[id];
+    return { ...s, likedAt: likedAt ?? null };
+  });
+
+  enriched.sort((a, b) => {
+    const ta = new Date(a.likedAt ?? 0).getTime();
+    const tb = new Date(b.likedAt ?? 0).getTime();
+    return tb - ta;
+  });
+
+  payload.songs = enriched;
+}
+
 export const getPlaylistById = async (req, res, next) => {
   try {
     const playlistId = req.params.id;
@@ -167,6 +208,7 @@ export const getPlaylistById = async (req, res, next) => {
     const payload = { ...playlist };
     if (payload.type === "LIKED_SONGS" && payload.isSystem) {
       delete payload.description;
+      await enrichLikedSongsPlaylist(payload);
     }
 
     res.status(200).json(payload);
@@ -215,7 +257,7 @@ export const updatePlaylist = async (req, res, next) => {
       if (playlist.imagePublicId) {
         await deleteFromBunny(playlist.imagePublicId);
       }
-      playlist.imageUrl = "https://moodify.b-cdn.net/default-album-cover.png";
+      playlist.imageUrl = CDN_DEFAULT_ALBUM_COVER;
       playlist.imagePublicId = null;
       playlist.coverAccentHex = null;
     }
@@ -460,7 +502,7 @@ export const createPlaylistFromSong = async (req, res, next) => {
     }
 
     const resolvedImageUrl =
-      imageUrl || "https://moodify.b-cdn.net/default-album-cover.png";
+      imageUrl || CDN_DEFAULT_ALBUM_COVER;
     let coverAccentHex = null;
     if (!isSkippableCoverImageUrl(resolvedImageUrl)) {
       coverAccentHex = await extractCoverAccentHexFromUrl(resolvedImageUrl);
