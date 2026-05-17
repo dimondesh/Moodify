@@ -7,7 +7,6 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export type NormalizationMode = "off" | "loud" | "normal" | "quiet";
-export type AnalyzerSmoothness = "low" | "medium" | "high";
 
 export const defaultFrequencies = [
   "60",
@@ -201,7 +200,6 @@ interface AudioSettings {
   equalizerGains: { [key: string]: number };
   normalizationMode: NormalizationMode;
   waveAnalyzerEnabled: boolean;
-  analyzerSmoothness: AnalyzerSmoothness;
   activePresetName: string;
   reverbEnabled: boolean;
   reverbMix: number;
@@ -216,7 +214,6 @@ interface AudioStore extends AudioSettings {
   setEqualizerGain: (frequency: string, gain: number) => void;
   setNormalizationMode: (mode: NormalizationMode) => void;
   setWaveAnalyzerEnabled: (enabled: boolean) => void;
-  setAnalyzerSmoothness: (smoothness: AnalyzerSmoothness) => void;
   applyPreset: (preset: EqualizerPreset) => void;
   resetAudioSettings: () => void;
   updateCustomPreset: () => void;
@@ -235,7 +232,6 @@ export const useAudioSettingsStore = create<AudioStore>()(
       equalizerGains: { ...equalizerPresets[0].gains },
       normalizationMode: "normal",
       waveAnalyzerEnabled: true,
-      analyzerSmoothness: "medium",
       activePresetName: equalizerPresets[0].name,
       reverbEnabled: true,
       reverbMix: 0,
@@ -267,8 +263,6 @@ export const useAudioSettingsStore = create<AudioStore>()(
       },
       setWaveAnalyzerEnabled: (enabled) =>
         set({ waveAnalyzerEnabled: enabled }),
-      setAnalyzerSmoothness: (smoothness) =>
-        set({ analyzerSmoothness: smoothness }),
       applyPreset: (preset) => {
         set({
           equalizerGains: { ...preset.gains },
@@ -282,7 +276,6 @@ export const useAudioSettingsStore = create<AudioStore>()(
           equalizerGains: { ...equalizerPresets[0].gains },
           normalizationMode: "off",
           waveAnalyzerEnabled: true,
-          analyzerSmoothness: "medium",
           activePresetName: equalizerPresets[0].name,
           reverbEnabled: false,
           reverbMix: 0.5,
@@ -314,7 +307,7 @@ export const useAudioSettingsStore = create<AudioStore>()(
     }),
     {
       name: "audio-settings-storage",
-      version: 4,
+      version: 5,
       migrate: (persistedState: any, version) => {
         if (version < 2 && persistedState) {
           persistedState.reverbEnabled = false;
@@ -327,6 +320,9 @@ export const useAudioSettingsStore = create<AudioStore>()(
         }
         if (version < 4 && persistedState) {
           persistedState.analyzerSmoothness = "medium";
+        }
+        if (version < 5 && persistedState) {
+          delete persistedState.analyzerSmoothness;
         }
         return persistedState as AudioStore;
       },
@@ -743,7 +739,6 @@ useAudioSettingsStore.subscribe((state, prevState) => {
       state.equalizerEnabled !== prevState.equalizerEnabled ||
       state.normalizationMode !== prevState.normalizationMode ||
       state.waveAnalyzerEnabled !== prevState.waveAnalyzerEnabled ||
-      // Убрали подписку на analyzerSmoothness, так как это теперь чисто UI параметр
       equalizerGainsChanged ||
       (state.activePresetName === "Custom" &&
         prevState.activePresetName !== "Custom") ||

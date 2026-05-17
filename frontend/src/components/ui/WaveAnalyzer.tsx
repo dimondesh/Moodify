@@ -8,6 +8,26 @@ interface WaveAnalyzerProps {
   height?: number;
 }
 
+const FPS = 60;
+const FPS_INTERVAL = 1000 / FPS;
+
+function setupCanvas(
+  canvas: HTMLCanvasElement,
+  logicalWidth: number,
+  logicalHeight: number,
+) {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(logicalWidth * dpr);
+  canvas.height = Math.round(logicalHeight * dpr);
+  canvas.style.width = `${logicalWidth}px`;
+  canvas.style.height = `${logicalHeight}px`;
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
+  }
+}
+
 const WaveAnalyzer: React.FC<WaveAnalyzerProps> = ({
   width = 120,
   height = 30,
@@ -21,34 +41,21 @@ const WaveAnalyzer: React.FC<WaveAnalyzerProps> = ({
   const waveAnalyzerEnabled = useAudioSettingsStore(
     (state) => state.waveAnalyzerEnabled,
   );
-  const analyzerSmoothness = useAudioSettingsStore(
-    (state) => state.analyzerSmoothness,
-  );
 
   const draw = useCallback(
     (timestamp: number) => {
       const canvas = canvasRef.current;
       if (!canvas) return;
 
-      let fpsInterval = 1000 / 60; // Default High (60 FPS)
-
-      if (analyzerSmoothness === "low") {
-        fpsInterval = 1000 / 30; // Low (30 FPS)
-      } else if (analyzerSmoothness === "medium") {
-        fpsInterval = 1000 / 60; // Medium (60 FPS)
-      } else {
-        fpsInterval = 1000 / 120; // High (120 FPS)
-      }
-
       const elapsed = timestamp - lastDrawTimeRef.current;
 
       animationFrameId.current = requestAnimationFrame(draw);
 
-      if (elapsed < fpsInterval) {
+      if (elapsed < FPS_INTERVAL) {
         return;
       }
 
-      lastDrawTimeRef.current = timestamp - (elapsed % fpsInterval);
+      lastDrawTimeRef.current = timestamp - (elapsed % FPS_INTERVAL);
 
       const canvasCtx = canvas.getContext("2d");
       const analyser = webAudioService.getAnalyserNode();
@@ -103,8 +110,22 @@ const WaveAnalyzer: React.FC<WaveAnalyzerProps> = ({
 
       canvasCtx.stroke();
     },
-    [width, height, analyzerSmoothness],
+    [width, height],
   );
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const applyCanvasSize = () => setupCanvas(canvas, width, height);
+
+    applyCanvasSize();
+    window.addEventListener("resize", applyCanvasSize);
+
+    return () => {
+      window.removeEventListener("resize", applyCanvasSize);
+    };
+  }, [width, height]);
 
   useEffect(() => {
     const startAnimation = () => {
@@ -143,8 +164,6 @@ const WaveAnalyzer: React.FC<WaveAnalyzerProps> = ({
   return (
     <canvas
       ref={canvasRef}
-      width={width}
-      height={height}
       className="rounded-full overflow-hidden"
       style={{
         transform: "scaleX(1.2)",

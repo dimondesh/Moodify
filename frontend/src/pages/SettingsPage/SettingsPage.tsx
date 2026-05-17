@@ -9,7 +9,6 @@ import {
   ReverbRoomSize,
   reverbIRPaths,
   useAudioSettingsStore,
-  AnalyzerSmoothness,
 } from "../../lib/webAudio";
 import { RefreshCw } from "lucide-react";
 import { Label } from "../../components/ui/label";
@@ -38,7 +37,6 @@ const SettingsPage: React.FC = () => {
     equalizerGains,
     normalizationMode,
     waveAnalyzerEnabled,
-    analyzerSmoothness,
     activePresetName,
     reverbEnabled,
     reverbMix,
@@ -50,7 +48,6 @@ const SettingsPage: React.FC = () => {
     setEqualizerGain,
     setNormalizationMode,
     setWaveAnalyzerEnabled,
-    setAnalyzerSmoothness,
     applyPreset,
     resetAudioSettings,
     setReverbEnabled,
@@ -625,44 +622,10 @@ const SettingsPage: React.FC = () => {
                       className="data-[state=checked]:bg-violet-600"
                     />
                   </div>
-                  <p className="text-gray-400 text-sm mt-2 mb-4">
+                  <p className="text-gray-400 text-sm mt-2">
                     {t("settings.waveAnalyzerDesc")}
                   </p>
 
-                  {/* --- Analyzer Smoothness Control --- */}
-                  {waveAnalyzerEnabled && (
-                    <div className="mt-4">
-                      <Label className="text-sm font-medium text-gray-300 mb-3 block">
-                        {t("settings.waveAnalyzerSmoothness")}
-                      </Label>
-                      <div className="flex">
-                        {(
-                          ["low", "medium", "high"] as AnalyzerSmoothness[]
-                        ).map((mode, index, arr) => (
-                          <button
-                            key={mode}
-                            onClick={() => setAnalyzerSmoothness(mode)}
-                            className={`
-                                  flex-1 py-2 px-4 text-sm font-medium transition-colors
-                                  ${
-                                    analyzerSmoothness === mode
-                                      ? "bg-violet-600 text-white"
-                                      : "bg-zinc-800/50 text-gray-400 hover:bg-[#3a3a3a]"
-                                  }
-                                  ${index === 0 ? "rounded-l-md" : ""}
-                                  ${index === arr.length - 1 ? "rounded-r-md" : ""}
-                                  border-r border-[#1a1a1a] last:border-r-0
-                                `}
-                          >
-                            {t(`settings.smoothness.${mode}`)}
-                          </button>
-                        ))}
-                      </div>
-                      <p className="text-yellow-500/80 text-xs mt-2">
-                        {t("settings.smoothnessPerformance")}
-                      </p>
-                    </div>
-                  )}
                 </div>
               </>
             )}
