@@ -2,11 +2,9 @@ import { Playlist } from "../models/playlist.model.js";
 import { User } from "../models/user.model.js";
 import { Song } from "../models/song.model.js";
 import { Library } from "../models/library.model.js";
-import { uploadToBunny, deleteFromBunny } from "../lib/bunny.service.js";
-import { v4 as uuidv4 } from "uuid";
-import path from "path";
 import { getPlaylistEmbeddingRecommendations } from "../lib/recommendation.service.js";
 import { optimizeAndUploadImage } from "../lib/image.service.js";
+import { deletePlaylistCoverFromCdn } from "../lib/playlistCover.service.js";
 import fs from "fs/promises";
 import {
   extractCoverAccentHexFromBuffer,
@@ -26,21 +24,6 @@ export const populatePlaylistEmbeddedSongs = {
     model: "Artist",
     select: "name imageUrl",
   },
-};
-
-const uploadImageToBunny = async (file) => {
-  try {
-    const fileName = `${uuidv4()}${path.extname(file.name)}`;
-    const result = await uploadToBunny(
-      file.tempFilePath,
-      "playlist_covers",
-      fileName,
-    );
-    return result.url;
-  } catch (error) {
-    console.error("Error uploading image to Bunny.net:", error);
-    throw new Error("Failed to upload image file to Bunny.net");
-  }
 };
 
 export const createPlaylist = async (req, res, next) => {
@@ -240,9 +223,10 @@ export const updatePlaylist = async (req, res, next) => {
     if (isPublic !== undefined) playlist.isPublic = isPublic === "true";
 
     if (req.files && req.files.image) {
-      if (playlist.imagePublicId) {
-        await deleteFromBunny(playlist.imagePublicId);
-      }
+      const previousCover = {
+        imageUrl: playlist.imageUrl,
+        imagePublicId: playlist.imagePublicId,
+      };
       const coverBuf = await fs.readFile(req.files.image.tempFilePath);
       playlist.coverAccentHex =
         await extractCoverAccentHexFromBuffer(coverBuf);
@@ -253,13 +237,16 @@ export const updatePlaylist = async (req, res, next) => {
       );
       playlist.imageUrl = imageUpload.url;
       playlist.imagePublicId = imageUpload.path;
+      await deletePlaylistCoverFromCdn(previousCover, imageUpload.path);
     } else if (req.body.removeImage === "true") {
-      if (playlist.imagePublicId) {
-        await deleteFromBunny(playlist.imagePublicId);
-      }
+      const previousCover = {
+        imageUrl: playlist.imageUrl,
+        imagePublicId: playlist.imagePublicId,
+      };
       playlist.imageUrl = CDN_DEFAULT_ALBUM_COVER;
       playlist.imagePublicId = null;
       playlist.coverAccentHex = null;
+      await deletePlaylistCoverFromCdn(previousCover);
     }
 
     await playlist.save();
@@ -291,9 +278,7 @@ export const deletePlaylist = async (req, res, next) => {
       });
     }
 
-    if (playlist.imagePublicId) {
-      await deleteFromBunny(playlist.imagePublicId);
-    }
+    await deletePlaylistCoverFromCdn(playlist);
 
     await Playlist.findByIdAndDelete(playlistId);
     await User.findByIdAndUpdate(playlist.owner, {

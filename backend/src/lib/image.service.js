@@ -6,13 +6,10 @@ import path from "path";
 import os from "os";
 import fs from "fs/promises";
 
-export const optimizeAndUploadImage = async (
-  source,
-  originalFileName,
-  folder,
-  width = 800,
-  quality = 80
-) => {
+const USER_IMAGE_SIZE = 512;
+const USER_IMAGE_QUALITY = 82;
+
+export const optimizeAndUploadImage = async (source, originalFileName, folder) => {
   const newFileName = `${uuidv4()}.webp`;
   const tempOptimizedFilePath = path.join(os.tmpdir(), newFileName);
 
@@ -21,9 +18,13 @@ export const optimizeAndUploadImage = async (
     : source;
 
   try {
-    await sharp(sourceBuffer)
-      .resize({ width, fit: sharp.fit.cover })
-      .webp({ quality })
+    const image = sharp(sourceBuffer).rotate();
+    const { width, height } = await image.metadata();
+    const side = Math.min(width, height, USER_IMAGE_SIZE);
+
+    await image
+      .resize(side, side, { fit: "cover", position: "centre" })
+      .webp({ quality: USER_IMAGE_QUALITY })
       .toFile(tempOptimizedFilePath);
 
     const result = await uploadToBunny(tempOptimizedFilePath, folder);

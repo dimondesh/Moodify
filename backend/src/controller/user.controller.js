@@ -187,8 +187,6 @@ export const updateUserProfile = async (req, res, next) => {
         file,
         file.name,
         "profile_pictures",
-        400,
-        85,
       );
       updateDataMongo.imageUrl = result.url;
     }
