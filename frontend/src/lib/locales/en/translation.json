@@ -1080,16 +1080,28 @@
         "cancel": "Cancel",
         "remove": "Remove Song"
       },
-      "addSongDialog": {
-        "title": "Add Song to Playlist",
-        "description": "Find a song and add it to the playlist.",
-        "searchPlaceholder": "Search songs...",
+      "discover": {
+        "title": "Let's find something for your playlist",
+        "searchPlaceholder": "Search for songs, albums, or artists",
         "searching": "Searching...",
-        "noSongsFound": "No songs found.",
+        "noResults": "No results found.",
+        "back": "Back",
+        "popular": "Popular",
+        "albums": "Albums",
+        "artist": "Artist",
+        "album": "Album",
+        "recommended": "Recommended",
+        "refresh": "Refresh",
         "added": "Added",
         "add": "Add",
-        "noPlaylists": "No playlists available.",
-        "noPlaylistsError": "You don't have any playlists yet."
+        "artistsSection": "Artists",
+        "albumsSection": "Albums",
+        "songsSection": "Songs",
+        "topResults": "Top results",
+        "seeAll": "See all {{entity}}",
+        "headers": {
+          "album": "Album"
+        }
       },
       "editDialog": {
         "title": "Edit Playlist",

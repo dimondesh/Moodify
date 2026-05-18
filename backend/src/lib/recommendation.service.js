@@ -210,3 +210,245 @@ export const getVibeMatchTracks = async (currentSongId, limit = 10) => {
   const topMatches = scoredCandidates.slice(0, limit * 2);
   return topMatches.sort(() => 0.5 - Math.random()).slice(0, limit);
 };
+
+const computeCentroidEmbedding = (embeddings) => {
+  const dim = embeddings[0].length;
+  const sum = new Array(dim).fill(0);
+  for (const vec of embeddings) {
+    for (let i = 0; i < dim; i++) {
+      sum[i] += vec[i];
+    }
+  }
+  const n = embeddings.length;
+  for (let i = 0; i < dim; i++) {
+    sum[i] /= n;
+  }
+  let norm = 0;
+  for (let i = 0; i < dim; i++) {
+    norm += sum[i] * sum[i];
+  }
+  norm = Math.sqrt(norm);
+  if (norm === 0) return sum;
+  return sum.map((v) => v / norm);
+};
+
+const scoreCandidateAgainstPlaylist = (
+  centroidEmbedding,
+  avgAudioFeatures,
+  genreIds,
+  moodIds,
+  candidate,
+) => {
+  let score = calculateFeatureDistance(
+    avgAudioFeatures,
+    candidate.audioFeatures || {},
+  );
+
+  if (
+    isHarmonicallyCompatible(
+      avgAudioFeatures,
+      candidate.audioFeatures || {},
+    )
+  ) {
+    score -= 0.1;
+  }
+
+  const sharedMoods = (candidate.moods || []).filter((m) =>
+    moodIds.some((tm) => tm.toString() === m.toString()),
+  ).length;
+  score -= sharedMoods * 0.05;
+
+  const sharedGenres = (candidate.genres || []).filter((g) =>
+    genreIds.some((tg) => tg.toString() === g.toString()),
+  ).length;
+
+  if (sharedGenres === 0) {
+    score += 10;
+  } else {
+    score -= sharedGenres * 0.1;
+  }
+
+  if (candidate.audioFeatures?.embedding) {
+    const similarity = cosineSimilarity(
+      centroidEmbedding,
+      candidate.audioFeatures.embedding,
+    );
+    score -= similarity * 2.0;
+  }
+
+  return score;
+};
+
+const formatPlaylistRecommendationSong = (song) => ({
+  _id: song._id.toString(),
+  title: song.title,
+  imageUrl: song.imageUrl,
+  coverAccentHex: song.coverAccentHex ?? null,
+  duration: song.duration,
+  playCount: song.playCount ?? 0,
+  albumId: song.albumId?._id
+    ? song.albumId._id.toString()
+    : song.albumId
+      ? song.albumId.toString()
+      : null,
+  albumTitle: song.albumId?.title ?? null,
+  artist: song.artist
+    ? song.artist.map((a) => ({
+        _id: a._id.toString(),
+        name: a.name,
+        imageUrl: a.imageUrl,
+      }))
+    : [],
+});
+
+export const getPlaylistEmbeddingRecommendations = async (
+  playlistId,
+  limit = 10,
+) => {
+  try {
+    const playlist = await Playlist.findById(playlistId).select("songs").lean();
+    if (!playlist?.songs?.length || playlist.songs.length <= 3) {
+      return null;
+    }
+
+    const playlistSongIds = playlist.songs.map((id) => id.toString());
+    const playlistSongs = await Song.find({ _id: { $in: playlist.songs } })
+      .select("genres moods audioFeatures")
+      .lean();
+
+    if (!playlistSongs.length) return null;
+
+    const embeddings = playlistSongs
+      .map((s) => s.audioFeatures?.embedding)
+      .filter((e) => Array.isArray(e) && e.length > 0);
+
+    if (embeddings.length === 0) return null;
+
+    const centroidEmbedding = computeCentroidEmbedding(embeddings);
+
+    const genreIds = [
+      ...new Map(
+        playlistSongs
+          .flatMap((s) => s.genres || [])
+          .map((g) => [g.toString(), g]),
+      ).values(),
+    ];
+    const moodIds = [
+      ...new Map(
+        playlistSongs
+          .flatMap((s) => s.moods || [])
+          .map((m) => [m.toString(), m]),
+      ).values(),
+    ];
+
+    const bpms = playlistSongs
+      .map((s) => s.audioFeatures?.bpm)
+      .filter((b) => b != null);
+    const targetBpm =
+      bpms.length > 0
+        ? bpms.reduce((acc, b) => acc + b, 0) / bpms.length
+        : null;
+
+    const avgAudioFeatures = {
+      bpm: targetBpm,
+      camelot: null,
+      embedding: centroidEmbedding,
+    };
+
+    const bpmTolerance = 20;
+    const excludeIds = playlist.songs;
+
+    let matchQuery = {
+      _id: { $nin: excludeIds },
+      "audioFeatures.embedding": { $exists: true, $ne: null },
+    };
+
+    if (genreIds.length > 0 && targetBpm != null) {
+      matchQuery = {
+        _id: { $nin: excludeIds },
+        "audioFeatures.embedding": { $exists: true, $ne: null },
+        $and: [
+          { genres: { $in: genreIds } },
+          {
+            $or: [
+              {
+                "audioFeatures.bpm": {
+                  $gte: targetBpm - bpmTolerance,
+                  $lte: targetBpm + bpmTolerance,
+                },
+              },
+              {
+                "audioFeatures.bpm": {
+                  $gte: targetBpm * 2 - bpmTolerance,
+                  $lte: targetBpm * 2 + bpmTolerance,
+                },
+              },
+              {
+                "audioFeatures.bpm": {
+                  $gte: targetBpm / 2 - bpmTolerance,
+                  $lte: targetBpm / 2 + bpmTolerance,
+                },
+              },
+            ],
+          },
+        ],
+      };
+    } else if (genreIds.length > 0) {
+      matchQuery.genres = { $in: genreIds };
+    }
+
+    let candidatesAgg = await Song.aggregate([
+      { $match: matchQuery },
+      { $sample: { size: 100 } },
+    ]);
+
+    if (candidatesAgg.length < limit) {
+      const fallbackMatch = {
+        _id: { $nin: excludeIds },
+        "audioFeatures.embedding": { $exists: true, $ne: null },
+      };
+      if (genreIds.length > 0 || moodIds.length > 0) {
+        fallbackMatch.$or = [];
+        if (genreIds.length > 0) {
+          fallbackMatch.$or.push({ genres: { $in: genreIds } });
+        }
+        if (moodIds.length > 0) {
+          fallbackMatch.$or.push({ moods: { $in: moodIds } });
+        }
+      }
+      candidatesAgg = await Song.aggregate([
+        { $match: fallbackMatch },
+        { $sample: { size: 100 } },
+      ]);
+    }
+
+    if (candidatesAgg.length === 0) return null;
+
+    const candidates = await Song.populate(candidatesAgg, [
+      { path: "artist", select: "name imageUrl" },
+      { path: "albumId", select: "title imageUrl" },
+    ]);
+
+    const scoredCandidates = candidates.map((candidate) => ({
+      ...candidate,
+      score: scoreCandidateAgainstPlaylist(
+        centroidEmbedding,
+        avgAudioFeatures,
+        genreIds,
+        moodIds,
+        candidate,
+      ),
+    }));
+
+    scoredCandidates.sort((a, b) => a.score - b.score);
+    const topMatches = scoredCandidates.slice(0, limit * 2);
+    const shuffled = topMatches.sort(() => 0.5 - Math.random()).slice(0, limit);
+
+    return shuffled.map(({ score: _score, ...song }) =>
+      formatPlaylistRecommendationSong(song),
+    );
+  } catch (error) {
+    console.error("getPlaylistEmbeddingRecommendations:", error);
+    return null;
+  }
+};

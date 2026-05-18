@@ -1077,16 +1077,28 @@
         "cancel": "Отмена",
         "remove": "Удалить трек"
       },
-      "addSongDialog": {
-        "title": "Добавить трек в плейлист",
-        "description": "Найдите трек и добавьте его в плейлист.",
-        "searchPlaceholder": "Поиск треков...",
+      "discover": {
+        "title": "Найдём что-нибудь для вашего плейлиста",
+        "searchPlaceholder": "Поиск треков, альбомов или артистов",
         "searching": "Поиск...",
-        "noSongsFound": "Треки не найдены.",
+        "noResults": "Ничего не найдено.",
+        "back": "Назад",
+        "popular": "Популярные",
+        "albums": "Альбомы",
+        "artist": "Артист",
+        "album": "Альбом",
+        "recommended": "Рекомендуем",
+        "refresh": "Обновить",
         "added": "Добавлено",
         "add": "Добавить",
-        "noPlaylists": "Нет доступных плейлистов.",
-        "noPlaylistsError": "У вас еще нет плейлистов."
+        "artistsSection": "Артисты",
+        "albumsSection": "Альбомы",
+        "songsSection": "Треки",
+        "topResults": "Лучшие совпадения",
+        "seeAll": "Показать все: {{entity}}",
+        "headers": {
+          "album": "Альбом"
+        }
       },
       "editDialog": {
         "title": "Редактировать плейлист",

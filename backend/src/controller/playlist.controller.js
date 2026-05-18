@@ -5,7 +5,7 @@ import { Library } from "../models/library.model.js";
 import { uploadToBunny, deleteFromBunny } from "../lib/bunny.service.js";
 import { v4 as uuidv4 } from "uuid";
 import path from "path";
-import { getMadeForYouSongs, getTrendingSongs } from "./song.controller.js";
+import { getPlaylistEmbeddingRecommendations } from "../lib/recommendation.service.js";
 import { optimizeAndUploadImage } from "../lib/image.service.js";
 import fs from "fs/promises";
 import {
@@ -353,7 +353,10 @@ export const addSongToPlaylist = async (req, res, next) => {
       .to(`playlist-${playlistId}`)
       .emit("playlist_updated", { playlist: updatedPlaylist });
 
-    res.status(200).json({ message: "Song added to playlist", playlist });
+    res.status(200).json({
+      message: "Song added to playlist",
+      playlist: updatedPlaylist,
+    });
   } catch (error) {
     console.error("Error in addSongToPlaylist:", error);
     next(error);
@@ -531,83 +534,19 @@ export const createPlaylistFromSong = async (req, res, next) => {
   }
 };
 
-export const getPlaylistRecommendations = async (req, res, next) => {
+export const getPlaylistRecommendations = async (req, res) => {
   try {
     const { id: playlistId } = req.params;
-    const userId = req.user.id;
 
-    const playlist = await Playlist.findById(playlistId).select("songs").lean();
-
+    const playlist = await Playlist.findById(playlistId).select("_id").lean();
     if (!playlist) {
       return res.status(404).json({ message: "Playlist not found" });
     }
 
-    let recommendations = [];
-
-    if (playlist.songs && playlist.songs.length > 0) {
-      const songDetails = await Song.find({ _id: { $in: playlist.songs } })
-        .select("genres moods artist")
-        .lean();
-
-      const genreIds = [...new Set(songDetails.flatMap((s) => s.genres))];
-      const moodIds = [...new Set(songDetails.flatMap((s) => s.moods))];
-      const artistIds = [...new Set(songDetails.flatMap((s) => s.artist))];
-
-      recommendations = await Song.aggregate([
-        { $match: { _id: { $nin: playlist.songs } } },
-        {
-          $match: {
-            $or: [
-              { genres: { $in: genreIds } },
-              { moods: { $in: moodIds } },
-              { artist: { $in: artistIds } },
-            ],
-          },
-        },
-        {
-          $addFields: {
-            score: {
-              $add: [
-                { $size: { $setIntersection: ["$genres", genreIds] } },
-                { $size: { $setIntersection: ["$moods", moodIds] } },
-                {
-                  $multiply: [
-                    { $size: { $setIntersection: ["$artist", artistIds] } },
-                    2,
-                  ],
-                },
-              ],
-            },
-          },
-        },
-        { $sort: { score: -1, playCount: -1 } },
-        { $limit: 20 },
-        {
-          $lookup: {
-            from: "artists",
-            localField: "artist",
-            foreignField: "_id",
-            as: "artist",
-          },
-        },
-      ]);
-    }
-
-    if (recommendations.length === 0) {
-      const mockReq = { user: { id: userId } };
-      const mockRes = { json: (data) => (recommendations = data) };
-      await getMadeForYouSongs(mockReq, mockRes, next);
-    }
-
-    if (recommendations.length === 0) {
-      const mockReq = {};
-      const mockRes = { json: (data) => (recommendations = data) };
-      await getTrendingSongs(mockReq, mockRes, next);
-    }
-
-    res.status(200).json(recommendations);
+    const result = await getPlaylistEmbeddingRecommendations(playlistId, 10);
+    res.status(200).json(result);
   } catch (error) {
     console.error("Error getting playlist recommendations:", error);
-    next(error);
+    res.status(200).json(null);
   }
 };

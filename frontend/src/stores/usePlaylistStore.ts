@@ -24,7 +24,7 @@ interface PlaylistStore {
   myPlaylists: Playlist[];
   ownedPlaylists: Playlist[];
   publicPlaylists: Playlist[];
-  recommendations: Song[];
+  recommendations: Song[] | null;
   isRecommendationsLoading: boolean;
   currentPlaylist: Playlist | null;
   cachedPlaylists: Map<string, CachedPlaylist>;
@@ -62,7 +62,11 @@ interface PlaylistStore {
   addPlaylistLike: (playlistId: string) => Promise<void>;
   removePlaylistLike: (playlistId: string) => Promise<void>;
   resetCurrentPlaylist: () => void;
-  fetchPlaylistDetails: (playlistId: string) => Promise<void>;
+  fetchPlaylistDetails: (
+    playlistId: string,
+    forceRefetch?: boolean,
+  ) => Promise<void>;
+  invalidatePlaylistCache: (playlistId: string) => void;
   getLikedPlaylist: () => Playlist | undefined;
   isSongLiked: (songId: string) => boolean;
   toggleSongLike: (songId: string) => Promise<void>;
@@ -73,7 +77,7 @@ const CACHE_DURATION = 60 * 60 * 1000;
 export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
   myPlaylists: [],
   ownedPlaylists: [],
-  recommendations: [],
+  recommendations: null,
   isRecommendationsLoading: false,
   recommendedPlaylists: [],
   publicPlaylists: [],
@@ -101,10 +105,22 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
     });
   },
 
-  fetchPlaylistDetails: async (playlistId: string) => {
+  invalidatePlaylistCache: (playlistId: string) => {
+    set((state) => {
+      const nextCache = new Map(state.cachedPlaylists);
+      nextCache.delete(playlistId);
+      return { cachedPlaylists: nextCache };
+    });
+  },
+
+  fetchPlaylistDetails: async (playlistId: string, forceRefetch = false) => {
     const { cachedPlaylists } = get();
     const cachedEntry = cachedPlaylists.get(playlistId);
-    if (cachedEntry && Date.now() - cachedEntry.timestamp < CACHE_DURATION) {
+    if (
+      !forceRefetch &&
+      cachedEntry &&
+      Date.now() - cachedEntry.timestamp < CACHE_DURATION
+    ) {
       console.log(`[Cache] Loading playlist ${playlistId} from cache.`);
       set({ currentPlaylist: cachedEntry.data, isLoading: false, error: null });
       return;
@@ -299,19 +315,19 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
   fetchRecommendations: async (playlistId: string) => {
     if (useOfflineStore.getState().isOffline) return;
 
-    set({ isRecommendationsLoading: true, error: null });
+    set({ isRecommendationsLoading: true });
     try {
       const response = await axiosInstance.get(
         `/playlists/${playlistId}/recommendations`
       );
-      set({ recommendations: response.data, isRecommendationsLoading: false });
-    } catch (err: any) {
-      console.error("Failed to fetch recommendations:", err);
+      const data = response.data;
       set({
-        error: err.response?.data?.message || "Failed to fetch recommendations",
+        recommendations: Array.isArray(data) ? data : null,
         isRecommendationsLoading: false,
       });
-      toast.error("Could not load recommendations.");
+    } catch (err: unknown) {
+      console.error("Failed to fetch recommendations:", err);
+      set({ recommendations: null, isRecommendationsLoading: false });
     }
   },
 
@@ -367,8 +383,18 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
       get().fetchMyPlaylists();
       get().fetchOwnedPlaylists();
 
-      set({ isLoading: false });
-      return response.data;
+      const updated = response.data as Playlist;
+      get().invalidatePlaylistCache(id);
+      set((state) => ({
+        isLoading: false,
+        currentPlaylist:
+          state.currentPlaylist?._id === id ? updated : state.currentPlaylist,
+        cachedPlaylists: new Map(state.cachedPlaylists).set(id, {
+          data: updated,
+          timestamp: Date.now(),
+        }),
+      }));
+      return updated;
     } catch (err: any) {
       console.error("Failed to update playlist:", err);
       set({
@@ -399,7 +425,10 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
   addSongToPlaylist: async (playlistId: string, songId: string) => {
     set({ isLoading: true, error: null });
     try {
-      await axiosInstance.post(`/playlists/${playlistId}/songs`, { songId });
+      const response = await axiosInstance.post(
+        `/playlists/${playlistId}/songs`,
+        { songId },
+      );
 
       const { isDownloaded, downloadItem } = useOfflineStore.getState().actions;
       if (isDownloaded(playlistId)) {
@@ -412,7 +441,32 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
         await downloadItem(playlistId, "playlists");
         toast.success("Downloaded playlist updated!", { id: "playlist-sync" });
       }
-      set({ isLoading: false });
+
+      get().invalidatePlaylistCache(playlistId);
+      const playlistFromApi = response.data?.playlist as Playlist | undefined;
+      if (
+        playlistFromApi?.songs &&
+        Array.isArray(playlistFromApi.songs) &&
+        playlistFromApi.songs.length > 0 &&
+        typeof playlistFromApi.songs[0] === "object"
+      ) {
+        set((state) => ({
+          isLoading: false,
+          currentPlaylist:
+            state.currentPlaylist?._id === playlistId
+              ? playlistFromApi
+              : state.currentPlaylist,
+          cachedPlaylists: new Map(state.cachedPlaylists).set(playlistId, {
+            data: playlistFromApi,
+            timestamp: Date.now(),
+          }),
+        }));
+      } else if (get().currentPlaylist?._id === playlistId) {
+        await get().fetchPlaylistDetails(playlistId, true);
+        set({ isLoading: false });
+      } else {
+        set({ isLoading: false });
+      }
     } catch (err: any) {
       console.error("Failed to add song to playlist:", err);
       toast.dismiss("playlist-sync");
@@ -435,14 +489,21 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
           const updatedSongs = state.currentPlaylist.songs.filter(
             (song) => song._id !== songId
           );
+          const updatedPlaylist = {
+            ...state.currentPlaylist,
+            songs: updatedSongs,
+          };
           console.log(
             `[STORE] Locally updating UI. New song count: ${updatedSongs.length}`
           );
+          const nextCache = new Map(state.cachedPlaylists);
+          nextCache.set(playlistId, {
+            data: updatedPlaylist,
+            timestamp: Date.now(),
+          });
           return {
-            currentPlaylist: {
-              ...state.currentPlaylist,
-              songs: updatedSongs,
-            },
+            currentPlaylist: updatedPlaylist,
+            cachedPlaylists: nextCache,
           };
         }
         return state;

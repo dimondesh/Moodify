@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { usePlaylistStore } from "@/stores/usePlaylistStore";
 import PlaylistDetailsSkeleton from "@/components/ui/skeletons/PlaylistDetailsSkeleton";
@@ -18,8 +18,8 @@ import {
 import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 import { CollectionGradientLayout } from "@/components/CollectionGradientLayout";
 import { useDominantCoverGradient } from "@/hooks/useDominantCoverGradient";
-import { AddSongsToPlaylistDialog } from "./AddSongsToPlaylistDialog";
 import { DeletePlaylistDialog } from "./DeletePlaylistDialog";
+import { PlaylistDiscoverSection } from "./PlaylistDiscoverSection";
 import { RemoveSongFromPlaylistDialog } from "./RemoveSongFromPlaylistDialog";
 
 import {
@@ -28,7 +28,6 @@ import {
   PlusCircle,
   Edit,
   Trash2,
-  Plus,
   MoreHorizontal,
   X,
   Lock,
@@ -47,7 +46,6 @@ import {
   DrawerHeader as DrawerHeaderComponent,
   DrawerTitle as DrawerTitleComponent,
 } from "@/components/ui/drawer";
-import { useSearchStore } from "@/stores/useSearchStore";
 import toast from "react-hot-toast";
 import {
   DropdownMenu,
@@ -99,14 +97,9 @@ const PlaylistDetailsPage = () => {
     addSongToPlaylist,
     removeSongFromPlaylist,
     updateCurrentPlaylistFromSocket,
-    recommendations,
-    isRecommendationsLoading,
-    fetchRecommendations,
   } = usePlaylistStore();
   const {
     openEditPlaylistDialog,
-    isSearchAndAddDialogOpen,
-    openSearchAndAddDialog,
     playlistToDelete,
     openDeletePlaylistDialog,
     songToRemoveFromPlaylist,
@@ -121,17 +114,11 @@ const PlaylistDetailsPage = () => {
     playlists: libraryPlaylists,
     togglePlaylist,
   } = useLibraryStore();
-  const [searchTerm, setSearchTerm] = useState("");
   const [isTogglingLibrary, setIsTogglingLibrary] = useState(false);
   const [localIsLoading, setLocalIsLoading] = useState(true);
   const [selectedSongForMenu, setSelectedSongForMenu] = useState<Song | null>(
     null,
   );
-  const {
-    songs: searchSongs,
-    loading: searchLoading,
-    search: performSearch,
-  } = useSearchStore();
   const {
     playAlbum,
     setCurrentSong,
@@ -212,18 +199,10 @@ const PlaylistDetailsPage = () => {
     downloadItem,
   ]);
 
-  useEffect(() => {
-    if (isSearchAndAddDialogOpen && playlistId) {
-      fetchRecommendations(playlistId);
-    }
-  }, [isSearchAndAddDialogOpen, playlistId, fetchRecommendations]);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      performSearch(searchTerm);
-    }, 300);
-    return () => clearTimeout(handler);
-  }, [searchTerm, performSearch]);
+  const playlistSongIds = useMemo(
+    () => new Set(currentPlaylist?.songs?.map((s) => s._id) ?? []),
+    [currentPlaylist?.songs],
+  );
 
   const handlePlayPlaylist = () => {
     if (!currentPlaylist || currentPlaylist.songs.length === 0) return;
@@ -318,7 +297,6 @@ const PlaylistDetailsPage = () => {
     try {
       await addSongToPlaylist(currentPlaylist._id, songId);
       toast.success("Song added to playlist!");
-      await fetchPlaylistDetails(currentPlaylist._id);
     } catch (e) {
       toast.error("Failed to add song.");
     }
@@ -607,7 +585,7 @@ const PlaylistDetailsPage = () => {
                   type="button"
                   onClick={() =>
                     openEditPlaylistDialog(currentPlaylist, () =>
-                      fetchPlaylistDetails(currentPlaylist._id),
+                      fetchPlaylistDetails(currentPlaylist._id, true),
                     )
                   }
                   className="group w-64 h-64 sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px] shadow-xl rounded-md object-cover flex-shrink-0 mx-auto sm:mx-0 overflow-hidden border-0 p-0 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5cf6] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f0f0f]"
@@ -729,16 +707,6 @@ const PlaylistDetailsPage = () => {
                   )}
                 </Button>
               )}
-              {showAddToPlaylistButton && (
-                <Button
-                  variant="ghost2"
-                  size="icon"
-                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-full p-2 transition-colors group"
-                  onClick={openSearchAndAddDialog}
-                >
-                  <Plus className="size-8 text-white/80 group-hover:text-white transition-colors" />
-                </Button>
-              )}
               <DownloadButton
                 itemId={currentPlaylist._id}
                 itemType="playlists"
@@ -798,7 +766,7 @@ const PlaylistDetailsPage = () => {
                             className="justify-start p-3 h-auto text-base"
                             onClick={() =>
                               openEditPlaylistDialog(currentPlaylist, () =>
-                                fetchPlaylistDetails(currentPlaylist._id),
+                                fetchPlaylistDetails(currentPlaylist._id, true),
                               )
                             }
                           >
@@ -856,7 +824,7 @@ const PlaylistDetailsPage = () => {
                           className="cursor-pointer hover:bg-zinc-800/50"
                           onSelect={() =>
                             openEditPlaylistDialog(currentPlaylist, () =>
-                              fetchPlaylistDetails(currentPlaylist._id),
+                              fetchPlaylistDetails(currentPlaylist._id, true),
                             )
                           }
                         >
@@ -900,6 +868,14 @@ const PlaylistDetailsPage = () => {
                 </div>
               </div>
             </div>
+            {showAddToPlaylistButton && playlistId && (
+              <PlaylistDiscoverSection
+                playlistId={playlistId}
+                playlistSongCount={currentPlaylist.songs?.length ?? 0}
+                playlistSongIds={playlistSongIds}
+                onAddSong={handleAddSongToPlaylist}
+              />
+            )}
           </div>
       </CollectionGradientLayout>
         <DeletePlaylistDialog
@@ -918,25 +894,6 @@ const PlaylistDetailsPage = () => {
           t={t}
         />
 
-        <AddSongsToPlaylistDialog
-          open={isSearchAndAddDialogOpen}
-          onOpenChange={(isOpen) => !isOpen && closeAllDialogs()}
-          playlistId={playlistId}
-          currentPlaylist={currentPlaylist}
-          searchTerm={searchTerm}
-          onSearchTermChange={setSearchTerm}
-          searchSongs={searchSongs}
-          searchLoading={searchLoading}
-          recommendations={recommendations}
-          isRecommendationsLoading={isRecommendationsLoading}
-          onRefreshRecommendations={() =>
-            playlistId && fetchRecommendations(playlistId)
-          }
-          onAddSong={handleAddSongToPlaylist}
-          onSongAlbumNavigate={handleSongTitleClick}
-          onSongArtistNavigate={handleArtistNameClick}
-          t={t}
-        />
         {currentPlaylist && (
           <ShareDialog
             isOpen={

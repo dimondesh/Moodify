@@ -1073,16 +1073,28 @@
         "cancel": "Скасувати",
         "remove": "Видалити трек"
       },
-      "addSongDialog": {
-        "title": "Додати трек до плейлиста",
-        "description": "Знайдіть трек і додайте його до плейлиста.",
-        "searchPlaceholder": "Пошук треків...",
+      "discover": {
+        "title": "Знайдемо щось для вашого плейлиста",
+        "searchPlaceholder": "Пошук треків, альбомів або артистів",
         "searching": "Пошук...",
-        "noSongsFound": "Треки не знайдено.",
+        "noResults": "Нічого не знайдено.",
+        "back": "Назад",
+        "popular": "Популярні",
+        "albums": "Альбоми",
+        "artist": "Артист",
+        "album": "Альбом",
+        "recommended": "Рекомендовано",
+        "refresh": "Оновити",
         "added": "Додано",
         "add": "Додати",
-        "noPlaylists": "Немає доступних плейлистів.",
-        "noPlaylistsError": "У вас ще немає плейлистів."
+        "artistsSection": "Артисти",
+        "albumsSection": "Альбоми",
+        "songsSection": "Треки",
+        "topResults": "Найкращі збіги",
+        "seeAll": "Показати все: {{entity}}",
+        "headers": {
+          "album": "Альбом"
+        }
       },
       "editDialog": {
         "title": "Редагувати плейлист",

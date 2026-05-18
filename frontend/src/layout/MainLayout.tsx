@@ -70,7 +70,6 @@ const MainLayout = () => {
     editingPlaylist,
     playlistFormOnSuccess,
     closeAllDialogs,
-    isSearchAndAddDialogOpen,
     shareEntity,
     isEditProfileDialogOpen,
     playlistToDelete,
@@ -81,7 +80,6 @@ const MainLayout = () => {
 
   const isAnyDialogOpen =
     !!editingPlaylist ||
-    isSearchAndAddDialogOpen ||
     !!shareEntity ||
     isEditProfileDialogOpen ||
     !!playlistToDelete ||

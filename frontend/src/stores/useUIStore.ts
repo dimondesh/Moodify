@@ -27,7 +27,6 @@ interface UIStore {
   editingPlaylist: Playlist | null;
   /** Optional callback after playlist edit save (e.g. refresh details page). */
   playlistFormOnSuccess: (() => void) | null;
-  isSearchAndAddDialogOpen: boolean;
   shareEntity: ShareEntity | null;
   isEditProfileDialogOpen: boolean;
   playlistToDelete: Playlist | null;
@@ -58,7 +57,6 @@ interface UIStore {
   setIsLibraryPageSearchOpen: (isOpen: boolean) => void;
 
   openEditPlaylistDialog: (playlist: Playlist, onSuccess?: () => void) => void;
-  openSearchAndAddDialog: () => void;
   openShareDialog: (entity: ShareEntity) => void;
   openEditProfileDialog: () => void;
   openDeletePlaylistDialog: (playlist: Playlist) => void;
@@ -74,7 +72,6 @@ export const useUIStore = create<UIStore>()(
     (set) => ({
       editingPlaylist: null,
       playlistFormOnSuccess: null,
-      isSearchAndAddDialogOpen: false,
       shareEntity: null,
       isEditProfileDialogOpen: false,
       playlistToDelete: null,
@@ -115,7 +112,6 @@ export const useUIStore = create<UIStore>()(
           editingPlaylist: playlist,
           playlistFormOnSuccess: onSuccess ?? null,
         }),
-      openSearchAndAddDialog: () => set({ isSearchAndAddDialogOpen: true }),
       openShareDialog: (entity) => set({ shareEntity: entity }),
       openEditProfileDialog: () => set({ isEditProfileDialogOpen: true }),
       openDeletePlaylistDialog: (playlist) =>
@@ -128,7 +124,6 @@ export const useUIStore = create<UIStore>()(
         set({
           editingPlaylist: null,
           playlistFormOnSuccess: null,
-          isSearchAndAddDialogOpen: false,
           shareEntity: null,
           isEditProfileDialogOpen: false,
           playlistToDelete: null,
