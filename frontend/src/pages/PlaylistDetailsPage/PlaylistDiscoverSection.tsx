@@ -74,9 +74,13 @@ export function PlaylistDiscoverSection({
 
   const {
     recommendations,
+    recommendationsPlaylistId,
     isRecommendationsLoading,
     fetchRecommendations,
   } = usePlaylistStore();
+
+  const playlistRecommendations =
+    recommendationsPlaylistId === playlistId ? recommendations : null;
 
   const {
     currentArtist,
@@ -92,17 +96,22 @@ export function PlaylistDiscoverSection({
   const showRecommendations =
     isRoot && !hasSearchQuery && playlistSongCount > 3;
 
+  useEffect(() => {
+    if (!showRecommendations) return;
+    if (recommendationsPlaylistId === playlistId) return;
+    void fetchRecommendations(playlistId);
+  }, [
+    showRecommendations,
+    playlistId,
+    recommendationsPlaylistId,
+    fetchRecommendations,
+  ]);
+
   const hasSearchResults =
     topResults.length > 0 ||
     searchCounts.songs > 0 ||
     searchCounts.albums > 0 ||
     searchCounts.artists > 0;
-
-  useEffect(() => {
-    if (showRecommendations) {
-      fetchRecommendations(playlistId);
-    }
-  }, [showRecommendations, playlistId, playlistSongCount, fetchRecommendations]);
 
   useEffect(() => {
     if (!hasSearchQuery || !isRoot) {
@@ -411,40 +420,34 @@ export function PlaylistDiscoverSection({
 
       {isRoot && !hasSearchQuery && showRecommendations && (
         <div className="mb-8">
-          {(isRecommendationsLoading || (recommendations && recommendations.length > 0)) && (
+          <div className="flex items-center justify-between mb-3 px-2">
+            <h3 className="text-lg font-bold text-white">
+              {t("pages.playlist.discover.recommended")}
+            </h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              type="button"
+              disabled={isRecommendationsLoading}
+              onClick={() => fetchRecommendations(playlistId)}
+              title={t("common.refreshRecommendations")}
+              className="text-zinc-400 hover:text-white hover:bg-transparent! font-medium"
+            >
+              {t("pages.playlist.discover.refresh")}
+            </Button>
+          </div>
+          {isRecommendationsLoading ? (
+            <div className="flex justify-center py-6">
+              <StandardLoader size="md" />
+            </div>
+          ) : playlistRecommendations && playlistRecommendations.length > 0 ? (
             <>
-              <div className="flex items-center justify-between mb-3 px-2">
-                <h3 className="text-lg font-bold text-white">
-                  {t("pages.playlist.discover.recommended")}
-                </h3>
-                {recommendations && recommendations.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    type="button"
-                    disabled={isRecommendationsLoading}
-                    onClick={() => fetchRecommendations(playlistId)}
-                    title={t("common.refreshRecommendations")}
-                    className="text-zinc-400 hover:text-white hover:bg-transparent! font-medium"
-                  >
-                    {t("pages.playlist.discover.refresh")}
-                  </Button>
-                )}
+              <SongListHeader />
+              <div className="space-y-1">
+                {playlistRecommendations.map((song) => renderSong(song))}
               </div>
-              {isRecommendationsLoading ? (
-                <div className="flex justify-center py-6">
-                  <StandardLoader size="md" />
-                </div>
-              ) : recommendations && recommendations.length > 0 ? (
-                <>
-                  <SongListHeader />
-                  <div className="space-y-1">
-                    {recommendations.map((song) => renderSong(song))}
-                  </div>
-                </>
-              ) : null}
             </>
-          )}
+          ) : null}
         </div>
       )}
 

@@ -25,6 +25,7 @@ interface PlaylistStore {
   ownedPlaylists: Playlist[];
   publicPlaylists: Playlist[];
   recommendations: Song[] | null;
+  recommendationsPlaylistId: string | null;
   isRecommendationsLoading: boolean;
   currentPlaylist: Playlist | null;
   cachedPlaylists: Map<string, CachedPlaylist>;
@@ -77,6 +78,7 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
   myPlaylists: [],
   ownedPlaylists: [],
   recommendations: null,
+  recommendationsPlaylistId: null,
   isRecommendationsLoading: false,
   recommendedPlaylists: [],
   publicPlaylists: [],
@@ -295,7 +297,10 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
   },
 
   fetchRecommendations: async (playlistId: string) => {
-    if (useOfflineStore.getState().isOffline) return;
+    if (useOfflineStore.getState().isOffline) {
+      set({ recommendationsPlaylistId: playlistId, isRecommendationsLoading: false });
+      return;
+    }
 
     set({ isRecommendationsLoading: true });
     try {
@@ -305,11 +310,16 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
       const data = response.data;
       set({
         recommendations: Array.isArray(data) ? data : null,
+        recommendationsPlaylistId: playlistId,
         isRecommendationsLoading: false,
       });
     } catch (err: unknown) {
       console.error("Failed to fetch recommendations:", err);
-      set({ recommendations: null, isRecommendationsLoading: false });
+      set({
+        recommendations: null,
+        recommendationsPlaylistId: playlistId,
+        isRecommendationsLoading: false,
+      });
     }
   },
 
