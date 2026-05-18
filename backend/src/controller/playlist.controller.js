@@ -269,10 +269,6 @@ export const updatePlaylist = async (req, res, next) => {
       .populate(populatePlaylistEmbeddedSongs)
       .lean();
 
-    req.io
-      .to(`playlist-${playlistId}`)
-      .emit("playlist_updated", { playlist: updatedPlaylist });
-
     res.status(200).json(updatedPlaylist);
   } catch (error) {
     console.error("Error in updatePlaylist:", error);
@@ -303,9 +299,6 @@ export const deletePlaylist = async (req, res, next) => {
     await User.findByIdAndUpdate(playlist.owner, {
       $pull: { playlists: playlist._id },
     });
-    req.io
-      .to(`playlist-${playlistId}`)
-      .emit("playlist_deleted", { playlistId });
 
     res.status(200).json({ message: "Playlist deleted successfully" });
   } catch (error) {
@@ -346,12 +339,6 @@ export const addSongToPlaylist = async (req, res, next) => {
       .populate("owner", "fullName imageUrl")
       .populate(populatePlaylistEmbeddedSongs)
       .lean();
-    console.log(
-      `[SOCKET EMIT] Sending 'playlist_updated' to room 'playlist-${playlistId}' after adding a song.`,
-    );
-    req.io
-      .to(`playlist-${playlistId}`)
-      .emit("playlist_updated", { playlist: updatedPlaylist });
 
     res.status(200).json({
       message: "Song added to playlist",
@@ -393,15 +380,6 @@ export const removeSongFromPlaylist = async (req, res, next) => {
       .populate("owner", "fullName imageUrl")
       .populate(populatePlaylistEmbeddedSongs)
       .lean();
-    console.log(
-      `[BACKEND] Emitting 'playlist_updated' to room 'playlist-${playlistId}' after removing a song. New song count: ${updatedPlaylist.songs.length}`,
-    );
-    console.log(
-      `[SOCKET EMIT] Sending 'playlist_updated' to room 'playlist-${playlistId}' after removing a song.`,
-    );
-    req.io
-      .to(`playlist-${playlistId}`)
-      .emit("playlist_updated", { playlist: updatedPlaylist });
     res.status(200).json({ message: "Song removed from playlist", playlist });
   } catch (error) {
     console.error("Error in removeSongFromPlaylist:", error);

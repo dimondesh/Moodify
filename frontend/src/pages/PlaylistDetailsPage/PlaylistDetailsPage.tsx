@@ -5,8 +5,6 @@ import { usePlaylistStore } from "@/stores/usePlaylistStore";
 import PlaylistDetailsSkeleton from "@/components/ui/skeletons/PlaylistDetailsSkeleton";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { useChatStore } from "@/stores/useChatStore";
-import { useOfflineStore } from "@/stores/useOfflineStore";
 import EqualizerTitle from "@/components/ui/equalizer-title";
 import SongOptionsDrawer from "@/components/SongOptionsDrawer";
 import {
@@ -85,7 +83,6 @@ function playlistKindLabel(t: (k: string) => string, kind?: PlaylistKind) {
 
 const PlaylistDetailsPage = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
-  const { socket } = useChatStore();
   const user = useAuthStore((s) => s.user);
   const { t } = useTranslation();
   const { playlistId } = useParams<{ playlistId: string }>();
@@ -96,7 +93,6 @@ const PlaylistDetailsPage = () => {
     deletePlaylist,
     addSongToPlaylist,
     removeSongFromPlaylist,
-    updateCurrentPlaylistFromSocket,
   } = usePlaylistStore();
   const {
     openEditPlaylistDialog,
@@ -147,8 +143,6 @@ const PlaylistDetailsPage = () => {
     currentPlaylist?.coverAccentHex,
   );
 
-  const { isDownloaded, downloadItem } = useOfflineStore((s) => s.actions);
-
   useEffect(() => {
     const loadPlaylist = async () => {
       setLocalIsLoading(true);
@@ -159,45 +153,6 @@ const PlaylistDetailsPage = () => {
     };
     loadPlaylist();
   }, [playlistId, fetchPlaylistDetails]);
-
-  useEffect(() => {
-    if (playlistId && socket) {
-      socket.emit("join_playlist_room", playlistId);
-      const handlePlaylistUpdate = (data: { playlist: Playlist }) => {
-        if (data && data.playlist && data.playlist._id === playlistId) {
-          updateCurrentPlaylistFromSocket(data.playlist);
-          toast.success("This playlist has been updated by the owner.");
-          if (isDownloaded(playlistId)) {
-            toast.loading("Updating your downloaded playlist...", {
-              id: "playlist-sync",
-            });
-            downloadItem(playlistId, "playlists")
-              .then(() =>
-                toast.success("Downloaded playlist updated!", {
-                  id: "playlist-sync",
-                }),
-              )
-              .catch(() =>
-                toast.error("Could not update downloaded playlist.", {
-                  id: "playlist-sync",
-                }),
-              );
-          }
-        }
-      };
-      socket.on("playlist_updated", handlePlaylistUpdate);
-      return () => {
-        socket.emit("leave_playlist_room", playlistId);
-        socket.off("playlist_updated", handlePlaylistUpdate);
-      };
-    }
-  }, [
-    playlistId,
-    socket,
-    updateCurrentPlaylistFromSocket,
-    isDownloaded,
-    downloadItem,
-  ]);
 
   const playlistSongIds = useMemo(
     () => new Set(currentPlaylist?.songs?.map((s) => s._id) ?? []),

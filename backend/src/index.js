@@ -235,7 +235,6 @@ cron.schedule(
 );
 
 app.use((req, res, next) => {
-  req.io = io;
   req.userSockets = userSockets;
   req.userActivities = userActivities;
   next();

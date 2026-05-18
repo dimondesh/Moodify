@@ -35,7 +35,6 @@ interface PlaylistStore {
   fetchRecommendedPlaylists: () => Promise<void>;
   setDominantColor: (color: string) => void;
   createPlaylistFromSong: (song: Song) => Promise<void>;
-  updateCurrentPlaylistFromSocket: (playlist: Playlist) => void;
   fetchMyPlaylists: () => Promise<void>;
   fetchOwnedPlaylists: () => Promise<void>;
   fetchRecommendations: (playlistId: string) => Promise<void>;
@@ -87,23 +86,6 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
   error: null,
   dominantColor: null,
   setDominantColor: (color: string) => set({ dominantColor: color }),
-
-  updateCurrentPlaylistFromSocket: (playlist) => {
-    set((state) => {
-      if (state.currentPlaylist?._id === playlist._id) {
-        const newCachedPlaylists = new Map(state.cachedPlaylists);
-        newCachedPlaylists.set(playlist._id, {
-          data: playlist,
-          timestamp: Date.now(),
-        });
-        return {
-          currentPlaylist: playlist,
-          cachedPlaylists: newCachedPlaylists,
-        };
-      }
-      return state;
-    });
-  },
 
   invalidatePlaylistCache: (playlistId: string) => {
     set((state) => {

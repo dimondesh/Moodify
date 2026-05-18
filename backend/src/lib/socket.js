@@ -256,26 +256,6 @@ export const initializeSocket = (server) => {
       }
     });
 
-    socket.on("join_playlist_room", (playlistId) => {
-      socket.join(`playlist-${playlistId}`);
-      console.log(`User ${userId} joined room for playlist ${playlistId}`);
-    });
-
-    socket.on("leave_playlist_room", (playlistId) => {
-      socket.leave(`playlist-${playlistId}`);
-      console.log(`User ${userId} left room for playlist ${playlistId}`);
-    });
-
-    socket.on("join_mix_room", (mixId) => {
-      socket.join(`mix-${mixId}`);
-      console.log(`User ${userId} joined room for mix ${mixId}`);
-    });
-
-    socket.on("leave_mix_room", (mixId) => {
-      socket.leave(`mix-${mixId}`);
-      console.log(`User ${userId} left room for mix ${mixId}`);
-    });
-
     socket.on("disconnect", (reason) => {
       console.log(
         `User ${userId} (MongoDB _id) disconnected from Socket.IO. Reason: ${reason}`
