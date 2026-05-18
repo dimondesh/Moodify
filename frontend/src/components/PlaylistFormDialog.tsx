@@ -144,7 +144,7 @@ export const PlaylistFormDialog: React.FC<PlaylistFormDialogProps> = ({
       <DialogContent
         showCloseButton
         className={cn(
-          "max-w-[calc(100vw-1.5rem)] gap-0 rounded-none border-0 bg-zinc-800/50 p-0 text-white shadow-xl sm:max-w-[560px]",
+          "max-w-[calc(100vw-1.5rem)] gap-0 rounded-none border-0 bg-zinc-900 p-0 text-white shadow-xl sm:max-w-[560px]",
           "[&_[data-slot=dialog-close]]:text-zinc-300 [&_[data-slot=dialog-close]]:hover:text-white",
         )}
       >
