@@ -111,6 +111,14 @@ export interface User {
   publicPlaylistsCount?: number;
   showRecentlyListenedArtists?: boolean;
   coverAccentHex?: string | null;
+
+  lastActivity?: {
+    songId: string;
+    songTitle: string;
+    artists: { artistId: string; artistName: string }[];
+    albumId: string;
+  };
+  lastActivityAt?: string;
 }
 
 export interface SearchState {

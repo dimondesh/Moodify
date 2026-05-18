@@ -269,8 +269,14 @@ export const useChatStore = create<ChatStore>((set, get) => ({
           set((state) => {
             const newOnlineUsers = new Set(state.onlineUsers);
             newOnlineUsers.delete(userId);
-            return { onlineUsers: newOnlineUsers };
+            const newActivities = new Map(state.userActivities);
+            newActivities.delete(userId);
+            return {
+              onlineUsers: newOnlineUsers,
+              userActivities: newActivities,
+            };
           });
+          void get().fetchUsers();
         });
 
         socket.on("receive_message", (message: Message) => {

@@ -19,6 +19,7 @@ import { Playlist } from "../models/playlist.model.js";
 import { populatePlaylistEmbeddedSongs } from "./playlist.controller.js";
 import { optimizeAndUploadImage } from "../lib/image.service.js";
 import { extractCoverAccentHexFromBuffer } from "../lib/coverAccent.service.js";
+import { getPersistedActivity } from "../lib/activityPersistence.service.js";
 
 const SONG_MINIMAL_SELECT =
   "_id title artist albumId imageUrl coverAccentHex duration playCount";
@@ -282,7 +283,9 @@ export const getMutualFollowers = async (req, res, next) => {
 
     const followedUsers = await User.find({
       _id: { $in: currentUser.followingUsers },
-    }).select("fullName imageUrl followers");
+    }).select(
+      "fullName imageUrl followers isAnonymous lastListeningActivity",
+    );
 
     const mutuals = followedUsers.filter((user) =>
       user.followers.some((followerId) =>
@@ -290,7 +293,26 @@ export const getMutualFollowers = async (req, res, next) => {
       ),
     );
 
-    res.status(200).json({ users: mutuals });
+    const users = await Promise.all(
+      mutuals.map(async (user) => {
+        const base = {
+          _id: user._id,
+          fullName: user.fullName,
+          imageUrl: user.imageUrl,
+        };
+
+        if (user.isAnonymous) return base;
+
+        const persisted = await getPersistedActivity(
+          user._id.toString(),
+          user.lastListeningActivity,
+        );
+
+        return persisted ? { ...base, ...persisted } : base;
+      }),
+    );
+
+    res.status(200).json({ users });
   } catch (error) {
     next(error);
   }

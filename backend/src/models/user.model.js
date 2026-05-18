@@ -52,6 +52,13 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    lastListeningActivity: {
+      activity: {
+        type: mongoose.Schema.Types.Mixed,
+        default: null,
+      },
+      updatedAt: { type: Date, default: null },
+    },
   },
   { timestamps: true }
 );

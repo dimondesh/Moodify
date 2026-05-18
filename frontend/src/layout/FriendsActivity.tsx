@@ -1,13 +1,20 @@
 // frontend/src/layout/FriendsActivity.tsx
 
 import { HeadphonesIcon, Music, Users } from "lucide-react";
-import { useChatStore } from "../stores/useChatStore";
-import { useEffect } from "react";
+import { useChatStore, type UserActivity } from "../stores/useChatStore";
+import { useEffect, useMemo } from "react";
 import { ScrollArea } from "../components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { useAuthStore } from "../stores/useAuthStore";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
+import { formatShortRelativeTime } from "../lib/formatShortRelativeTime";
+import {
+  getEffectiveActivity,
+  getFriendsActivitySortTime,
+  shouldShowInFriendsActivity,
+} from "../lib/friendsActivityUtils";
+import type { User } from "../types";
 
 const FriendsActivity = () => {
   const { t } = useTranslation();
@@ -20,6 +27,28 @@ const FriendsActivity = () => {
       fetchUsers();
     }
   }, [fetchUsers, authUser, loadingAuthUser]);
+
+  const visibleUsers = useMemo(() => {
+    if (!authUser?.id) return [];
+
+    return users
+      .filter((userObj) =>
+        shouldShowInFriendsActivity(userObj, authUser.id, onlineUsers),
+      )
+      .sort((a, b) => {
+        const aOnline = onlineUsers.has(a._id);
+        const bOnline = onlineUsers.has(b._id);
+        if (aOnline && !bOnline) return -1;
+        if (!aOnline && bOnline) return 1;
+
+        const timeDiff =
+          getFriendsActivitySortTime(b, onlineUsers) -
+          getFriendsActivitySortTime(a, onlineUsers);
+        if (timeDiff !== 0) return timeDiff;
+
+        return a.fullName.localeCompare(b.fullName);
+      });
+  }, [users, authUser?.id, onlineUsers]);
 
   const handleSongClick = (e: React.MouseEvent, albumId: string) => {
     e.preventDefault();
@@ -34,13 +63,7 @@ const FriendsActivity = () => {
   };
 
   if (loadingAuthUser) {
-    return (
-      <div className="h-full bg-[#0f0f0f] flex flex-col">
-        <div className="flex-1 flex items-center justify-center">
-          <HeadphonesIcon className="size-8 animate-pulse text-gray-400" />
-        </div>
-      </div>
-    );
+    return <LoadingShell />;
   }
 
   if (!authUser) {
@@ -50,10 +73,6 @@ const FriendsActivity = () => {
       </div>
     );
   }
-
-  const activeUsers = users.filter(
-    (userObj) => userObj._id !== authUser.id && onlineUsers.has(userObj._id)
-  );
 
   return (
     <div className="h-full bg-[#0f0f0f] flex flex-col">
@@ -67,89 +86,28 @@ const FriendsActivity = () => {
       </div>
 
       <ScrollArea className="flex-1 pr-2 -mr-2">
-        <div className="p-4 space-y-3">
-          {activeUsers.length === 0 ? (
+        <div className="p-2 space-y-0.5">
+          {visibleUsers.length === 0 ? (
             <p className="text-gray-400 text-center text-sm p-4">
               {t("friendsActivity.noFriends")}
             </p>
           ) : (
-            activeUsers.map((userObj) => {
-              const isOnline = onlineUsers.has(userObj._id);
-              const activity = userActivities.get(userObj._id);
-              const isPlaying =
-                typeof activity === "object" && activity !== null;
-
-              return (
-                <Link
-                  key={userObj._id}
-                  to={`/users/${userObj._id}`}
-                  className="block hover:bg-zinc-800/50 p-3 rounded-md transition-colors group"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="relative flex-shrink-0">
-                      <Avatar className="size-10 border border-[#2a2a2a]">
-                        <AvatarImage
-                          src={userObj.imageUrl || "/default-avatar.png"}
-                          alt={userObj.fullName}
-                          className="object-cover"
-                        />
-                        <AvatarFallback className="bg-[#8b5cf6] text-white font-semibold">
-                          {userObj.fullName?.[0] || "U"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div
-                        className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#0f0f0f] ${
-                          isOnline ? "bg-green-500" : "bg-gray-500"
-                        }`}
-                        aria-hidden="true"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm text-white truncate">
-                          {userObj.fullName}
-                        </span>
-                        {isPlaying && (
-                          <Music className="size-3.5 text-[#8b5cf6] shrink-0" />
-                        )}
-                      </div>
-
-                      {isPlaying ? (
-                        <div>
-                          <button
-                            className="text-sm text-white font-medium truncate w-full text-left hover:text-[#8b5cf6]"
-                            onClick={(e) =>
-                              handleSongClick(e, activity.albumId)
-                            }
-                          >
-                            {activity.songTitle}
-                          </button>
-                          <div className="text-xs text-gray-400 truncate">
-                            {activity.artists.map((artist, index) => (
-                              <span key={artist.artistId}>
-                                <button
-                                  onClick={(e) =>
-                                    handleArtistClick(e, artist.artistId)
-                                  }
-                                  className="hover:text-[#8b5cf6]"
-                                >
-                                  {artist.artistName}
-                                </button>
-                                {index < activity.artists.length - 1 && ", "}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="mt-1 text-xs text-gray-400 truncate">
-                          {t("friendsActivity.idle")}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              );
-            })
+            visibleUsers.map((userObj) => (
+              <FriendActivityCard
+                key={userObj._id}
+                userObj={userObj}
+                isOnline={onlineUsers.has(userObj._id)}
+                activity={getEffectiveActivity(
+                  userObj._id,
+                  userObj,
+                  onlineUsers,
+                  userActivities,
+                )}
+                onSongClick={handleSongClick}
+                onArtistClick={handleArtistClick}
+                idleLabel={t("friendsActivity.idle")}
+              />
+            ))
           )}
         </div>
       </ScrollArea>
@@ -158,6 +116,112 @@ const FriendsActivity = () => {
 };
 
 export default FriendsActivity;
+
+interface FriendActivityCardProps {
+  userObj: User;
+  isOnline: boolean;
+  activity: UserActivity | "Idle" | null;
+  onSongClick: (e: React.MouseEvent, albumId: string) => void;
+  onArtistClick: (e: React.MouseEvent, artistId: string) => void;
+  idleLabel: string;
+}
+
+function FriendActivityCard({
+  userObj,
+  isOnline,
+  activity,
+  onSongClick,
+  onArtistClick,
+  idleLabel,
+}: FriendActivityCardProps) {
+  const isPlaying = typeof activity === "object" && activity !== null;
+  const isLivePlaying = isOnline && isPlaying;
+  const offlineBadge =
+    !isOnline && userObj.lastActivityAt
+      ? formatShortRelativeTime(userObj.lastActivityAt)
+      : null;
+
+  return (
+    <Link
+      to={`/users/${userObj._id}`}
+      className="relative block hover:bg-zinc-800/50 px-2 py-1.5 rounded-md transition-colors group"
+    >
+      {offlineBadge && (
+        <span className="absolute top-1.5 right-2 text-[10px] font-medium tabular-nums text-zinc-500">
+          {offlineBadge}
+        </span>
+      )}
+      <div className={`flex items-center gap-2${offlineBadge ? " pr-7" : ""}`}>
+        <div className="relative flex-shrink-0">
+          <Avatar className="size-8 border border-[#2a2a2a]">
+            <AvatarImage
+              src={userObj.imageUrl || "/default-avatar.png"}
+              alt={userObj.fullName}
+              className="object-cover"
+            />
+            <AvatarFallback className="bg-[#8b5cf6] text-white text-xs font-semibold">
+              {userObj.fullName?.[0] || "U"}
+            </AvatarFallback>
+          </Avatar>
+          <div
+            className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-[#0f0f0f] ${
+              isOnline ? "bg-green-500" : "bg-gray-500"
+            }`}
+            aria-hidden="true"
+          />
+        </div>
+        <div className="flex-1 min-w-0 leading-tight">
+          <div className="flex items-center">
+            <span className="font-medium text-xs text-white truncate">
+              {userObj.fullName}
+            </span>
+            {isLivePlaying && (
+              <Music className="size-3 text-[#8b5cf6] shrink-0" />
+            )}
+          </div>
+
+          {isPlaying ? (
+            <div>
+              <button
+                type="button"
+                className="text-xs text-white font-medium truncate w-full text-left hover:text-[#8b5cf6]"
+                onClick={(e) => onSongClick(e, activity.albumId)}
+              >
+                {activity.songTitle}
+              </button>
+              <div className="text-[11px] text-gray-400 truncate leading-snug">
+                {activity.artists.map((artist, index) => (
+                  <span key={artist.artistId}>
+                    <button
+                      type="button"
+                      onClick={(e) => onArtistClick(e, artist.artistId)}
+                      className="hover:text-[#8b5cf6]"
+                    >
+                      {artist.artistName}
+                    </button>
+                    {index < activity.artists.length - 1 && ", "}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="text-[11px] text-gray-400 truncate">{idleLabel}</p>
+          )}
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function LoadingShell() {
+  return (
+    <div className="h-full bg-[#0f0f0f] flex flex-col">
+      <div className="flex-1 flex items-center justify-center">
+        <HeadphonesIcon className="size-8 animate-pulse text-gray-400" />
+      </div>
+    </div>
+  );
+}
 
 const LoginPrompt = () => {
   const { t } = useTranslation();

@@ -31,7 +31,8 @@ import homeRoutes from "./routes/home.route.js";
 import { cleanAllTempDirectories } from "./lib/tempCleanup.service.js";
 import { getSitemap } from "./controller/sitemap.controller.js";
 import ogRoutes from "./routes/og.route.js";
-import { connectRedis } from "./lib/redis.js";
+import redisClient, { connectRedis } from "./lib/redis.js";
+import { flushAllActivities } from "./lib/activityPersistence.service.js";
 
 const PORT = process.env.PORT || 5000;
 
@@ -235,6 +236,7 @@ cron.schedule(
 );
 
 app.use((req, res, next) => {
+  req.io = io;
   req.userSockets = userSockets;
   req.userActivities = userActivities;
   next();
@@ -274,11 +276,42 @@ app.use((err, req, res, next) => {
   });
 });
 
+let isShuttingDown = false;
+
+const shutdown = async (signal) => {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  console.log(`${signal} received — flushing listening activities...`);
+
+  try {
+    await flushAllActivities(userActivities);
+  } catch (err) {
+    console.error("Failed to flush activities on shutdown:", err);
+  }
+
+  httpServer.close(async () => {
+    if (redisClient.isOpen) {
+      try {
+        await redisClient.quit();
+      } catch (err) {
+        console.error("Redis quit error:", err);
+      }
+    }
+    process.exit(0);
+  });
+
+  setTimeout(() => {
+    console.error("Forced shutdown after timeout");
+    process.exit(1);
+  }, 10_000);
+};
+
+process.on("SIGTERM", () => void shutdown("SIGTERM"));
+process.on("SIGINT", () => void shutdown("SIGINT"));
+
 httpServer.listen(PORT, async () => {
   connectDB();
-  {
-    process.env.NODE_ENV === "production" ? await connectRedis() : "";
-  }
+  await connectRedis();
   console.log(
     `Server on port ${PORT} in ${process.env.NODE_ENV || "development"} mode`,
   );

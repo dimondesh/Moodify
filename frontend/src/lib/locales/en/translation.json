@@ -74,7 +74,7 @@
   },
   "friendsActivity": {
     "title": "What they're listening to",
-    "noFriends": "No active friends found. Connect with friends or wait for them to come online!",
+    "noFriends": "No friend activity in the last 7 days. Follow friends or wait until they listen to something!",
     "idle": "Idle",
     "loginPromptTitle": "See What Friends Are Playing",
     "loginPromptDescription": "Login to discover what music your friends are enjoying right now"

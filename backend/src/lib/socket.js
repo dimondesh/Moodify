@@ -5,6 +5,14 @@ import { User } from "../models/user.model.js";
 import { Song } from "../models/song.model.js";
 import { Artist } from "../models/artist.model.js";
 import { verifyAccessToken } from "./jwt.js";
+import {
+  isTrackActivity,
+  persistOnDisconnect,
+  rememberTrackActivity,
+  setSessionActivity,
+  touchLastKnownAt,
+} from "./activityPersistence.service.js";
+
 export let io;
 
 export const initializeSocket = (server) => {
@@ -144,6 +152,14 @@ export const initializeSocket = (server) => {
       }
 
       userActivities.set(userId, activityData);
+
+      if (isTrackActivity(activityData)) {
+        rememberTrackActivity(userId, activityData);
+        setSessionActivity(userId, activityData);
+      } else {
+        touchLastKnownAt(userId);
+      }
+
       io.emit("activity_updated", { userId, activity: activityData });
       console.log(
         `[Socket] Emitting activity_updated: ${userId}`,
@@ -256,12 +272,21 @@ export const initializeSocket = (server) => {
       }
     });
 
-    socket.on("disconnect", (reason) => {
+    socket.on("disconnect", async (reason) => {
       console.log(
         `User ${userId} (MongoDB _id) disconnected from Socket.IO. Reason: ${reason}`
       );
 
       if (userSockets.has(userId)) {
+        const activity = userActivities.get(userId);
+        try {
+          await persistOnDisconnect(userId, activity);
+        } catch (err) {
+          console.error(
+            `[Socket] Failed to persist activity on disconnect for ${userId}:`,
+            err
+          );
+        }
         userSockets.delete(userId);
         userActivities.delete(userId);
         io.emit("user_disconnected", userId);
