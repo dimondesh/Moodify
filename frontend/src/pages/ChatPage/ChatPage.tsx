@@ -1,21 +1,11 @@
 // frontend/src/pages/ChatPage/ChatPage.tsx
 
 import React, { useEffect, useState, useRef } from "react";
-import { ScrollArea } from "../../components/ui/scroll-area";
-import { Button } from "../../components/ui/button";
-import { Users as UsersIcon } from "lucide-react";
 import { useChatStore } from "../../stores/useChatStore";
 import { useAuthStore } from "../../stores/useAuthStore";
 import type { User } from "../../types";
 import UsersList from "./UsersList";
 import ChatHeader from "./ChatHeader";
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-  SheetTitle,
-  SheetDescription,
-} from "../../components/ui/sheet";
 import { Avatar, AvatarImage } from "../../components/ui/avatar";
 import MessageInput from "./MessageInput";
 import { useTranslation } from "react-i18next";
@@ -23,8 +13,9 @@ import { Helmet } from "react-helmet-async";
 import { SharedContentMessage } from "./SharedContentMessage";
 import { Check, CheckCheck } from "lucide-react";
 import { TypingIndicator } from "./TypingIndicator";
-import { useAudioSettingsStore } from "@/lib/webAudio";
 import StandardLoader from "../../components/ui/StandardLoader";
+import { cn } from "../../lib/utils";
+import { useUIStore } from "../../stores/useUIStore";
 
 const formatTime = (date: string) => {
   return new Date(date).toLocaleTimeString("en-US", {
@@ -35,7 +26,6 @@ const formatTime = (date: string) => {
 };
 
 const ChatPage = () => {
-  const { t } = useTranslation();
   const { user: mongoUser } = useAuthStore();
   const {
     users,
@@ -58,10 +48,7 @@ const ChatPage = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [messageContent, setMessageContent] = useState("");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const isPartnerTyping = selectedUser && typingUsers.get(selectedUser._id);
-
-  useEffect(() => {}, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -90,6 +77,8 @@ const ChatPage = () => {
     scrollToBottom();
   }, [messages]);
 
+  const setChatConversationOpen = useUIStore((s) => s.setChatConversationOpen);
+
   useEffect(() => {
     setIsChatPageActive(true);
     return () => {
@@ -98,216 +87,127 @@ const ChatPage = () => {
   }, [setIsChatPageActive]);
 
   useEffect(() => {
+    setChatConversationOpen(!!selectedUser);
+    return () => setChatConversationOpen(false);
+  }, [selectedUser, setChatConversationOpen]);
+
+  useEffect(() => {
     if (selectedUser && unreadMessages.has(selectedUser._id)) {
       markMessagesAsRead(selectedUser._id);
     }
   }, [selectedUser, messages, unreadMessages, markMessagesAsRead]);
 
-  const handleUserSelect = (user: User) => {
-    setSelectedUser(user);
-    setIsSidebarOpen(false);
-  };
+  const handleUserSelect = (user: User) => setSelectedUser(user);
 
-  const handleBackToList = () => {
-    setSelectedUser(null);
-    setIsSidebarOpen(true);
-  };
+  const handleBackToList = () => setSelectedUser(null);
 
   const renderMessages = () =>
-    messages.map((message) => (
-      <div
-        key={message._id}
-        className={`flex items-start gap-3 w-full ${
-          message.senderId === mongoUser?.id ? "justify-end" : "justify-start"
-        }`}
-      >
+    messages.map((message) => {
+      const isOwn = message.senderId === mongoUser?.id;
+
+      return (
         <div
-          className={`flex items-start gap-3 max-w-[80%] sm:max-w-[70%] ${
-            message.senderId === mongoUser?.id ? "flex-row-reverse" : ""
+          key={message._id}
+          className={`w-full min-w-0 max-w-full  box-border flex ${
+            isOwn ? "justify-end" : "justify-start"
           }`}
         >
-          <Avatar className="size-8 flex-shrink-0 object-cover">
-            <AvatarImage
-              className="object-cover"
-              src={
-                message.senderId === mongoUser?.id
-                  ? mongoUser?.imageUrl || "/default-avatar.png"
-                  : users.find((u) => u._id === message.senderId)?.imageUrl ||
-                    "/default-avatar.png"
-              }
-            />
-          </Avatar>
           <div
-            className={`rounded-xl max-w-full ${
-              message.type === "share"
-                ? "bg-transparent p-0"
-                : message.senderId === mongoUser?.id
-                ? "bg-[#8b5cf6] text-white p-3 shadow-lg"
-                : "bg-[#1a1a1a] text-white p-3 border border-[#2a2a2a]"
+            className={`flex items-end gap-2 min-w-0 max-w-[calc(100vw-2.5rem)] sm:max-w-[min(100%,28rem)] ${
+              isOwn ? "flex-row-reverse" : ""
             }`}
           >
-            {message.type === "share" && message.shareDetails ? (
-              <SharedContentMessage
-                entityType={
-                  (message.shareDetails.entityType as string) === "mix"
-                    ? "playlist"
-                    : message.shareDetails.entityType
+            <Avatar className="size-8 shrink-0 object-cover mb-px">
+              <AvatarImage
+                className="object-cover"
+                src={
+                  isOwn
+                    ? mongoUser?.imageUrl || "/default-avatar.png"
+                    : users.find((u) => u._id === message.senderId)?.imageUrl ||
+                      "/default-avatar.png"
                 }
-                entityId={message.shareDetails.entityId}
               />
-            ) : (
-              <div className="flex flex-col">
-                <p className="text-sm break-words leading-relaxed">
-                  {message.content}
-                </p>
-                <div className="flex items-center justify-end gap-1 text-xs mt-2 self-end">
-                  <span
-                    className={
-                      message.senderId === mongoUser?.id
-                        ? "text-violet-200"
-                        : "text-gray-400"
-                    }
-                  >
-                    {formatTime(message.createdAt)}
-                  </span>
-                  {message.senderId === mongoUser?.id && (
-                    <div className="ml-2">
-                      {message.isRead ? (
-                        <CheckCheck className="size-4 text-violet-200 opacity-100" />
+            </Avatar>
+            <div
+              className={`min-w-0 max-w-full overflow-hidden rounded-2xl ${
+                message.type === "share"
+                  ? "bg-transparent p-0"
+                  : isOwn
+                    ? "bg-violet-600 text-white px-3.5 py-1.5 shadow-md shadow-violet-950/30"
+                    : "bg-zinc-800/90 text-white px-3.5 py-1.5 border border-zinc-700/50"
+              }`}
+            >
+              {message.type === "share" && message.shareDetails ? (
+                <SharedContentMessage
+                  entityType={
+                    (message.shareDetails.entityType as string) === "mix"
+                      ? "playlist"
+                      : message.shareDetails.entityType
+                  }
+                  entityId={message.shareDetails.entityId}
+                />
+              ) : (
+                <div className="min-w-0 max-w-full overflow-hidden">
+                  <p className="text-[15px] leading-snug max-w-full [overflow-wrap:anywhere] [word-break:break-word] whitespace-pre-wrap">
+                    {message.content}
+                  </p>
+                  <div className="flex items-center justify-end gap-1 mt-0.5 text-[11px] leading-none">
+                    <span
+                      className={isOwn ? "text-violet-200/90" : "text-zinc-500"}
+                    >
+                      {formatTime(message.createdAt)}
+                    </span>
+                    {isOwn &&
+                      (message.isRead ? (
+                        <CheckCheck className="size-3.5 text-violet-200 opacity-100" />
                       ) : (
-                        <Check className="size-4 text-violet-200 opacity-70" />
-                      )}
-                    </div>
-                  )}
+                        <Check className="size-3.5 text-violet-200 opacity-70" />
+                      ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    ));
+      );
+    });
 
   return (
     <>
-      {" "}
       <Helmet>
         <title>Chat</title>
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
-      <main className="h-full rounded-lg bg-gradient-to-b from-[#0f0f0f] to-[#0f0f0f] overflow-hidden">
-        {/*ПК*/}
-        <div className="hidden lg:grid lg:grid-cols-[300px_1fr] h-[calc(100vh-180px)]">
-          <UsersList
-            onUserSelect={handleUserSelect}
-            selectedUser={selectedUser}
-            onlineUsers={onlineUsers}
-            userActivities={userActivities}
-          />
-          <div className="flex flex-col h-full border-l border-[#2a2a2a] bg-[#0f0f0f]">
-            {selectedUser ? (
-              <>
-                <ChatHeader />
-                <ScrollArea className="overflow-y-auto h-[calc(100vh-340px)]">
-                  <div className="p-4 space-y-4">
-                    {isLoading ? (
-                      <div className="flex justify-center items-center h-32">
-                        <StandardLoader size="md" />
-                      </div>
-                    ) : messages.length === 0 ? (
-                      <div className="text-center text-gray-400 mt-8">
-                        <p>
-                          {t("pages.chat.startChatting")}{" "}
-                          {selectedUser.fullName}!
-                        </p>
-                        <p className="text-sm">{t("pages.chat.noMessages")}</p>
-                      </div>
-                    ) : (
-                      renderMessages()
-                    )}
-                    <div ref={messagesEndRef} />
-                  </div>
-                </ScrollArea>
-                <div className="px-4 pb-2 h-6">
-                  {" "}
-                  {isPartnerTyping && <TypingIndicator />}
-                </div>
-                <MessageInput
-                  value={messageContent}
-                  onChange={(e) => setMessageContent(e.target.value)}
-                  onSend={handleSendMessage}
-                  selectedUser={selectedUser}
-                  currentUserId={mongoUser?.id || ""}
-                />
-              </>
-            ) : (
-              <NoConversationPlaceholder />
-            )}
-          </div>
-        </div>
-        {/*Мобилка*/}
-
-        <div className="lg:hidden h-[calc(100vh-180px)] flex flex-col bg-[#0f0f0f]">
-          {selectedUser ? (
-            <div className="flex flex-col h-full bg-[#0f0f0f]">
-              <ChatHeader showBackButton={true} onBack={handleBackToList} />
-              <ScrollArea className="flex-1 overflow-y-auto">
-                <div className="p-4 space-y-4">
-                  {isLoading ? (
-                    <div className="flex justify-center items-center h-32">
-                      <StandardLoader size="md" />
-                    </div>
-                  ) : messages.length === 0 ? (
-                    <div className="text-center text-gray-400 mt-8">
-                      <p>
-                        {t("pages.chat.startChatting")} {selectedUser.fullName}!
-                      </p>
-                      <p className="text-sm">{t("pages.chat.noMessages")}</p>
-                    </div>
-                  ) : (
-                    renderMessages()
-                  )}
-                  <div ref={messagesEndRef} />
-                </div>
-              </ScrollArea>
-              <div className="px-4 pb-2 h-6">
-                {" "}
-                {isPartnerTyping && <TypingIndicator />}
-              </div>
-              <MessageInput
-                value={messageContent}
-                onChange={(e) => setMessageContent(e.target.value)}
-                onSend={handleSendMessage}
-                selectedUser={selectedUser}
-                currentUserId={mongoUser?.id || ""}
-              />
-            </div>
+      <main className="h-full min-h-0 flex flex-col overflow-hidden ">
+        <div
+          className={cn(
+            "flex flex-1 flex-col min-h-0 h-full",
+            selectedUser
+              ? "min-h-[100dvh] md:min-h-[calc(100dvh-8.5rem)]"
+              : "min-h-[calc(100dvh-10.5rem)] md:min-h-[calc(100dvh-8.5rem)]",
+          )}
+        >
+          {!selectedUser ? (
+            <UsersList
+              onUserSelect={handleUserSelect}
+              selectedUser={selectedUser}
+              onlineUsers={onlineUsers}
+              userActivities={userActivities}
+            />
           ) : (
-            <div className="flex flex-col h-full items-center justify-center p-4">
-              <NoConversationPlaceholder />
-              <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
-                <SheetTrigger asChild>
-                  <Button className="mt-8 bg-[#8b5cf6] hover:bg-[#7c3aed] mb-10">
-                    <UsersIcon className="mr-2 h-4 w-4" />{" "}
-                    {t("pages.chat.viewUsers")}
-                  </Button>
-                </SheetTrigger>
-                <SheetContent
-                  side="left"
-                  className="w-[300px] sm:w-[350px] p-0 bg-[#0f0f0f] border-r border-[#2a2a2a] text-white"
-                >
-                  <SheetTitle className="sr-only">Users List</SheetTitle>
-                  <SheetDescription className="sr-only">
-                    List of users for chat.
-                  </SheetDescription>
-                  <UsersList
-                    onUserSelect={handleUserSelect}
-                    selectedUser={selectedUser}
-                    onlineUsers={onlineUsers}
-                    userActivities={userActivities}
-                  />
-                </SheetContent>
-              </Sheet>
-            </div>
+            <ChatConversation
+              selectedUser={selectedUser}
+              isLoading={isLoading}
+              messages={messages}
+              messageContent={messageContent}
+              isPartnerTyping={!!isPartnerTyping}
+              messagesEndRef={messagesEndRef}
+              onBack={handleBackToList}
+              onMessageChange={(e) => setMessageContent(e.target.value)}
+              onSend={handleSendMessage}
+              renderMessages={renderMessages}
+              currentUserId={mongoUser?.id || ""}
+            />
           )}
         </div>
       </main>
@@ -317,23 +217,69 @@ const ChatPage = () => {
 
 export default ChatPage;
 
-const NoConversationPlaceholder = () => {
+interface ChatConversationProps {
+  selectedUser: User;
+  isLoading: boolean;
+  messages: ReturnType<typeof useChatStore.getState>["messages"];
+  messageContent: string;
+  isPartnerTyping: boolean;
+  messagesEndRef: React.RefObject<HTMLDivElement | null>;
+  onBack: () => void;
+  onMessageChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onSend: (e: React.FormEvent) => void;
+  renderMessages: () => React.ReactNode;
+  currentUserId: string;
+}
+
+const ChatConversation = ({
+  selectedUser,
+  isLoading,
+  messages,
+  messageContent,
+  isPartnerTyping,
+  messagesEndRef,
+  onBack,
+  onMessageChange,
+  onSend,
+  renderMessages,
+  currentUserId,
+}: ChatConversationProps) => {
   const { t } = useTranslation();
-  const { isReduceMotionEnabled } = useAudioSettingsStore();
 
   return (
-    <div className="flex flex-col items-center justify-center h-full space-y-6 text-center">
-      <img
-        src="/Moodify-transparent.svg"
-        alt="Moodify"
-        className={`size-16 ${isReduceMotionEnabled ? "" : "animate-bounce"}`}
-      />
-      <div className="text-center">
-        <h3 className="text-zinc-300 text-lg font-medium mb-1">
-          {t("pages.chat.noConversation")}
-        </h3>
-        <p className="text-zinc-500 text-sm">{t("pages.chat.chooseFriend")}</p>
+    <div className="flex flex-col h-full min-h-0 max-w-3xl w-full mx-auto min-w-0 overflow-hidden no-scrollbar">
+      <ChatHeader showBackButton onBack={onBack} />
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain no-scrollbar">
+        <div className="px-3 sm:px-5 py-4 space-y-2 w-full max-w-full min-w-0 box-border">
+          {isLoading ? (
+            <div className="flex justify-center items-center h-40">
+              <StandardLoader size="md" />
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="text-center text-zinc-400 mt-16 px-4">
+              <p className="text-base">
+                {t("pages.chat.startChatting")} {selectedUser.fullName}!
+              </p>
+              <p className="text-sm text-zinc-500 mt-2">
+                {t("pages.chat.noMessages")}
+              </p>
+            </div>
+          ) : (
+            renderMessages()
+          )}
+          <div ref={messagesEndRef} className="h-1" />
+        </div>
       </div>
+      <div className="px-4 sm:px-6 h-7 shrink-0 flex items-center">
+        {isPartnerTyping && <TypingIndicator />}
+      </div>
+      <MessageInput
+        value={messageContent}
+        onChange={onMessageChange}
+        onSend={onSend}
+        selectedUser={selectedUser}
+        currentUserId={currentUserId}
+      />
     </div>
   );
 };

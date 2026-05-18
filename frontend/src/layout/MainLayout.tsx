@@ -24,10 +24,10 @@ import { cn } from "../lib/utils";
 import { useTranslation } from "react-i18next";
 import { PlaylistFormDialog } from "@/components/PlaylistFormDialog";
 import { Drawer } from "vaul";
-
 const MainLayout = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const location = useLocation();
+  const isChatConversation = useUIStore((s) => s.isChatConversationOpen);
   const prevLocationPathname = useRef(location.pathname);
   const { t } = useTranslation();
   const scrollContainerRef = useContainerScroll();
@@ -133,7 +133,11 @@ const MainLayout = () => {
 
   let contentPaddingBottom = "pb-0";
   if (isMobile) {
-    if (isFullScreenPlayerOpen || isMobileLyricsFullScreen) {
+    if (
+      isChatConversation ||
+      isFullScreenPlayerOpen ||
+      isMobileLyricsFullScreen
+    ) {
       contentPaddingBottom = "pb-0";
     } else if (currentSong) {
       contentPaddingBottom = "pb-[7.5rem]";
@@ -200,7 +204,9 @@ const MainLayout = () => {
     >
       <DynamicTitleUpdater />
       <AudioPlayer />
-      {isMobile && <MobileHeader title={getMobileHeaderTitle(location.pathname)} />}
+      {isMobile && !isChatConversation && (
+        <MobileHeader title={getMobileHeaderTitle(location.pathname)} />
+      )}
       {!isMobile && <Topbar />}
       <ResizablePanelGroup
         direction="horizontal"
@@ -295,6 +301,7 @@ const MainLayout = () => {
       </ResizablePanelGroup>
       <PlaybackControls />
       {isCompactView &&
+        !isChatConversation &&
         !isFullScreenPlayerOpen &&
         !isMobileLyricsFullScreen && <BottomNavigationBar />}
       <PlaylistFormDialog

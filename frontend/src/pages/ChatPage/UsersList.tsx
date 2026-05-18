@@ -12,6 +12,8 @@ import { useAuthStore } from "../../stores/useAuthStore";
 import type { User } from "../../types";
 import { useTranslation } from "react-i18next";
 import { Music } from "lucide-react";
+import { formatShortRelativeTime } from "../../lib/formatShortRelativeTime";
+import { getEffectiveActivity } from "../../lib/friendsActivityUtils";
 
 interface UsersListProps {
   onUserSelect: (user: User) => void;
@@ -50,14 +52,9 @@ const UsersList = ({
     });
 
   return (
-    <div className="flex flex-col h-full bg-[#0f0f0f] rounded-lg overflow-hidden">
-      <div className="p-4 border-b border-[#2a2a2a]">
-        <h2 className="text-lg font-semibold text-white">
-          {t("pages.chat.title")}
-        </h2>
-      </div>
-      <ScrollArea className="flex-1 pr-2 -mr-2">
-        <div className="p-2 space-y-1">
+    <div className="flex flex-col h-full min-h-0 overflow-hidden max-w-3xl w-full mx-auto">
+      <ScrollArea className="flex-1 min-h-0">
+        <div className="px-3 pt-3 pb-4 sm:px-5 sm:pt-4 space-y-1.5">
           {filteredUsers.length === 0 ? (
             <p className="text-gray-400 text-sm p-4 text-center">
               {t("pages.chat.noUsers")}
@@ -65,39 +62,40 @@ const UsersList = ({
           ) : (
             filteredUsers.map((user) => {
               const isOnline = onlineUsers.has(user._id);
-              const activity = userActivities.get(user._id);
+              const activity = getEffectiveActivity(
+                user._id,
+                user,
+                onlineUsers,
+                userActivities,
+              );
               const unreadCount =
                 useChatStore.getState().unreadMessages.get(user._id) || 0;
 
               const isPlaying =
                 typeof activity === "object" && activity !== null;
 
-              let statusText = isOnline
-                ? t("pages.chat.online")
-                : t("pages.chat.offline");
-              if (isPlaying) {
-                const artistNames = activity.artists
-                  .map((artist) => artist.artistName)
-                  .join(", ");
-                statusText = ` ${activity.songTitle} | ${artistNames}`;
-              } else if (activity === "Idle") {
-                statusText = isOnline
-                  ? t("pages.chat.online")
-                  : t("pages.chat.offline");
-              }
+              const offlineBadge =
+                !isOnline && user.lastActivityAt
+                  ? formatShortRelativeTime(user.lastActivityAt)
+                  : null;
 
               return (
                 <div
                   key={user._id}
                   onClick={() => onUserSelect(user)}
-                  className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                  className={`relative flex items-center gap-4 px-3 py-3.5 rounded-xl cursor-pointer transition-colors ${
                     selectedUser?._id === user._id
-                      ? "bg-zinc-800/50 hover:bg-zinc-800/50"
-                      : "hover:bg-zinc-800/50"
+                      ? "bg-zinc-800/60"
+                      : "hover:bg-zinc-800/40 active:bg-zinc-800/50"
                   }`}
                 >
-                  <div className="relative">
-                    <Avatar className="size-10">
+                  {offlineBadge && (
+                    <span className="absolute top-3.5 right-3 text-[10px] font-medium tabular-nums text-zinc-500">
+                      {offlineBadge}
+                    </span>
+                  )}
+                  <div className="relative shrink-0">
+                    <Avatar className="size-12">
                       <AvatarImage
                         src={user.imageUrl || "/default-avatar.png"}
                         className="object-cover"
@@ -112,22 +110,37 @@ const UsersList = ({
                       }`}
                       aria-hidden="true"
                     />
-                  </div>{" "}
-                  <div className="flex-1 min-w-0">
-                    <span className="font-medium truncate text-white text-sm">
-                      {user.fullName}
-                    </span>
-                    <p className="text-xs text-gray-400 truncate flex">
-                      {isPlaying ? (
-                        <Music className="size-3.5 text-[#8b5cf6] shrink-0 mr-1" />
-                      ) : (
-                        ""
+                  </div>
+                  <div className="flex-1 min-w-0 leading-tight">
+                    <span className="font-medium text-white text-[15px] flex items-center gap-1.5 min-w-0">
+                      <span className="truncate">{user.fullName}</span>
+                      {isPlaying && (
+                        <Music className="size-3.5 text-violet-500 shrink-0 md:hidden" />
                       )}
-                      {statusText}
-                    </p>
+                    </span>
+                    {isPlaying ? (
+                      <div className="mt-0.5 min-w-0">
+                        <p className="text-[13px] text-zinc-500 truncate">
+                          {activity.songTitle}
+                        </p>
+                        {activity.artists.length > 0 && (
+                          <p className="text-[12px] text-zinc-500/80 truncate">
+                            {activity.artists
+                              .map((artist) => artist.artistName)
+                              .join(", ")}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-[13px] text-zinc-400 truncate mt-0.5">
+                        {isOnline
+                          ? t("pages.chat.online")
+                          : t("pages.chat.offline")}
+                      </p>
+                    )}
                   </div>
                   {unreadCount > 0 && (
-                    <div className="ml-auto flex-shrink-0 bg-[#8b5cf6] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                    <div className="ml-auto shrink-0 bg-violet-600 text-white text-xs rounded-full h-6 min-w-6 px-1.5 flex items-center justify-center font-semibold">
                       {unreadCount}
                     </div>
                   )}

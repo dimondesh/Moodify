@@ -38,6 +38,7 @@ interface UIStore {
   entityTypeFilter: EntityTypeFilter | null;
   isIosDevice: boolean; // <-- НОВЫЙ ФЛАГ
   isFriendsActivityOpen: boolean;
+  isChatConversationOpen: boolean;
   librarySearchQuery: string;
   leftSidebarViewMode: LibraryViewMode;
   libraryPageViewMode: LibraryViewMode;
@@ -50,6 +51,7 @@ interface UIStore {
   setLibraryFilter: (filter: LibraryFilter) => void;
   setEntityTypeFilter: (filter: EntityTypeFilter | null) => void;
   setIsFriendsActivityOpen: (isOpen: boolean) => void;
+  setChatConversationOpen: (isOpen: boolean) => void;
   setLibrarySearchQuery: (query: string) => void;
   setLeftSidebarViewMode: (mode: LibraryViewMode) => void;
   setLibraryPageViewMode: (mode: LibraryViewMode) => void;
@@ -83,6 +85,7 @@ export const useUIStore = create<UIStore>()(
       entityTypeFilter: null,
       isIosDevice: false, // <-- ЗНАЧЕНИЕ ПО УМОЛЧАНИЮ
       isFriendsActivityOpen: true,
+      isChatConversationOpen: false,
       librarySearchQuery: "",
       leftSidebarViewMode: "list",
       libraryPageViewMode: "grid",
@@ -99,6 +102,8 @@ export const useUIStore = create<UIStore>()(
       setEntityTypeFilter: (filter) => set({ entityTypeFilter: filter }),
       setIsFriendsActivityOpen: (isOpen) =>
         set({ isFriendsActivityOpen: isOpen }),
+      setChatConversationOpen: (isOpen) =>
+        set({ isChatConversationOpen: isOpen }),
       setLibrarySearchQuery: (query) => set({ librarySearchQuery: query }),
       setLeftSidebarViewMode: (mode) => set({ leftSidebarViewMode: mode }),
       setLibraryPageViewMode: (mode) => set({ libraryPageViewMode: mode }),

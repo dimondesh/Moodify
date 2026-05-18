@@ -239,7 +239,8 @@ function MediaSessionPositionSync() {
 const PlaybackControls = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { isIosDevice } = useUIStore();
+  const { isIosDevice, isChatConversationOpen: isChatConversation } =
+    useUIStore();
   const user = useAuthStore((s) => s.user);
 
   const currentSong = usePlayerStore((s) => s.currentSong);
@@ -493,6 +494,8 @@ const PlaybackControls = () => {
   };
 
   if (!currentSong) {
+    if (isChatConversation && isCompactView) return null;
+
     return (
       <footer
         className={`h-18 sm:h-20 bg-[#0f0f0f] border-t border-[#2a2a2a] px-4 z-40
@@ -510,7 +513,7 @@ const PlaybackControls = () => {
       <MediaSessionPositionSync />
       {isCompactView ? (
         <>
-          {!isFullScreenPlayerOpen && (
+          {!isFullScreenPlayerOpen && !isChatConversation && (
             <footer className="fixed bottom-21 left-0 right-0 h-14 sm:h-16 mx-1 mb-[4px] rounded-md px-3 sm:px-4 z-[60] relative overflow-hidden isolate flex items-center">
               <div
                 aria-hidden

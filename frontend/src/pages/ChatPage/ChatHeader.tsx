@@ -7,9 +7,10 @@ import {
 } from "../../components/ui/avatar";
 import { useChatStore } from "../../stores/useChatStore";
 import { Button } from "../../components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Music } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+import { getEffectiveActivity } from "../../lib/friendsActivityUtils";
 
 interface ChatHeaderProps {
   showBackButton?: boolean;
@@ -18,42 +19,60 @@ interface ChatHeaderProps {
 
 const ChatHeader = ({ showBackButton = false, onBack }: ChatHeaderProps) => {
   const { t } = useTranslation();
-  const { selectedUser, onlineUsers } = useChatStore();
+  const { selectedUser, onlineUsers, userActivities } = useChatStore();
 
   if (!selectedUser) return null;
 
+  const isOnline = onlineUsers.has(selectedUser._id);
+  const activity = getEffectiveActivity(
+    selectedUser._id,
+    selectedUser,
+    onlineUsers,
+    userActivities,
+  );
+  const isPlaying = typeof activity === "object" && activity !== null;
+
   return (
-    <div className="p-4 border-b border-zinc-800 flex items-center gap-3">
+    <div className="shrink-0 px-4 sm:px-6 py-3.5 border-b border-zinc-800/80 bg-zinc-900/40 backdrop-blur-sm flex items-center gap-3">
       {showBackButton && (
         <Button
           variant="ghost"
           size="icon"
           onClick={onBack}
-          className="lg:hidden text-zinc-400 hover:bg-zinc-800 hover:text-white"
+          className="shrink-0 -ml-1 text-zinc-400 hover:bg-zinc-800 hover:text-white"
         >
           <ArrowLeft className="size-5" />
         </Button>
       )}
       <Link
         to={`/users/${selectedUser._id}`}
-        className="flex items-center gap-3 group"
+        className="flex items-center gap-3.5 group min-w-0 flex-1"
       >
-        <Avatar className="object-cover">
+        <Avatar className="size-11 object-cover shrink-0">
           <AvatarImage
             className="object-cover"
             src={selectedUser.imageUrl || "/default-avatar.png"}
           />
           <AvatarFallback>{selectedUser.fullName?.[0] || "U"}</AvatarFallback>
         </Avatar>
-        <div>
-          <h2 className="font-medium text-white text-base truncate group-hover:underline">
-            {selectedUser.fullName}
+        <div className="min-w-0">
+          <h2 className="font-medium text-white text-base group-hover:underline flex items-center gap-1.5 min-w-0">
+            <span className="truncate">{selectedUser.fullName}</span>
+            {isPlaying && (
+              <Music className="size-3.5 shrink-0 text-violet-500 md:hidden" />
+            )}
           </h2>
-          <p className="text-sm text-zinc-400">
-            {onlineUsers.has(selectedUser._id)
-              ? t("pages.chat.online")
-              : t("pages.chat.offline")}
-          </p>
+          {isPlaying ? (
+            <p className="text-sm text-zinc-500 truncate">
+              {activity.songTitle}
+              {activity.artists.length > 0 &&
+                ` · ${activity.artists.map((a) => a.artistName).join(", ")}`}
+            </p>
+          ) : (
+            <p className="text-sm text-zinc-400">
+              {isOnline ? t("pages.chat.online") : t("pages.chat.offline")}
+            </p>
+          )}
         </div>
       </Link>
     </div>

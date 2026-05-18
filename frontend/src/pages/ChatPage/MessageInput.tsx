@@ -54,17 +54,22 @@ const MessageInput = ({
     ? t("pages.chat.typeMessage")
     : t("common.mutualFollowersRequired");
   return (
-    <div className="p-4 mb-10 sm:mb-14 lg:mb-0 mt-auto border-t border-zinc-800">
-      <div className="flex gap-2">
+    <div className="shrink-0 px-4 sm:px-6 py-4 pb-5 sm:pb-6 border-t border-zinc-800/80 bg-zinc-900/30">
+      <div className="flex gap-2.5 max-w-3xl mx-auto">
         <Input
           placeholder={placeholderText}
           value={value}
           onChange={handleInputChange}
-          className="bg-zinc-800 border-none"
+          className="h-11 flex-1 rounded-xl bg-zinc-800/80 border-zinc-700/50 focus-visible:ring-violet-500/40"
           onKeyDown={(e) => e.key === "Enter" && onSend(e)}
           disabled={!isMutual}
         />
-        <Button size="icon" onClick={onSend} disabled={isSendDisabled}>
+        <Button
+          size="icon"
+          onClick={onSend}
+          disabled={isSendDisabled}
+          className="h-11 w-11 shrink-0 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-40"
+        >
           <Send className="size-4" />
         </Button>
       </div>
