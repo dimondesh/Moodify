@@ -12,6 +12,13 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
+const formatPredictedTags = (tags) => {
+  if (!tags?.length) return "(нет)";
+  return tags
+    .map((t) => `${t.name} (${(t.probability * 100).toFixed(1)}%)`)
+    .join(", ");
+};
+
 const MONGO_URL = process.env.MONGODB_URI || process.env.MONGO_URI;
 if (!MONGO_URL) {
   console.error(
@@ -78,14 +85,8 @@ async function runJamendoTagsMigration() {
         await song.save();
         updatedCount++;
 
-        const genresStr =
-          features.predictedGenres.length > 0
-            ? features.predictedGenres.join(", ")
-            : "(нет)";
-        const moodsStr =
-          features.predictedMoods.length > 0
-            ? features.predictedMoods.join(", ")
-            : "(нет)";
+        const genresStr = formatPredictedTags(features.predictedGenres);
+        const moodsStr = formatPredictedTags(features.predictedMoods);
 
         console.log(`   🎵 "${song.title}"`);
         console.log(`   📀 Жанры: ${genresStr}`);

@@ -1,6 +1,14 @@
 // backend/src/models/song.model.js
 import mongoose from "mongoose";
 
+const predictedTagSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    probability: { type: Number, required: true },
+  },
+  { _id: false },
+);
+
 const songSchema = new mongoose.Schema(
   {
     title: {
@@ -92,11 +100,11 @@ const songSchema = new mongoose.Schema(
         default: null,
       },
       predictedGenres: {
-        type: [String],
+        type: [predictedTagSchema],
         default: [],
       },
       predictedMoods: {
-        type: [String],
+        type: [predictedTagSchema],
         default: [],
       },
     },

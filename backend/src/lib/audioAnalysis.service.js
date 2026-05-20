@@ -3,6 +3,24 @@ import FormData from "form-data";
 import { createReadStream } from "fs";
 import path from "path";
 
+const normalizePredictedTags = (tags) => {
+  if (!Array.isArray(tags)) return [];
+  return tags
+    .map((tag) => {
+      if (typeof tag === "string") {
+        return { name: tag, probability: 0 };
+      }
+      if (tag?.name) {
+        return {
+          name: String(tag.name),
+          probability: Number(tag.probability) || 0,
+        };
+      }
+      return null;
+    })
+    .filter(Boolean);
+};
+
 const analyzeAudioFeatures = async (audioFilePath) => {
   try {
     const ANALYSIS_SERVICE_URL =
@@ -59,10 +77,12 @@ const analyzeAudioFeatures = async (audioFilePath) => {
 
     if (embedResponse.status === "fulfilled") {
       result.embedding = embedResponse.value.data.embedding || null;
-      result.predictedGenres =
-        embedResponse.value.data.predicted_genres || [];
-      result.predictedMoods =
-        embedResponse.value.data.predicted_moods || [];
+      result.predictedGenres = normalizePredictedTags(
+        embedResponse.value.data.predicted_genres,
+      );
+      result.predictedMoods = normalizePredictedTags(
+        embedResponse.value.data.predicted_moods,
+      );
     } else {
       console.error(
         "[AudioAnalysisService] Ошибка получения эмбеддинга:",

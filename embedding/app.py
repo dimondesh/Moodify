@@ -26,19 +26,13 @@ def load_vocab(json_path: str) -> list[str]:
 def get_top_tags(
     scores: np.ndarray,
     vocab: list[str],
-    threshold: float,
-    top_k: int = TOP_K_TAGS,
-) -> list[str]:
+    top_k: int = 10,
+) -> list[dict]:
     mean_scores = np.mean(scores, axis=0)
-    indices = np.where(mean_scores >= threshold)[0]
-    tagged = [(vocab[i], float(mean_scores[i])) for i in indices]
-    tagged.sort(key=lambda x: x[1], reverse=True)
-    if tagged:
-        return [tag for tag, _ in tagged[:top_k]]
-    # fallback: top-k by score when nothing passes threshold
-    all_tagged = [(vocab[i], float(mean_scores[i])) for i in range(len(vocab))]
-    all_tagged.sort(key=lambda x: x[1], reverse=True)
-    return [tag for tag, score in all_tagged[:top_k] if score > 0]
+    
+    indices = np.argsort(mean_scores)[::-1][:top_k]
+    
+    return [{"name": str(vocab[i]), "probability": float(mean_scores[i])} for i in indices]
 
 
 print("Loading tag vocabularies...")
@@ -84,8 +78,8 @@ def extract_features(file_path: str) -> dict:
 
     return {
         "embedding": mean_embedding.tolist(),
-        "predicted_genres": get_top_tags(genre_scores, GENRE_VOCAB, GENRE_THRESHOLD),
-        "predicted_moods": get_top_tags(mood_scores, MOOD_VOCAB, MOOD_THRESHOLD),
+        "predicted_genres": get_top_tags(genre_scores, GENRE_VOCAB),
+        "predicted_moods": get_top_tags(mood_scores, MOOD_VOCAB),
     }
 
 
