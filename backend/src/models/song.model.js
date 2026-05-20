@@ -91,6 +91,14 @@ const songSchema = new mongoose.Schema(
         type: [Number],
         default: null,
       },
+      predictedGenres: {
+        type: [String],
+        default: [],
+      },
+      predictedMoods: {
+        type: [String],
+        default: [],
+      },
     },
   },
   { timestamps: true },

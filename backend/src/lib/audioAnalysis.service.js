@@ -37,7 +37,14 @@ const analyzeAudioFeatures = async (audioFilePath) => {
       }),
     ]);
 
-    let result = { bpm: null, camelot: null, beats: [], embedding: null };
+    let result = {
+      bpm: null,
+      camelot: null,
+      beats: [],
+      embedding: null,
+      predictedGenres: [],
+      predictedMoods: [],
+    };
 
     if (analysisResponse.status === "fulfilled") {
       result.bpm = analysisResponse.value.data.bpm || null;
@@ -52,6 +59,10 @@ const analyzeAudioFeatures = async (audioFilePath) => {
 
     if (embedResponse.status === "fulfilled") {
       result.embedding = embedResponse.value.data.embedding || null;
+      result.predictedGenres =
+        embedResponse.value.data.predicted_genres || [];
+      result.predictedMoods =
+        embedResponse.value.data.predicted_moods || [];
     } else {
       console.error(
         "[AudioAnalysisService] Ошибка получения эмбеддинга:",

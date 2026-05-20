@@ -3,15 +3,11 @@ import path from "path";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
-import { exec } from "child_process";
-import util from "util";
 import axios from "axios";
 import FormData from "form-data";
 
-// Импортируем твою модель песни
 import { Song } from "../models/song.model.js";
-
-const execPromise = util.promisify(exec);
+import { downloadHlsAudio } from "../lib/hlsDownload.service.js";
 
 // Настройка путей для ES-модулей
 const __filename = fileURLToPath(import.meta.url);
@@ -69,13 +65,6 @@ async function analyzeAudio(filePath) {
 }
 
 // Функция скачивания и объединения HLS чанков
-async function downloadHlsAndMerge(hlsUrl, tempPath) {
-  // ffmpeg сам прочитает m3u8 плейлист, скачает все .ts сегменты и склеит их.
-  // Конвертируем в mp3 для лучшей совместимости с Essentia.
-  const command = `ffmpeg -y -i "${hlsUrl}" -c:a libmp3lame -q:a 2 "${tempPath}"`;
-  await execPromise(command);
-}
-
 async function runAnalysisMigration() {
   try {
     await mongoose.connect(MONGO_URL);
@@ -112,7 +101,7 @@ async function runAnalysisMigration() {
       try {
         // 1. Скачиваем HLS поток и склеиваем в один файл
         console.log(`   ⬇️ Скачивание и склейка HLS чанков...`);
-        await downloadHlsAndMerge(song.hlsUrl, tempFilePath);
+        await downloadHlsAudio(song.hlsUrl, tempFilePath, song.duration ?? 0);
 
         // 2. Отправляем в Python-анализатор
         console.log(`   🧠 Отправка в анализатор...`);

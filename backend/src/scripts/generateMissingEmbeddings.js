@@ -3,13 +3,10 @@ import path from "path";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
-import { exec } from "child_process";
-import util from "util";
 import axios from "axios";
 import FormData from "form-data";
 import { Song } from "../models/song.model.js";
-
-const execPromise = util.promisify(exec);
+import { downloadHlsAudio } from "../lib/hlsDownload.service.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -59,12 +56,6 @@ async function getEmbedding(filePath) {
   return response.data.embedding;
 }
 
-// Функция скачивания и объединения HLS чанков
-async function downloadHlsAndMerge(hlsUrl, tempPath) {
-  const command = `ffmpeg -y -i "${hlsUrl}" -c:a libmp3lame -q:a 2 "${tempPath}"`;
-  await execPromise(command);
-}
-
 async function runEmbeddingMigration() {
   try {
     await mongoose.connect(MONGO_URL);
@@ -100,7 +91,7 @@ async function runEmbeddingMigration() {
 
       try {
         console.log(`   ⬇️ Скачивание и склейка HLS чанков...`);
-        await downloadHlsAndMerge(song.hlsUrl, tempFilePath);
+        await downloadHlsAudio(song.hlsUrl, tempFilePath, song.duration ?? 0);
 
         console.log(`   🧠 Отправка в сервис эмбеддингов...`);
         const embeddingVector = await getEmbedding(tempFilePath);
