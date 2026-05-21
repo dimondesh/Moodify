@@ -7,7 +7,18 @@ import { Playlist } from "../models/playlist.model.js";
 import { Song } from "../models/song.model.js";
 import { ListenHistory } from "../models/listenHistory.model.js";
 
-// Вспомогательная функция для расчета разницы (чем меньше, тем лучше)
+// Ranking: cosine similarity first, then BPM/camelot, then predicted tag tweaks.
+const EMBEDDING_DIM = 1280;
+const LEGACY_EMBEDDING_DIMS = [50, 39];
+const GENRE_POOL_K = 10;
+const MOOD_POOL_K = 10;
+const EMBEDDING_SCORE_WEIGHT = 2.0;
+const GENRE_OVERLAP_BONUS = 0.1;
+const MOOD_OVERLAP_BONUS = 0.05;
+const TAG_PROB_BONUS_WEIGHT = 0.05;
+const NO_GENRE_POOL_PENALTY = 10;
+const CANDIDATE_SAMPLE_SIZE = 300;
+const TOP_SLICE_MULTIPLIER = 3;
 
 const cosineSimilarity = (vecA, vecB) => {
   if (!vecA || !vecB || vecA.length !== vecB.length) return 0;
@@ -22,6 +33,157 @@ const cosineSimilarity = (vecA, vecB) => {
   if (normA === 0 || normB === 0) return 0;
   return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 };
+
+const isKnownEmbeddingDim = (len) =>
+  len === EMBEDDING_DIM || LEGACY_EMBEDDING_DIMS.includes(len);
+
+const embeddingSimilarity = (vecA, vecB) => {
+  if (!vecA || !vecB || vecA.length !== vecB.length) return 0;
+  if (!isKnownEmbeddingDim(vecA.length)) return 0;
+  return cosineSimilarity(vecA, vecB);
+};
+
+const getPredictedTagNames = (tags) =>
+  (tags || []).map((t) => t.name).filter(Boolean);
+
+const getTopPredictedTags = (tags, k) => (tags || []).slice(0, k);
+
+const countTagNameOverlap = (poolNames, candidateTags) => {
+  if (!poolNames.length || !candidateTags?.length) return 0;
+  const candNames = new Set(getPredictedTagNames(candidateTags));
+  return poolNames.filter((name) => candNames.has(name)).length;
+};
+
+const computePredictedTagOverlapScore = (targetTags, candidateTags) => {
+  if (!targetTags?.length || !candidateTags?.length) return 0;
+  const candidateByName = new Map(
+    candidateTags.map((t) => [t.name, t.probability]),
+  );
+  let bonus = 0;
+  for (let i = 0; i < targetTags.length; i++) {
+    const target = targetTags[i];
+    const candidateProb = candidateByName.get(target.name);
+    if (candidateProb != null) {
+      const rankWeight = 1 / (i + 1);
+      bonus += rankWeight * target.probability * candidateProb;
+    }
+  }
+  return bonus;
+};
+
+const mergePredictedTags = (tagLists) => {
+  const byName = new Map();
+  for (const list of tagLists) {
+    for (const tag of list || []) {
+      if (!tag?.name) continue;
+      const existing = byName.get(tag.name);
+      if (!existing || tag.probability > existing.probability) {
+        byName.set(tag.name, {
+          name: tag.name,
+          probability: tag.probability,
+        });
+      }
+    }
+  }
+  return [...byName.values()].sort((a, b) => b.probability - a.probability);
+};
+
+const buildBpmMatchClause = (targetBpm, bpmTolerance) => ({
+  $or: [
+    {
+      "audioFeatures.bpm": {
+        $gte: targetBpm - bpmTolerance,
+        $lte: targetBpm + bpmTolerance,
+      },
+    },
+    {
+      "audioFeatures.bpm": {
+        $gte: targetBpm * 2 - bpmTolerance,
+        $lte: targetBpm * 2 + bpmTolerance,
+      },
+    },
+    {
+      "audioFeatures.bpm": {
+        $gte: targetBpm / 2 - bpmTolerance,
+        $lte: targetBpm / 2 + bpmTolerance,
+      },
+    },
+  ],
+});
+
+const hasValidEmbedding = (embedding) =>
+  Array.isArray(embedding) && isKnownEmbeddingDim(embedding.length);
+
+const scoreRecommendationCandidate = ({
+  sourceAudioFeatures,
+  sourcePredictedGenres,
+  sourcePredictedMoods,
+  genrePoolNames,
+  moodPoolNames,
+  candidate,
+  referenceEmbedding = null,
+}) => {
+  const candidateFeatures = candidate.audioFeatures || {};
+  const audioFeatures = sourceAudioFeatures || {};
+  let score = calculateFeatureDistance(audioFeatures, candidateFeatures);
+
+  if (isHarmonicallyCompatible(audioFeatures, candidateFeatures)) {
+    score -= 0.1;
+  }
+
+  const embedRef = referenceEmbedding ?? audioFeatures.embedding;
+  const similarity = embeddingSimilarity(
+    embedRef,
+    candidateFeatures.embedding,
+  );
+  score -= similarity * EMBEDDING_SCORE_WEIGHT;
+
+  const candidateGenres = candidateFeatures.predictedGenres ?? [];
+  const candidateMoods = candidateFeatures.predictedMoods ?? [];
+  const sharedGenres = countTagNameOverlap(genrePoolNames, candidateGenres);
+
+  if (sharedGenres === 0 && genrePoolNames.length > 0) {
+    score += NO_GENRE_POOL_PENALTY;
+  } else {
+    score -= sharedGenres * GENRE_OVERLAP_BONUS;
+  }
+
+  const sharedMoods = countTagNameOverlap(moodPoolNames, candidateMoods);
+  score -= sharedMoods * MOOD_OVERLAP_BONUS;
+
+  score -=
+    computePredictedTagOverlapScore(
+      getTopPredictedTags(sourcePredictedGenres, GENRE_POOL_K),
+      getTopPredictedTags(candidateGenres, GENRE_POOL_K),
+    ) * TAG_PROB_BONUS_WEIGHT;
+  score -=
+    computePredictedTagOverlapScore(
+      getTopPredictedTags(sourcePredictedMoods, MOOD_POOL_K),
+      getTopPredictedTags(candidateMoods, MOOD_POOL_K),
+    ) * TAG_PROB_BONUS_WEIGHT;
+
+  return score;
+};
+
+const filterCandidatesByEmbeddingDim = (candidates, sourceEmbedding) => {
+  const dim = sourceEmbedding?.length;
+  if (!dim || !isKnownEmbeddingDim(dim)) return candidates;
+  return candidates.filter(
+    (c) => c.audioFeatures?.embedding?.length === dim,
+  );
+};
+
+const buildEmbeddingPoolMatch = (excludeId, targetBpm, bpmTolerance) => {
+  const match = {
+    _id: { $ne: excludeId },
+    "audioFeatures.embedding": { $exists: true, $ne: null },
+  };
+  if (targetBpm != null) {
+    match.$and = [buildBpmMatchClause(targetBpm, bpmTolerance)];
+  }
+  return match;
+};
+
 // Функция расчета дистанции по доступным признакам (теперь только BPM)
 const calculateFeatureDistance = (target, candidate) => {
   let distance = 0;
@@ -84,16 +246,26 @@ export const getVibeMatchTracks = async (currentSongId, limit = 10) => {
   const currentSong = await Song.findById(currentSongId).lean();
   if (!currentSong) return [];
 
-  const { genres, moods, audioFeatures } = currentSong;
+  const audioFeatures = currentSong.audioFeatures ?? {};
+  const predictedGenres = audioFeatures.predictedGenres ?? [];
+  const predictedMoods = audioFeatures.predictedMoods ?? [];
+  const genrePoolNames = getPredictedTagNames(
+    getTopPredictedTags(predictedGenres, GENRE_POOL_K),
+  );
+  const moodPoolNames = getPredictedTagNames(
+    getTopPredictedTags(predictedMoods, MOOD_POOL_K),
+  );
+  const sourceEmbedding = audioFeatures.embedding;
+  const bpmTolerance = 20;
+  const excludeId = currentSong._id;
 
-  // Если у трека нет анализа аудио, падаем на строгий поиск по жанрам
-  // Если у трека нет анализа аудио, падаем на строгий поиск по жанрам
-  if (!audioFeatures || audioFeatures.bpm === null) {
+  if (!hasValidEmbedding(sourceEmbedding)) {
+    if (genrePoolNames.length === 0) return [];
     const fallbackAgg = await Song.aggregate([
       {
         $match: {
-          _id: { $ne: currentSong._id },
-          genres: { $in: genres }, // Только тот же жанр! Никаких $or с настроением
+          _id: { $ne: excludeId },
+          "audioFeatures.predictedGenres.name": { $in: genrePoolNames },
         },
       },
       { $sample: { size: limit } },
@@ -105,121 +277,70 @@ export const getVibeMatchTracks = async (currentSongId, limit = 10) => {
     return populated.sort(() => 0.5 - Math.random());
   }
 
-  const targetBpm = audioFeatures.bpm;
-  const bpmTolerance = 20;
-
-  // 1. ПЕРВИЧНЫЙ ПОИСК: ЖЕСТКО требуем совпадения жанра
   let candidatesAgg = await Song.aggregate([
     {
-      $match: {
-        _id: { $ne: currentSong._id },
-        $and: [
-          // ГЛАВНОЕ ИЗМЕНЕНИЕ 1: Жанр обязан совпадать. Moods убраны из $or
-          { genres: { $in: genres } },
-          {
-            $or: [
-              {
-                "audioFeatures.bpm": {
-                  $gte: targetBpm - bpmTolerance,
-                  $lte: targetBpm + bpmTolerance,
-                },
-              },
-              {
-                "audioFeatures.bpm": {
-                  $gte: targetBpm * 2 - bpmTolerance,
-                  $lte: targetBpm * 2 + bpmTolerance,
-                },
-              },
-              {
-                "audioFeatures.bpm": {
-                  $gte: targetBpm / 2 - bpmTolerance,
-                  $lte: targetBpm / 2 + bpmTolerance,
-                },
-              },
-            ],
-          },
-        ],
-      },
+      $match: buildEmbeddingPoolMatch(
+        excludeId,
+        audioFeatures.bpm,
+        bpmTolerance,
+      ),
     },
-    { $sample: { size: 100 } },
+    { $sample: { size: CANDIDATE_SAMPLE_SIZE } },
   ]);
 
-  // 2. Fallback: Если в этом жанре с таким BPM/Energy треков не нашлось,
-  // расширяем поиск до настроений, чтобы очередь не остановилась
   if (candidatesAgg.length < limit) {
     candidatesAgg = await Song.aggregate([
       {
         $match: {
-          _id: { $ne: currentSong._id },
-          $or: [{ genres: { $in: genres } }, { moods: { $in: moods } }],
-          "audioFeatures.bpm": { $ne: null },
+          _id: { $ne: excludeId },
+          "audioFeatures.embedding": { $exists: true, $ne: null },
         },
       },
-      { $sample: { size: 100 } },
+      { $sample: { size: CANDIDATE_SAMPLE_SIZE } },
     ]);
   }
 
-  const candidates = await Song.populate(candidatesAgg, {
+  candidatesAgg = filterCandidatesByEmbeddingDim(
+    candidatesAgg,
+    sourceEmbedding,
+  );
+
+  const populated = await Song.populate(candidatesAgg, {
     path: "artist",
     select: "name imageUrl",
   });
 
-  // 3. Оценка кандидатов: применяем ЖАНРОВЫЙ ШТРАФ И КОСИНУСНОЕ СХОДСТВО
-  const scoredCandidates = candidates.map((candidate) => {
-    let score = calculateFeatureDistance(
-      audioFeatures,
-      candidate.audioFeatures,
-    );
+  const scoredCandidates = populated.map((candidate) => ({
+    ...candidate,
+    score: scoreRecommendationCandidate({
+      sourceAudioFeatures: audioFeatures,
+      sourcePredictedGenres: predictedGenres,
+      sourcePredictedMoods: predictedMoods,
+      genrePoolNames,
+      moodPoolNames,
+      candidate,
+    }),
+  }));
 
-    if (isHarmonicallyCompatible(audioFeatures, candidate.audioFeatures)) {
-      score -= 0.1;
-    }
-
-    const sharedMoods = candidate.moods.filter((m) =>
-      moods.some((tm) => tm.toString() === m.toString()),
-    ).length;
-    score -= sharedMoods * 0.05;
-
-    const sharedGenres = candidate.genres.filter((g) =>
-      genres.some((tg) => tg.toString() === g.toString()),
-    ).length;
-
-    if (sharedGenres === 0) {
-      score += 10;
-    } else {
-      score -= sharedGenres * 0.1;
-    }
-
-    if (
-      currentSong.audioFeatures?.embedding &&
-      candidate.audioFeatures?.embedding
-    ) {
-      const similarity = cosineSimilarity(
-        currentSong.audioFeatures.embedding,
-        candidate.audioFeatures.embedding,
-      );
-      score -= similarity * 2.0;
-    }
-
-    return { ...candidate, score };
-  });
-
-  // 4. Сортируем: треки с нулевым sharedGenres будут иметь score > 10 и окажутся внизу
   scoredCandidates.sort((a, b) => a.score - b.score);
 
-  const topMatches = scoredCandidates.slice(0, limit * 2);
+  const topMatches = scoredCandidates.slice(0, limit * TOP_SLICE_MULTIPLIER);
   return topMatches.sort(() => 0.5 - Math.random()).slice(0, limit);
 };
 
 const computeCentroidEmbedding = (embeddings) => {
-  const dim = embeddings[0].length;
+  const valid = embeddings.filter((e) => hasValidEmbedding(e));
+  if (valid.length === 0) return null;
+
+  const dim = valid[0].length;
+  if (!isKnownEmbeddingDim(dim)) return null;
   const sum = new Array(dim).fill(0);
-  for (const vec of embeddings) {
+  for (const vec of valid) {
     for (let i = 0; i < dim; i++) {
       sum[i] += vec[i];
     }
   }
-  const n = embeddings.length;
+  const n = valid.length;
   for (let i = 0; i < dim; i++) {
     sum[i] /= n;
   }
@@ -232,52 +353,6 @@ const computeCentroidEmbedding = (embeddings) => {
   return sum.map((v) => v / norm);
 };
 
-const scoreCandidateAgainstPlaylist = (
-  centroidEmbedding,
-  avgAudioFeatures,
-  genreIds,
-  moodIds,
-  candidate,
-) => {
-  let score = calculateFeatureDistance(
-    avgAudioFeatures,
-    candidate.audioFeatures || {},
-  );
-
-  if (
-    isHarmonicallyCompatible(
-      avgAudioFeatures,
-      candidate.audioFeatures || {},
-    )
-  ) {
-    score -= 0.1;
-  }
-
-  const sharedMoods = (candidate.moods || []).filter((m) =>
-    moodIds.some((tm) => tm.toString() === m.toString()),
-  ).length;
-  score -= sharedMoods * 0.05;
-
-  const sharedGenres = (candidate.genres || []).filter((g) =>
-    genreIds.some((tg) => tg.toString() === g.toString()),
-  ).length;
-
-  if (sharedGenres === 0) {
-    score += 10;
-  } else {
-    score -= sharedGenres * 0.1;
-  }
-
-  if (candidate.audioFeatures?.embedding) {
-    const similarity = cosineSimilarity(
-      centroidEmbedding,
-      candidate.audioFeatures.embedding,
-    );
-    score -= similarity * 2.0;
-  }
-
-  return score;
-};
 
 const formatPlaylistRecommendationSong = (song) => ({
   _id: song._id.toString(),
@@ -311,35 +386,33 @@ export const getPlaylistEmbeddingRecommendations = async (
       return null;
     }
 
-    const playlistSongIds = playlist.songs.map((id) => id.toString());
     const playlistSongs = await Song.find({ _id: { $in: playlist.songs } })
-      .select("genres moods audioFeatures")
+      .select("audioFeatures")
       .lean();
 
     if (!playlistSongs.length) return null;
 
     const embeddings = playlistSongs
       .map((s) => s.audioFeatures?.embedding)
-      .filter((e) => Array.isArray(e) && e.length > 0);
+      .filter((e) => hasValidEmbedding(e));
 
     if (embeddings.length === 0) return null;
 
     const centroidEmbedding = computeCentroidEmbedding(embeddings);
+    if (!centroidEmbedding) return null;
 
-    const genreIds = [
-      ...new Map(
-        playlistSongs
-          .flatMap((s) => s.genres || [])
-          .map((g) => [g.toString(), g]),
-      ).values(),
-    ];
-    const moodIds = [
-      ...new Map(
-        playlistSongs
-          .flatMap((s) => s.moods || [])
-          .map((m) => [m.toString(), m]),
-      ).values(),
-    ];
+    const playlistPredictedGenres = mergePredictedTags(
+      playlistSongs.map((s) => s.audioFeatures?.predictedGenres),
+    );
+    const playlistPredictedMoods = mergePredictedTags(
+      playlistSongs.map((s) => s.audioFeatures?.predictedMoods),
+    );
+    const genrePoolNames = getPredictedTagNames(
+      getTopPredictedTags(playlistPredictedGenres, GENRE_POOL_K),
+    );
+    const moodPoolNames = getPredictedTagNames(
+      getTopPredictedTags(playlistPredictedMoods, MOOD_POOL_K),
+    );
 
     const bpms = playlistSongs
       .map((s) => s.audioFeatures?.bpm)
@@ -358,90 +431,58 @@ export const getPlaylistEmbeddingRecommendations = async (
     const bpmTolerance = 20;
     const excludeIds = playlist.songs;
 
-    let matchQuery = {
-      _id: { $nin: excludeIds },
-      "audioFeatures.embedding": { $exists: true, $ne: null },
-    };
-
-    if (genreIds.length > 0 && targetBpm != null) {
-      matchQuery = {
-        _id: { $nin: excludeIds },
-        "audioFeatures.embedding": { $exists: true, $ne: null },
-        $and: [
-          { genres: { $in: genreIds } },
-          {
-            $or: [
-              {
-                "audioFeatures.bpm": {
-                  $gte: targetBpm - bpmTolerance,
-                  $lte: targetBpm + bpmTolerance,
-                },
-              },
-              {
-                "audioFeatures.bpm": {
-                  $gte: targetBpm * 2 - bpmTolerance,
-                  $lte: targetBpm * 2 + bpmTolerance,
-                },
-              },
-              {
-                "audioFeatures.bpm": {
-                  $gte: targetBpm / 2 - bpmTolerance,
-                  $lte: targetBpm / 2 + bpmTolerance,
-                },
-              },
-            ],
-          },
-        ],
-      };
-    } else if (genreIds.length > 0) {
-      matchQuery.genres = { $in: genreIds };
-    }
-
     let candidatesAgg = await Song.aggregate([
-      { $match: matchQuery },
-      { $sample: { size: 100 } },
+      {
+        $match: {
+          _id: { $nin: excludeIds },
+          "audioFeatures.embedding": { $exists: true, $ne: null },
+          ...(targetBpm != null
+            ? { $and: [buildBpmMatchClause(targetBpm, bpmTolerance)] }
+            : {}),
+        },
+      },
+      { $sample: { size: CANDIDATE_SAMPLE_SIZE } },
     ]);
 
     if (candidatesAgg.length < limit) {
-      const fallbackMatch = {
-        _id: { $nin: excludeIds },
-        "audioFeatures.embedding": { $exists: true, $ne: null },
-      };
-      if (genreIds.length > 0 || moodIds.length > 0) {
-        fallbackMatch.$or = [];
-        if (genreIds.length > 0) {
-          fallbackMatch.$or.push({ genres: { $in: genreIds } });
-        }
-        if (moodIds.length > 0) {
-          fallbackMatch.$or.push({ moods: { $in: moodIds } });
-        }
-      }
       candidatesAgg = await Song.aggregate([
-        { $match: fallbackMatch },
-        { $sample: { size: 100 } },
+        {
+          $match: {
+            _id: { $nin: excludeIds },
+            "audioFeatures.embedding": { $exists: true, $ne: null },
+          },
+        },
+        { $sample: { size: CANDIDATE_SAMPLE_SIZE } },
       ]);
     }
 
+    candidatesAgg = filterCandidatesByEmbeddingDim(
+      candidatesAgg,
+      centroidEmbedding,
+    );
+
     if (candidatesAgg.length === 0) return null;
 
-    const candidates = await Song.populate(candidatesAgg, [
+    const populated = await Song.populate(candidatesAgg, [
       { path: "artist", select: "name imageUrl" },
       { path: "albumId", select: "title imageUrl" },
     ]);
 
-    const scoredCandidates = candidates.map((candidate) => ({
+    const scoredCandidates = populated.map((candidate) => ({
       ...candidate,
-      score: scoreCandidateAgainstPlaylist(
-        centroidEmbedding,
-        avgAudioFeatures,
-        genreIds,
-        moodIds,
+      score: scoreRecommendationCandidate({
+        sourceAudioFeatures: avgAudioFeatures,
+        sourcePredictedGenres: playlistPredictedGenres,
+        sourcePredictedMoods: playlistPredictedMoods,
+        genrePoolNames,
+        moodPoolNames,
         candidate,
-      ),
+        referenceEmbedding: centroidEmbedding,
+      }),
     }));
 
     scoredCandidates.sort((a, b) => a.score - b.score);
-    const topMatches = scoredCandidates.slice(0, limit * 2);
+    const topMatches = scoredCandidates.slice(0, limit * TOP_SLICE_MULTIPLIER);
     const shuffled = topMatches.sort(() => 0.5 - Math.random()).slice(0, limit);
 
     return shuffled.map(({ score: _score, ...song }) =>

@@ -118,6 +118,8 @@ songSchema.index({ albumId: 1 });
 songSchema.index({ playCount: -1 });
 songSchema.index({ genres: 1 });
 songSchema.index({ moods: 1 });
+songSchema.index({ "audioFeatures.predictedGenres.name": 1 });
+songSchema.index({ "audioFeatures.predictedMoods.name": 1 });
 songSchema.index({ title: "text" });
 
 export const Song = mongoose.model("Song", songSchema);
