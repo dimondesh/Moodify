@@ -23,10 +23,12 @@ import {
   getAdminUploadQueueStatus,
 } from "../controller/admin.controller.js";
 import { protectRoute } from "../middleware/auth.middleware.js";
+import { requireAdmin } from "../middleware/requireAdmin.middleware.js";
 
 const router = Router();
 
 router.use(protectRoute);
+router.use(requireAdmin);
 
 router.get("/upload-queue/status", getAdminUploadQueueStatus);
 

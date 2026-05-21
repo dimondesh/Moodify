@@ -6,6 +6,11 @@ const userSchema = new mongoose.Schema(
     imageUrl: String,
     coverAccentHex: { type: String, default: null },
     email: { type: String, required: true, unique: true, lowercase: true },
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user",
+    },
     passwordHash: { type: String, default: null },
     googleId: { type: String, sparse: true, unique: true },
     emailVerified: { type: Boolean, default: false },

@@ -125,8 +125,6 @@ const processAndUploadSong = async (audioFilePath) => {
 };
 
 export const createSong = async (req, res, next) => {
-  if (!req.user || !req.user.isAdmin)
-    return res.status(403).json({ message: "Access denied." });
   if (!req.files || !req.files.audioFile)
     return res.status(400).json({ message: "Audio file is required." });
 
@@ -228,11 +226,6 @@ export const createSong = async (req, res, next) => {
 
 // Обновленная функция updateSong
 export const updateSong = async (req, res, next) => {
-  if (!req.user || !req.user.isAdmin) {
-    return res
-      .status(403)
-      .json({ message: "Access denied. Admin privileges required." });
-  }
 
   const { id } = req.params;
   let {
@@ -362,9 +355,6 @@ export const updateSong = async (req, res, next) => {
 
 export const deleteSong = async (req, res, next) => {
   try {
-    if (!req.user || !req.user.isAdmin)
-      return res.status(403).json({ message: "Access denied." });
-
     const { id } = req.params;
     const song = await Song.findById(id);
 
@@ -420,8 +410,6 @@ export const deleteSong = async (req, res, next) => {
 
 export const createAlbum = async (req, res, next) => {
   try {
-    if (!req.user || !req.user.isAdmin)
-      return res.status(403).json({ message: "Access denied." });
     if (!req.files || !req.files.imageFile)
       return res.status(400).json({ message: "Image file is required." });
 
@@ -457,11 +445,6 @@ export const createAlbum = async (req, res, next) => {
 
 export const updateAlbum = async (req, res, next) => {
   try {
-    if (!req.user || !req.user.isAdmin) {
-      return res
-        .status(403)
-        .json({ message: "Access denied. Admin privileges required." });
-    }
 
     const { id } = req.params;
     const {
@@ -548,9 +531,6 @@ export const updateAlbum = async (req, res, next) => {
 
 export const deleteAlbum = async (req, res, next) => {
   try {
-    if (!req.user || !req.user.isAdmin)
-      return res.status(403).json({ message: "Access denied." });
-
     const { id } = req.params;
     const album = await Album.findById(id);
 
@@ -602,8 +582,6 @@ export const deleteAlbum = async (req, res, next) => {
 
 export const createArtist = async (req, res, next) => {
   try {
-    if (!req.user?.isAdmin)
-      return res.status(403).json({ message: "Access denied." });
     const { name, bio } = req.body;
     if (!name || !req.files?.imageFile)
       return res
@@ -636,8 +614,6 @@ export const createArtist = async (req, res, next) => {
 
 export const updateArtist = async (req, res, next) => {
   try {
-    if (!req.user?.isAdmin)
-      return res.status(403).json({ message: "Access denied." });
 
     const { id } = req.params;
     const { name, bio, bannerUrl } = req.body;
@@ -677,8 +653,6 @@ export const updateArtist = async (req, res, next) => {
 
 export const deleteArtist = async (req, res, next) => {
   try {
-    if (!req.user?.isAdmin)
-      return res.status(403).json({ message: "Access denied." });
     const { id } = req.params;
     const artist = await Artist.findById(id);
     if (!artist) return res.status(404).json({ message: "Artist not found." });
@@ -787,11 +761,6 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
   const DEFAULT_ARTIST_IMAGE_URL = CDN_DEFAULT_ARTIST_IMAGE;
   const DEFAULT_ALBUM_IMAGE_URL = CDN_DEFAULT_ALBUM_COVER;
 
-  if (!req.user || !req.user.isAdmin) {
-    return res
-      .status(403)
-      .json({ message: "Access denied. Admin privileges required." });
-  }
 
   const { spotifyAlbumUrl, uploadId } = req.body;
   const albumAudioZip = req.files ? req.files.albumAudioZip : null;
@@ -1186,11 +1155,6 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
 
 export const getAdminUploadQueueStatus = async (req, res, next) => {
   try {
-    if (!req.user || !req.user.isAdmin) {
-      return res
-        .status(403)
-        .json({ message: "Access denied. Admin privileges required." });
-    }
     res.status(200).json({
       fileJobQueue: getAdminFileQueueSnapshot(),
       globalLease: getGlobalLeaseStats(),
@@ -1221,10 +1185,6 @@ export const getMoods = async (req, res, next) => {
 
 export const getPaginatedSongs = async (req, res, next) => {
   try {
-    if (!req.user || !req.user.isAdmin) {
-      return res.status(403).json({ message: "Access denied." });
-    }
-
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
     const skip = (page - 1) * limit;
@@ -1255,9 +1215,6 @@ export const getPaginatedSongs = async (req, res, next) => {
 
 export const getPaginatedAlbums = async (req, res, next) => {
   try {
-    if (!req.user || !req.user.isAdmin) {
-      return res.status(403).json({ message: "Access denied." });
-    }
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
     const skip = (page - 1) * limit;
@@ -1289,10 +1246,6 @@ export const getPaginatedAlbums = async (req, res, next) => {
 
 export const getPaginatedArtists = async (req, res, next) => {
   try {
-    if (!req.user || !req.user.isAdmin) {
-      return res.status(403).json({ message: "Access denied." });
-    }
-
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
     const skip = (page - 1) * limit;
@@ -1322,10 +1275,6 @@ export const getPaginatedArtists = async (req, res, next) => {
 
 export const analyzeSongAudio = async (req, res, next) => {
   try {
-    if (!req.user || !req.user.isAdmin) {
-      return res.status(403).json({ message: "Access denied." });
-    }
-
     const { songId } = req.params;
 
     if (!songId) {
@@ -1397,10 +1346,6 @@ export const analyzeSongAudio = async (req, res, next) => {
 
 export const getSongAudioFeatures = async (req, res, next) => {
   try {
-    if (!req.user || !req.user.isAdmin) {
-      return res.status(403).json({ message: "Access denied." });
-    }
-
     const { songId } = req.params;
 
     if (!songId) {
@@ -1424,9 +1369,6 @@ export const getSongAudioFeatures = async (req, res, next) => {
 };
 export const testAudioAnalysis = async (req, res, next) => {
   try {
-    if (!req.user || !req.user.isAdmin) {
-      return res.status(403).json({ message: "Access denied." });
-    }
     if (!req.files || !req.files.audioFile) {
       return res
         .status(400)
@@ -1468,9 +1410,6 @@ export const testAudioAnalysis = async (req, res, next) => {
 
 export const testEmbeddingExtraction = async (req, res) => {
   try {
-    if (!req.user || !req.user.isAdmin) {
-      return res.status(403).json({ message: "Access denied." });
-    }
     if (!req.files || !req.files.audioFile) {
       return res.status(400).json({ message: "Audio file is required." });
     }

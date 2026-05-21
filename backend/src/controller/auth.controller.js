@@ -10,6 +10,7 @@ import {
   extractCoverAccentHexFromUrl,
   isSkippableCoverImageUrl,
 } from "../lib/coverAccent.service.js";
+import { isAdminUser } from "../lib/userRoles.js";
 
 const BCRYPT_ROUNDS = 12;
 const CODE_EXPIRY_MS = 15 * 60 * 1000;
@@ -54,13 +55,8 @@ async function sendTransactionalEmail({ to, subject, html }) {
   await resendClient.emails.send({ from, to, subject, html });
 }
 
-function adminFromEmail(email) {
-  const list = process.env.ADMIN_EMAILS?.split(",").map((s) => s.trim().toLowerCase()) || [];
-  return list.includes((email || "").toLowerCase());
-}
-
 function buildAuthPayload(user) {
-  const isAdmin = adminFromEmail(user.email);
+  const isAdmin = isAdminUser(user);
   const token = signAccessToken(user._id, user.email);
   return {
     token,

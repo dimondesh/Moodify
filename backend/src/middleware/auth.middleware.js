@@ -1,16 +1,8 @@
 import { User } from "../models/user.model.js";
 import { verifyAccessToken } from "../lib/jwt.js";
+import { buildReqUser } from "../lib/userRoles.js";
 import dotenv from "dotenv";
 dotenv.config();
-
-const buildReqUser = (user) => {
-  const adminEmails = process.env.ADMIN_EMAILS?.split(",").map((s) => s.trim().toLowerCase()) || [];
-  return {
-    id: user._id,
-    email: user.email,
-    isAdmin: adminEmails.includes((user.email || "").toLowerCase()),
-  };
-};
 
 export const protectRoute = async (req, res, next) => {
   try {
