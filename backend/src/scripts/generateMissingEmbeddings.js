@@ -68,7 +68,7 @@ async function runEmbeddingMigration() {
         { "audioFeatures.embedding": { $exists: false } },
         { "audioFeatures.embedding": { $size: 0 } },
         { "audioFeatures.embedding": { $size: 39 } },
-        { "audioFeatures.embedding": { $size: 50 } },
+        { "audioFeatures.embedding": { $size: 1280 } },
       ],
     });
 

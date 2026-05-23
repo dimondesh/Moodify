@@ -1,14 +1,6 @@
 // backend/src/models/song.model.js
 import mongoose from "mongoose";
 
-const predictedTagSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true },
-    probability: { type: Number, required: true },
-  },
-  { _id: false },
-);
-
 const songSchema = new mongoose.Schema(
   {
     title: {
@@ -99,14 +91,6 @@ const songSchema = new mongoose.Schema(
         type: [Number],
         default: null,
       },
-      predictedGenres: {
-        type: [predictedTagSchema],
-        default: [],
-      },
-      predictedMoods: {
-        type: [predictedTagSchema],
-        default: [],
-      },
     },
   },
   { timestamps: true },
@@ -118,8 +102,6 @@ songSchema.index({ albumId: 1 });
 songSchema.index({ playCount: -1 });
 songSchema.index({ genres: 1 });
 songSchema.index({ moods: 1 });
-songSchema.index({ "audioFeatures.predictedGenres.name": 1 });
-songSchema.index({ "audioFeatures.predictedMoods.name": 1 });
 songSchema.index({ title: "text" });
 
 export const Song = mongoose.model("Song", songSchema);
