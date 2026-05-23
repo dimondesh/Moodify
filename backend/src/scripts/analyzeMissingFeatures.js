@@ -3,11 +3,14 @@ import path from "path";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
+import { exec } from "child_process";
+import util from "util";
 import axios from "axios";
 import FormData from "form-data";
 
 import { Song } from "../models/song.model.js";
-import { downloadHlsAudio } from "../lib/hlsDownload.service.js";
+
+const execPromise = util.promisify(exec);
 
 // Настройка путей для ES-модулей
 const __filename = fileURLToPath(import.meta.url);
@@ -64,7 +67,11 @@ async function analyzeAudio(filePath) {
   return response.data;
 }
 
-// Функция скачивания и объединения HLS чанков
+async function downloadHlsAndMerge(hlsUrl, tempPath) {
+  const command = `ffmpeg -y -i "${hlsUrl}" -c:a libmp3lame -q:a 2 "${tempPath}"`;
+  await execPromise(command);
+}
+
 async function runAnalysisMigration() {
   try {
     await mongoose.connect(MONGO_URL);
@@ -101,7 +108,7 @@ async function runAnalysisMigration() {
       try {
         // 1. Скачиваем HLS поток и склеиваем в один файл
         console.log(`   ⬇️ Скачивание и склейка HLS чанков...`);
-        await downloadHlsAudio(song.hlsUrl, tempFilePath, song.duration ?? 0);
+        await downloadHlsAndMerge(song.hlsUrl, tempFilePath);
 
         // 2. Отправляем в Python-анализатор
         console.log(`   🧠 Отправка в анализатор...`);
