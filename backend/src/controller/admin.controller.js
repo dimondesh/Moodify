@@ -94,11 +94,6 @@ const processAndUploadSong = async (audioFilePath) => {
   const tempHlsDir = path.join(process.cwd(), "temp_hls", uuidv4());
 
   try {
-    const sourceAudioUpload = await uploadToBunny(
-      { tempFilePath: audioFilePath, name: path.basename(audioFilePath) },
-      "songs/source",
-    );
-
     await transcodeToHls(audioFilePath, tempHlsDir);
 
     const hlsRemotePath = `songs/hls/${uuidv4()}`;
@@ -111,7 +106,6 @@ const processAndUploadSong = async (audioFilePath) => {
 
     return {
       hlsUrl,
-      sourceAudioPublicId: sourceAudioUpload.path, // ИСПРАВЛЕНО: используем .path
       hlsRemotePath,
       duration,
     };
@@ -140,7 +134,7 @@ export const createSong = async (req, res, next) => {
         moodIds: moodIdsJson,
       } = req.body;
 
-      const { hlsUrl, sourceAudioPublicId, duration } =
+      const { hlsUrl, duration } =
         await processAndUploadSong(req.files.audioFile.tempFilePath);
 
       let imageUpload = { url: null, publicId: null };
@@ -187,7 +181,6 @@ export const createSong = async (req, res, next) => {
         imagePublicId: imageUpload.publicId,
         coverAccentHex: songCoverAccentHex,
         hlsUrl,
-        sourceAudioPublicId,
         duration,
         lyrics: lyrics || null,
         genres: genreIdsJson ? JSON.parse(genreIdsJson) : [],
@@ -279,14 +272,9 @@ export const updateSong = async (req, res, next) => {
             await deleteFromBunny(hlsDir + "/");
           }
         }
-        if (song.sourceAudioPublicId) {
-          await deleteFromBunny(song.sourceAudioPublicId);
-        }
-
-        const { hlsUrl, sourceAudioPublicId, duration } =
+        const { hlsUrl, duration } =
           await processAndUploadSong(audioFile.tempFilePath);
         song.hlsUrl = hlsUrl;
-        song.sourceAudioPublicId = sourceAudioPublicId;
         song.duration = duration;
 
         try {
@@ -371,11 +359,6 @@ export const deleteSong = async (req, res, next) => {
         const hlsDir = hlsPath.replace("/master.m3u8", "");
         await deleteFromBunny(hlsDir + "/");
       }
-    }
-
-    // Удаляем исходный аудио файл
-    if (song.sourceAudioPublicId) {
-      await deleteFromBunny(song.sourceAudioPublicId);
     }
 
     if (song.albumId) {
@@ -553,11 +536,6 @@ export const deleteAlbum = async (req, res, next) => {
           const hlsDir = hlsPath.replace("/master.m3u8", "");
           await deleteFromBunny(hlsDir + "/");
         }
-      }
-
-      // Удаляем исходный аудио файл
-      if (song.sourceAudioPublicId) {
-        await deleteFromBunny(song.sourceAudioPublicId);
       }
 
       // Удаляем обложку трека (если не совпадает с альбомом)
@@ -980,9 +958,8 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
       }
 
       try {
-        const { hlsUrl, sourceAudioPublicId, hlsRemotePath, duration } =
+        const { hlsUrl, hlsRemotePath, duration } =
           await processAndUploadSong(filesForTrack.audioPath);
-        uploadedBunnyPaths.push(sourceAudioPublicId);
         uploadedBunnyPaths.push(hlsRemotePath + "/");
 
         const songArtistIds = [];
@@ -1041,7 +1018,6 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
           artist: songArtistIds,
           albumId: album._id,
           hlsUrl,
-          sourceAudioPublicId,
           lyrics: lrcText || "",
           duration,
           imageUrl: album.imageUrl,
