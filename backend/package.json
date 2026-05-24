@@ -9,7 +9,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "seed:songs": "node src/seeds/songs.js",
     "seed:albums": "node src/seeds/albums.js",
-    "backfill:cover-accent": "node scripts/backfill-cover-accent.js"
+    "backfill:cover-accent": "node scripts/backfill-cover-accent.js",
+    "migrate:liked-songs": "node src/scripts/migrateLikedSongs.js"
   },
   "keywords": [],
   "type": "module",

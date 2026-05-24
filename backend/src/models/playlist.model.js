@@ -17,12 +17,6 @@ const playlistSchema = new mongoose.Schema(
 
     songs: [{ type: mongoose.Schema.Types.ObjectId, ref: "Song" }],
 
-    /** LIKED_SONGS only: map songId string -> Date (when the user liked the track) */
-    songLikeTimestamps: {
-      type: mongoose.Schema.Types.Mixed,
-      default: () => ({}),
-    },
-
     isPublic: { type: Boolean, default: false },
 
     // --- МАГИЯ УНИФИКАЦИИ ---
@@ -37,7 +31,6 @@ const playlistSchema = new mongoose.Schema(
         "DISCOVER_WEEKLY", // Новое для юзера
         "ON_REPEAT_REWIND", // Старое любимое
         "NEW_RELEASES", // Радар новинок
-        "LIKED_SONGS", // <--- ДОБАВЛЯЕМ СЮДА
       ],
       default: "USER_CREATED",
     },
