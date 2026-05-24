@@ -2,7 +2,7 @@
 import mongoose from "mongoose";
 import { ListenHistory } from "../models/listenHistory.model.js";
 import { Song } from "../models/song.model.js";
-import { Library } from "../models/library.model.js";
+import { LikedSong } from "../models/likedSong.model.js";
 import {
   CDN_ON_REPEAT_IMAGE,
   CDN_DISCOVER_WEEKLY_IMAGE,
@@ -59,14 +59,8 @@ export const generateDiscoverWeeklyForUser = async (userId) => {
     const listenHistory = await ListenHistory.find({ user: userId }).select(
       "song -_id",
     );
-    const library = await Library.findOne({ userId }).select(
-      "likedSongs.songId",
-    );
-
     const listenedSongIds = listenHistory.map((item) => item.song);
-    const likedSongIds = library
-      ? library.likedSongs.map((item) => item.songId)
-      : [];
+    const likedSongIds = await LikedSong.find({ user: userId }).distinct("song");
     const excludedSongIds = [...new Set([...listenedSongIds, ...likedSongIds])];
 
     if (listenedSongIds.length < 20) {

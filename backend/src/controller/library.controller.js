@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
 import { Library } from "../models/library.model.js";
 import { Playlist } from "../models/playlist.model.js";
-import { User } from "../models/user.model.js";
-import { CDN_LIKED_PLAYLIST_COVER } from "../constants/cdn.js";
+import { LikedSong } from "../models/likedSong.model.js";
+import { LIKED_PLAYLIST_ID } from "./playlist.controller.js";
 
 const SONG_MINIMAL_SELECT =
   "_id title artist albumId imageUrl coverAccentHex duration playCount";
@@ -142,65 +142,49 @@ export const toggleAlbumInLibrary = async (req, res, next) => {
   }
 };
 
-// --- НОВАЯ ЛОГИКА ЛАЙКОВ ТРЕКОВ ---
 export const toggleSongLikeInLibrary = async (req, res, next) => {
   try {
     const userId = req.user?.id;
     const { songId } = req.body;
 
-    // Ищем или создаем системный плейлист любимых треков
-    let likedPlaylist = await Playlist.findOne({
-      owner: userId,
-      type: "LIKED_SONGS",
-    });
+    const existing = await LikedSong.findOne({ user: userId, song: songId });
 
-    if (!likedPlaylist) {
-      likedPlaylist = new Playlist({
-        title: "Liked Songs",
-        imageUrl: CDN_LIKED_PLAYLIST_COVER,
-        owner: userId,
-        type: "LIKED_SONGS",
-        isSystem: true,
-        isPublic: false,
-        songs: [],
-        songLikeTimestamps: {},
+    if (existing) {
+      await LikedSong.deleteOne({ _id: existing._id });
+      return res.json({
+        success: true,
+        isLiked: false,
+        playlistId: LIKED_PLAYLIST_ID,
       });
     }
 
-    if (!likedPlaylist.songLikeTimestamps) {
-      likedPlaylist.songLikeTimestamps = {};
+    try {
+      await LikedSong.create({
+        user: userId,
+        song: songId,
+        likedAt: new Date(),
+      });
+    } catch (err) {
+      if (err?.code === 11000) {
+        await LikedSong.deleteOne({ user: userId, song: songId });
+        return res.json({
+          success: true,
+          isLiked: false,
+          playlistId: LIKED_PLAYLIST_ID,
+        });
+      }
+      throw err;
     }
 
-    const sid = songId.toString();
-    const songIndex = likedPlaylist.songs.findIndex(
-      (id) => id.toString() === sid,
-    );
-    let isLikedStatus;
-
-    if (songIndex > -1) {
-      likedPlaylist.songs.splice(songIndex, 1);
-      delete likedPlaylist.songLikeTimestamps[sid];
-      likedPlaylist.markModified("songLikeTimestamps");
-      isLikedStatus = false;
-    } else {
-      likedPlaylist.songs.push(songId);
-      likedPlaylist.songLikeTimestamps[sid] = new Date();
-      likedPlaylist.markModified("songLikeTimestamps");
-      isLikedStatus = true;
-    }
-
-    await likedPlaylist.save();
     res.json({
       success: true,
-      isLiked: isLikedStatus,
-      playlistId: likedPlaylist._id,
+      isLiked: true,
+      playlistId: LIKED_PLAYLIST_ID,
     });
   } catch (err) {
     next(err);
   }
 };
-
-// ------------------------------------
 
 export const getPlaylistsInLibrary = async (req, res, next) => {
   try {

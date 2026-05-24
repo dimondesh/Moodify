@@ -1,4 +1,5 @@
 import { Playlist } from "../models/playlist.model.js";
+import { LikedSong } from "../models/likedSong.model.js";
 import { User } from "../models/user.model.js";
 import { Song } from "../models/song.model.js";
 import { Library } from "../models/library.model.js";
@@ -11,7 +12,12 @@ import {
   extractCoverAccentHexFromUrl,
   isSkippableCoverImageUrl,
 } from "../lib/coverAccent.service.js";
-import { CDN_DEFAULT_ALBUM_COVER } from "../constants/cdn.js";
+import {
+  CDN_DEFAULT_ALBUM_COVER,
+  CDN_LIKED_PLAYLIST_COVER,
+} from "../constants/cdn.js";
+
+export const LIKED_PLAYLIST_ID = "liked";
 
 const SONG_MINIMAL_SELECT =
   "_id title imageUrl coverAccentHex duration playCount albumId createdAt";
@@ -25,6 +31,66 @@ export const populatePlaylistEmbeddedSongs = {
     select: "name imageUrl",
   },
 };
+
+const likedSongPopulate = {
+  path: "song",
+  select: SONG_MINIMAL_SELECT,
+  populate: {
+    path: "artist",
+    model: "Artist",
+    select: "name imageUrl",
+  },
+};
+
+export async function buildVirtualLikedPlaylist(
+  userId,
+  { populateSongs = false } = {},
+) {
+  let query = LikedSong.find({ user: userId }).sort({ likedAt: -1 });
+  if (populateSongs) {
+    query = query.populate(likedSongPopulate);
+  }
+
+  const likedDocs = await query.lean();
+  if (likedDocs.length === 0) {
+    return null;
+  }
+
+  const owner = await User.findById(userId)
+    .select("fullName imageUrl")
+    .lean();
+
+  const songs = populateSongs
+    ? likedDocs
+        .filter((d) => d.song)
+        .map((d) => ({ ...d.song, likedAt: d.likedAt }))
+    : likedDocs.map((d) => d.song).filter(Boolean);
+
+  const latestLikedAt = likedDocs[0]?.likedAt;
+  const now = new Date();
+
+  return {
+    _id: LIKED_PLAYLIST_ID,
+    title: "Liked Songs",
+    imageUrl: CDN_LIKED_PLAYLIST_COVER,
+    type: "LIKED_SONGS",
+    isSystem: true,
+    isPublic: false,
+    owner: owner ?? { _id: userId },
+    songs,
+    createdAt: latestLikedAt ?? now,
+    updatedAt: latestLikedAt ?? now,
+  };
+}
+
+function rejectVirtualLikedPlaylistMutation(playlistId, res) {
+  if (playlistId === LIKED_PLAYLIST_ID) {
+    return res
+      .status(400)
+      .json({ message: "This playlist cannot be modified." });
+  }
+  return null;
+}
 
 export const createPlaylist = async (req, res, next) => {
   try {
@@ -118,6 +184,12 @@ export const getMyPlaylists = async (req, res, next) => {
     });
 
     const allMyPlaylists = Array.from(combinedPlaylistsMap.values());
+    const likedVirtual = await buildVirtualLikedPlaylist(userId, {
+      populateSongs: false,
+    });
+    if (likedVirtual) {
+      allMyPlaylists.unshift(likedVirtual);
+    }
 
     res.status(200).json(allMyPlaylists);
   } catch (error) {
@@ -126,49 +198,23 @@ export const getMyPlaylists = async (req, res, next) => {
   }
 };
 
-async function enrichLikedSongsPlaylist(payload) {
-  const rawSongs = (payload.songs || []).filter(Boolean);
-  const ts = {
-    ...(typeof payload.songLikeTimestamps === "object" &&
-    payload.songLikeTimestamps !== null
-      ? payload.songLikeTimestamps
-      : {}),
-  };
-  const fallbackLegacy = payload.createdAt || new Date();
-  let timestampsDirty = false;
-  for (const s of rawSongs) {
-    const id = s._id.toString();
-    if (ts[id] == null) {
-      ts[id] = fallbackLegacy;
-      timestampsDirty = true;
-    }
-  }
-  if (timestampsDirty) {
-    await Playlist.updateOne(
-      { _id: payload._id },
-      { $set: { songLikeTimestamps: ts } },
-    );
-    payload.songLikeTimestamps = ts;
-  }
-
-  const enriched = rawSongs.map((s) => {
-    const id = s._id.toString();
-    const likedAt = ts[id];
-    return { ...s, likedAt: likedAt ?? null };
-  });
-
-  enriched.sort((a, b) => {
-    const ta = new Date(a.likedAt ?? 0).getTime();
-    const tb = new Date(b.likedAt ?? 0).getTime();
-    return tb - ta;
-  });
-
-  payload.songs = enriched;
-}
-
 export const getPlaylistById = async (req, res, next) => {
   try {
     const playlistId = req.params.id;
+
+    if (playlistId === LIKED_PLAYLIST_ID) {
+      if (!req.user?.id) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      const payload = await buildVirtualLikedPlaylist(req.user.id, {
+        populateSongs: true,
+      });
+      if (!payload) {
+        return res.status(404).json({ message: "Playlist not found" });
+      }
+      return res.status(200).json(payload);
+    }
+
     const playlist = await Playlist.findById(playlistId)
       .populate("owner", "fullName imageUrl")
       .populate(populatePlaylistEmbeddedSongs)
@@ -188,13 +234,7 @@ export const getPlaylistById = async (req, res, next) => {
         .json({ message: "Access denied. This is a private playlist." });
     }
 
-    const payload = { ...playlist };
-    if (payload.type === "LIKED_SONGS" && payload.isSystem) {
-      delete payload.description;
-      await enrichLikedSongsPlaylist(payload);
-    }
-
-    res.status(200).json(payload);
+    res.status(200).json(playlist);
   } catch (error) {
     console.error("Error in getPlaylistById:", error);
     next(error);
@@ -204,6 +244,9 @@ export const getPlaylistById = async (req, res, next) => {
 export const updatePlaylist = async (req, res, next) => {
   try {
     const playlistId = req.params.id;
+    const rejected = rejectVirtualLikedPlaylistMutation(playlistId, res);
+    if (rejected) return rejected;
+
     const { title, description, isPublic } = req.body;
 
     const playlist = await Playlist.findById(playlistId);
@@ -266,6 +309,9 @@ export const updatePlaylist = async (req, res, next) => {
 export const deletePlaylist = async (req, res, next) => {
   try {
     const playlistId = req.params.id;
+    const rejected = rejectVirtualLikedPlaylistMutation(playlistId, res);
+    if (rejected) return rejected;
+
     const playlist = await Playlist.findById(playlistId);
 
     if (!playlist) {
@@ -295,6 +341,9 @@ export const deletePlaylist = async (req, res, next) => {
 export const addSongToPlaylist = async (req, res, next) => {
   try {
     const playlistId = req.params.id;
+    const rejected = rejectVirtualLikedPlaylistMutation(playlistId, res);
+    if (rejected) return rejected;
+
     const { songId } = req.body;
 
     const playlist = await Playlist.findById(playlistId);
@@ -338,6 +387,8 @@ export const addSongToPlaylist = async (req, res, next) => {
 export const removeSongFromPlaylist = async (req, res, next) => {
   try {
     const { playlistId, songId } = req.params;
+    const rejected = rejectVirtualLikedPlaylistMutation(playlistId, res);
+    if (rejected) return rejected;
 
     const playlist = await Playlist.findById(playlistId);
 
@@ -500,6 +551,10 @@ export const createPlaylistFromSong = async (req, res, next) => {
 export const getPlaylistRecommendations = async (req, res) => {
   try {
     const { id: playlistId } = req.params;
+
+    if (playlistId === LIKED_PLAYLIST_ID) {
+      return res.status(404).json({ message: "Playlist not found" });
+    }
 
     const playlist = await Playlist.findById(playlistId).select("_id").lean();
     if (!playlist) {
