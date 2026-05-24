@@ -1055,25 +1055,29 @@ const PlaybackControls = () => {
                 </Button>
               </ShareDialog>
               <div className="flex items-center gap-3">
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="hover:text-white hover:bg-transparent! text-gray-400 h-4 w-4"
-                  onClick={toggleMute}
-                >
-                  {renderVolumeIcon()}
-                </Button>
-                <Slider
-                  value={[masterVolume]}
-                  max={100}
-                  step={1}
-                  className="w-28 hover:cursor-grab active:cursor-grabbing"
-                  onValueChange={(value) => {
-                    const newVolume = value[0];
-                    setMasterVolume(newVolume);
-                    if (newVolume > 0) setPreviousMasterVolume(newVolume);
-                  }}
-                />
+                {!isIosDevice && (
+                  <>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="hover:text-white hover:bg-transparent! text-gray-400 h-4 w-4"
+                      onClick={toggleMute}
+                    >
+                      {renderVolumeIcon()}
+                    </Button>
+                    <Slider
+                      value={[masterVolume]}
+                      max={100}
+                      step={1}
+                      className="w-28 hover:cursor-grab active:cursor-grabbing"
+                      onValueChange={(value) => {
+                        const newVolume = value[0];
+                        setMasterVolume(newVolume);
+                        if (newVolume > 0) setPreviousMasterVolume(newVolume);
+                      }}
+                    />
+                  </>
+                )}
                 <QueueDropdown>
                   <Button
                     size="icon"

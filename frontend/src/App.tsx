@@ -5,6 +5,7 @@ import { useAuthStore } from "./stores/useAuthStore";
 import { useOfflineStore } from "./stores/useOfflineStore";
 import { Helmet } from "react-helmet-async";
 import { useUIStore } from "./stores/useUIStore";
+import { isIosDevice } from "./lib/platform";
 import ErrorBoundary from "./components/ErrorBoundary";
 
 import HomePage from "./pages/HomePage/HomePage";
@@ -39,10 +40,8 @@ function App() {
   const { fetchInitialData, setIsIosDevice } = useUIStore();
   const canonicalUrl = `https://moodify-music.com${location.pathname}`;
 
-  // Определяем iOS один раз при загрузке
   useEffect(() => {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    setIsIosDevice(isIOS);
+    setIsIosDevice(isIosDevice());
   }, [setIsIosDevice]);
 
   useEffect(() => {

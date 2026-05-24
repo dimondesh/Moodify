@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback } from "react";
 import Hls from "hls.js";
 import { usePlayerStore } from "../stores/usePlayerStore";
 import { webAudioService, useAudioSettingsStore } from "../lib/webAudio";
+import { isIosDevice } from "@/lib/platform";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { axiosInstance } from "@/lib/axios";
 import { useMusicStore } from "@/stores/useMusicStore";
@@ -13,6 +14,8 @@ import type { Song } from "../types";
 interface CustomWindow extends Window {
   webkitAudioContext?: typeof AudioContext;
 }
+
+const iosNativePlayback = isIosDevice();
 
 const AudioPlayer = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -56,8 +59,10 @@ const AudioPlayer = () => {
     [isOffline],
   );
 
-  // Инициализация Web Audio API
+  // iOS: <audio> → speakers (HLS native / hls.js). Desktop: Web Audio graph for EQ, reverb, volume.
   useEffect(() => {
+    if (iosNativePlayback) return;
+
     const AudioContextClass =
       window.AudioContext || (window as CustomWindow).webkitAudioContext;
     if (!AudioContextClass) {
@@ -164,18 +169,23 @@ const AudioPlayer = () => {
     }
   }, [seekVersion, currentTime]);
 
-  // Управление громкостью и скоростью
   useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const currentRate = playbackRateEnabled ? playbackRate : 1.0;
+    audio.preservesPitch = false;
+    audio.playbackRate = currentRate;
+
+    if (iosNativePlayback) {
+      audio.volume = 1;
+      return;
+    }
+
     if (masterGainNodeRef.current) {
       masterGainNodeRef.current.gain.value = masterVolume / 100;
     }
-    if (audioRef.current) {
-      const currentRate = playbackRateEnabled ? playbackRate : 1.0;
-      audioRef.current.preservesPitch = false;
-
-      audioRef.current.playbackRate = currentRate;
-    }
-  }, [masterVolume, playbackRate, playbackRateEnabled, currentSong]); // Добавил currentSong для применения скорости к новой песне
+  }, [masterVolume, playbackRate, playbackRateEnabled, currentSong]);
 
   // Запись прослушивания
   useEffect(() => {
@@ -315,7 +325,7 @@ const AudioPlayer = () => {
       ref={audioRef}
       playsInline
       style={{ display: "none" }}
-      crossOrigin="anonymous"
+      {...(!iosNativePlayback && { crossOrigin: "anonymous" })}
     />
   );
 };
