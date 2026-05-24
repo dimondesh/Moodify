@@ -2,6 +2,7 @@
 import { Server } from "socket.io";
 import { Message } from "../models/message.model.js";
 import { User } from "../models/user.model.js";
+import { Playlist } from "../models/playlist.model.js";
 import { Song } from "../models/song.model.js";
 import { Artist } from "../models/artist.model.js";
 import { verifyAccessToken } from "./jwt.js";
@@ -12,7 +13,6 @@ import {
   setSessionActivity,
   touchLastKnownAt,
 } from "./activityPersistence.service.js";
-
 export let io;
 
 export const initializeSocket = (server) => {
@@ -219,6 +219,22 @@ export const initializeSocket = (server) => {
         };
 
         if (type === "share" && shareDetails) {
+          if (shareDetails.entityType === "playlist") {
+            const playlist = await Playlist.findById(shareDetails.entityId)
+              .select("isPublic")
+              .lean();
+            if (!playlist) {
+              socket.emit("message_error", "Entity not found.");
+              return;
+            }
+            if (!playlist.isPublic) {
+              socket.emit(
+                "message_error",
+                "This playlist is private and cannot be shared.",
+              );
+              return;
+            }
+          }
           messageData.shareDetails = {
             entityType: shareDetails.entityType,
             entityId: shareDetails.entityId,

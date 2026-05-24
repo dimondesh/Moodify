@@ -32,6 +32,11 @@ export const getSharedEntity = async (req, res, next) => {
         entity = await Playlist.findById(entityId)
           .populate("owner", "fullName imageUrl")
           .populate(songPopulateOptions);
+        if (entity && !entity.isPublic) {
+          return res
+            .status(403)
+            .json({ message: "This playlist is private and cannot be shared." });
+        }
         break;
       default:
         return res.status(400).json({ message: "Invalid entity type" });

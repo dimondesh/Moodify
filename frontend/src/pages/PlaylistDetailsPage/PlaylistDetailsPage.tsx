@@ -700,20 +700,22 @@ const PlaylistDetailsPage = () => {
                       </DrawerTitleComponent>
                     </DrawerHeaderComponent>
                     <div className="flex flex-col gap-2">
-                      <Button
-                        variant="ghost"
-                        className={`justify-start p-3 h-auto text-base `}
-                        onClick={() => {
-                          openShareDialog({
-                            type: "playlist",
-                            id: currentPlaylist._id,
-                          });
-                        }}
-                        title={t("admin.albums.share")}
-                      >
-                        <Share className="mr-4 h-5 w-5" />
-                        {t("admin.albums.share")}
-                      </Button>
+                      {currentPlaylist.isPublic && (
+                        <Button
+                          variant="ghost"
+                          className={`justify-start p-3 h-auto text-base `}
+                          onClick={() => {
+                            openShareDialog({
+                              type: "playlist",
+                              id: currentPlaylist._id,
+                            });
+                          }}
+                          title={t("admin.albums.share")}
+                        >
+                          <Share className="mr-4 h-5 w-5" />
+                          {t("admin.albums.share")}
+                        </Button>
+                      )}
                       {isUserEditable && (
                         <>
                           <Button
@@ -759,19 +761,21 @@ const PlaylistDetailsPage = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-48 bg-zinc-800 text-white border-zinc-700">
-                    <DropdownMenuItem
-                      className={`cursor-pointer hover:bg-zinc-800/50 `}
-                      onSelect={() =>
-                        openShareDialog({
-                          type: "playlist",
-                          id: currentPlaylist._id,
-                        })
-                      }
-                      title={t("admin.albums.share")}
-                    >
-                      <Share className="mr-2 h-4 w-4" />
-                      {t("admin.albums.share")}
-                    </DropdownMenuItem>
+                    {currentPlaylist.isPublic && (
+                      <DropdownMenuItem
+                        className={`cursor-pointer hover:bg-zinc-800/50 `}
+                        onSelect={() =>
+                          openShareDialog({
+                            type: "playlist",
+                            id: currentPlaylist._id,
+                          })
+                        }
+                        title={t("admin.albums.share")}
+                      >
+                        <Share className="mr-2 h-4 w-4" />
+                        {t("admin.albums.share")}
+                      </DropdownMenuItem>
+                    )}
                     {isUserEditable && (
                       <>
                         <DropdownMenuSeparator className="bg-zinc-800/50" />
@@ -849,7 +853,7 @@ const PlaylistDetailsPage = () => {
           t={t}
         />
 
-        {currentPlaylist && (
+        {currentPlaylist && currentPlaylist.isPublic && (
           <ShareDialog
             isOpen={
               shareEntity?.type === "playlist" &&
