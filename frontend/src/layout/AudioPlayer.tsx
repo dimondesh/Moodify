@@ -149,6 +149,7 @@ const AudioPlayer = () => {
         });
       } else if (audioEl.canPlayType("application/vnd.apple.mpegurl")) {
         audioEl.src = currentSong.hlsUrl;
+        audioEl.load();
       }
     }
 

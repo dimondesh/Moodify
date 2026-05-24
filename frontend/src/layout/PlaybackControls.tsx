@@ -494,7 +494,7 @@ const PlaybackControls = () => {
   };
 
   if (!currentSong) {
-    if (isChatConversation && isCompactView) return null;
+    if (isCompactView) return null;
 
     return (
       <footer
@@ -514,7 +514,7 @@ const PlaybackControls = () => {
       {isCompactView ? (
         <>
           {!isFullScreenPlayerOpen && !isChatConversation && (
-            <footer className="fixed bottom-21 left-0 right-0 h-14 sm:h-16 mx-1 mb-[4px] rounded-md px-3 sm:px-4 z-[60] relative overflow-hidden isolate flex items-center">
+            <footer className="fixed bottom-22 left-0 right-0 h-14 sm:h-16 mx-1 mb-[4px] rounded-md px-3 sm:px-4 z-[60] overflow-hidden isolate flex items-center">
               <div
                 aria-hidden
                 className="pointer-events-none absolute inset-0 rounded-md"

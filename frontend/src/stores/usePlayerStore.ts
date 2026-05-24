@@ -70,6 +70,8 @@ interface PlayerStore {
   setRepeatMode: (mode: "off" | "all" | "one") => void;
   toggleShuffle: () => void;
   initializeQueue: (songs: Song[]) => void;
+  /** Fetches missing hlsUrl/lyrics for the persisted or queue-seeded current track. */
+  hydrateCurrentSong: () => Promise<void>;
   generateSmartTracks: () => Promise<void>;
   playAlbum: (
     songs: Song[],
@@ -173,7 +175,7 @@ export const usePlayerStore = create<PlayerStore>()(
           return null;
         }
 
-        if (song.hlsUrl) return song;
+        if (song.hlsUrl && song.lyrics) return song;
 
         if (useOfflineStore.getState().isOffline) {
           try {
@@ -300,6 +302,24 @@ export const usePlayerStore = create<PlayerStore>()(
               shufflePointer: newShufflePointer,
             };
           });
+          queueMicrotask(() => {
+            void get().hydrateCurrentSong();
+          });
+        },
+
+        hydrateCurrentSong: async () => {
+          const song = get().currentSong;
+          if (!song) return;
+
+          const fullSong = await ensureSongData(song);
+          if (!fullSong || get().currentSong?._id !== song._id) return;
+
+          set((state) => ({
+            currentSong: fullSong,
+            queue: state.queue.map((s) =>
+              s._id === fullSong._id ? fullSong : s,
+            ),
+          }));
         },
 
         playAlbum: async (songs: Song[], startIndex = 0, context) => {
@@ -455,14 +475,32 @@ export const usePlayerStore = create<PlayerStore>()(
         },
 
         togglePlay: () => {
-          set((state) => {
-            const newIsPlaying = !state.isPlaying;
-            if (newIsPlaying && state.currentSong) {
+          const state = get();
+          const willPlay = !state.isPlaying;
+
+          if (
+            willPlay &&
+            state.currentSong &&
+            (!state.currentSong.hlsUrl || !state.currentSong.lyrics)
+          ) {
+            void get()
+              .hydrateCurrentSong()
+              .then(() => {
+                const latest = get();
+                if (!latest.currentSong?.hlsUrl) return;
+                silentAudioService.play();
+                set({ isPlaying: true });
+              });
+            return;
+          }
+
+          set(() => {
+            if (willPlay && state.currentSong) {
               silentAudioService.play();
             } else {
               silentAudioService.pause();
             }
-            return { isPlaying: newIsPlaying };
+            return { isPlaying: willPlay };
           });
         },
 
@@ -1005,6 +1043,9 @@ export const usePlayerStore = create<PlayerStore>()(
             persistedState.currentTime = 0;
             if (isMobileDevice()) persistedState.masterVolume = 100;
           }
+          queueMicrotask(() => {
+            void usePlayerStore.getState().hydrateCurrentSong();
+          });
         };
       },
     },

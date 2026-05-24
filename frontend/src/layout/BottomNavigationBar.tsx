@@ -36,7 +36,7 @@ const BottomNavigationBar = () => {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[#0f0f0f] via-[#0f0f0f]/97 to-[#0f0f0f]/95 h-22 flex items-center justify-around z-50 pb-4">
+    <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[#0f0f0f] via-[#0f0f0f]/97 to-[#0f0f0f]/95 h-22 flex items-center justify-around z-[55] pb-4">
       {navItems.map((item) => {
         const isActive = location.pathname === item.to;
         const isDisabled = item.authRequired && !user;
