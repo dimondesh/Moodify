@@ -6,6 +6,7 @@ import type { Playlist } from "../types";
 import { useMusicStore } from "./useMusicStore";
 import { useLibraryStore } from "./useLibraryStore";
 import { usePlaylistStore } from "./usePlaylistStore";
+import { useAuthStore } from "./useAuthStore";
 import { axiosInstance } from "../lib/axios";
 import toast from "react-hot-toast";
 
@@ -137,10 +138,14 @@ export const useUIStore = create<UIStore>()(
 
       fetchInitialData: async () => {
         set({ isHomePageLoading: true, isSecondaryHomePageLoading: true });
+        const isLoggedIn = Boolean(useAuthStore.getState().accessToken);
         try {
           const [bootstrapResponse] = await Promise.all([
             axiosInstance.get("/home/bootstrap"),
             usePlaylistStore.getState().fetchMyPlaylists(),
+            isLoggedIn
+              ? useLibraryStore.getState().fetchLibrary()
+              : Promise.resolve(),
           ]);
 
           const { data } = bootstrapResponse;
@@ -160,11 +165,13 @@ export const useUIStore = create<UIStore>()(
             homePageDataLastFetched: Date.now(),
           });
 
-          useLibraryStore.setState({
-            albums: data.library.albums || [],
-            playlists: data.library.playlists || [],
-            followedArtists: data.library.followedArtists || [],
-          });
+          if (!isLoggedIn) {
+            useLibraryStore.setState({
+              albums: [],
+              playlists: [],
+              followedArtists: [],
+            });
+          }
 
           usePlaylistStore.setState({
             publicPlaylists: data.publicPlaylists || [],

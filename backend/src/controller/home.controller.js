@@ -12,7 +12,6 @@ import {
 } from "./user.controller.js";
 import { Playlist } from "../models/playlist.model.js";
 import { Album } from "../models/album.model.js";
-import { buildLibrarySummaryForUser } from "./library.controller.js";
 import { populatePlaylistEmbeddedSongs } from "./playlist.controller.js";
 
 const HOME_SECTION_LIMIT = 12;
@@ -191,7 +190,6 @@ export const getBootstrapData = async (req, res, next) => {
         getFavoriteArtists(req, res, next, true, HOME_SECTION_LIMIT),
         getNewReleases(req, res, next, true, HOME_SECTION_LIMIT),
         getPlaylistRecommendations(req, res, next, true, HOME_SECTION_LIMIT),
-        getOptimizedLibrarySummary(userId),
         userPlaylistsPromise,
       ];
     }
@@ -212,11 +210,6 @@ export const getBootstrapData = async (req, res, next) => {
       favoriteArtists: [],
       newReleases: [],
       recommendedPlaylists: [],
-      library: {
-        albums: [],
-        playlists: [],
-        followedArtists: [],
-      },
     };
 
     if (userId && userSpecificPromises.length > 0) {
@@ -226,7 +219,6 @@ export const getBootstrapData = async (req, res, next) => {
         favoriteArtists,
         newReleases,
         recommendedPlaylists,
-        librarySummary,
         userPlaylists,
       ] = await Promise.all(userSpecificPromises);
 
@@ -241,7 +233,6 @@ export const getBootstrapData = async (req, res, next) => {
       bootstrapData.favoriteArtists = favoriteArtists;
       bootstrapData.newReleases = newReleases;
       bootstrapData.recommendedPlaylists = recommendedPlaylists;
-      bootstrapData.library = librarySummary;
     }
 
     res.status(200).json(bootstrapData);
@@ -249,8 +240,3 @@ export const getBootstrapData = async (req, res, next) => {
     next(error);
   }
 };
-
-// Очищенная от удаленных моделей агрегация
-async function getOptimizedLibrarySummary(userId) {
-  return buildLibrarySummaryForUser(userId);
-}

@@ -13,7 +13,7 @@ const sortByLibraryAddedAtDesc = (a, b) => {
   return tb - ta;
 };
 
-/** Shared by GET /library/summary and home bootstrap — preserves addedAt and newest-first order. */
+/** GET /library/summary — preserves addedAt and newest-first order. */
 export async function buildLibrarySummaryForUser(userId) {
   if (!userId) {
     return { albums: [], playlists: [], followedArtists: [] };
