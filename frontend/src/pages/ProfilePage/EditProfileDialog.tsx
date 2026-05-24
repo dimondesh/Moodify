@@ -18,6 +18,7 @@ import { User } from "@/types";
 import toast from "react-hot-toast";
 import { Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { resolveUserImageUrl } from "@/lib/cdn";
 
 interface EditProfileDialogProps {
   user: User;
@@ -102,7 +103,7 @@ export const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
           <div className="flex flex-col items-center gap-4">
             <Avatar className="w-24 h-24 object-cover">
               <AvatarImage
-                src={imagePreviewUrl || undefined}
+                src={imagePreviewUrl || resolveUserImageUrl(user.imageUrl)}
                 className="object-cover"
               />
               <AvatarFallback>{user.fullName?.[0] || "U"}</AvatarFallback>

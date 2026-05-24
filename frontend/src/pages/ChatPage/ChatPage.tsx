@@ -7,6 +7,7 @@ import type { User } from "../../types";
 import UsersList from "./UsersList";
 import ChatHeader from "./ChatHeader";
 import { Avatar, AvatarImage } from "../../components/ui/avatar";
+import { resolveUserImageUrl } from "@/lib/cdn";
 import MessageInput from "./MessageInput";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
@@ -120,12 +121,11 @@ const ChatPage = () => {
             <Avatar className="size-8 shrink-0 object-cover mb-px">
               <AvatarImage
                 className="object-cover"
-                src={
+                src={resolveUserImageUrl(
                   isOwn
-                    ? mongoUser?.imageUrl || "/default-avatar.png"
-                    : users.find((u) => u._id === message.senderId)?.imageUrl ||
-                      "/default-avatar.png"
-                }
+                    ? mongoUser?.imageUrl
+                    : users.find((u) => u._id === message.senderId)?.imageUrl,
+                )}
               />
             </Avatar>
             <div

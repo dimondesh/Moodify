@@ -15,6 +15,7 @@ import {
   shouldShowInFriendsActivity,
 } from "../lib/friendsActivityUtils";
 import type { User } from "../types";
+import { resolveUserImageUrl } from "@/lib/cdn";
 
 const FriendsActivity = () => {
   const { t } = useTranslation();
@@ -155,7 +156,7 @@ function FriendActivityCard({
         <div className="relative flex-shrink-0">
           <Avatar className="size-8 border border-[#2a2a2a]">
             <AvatarImage
-              src={userObj.imageUrl || "/default-avatar.png"}
+              src={resolveUserImageUrl(userObj.imageUrl)}
               alt={userObj.fullName}
               className="object-cover"
             />
@@ -228,11 +229,7 @@ const LoginPrompt = () => {
   return (
     <div className="h-full flex flex-col items-center justify-center p-4 text-center space-y-4">
       <div className="relative">
-        <div
-          className="absolute -inset-1 bg-gradient-to-r from-[#8b5cf6] to-[#7c3aed] rounded-full opacity-75 animate-pulse"
-          aria-hidden="true"
-        />
-        <div className="relative bg-[#0f0f0f] rounded-full p-4">
+        <div className="relative bg-zinc-900 rounded-full p-4">
           <HeadphonesIcon className="size-8 text-[#8b5cf6]" />
         </div>
       </div>

@@ -5,6 +5,7 @@ export const cdnAsset = (path) =>
 
 export const CDN_DEFAULT_ALBUM_COVER = cdnAsset("default-album-cover.png");
 export const CDN_DEFAULT_ARTIST_IMAGE = cdnAsset("artist.png");
+export const CDN_DEFAULT_USER_IMAGE = cdnAsset("user.png");
 export const CDN_LIKED_PLAYLIST_COVER = cdnAsset("liked.png");
 export const CDN_ON_REPEAT_IMAGE = cdnAsset("on-repeat.png");
 export const CDN_DISCOVER_WEEKLY_IMAGE = cdnAsset("discover-weekly.png");

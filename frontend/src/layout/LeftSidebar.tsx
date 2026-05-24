@@ -606,10 +606,6 @@ const LoginPrompt = ({ className }: { className?: string }) => {
       )}
     >
       <div className="relative">
-        <div
-          className="absolute -inset-1 bg-gradient-to-r from-[#8b5cf6] to-[#7c3aed] rounded-full opacity-75 animate-pulse"
-          aria-hidden="true"
-        />
         <div className="relative bg-zinc-900 rounded-full p-4">
           <LibraryIcon className="size-8 text-[#8b5cf6]" />
         </div>

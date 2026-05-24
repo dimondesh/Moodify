@@ -7,7 +7,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SectionGridSkeleton from "@/components/ui/skeletons/PlaylistSkeleton";
 import { useTranslation } from "react-i18next";
 import { getOptimizedImageUrl, getArtistNames } from "@/lib/utils";
-import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
+import {
+  CDN_DEFAULT_ALBUM_COVER,
+  CDN_DEFAULT_ARTIST_IMAGE,
+  resolveUserImageUrl,
+} from "@/lib/cdn";
 import { Artist, User } from "@/types";
 import UniversalPlayButton from "@/components/ui/UniversalPlayButton";
 
@@ -136,7 +140,12 @@ const DisplayListPage = () => {
                   <div className="relative aspect-square shadow-lg overflow-hidden rounded-full">
                     <Avatar className="h-full w-full">
                       <AvatarImage
-                        src={getOptimizedImageUrl(item.imageUrl, 300)}
+                        src={getOptimizedImageUrl(
+                          item.type === "user"
+                            ? resolveUserImageUrl(item.imageUrl)
+                            : item.imageUrl || CDN_DEFAULT_ARTIST_IMAGE,
+                          300,
+                        )}
                         className="object-cover rounded-full transition-transform duration-300 group-hover:scale-105"
                       />
                       <AvatarFallback>

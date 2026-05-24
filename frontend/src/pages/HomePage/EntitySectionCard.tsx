@@ -3,7 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import UniversalPlayButton from "@/components/ui/UniversalPlayButton";
 import { getOptimizedImageUrl } from "@/lib/utils";
-import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
+import {
+  CDN_DEFAULT_ALBUM_COVER,
+  CDN_DEFAULT_ARTIST_IMAGE,
+  resolveUserImageUrl,
+} from "@/lib/cdn";
 import { useMusicStore } from "@/stores/useMusicStore";
 import type { Song, Album, Playlist, Artist } from "@/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -65,7 +69,12 @@ const EntitySectionCardComponent: React.FC<EntitySectionCardProps> = ({
           {item.itemType === "artist" || item.itemType === "user" ? (
             <Avatar className="absolute inset-0 h-full w-full object-cover rounded-full">
               <AvatarImage
-                src={getOptimizedImageUrl(item.imageUrl, 200)}
+                src={getOptimizedImageUrl(
+                  item.itemType === "user"
+                    ? resolveUserImageUrl(item.imageUrl)
+                    : item.imageUrl || CDN_DEFAULT_ARTIST_IMAGE,
+                  200,
+                )}
                 alt={title}
                 className="object-cover h-auto w-auto rounded-full"
               />

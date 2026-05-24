@@ -11,6 +11,7 @@ import { ArrowLeft, Music } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { getEffectiveActivity } from "../../lib/friendsActivityUtils";
+import { resolveUserImageUrl } from "@/lib/cdn";
 
 interface ChatHeaderProps {
   showBackButton?: boolean;
@@ -51,7 +52,7 @@ const ChatHeader = ({ showBackButton = false, onBack }: ChatHeaderProps) => {
         <Avatar className="size-11 object-cover shrink-0">
           <AvatarImage
             className="object-cover"
-            src={selectedUser.imageUrl || "/default-avatar.png"}
+            src={resolveUserImageUrl(selectedUser.imageUrl)}
           />
           <AvatarFallback>{selectedUser.fullName?.[0] || "U"}</AvatarFallback>
         </Avatar>

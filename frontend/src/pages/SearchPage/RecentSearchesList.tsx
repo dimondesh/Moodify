@@ -10,6 +10,7 @@ import { Loader2, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import UniversalPlayButton from "@/components/ui/UniversalPlayButton";
+import { resolveUserImageUrl } from "@/lib/cdn";
 
 interface RecentSearchesListProps {
   onItemClick?: () => void;
@@ -130,7 +131,11 @@ const RecentSearchesList: React.FC<RecentSearchesListProps> = ({
                       }`}
                     >
                       <AvatarImage
-                        src={item.imageUrl}
+                        src={
+                          item.itemType === "User"
+                            ? resolveUserImageUrl(item.imageUrl)
+                            : item.imageUrl
+                        }
                         className="object-cover"
                       />
                       <AvatarFallback>{title[0]}</AvatarFallback>

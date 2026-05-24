@@ -24,6 +24,7 @@ import RecentlyListenedArtists from "../../components/RecentlyListenedArtists";
 import TopTracksThisMonth from "../../components/TopTracksThisMonth";
 import FixedRowEntitySection from "../HomePage/FixedRowEntitySection";
 import type { ProfileListItem } from "../../stores/useProfileStore";
+import { resolveUserImageUrl } from "@/lib/cdn";
 
 function relationToDisplayItem(item: ProfileListItem): DisplayItem {
   switch (item.type) {
@@ -164,16 +165,13 @@ const ProfilePage = () => {
       </Helmet>
       <div className="relative min-h-screen pb-40 lg:pb-0 bg-[#0f0f0f]">
         <div className="absolute inset-x-0 top-0 pointer-events-none h-[40vh] z-0">
-          <CoverDominantBackdrop
-            accentColor={heroAccent}
-            variant="hero"
-          />
+          <CoverDominantBackdrop accentColor={heroAccent} variant="hero" />
         </div>
         <div className="relative z-10 p-4 pt-8 sm:pt-16 sm:p-8">
           <div className="flex flex-col items-center sm:flex-row sm:items-end gap-4">
-            <Avatar className="w-24 h-24 sm:w-48 sm:h-48 shadow-2xl ring-4 ring-black/20 flex-shrink-0">
+            <Avatar className="w-24 h-24 sm:w-48 sm:h-48 shadow-2xl ring-0 ring-black/20 flex-shrink-0">
               <AvatarImage
-                src={profileData.imageUrl}
+                src={resolveUserImageUrl(profileData.imageUrl)}
                 className="object-cover"
               />
               <AvatarFallback>{profileData.fullName[0]}</AvatarFallback>

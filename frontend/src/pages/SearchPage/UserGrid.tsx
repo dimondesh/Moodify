@@ -5,6 +5,7 @@ import { Button } from "../../components/ui/button";
 import type { User } from "../../types";
 import SectionGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { resolveUserImageUrl } from "@/lib/cdn";
 import { useTranslation } from "react-i18next";
 import { useSearchStore } from "@/stores/useSearchStore";
 import { getOptimizedImageUrl } from "@/lib/utils";
@@ -56,7 +57,10 @@ const UserGrid: React.FC<UserGridProps> = ({ title, users, isLoading }) => {
               <div className="relative aspect-square shadow-lg overflow-hidden rounded-full">
                 <Avatar className="h-full w-full">
                   <AvatarImage
-                    src={getOptimizedImageUrl(user.imageUrl, 200)}
+                    src={getOptimizedImageUrl(
+                      resolveUserImageUrl(user.imageUrl),
+                      200,
+                    )}
                     className="object-cover rounded-full transition-transform duration-300 group-hover:scale-105"
                   />
                   <AvatarFallback>{user.fullName?.[0]}</AvatarFallback>

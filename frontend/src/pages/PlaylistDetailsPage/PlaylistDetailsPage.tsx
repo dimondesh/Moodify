@@ -13,7 +13,7 @@ import {
   getArtistNames,
   getOptimizedImageUrl,
 } from "@/lib/utils";
-import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
+import { CDN_DEFAULT_ALBUM_COVER, resolveUserImageUrl } from "@/lib/cdn";
 import { CollectionGradientLayout } from "@/components/CollectionGradientLayout";
 import { useDominantCoverGradient } from "@/hooks/useDominantCoverGradient";
 import { DeletePlaylistDialog } from "./DeletePlaylistDialog";
@@ -592,7 +592,7 @@ const PlaylistDetailsPage = () => {
                       className="font-semibold text-white flex items-center hover:underline focus:outline-none focus:underline"
                     >
                       <img
-                        src={currentPlaylist.owner.imageUrl}
+                        src={resolveUserImageUrl(currentPlaylist.owner.imageUrl)}
                         className="size-4 rounded-full mr-1"
                         alt={currentPlaylist.owner.fullName}
                       />
