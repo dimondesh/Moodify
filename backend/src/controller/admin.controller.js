@@ -24,7 +24,7 @@ import {
 import path from "path";
 import fs from "fs/promises";
 import fsSync from "fs";
-import { getGenresAndMoodsForTrack } from "../lib/lastfm.service.js";
+import { getBatchTagsFromAI } from "../lib/ai.service.js";
 import { Genre } from "../models/genre.model.js";
 import { Mood } from "../models/mood.model.js";
 import { v4 as uuidv4 } from "uuid";
@@ -939,11 +939,29 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
     console.log(`[AdminController] Album created in DB: ${album.title}`);
     await updateArtistsContent(albumArtistIds, album._id, "albums");
 
+    const primaryAlbumArtistName =
+      spotifyAlbumData.artists?.[0]?.name || "Unknown Artist";
+    const tracksForAI = tracksToProcess.map((track, index) => {
+      const artistName = track.artists?.[0]?.name || primaryAlbumArtistName;
+      return {
+        tempId: track.id || `track_${index}`,
+        artistName: artistName,
+        trackName: track.name,
+      };
+    });
+
+    console.log(
+      `[AdminController] Requesting batch AI tags for ${tracksForAI.length} tracks...`,
+    );
+    const batchTags = await getBatchTagsFromAI(tracksForAI);
+    console.log(`[AdminController] Received batch AI tags.`);
+
     const createdSongs = [];
     let trackIndex = 0;
 
     for (const spotifyTrack of tracksToProcess) {
       const songName = spotifyTrack.name;
+      const trackTempId = spotifyTrack.id || `track_${trackIndex}`;
       trackIndex++;
 
       console.log(`[AdminController] Processing track: ${songName}`);
@@ -990,11 +1008,8 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
         const primaryArtistName = (await Artist.findById(songArtistIds[0]))
           .name;
 
-        const { genreIds, moodIds } = await getGenresAndMoodsForTrack(
-          primaryArtistName,
-          songName,
-          album.title,
-        );
+        const aiTags = batchTags[trackTempId] || { genreIds: [], moodIds: [] };
+        const { genreIds, moodIds } = aiTags;
 
         let lrcText = "";
         if (filesForTrack.lrcPath) {

@@ -2,6 +2,7 @@ node_modules/
 firebaseServiceKey.json
 .env
 temp
+temp_unzip_albums
 tmp
 plan.txt
 src/scripts/skipped_canvases.json
