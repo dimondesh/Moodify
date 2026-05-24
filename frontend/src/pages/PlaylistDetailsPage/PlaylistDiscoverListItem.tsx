@@ -1,11 +1,13 @@
 import { Button } from "@/components/ui/button";
+import Equalizer from "@/components/ui/equalizer";
+import EqualizerTitle from "@/components/ui/equalizer-title";
 import {
   CDN_DEFAULT_ALBUM_COVER,
   CDN_DEFAULT_ARTIST_IMAGE,
 } from "@/lib/cdn";
 import { getOptimizedImageUrl } from "@/lib/utils";
 import type { Artist } from "@/types";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Play } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 export type DiscoverListVariant = "song" | "album" | "artist";
@@ -23,6 +25,10 @@ type PlaylistDiscoverListItemProps = {
   onDrillDown?: () => void;
   onAlbumClick?: () => void;
   onArtistClick?: (artistId: string) => void;
+  onPlay?: () => void;
+  playIndex?: number;
+  isCurrentlyPlaying?: boolean;
+  isPlayerPlaying?: boolean;
 };
 
 export function PlaylistDiscoverListItem({
@@ -38,6 +44,10 @@ export function PlaylistDiscoverListItem({
   onDrillDown,
   onAlbumClick,
   onArtistClick,
+  onPlay,
+  playIndex,
+  isCurrentlyPlaying = false,
+  isPlayerPlaying = false,
 }: PlaylistDiscoverListItemProps) {
   const { t } = useTranslation();
 
@@ -49,9 +59,15 @@ export function PlaylistDiscoverListItem({
     80,
   );
 
+  const isPlayableSong = variant === "song" && onPlay != null;
+
   const handleRowClick = () => {
     if (variant !== "song") {
       onDrillDown?.();
+      return;
+    }
+    if (isPlayableSong) {
+      onPlay();
     }
   };
 
@@ -62,15 +78,32 @@ export function PlaylistDiscoverListItem({
     <div
       role={variant !== "song" ? "button" : undefined}
       tabIndex={variant !== "song" ? 0 : undefined}
-      onClick={handleRowClick}
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest("button")) return;
+        handleRowClick();
+      }}
       onKeyDown={(e) => {
         if (variant !== "song" && (e.key === "Enter" || e.key === " ")) {
           e.preventDefault();
           onDrillDown?.();
         }
       }}
-      className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,4fr)_minmax(0,2fr)_auto] gap-3 sm:gap-4 items-center px-2 py-2 rounded-md hover:bg-white/5 transition-colors"
+      className={`group grid grid-cols-[minmax(0,1fr)_auto] gap-3 sm:gap-4 items-center px-2 py-2 rounded-md hover:bg-white/5 transition-colors ${
+        isPlayableSong
+          ? "sm:grid-cols-[16px_minmax(0,4fr)_minmax(0,2fr)_auto] cursor-pointer"
+          : "sm:grid-cols-[minmax(0,4fr)_minmax(0,2fr)_auto]"
+      }`}
     >
+      {isPlayableSong && playIndex != null && (
+        <div className="hidden sm:flex items-center justify-center text-xs text-zinc-500">
+          {isCurrentlyPlaying && isPlayerPlaying ? (
+            <Equalizer />
+          ) : (
+            <span className="group-hover:hidden tabular-nums">{playIndex + 1}</span>
+          )}
+          <Play className="h-3.5 w-3.5 hidden group-hover:block fill-current text-zinc-400" />
+        </div>
+      )}
       <div className="flex items-center gap-3 min-w-0">
         {trackIndex != null && (
           <span className="w-5 text-xs text-zinc-500 tabular-nums flex-shrink-0 text-center">
@@ -85,7 +118,20 @@ export function PlaylistDiscoverListItem({
           }`}
         />
         <div className="min-w-0 flex flex-col flex-1">
-          <span className="font-medium text-white truncate">{title}</span>
+          <div className="flex items-center gap-2 min-w-0">
+            {isPlayableSong && isCurrentlyPlaying && isPlayerPlaying && (
+              <div className="block sm:hidden flex-shrink-0">
+                <EqualizerTitle />
+              </div>
+            )}
+            <span
+              className={`font-medium truncate ${
+                isCurrentlyPlaying ? "text-violet-400" : "text-white"
+              }`}
+            >
+              {title}
+            </span>
+          </div>
           {variant === "artist" && (
             <span className="text-sm text-zinc-400 truncate">
               {t("pages.playlist.discover.artist")}

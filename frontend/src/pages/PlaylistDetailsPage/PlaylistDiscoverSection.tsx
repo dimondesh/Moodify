@@ -7,6 +7,7 @@ import {
   type DiscoverTopResult,
 } from "@/lib/playlistDiscoverSearch";
 import { useMusicStore } from "@/stores/useMusicStore";
+import { usePlayerStore } from "@/stores/usePlayerStore";
 import { usePlaylistStore } from "@/stores/usePlaylistStore";
 import type { Album, Artist, Song } from "@/types";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
@@ -32,12 +33,23 @@ type PlaylistDiscoverSectionProps = {
   onAddSong: (songId: string) => Promise<void>;
 };
 
-function SongListHeader({ showAlbumColumn = true }: { showAlbumColumn?: boolean }) {
+function SongListHeader({
+  showAlbumColumn = true,
+  showPlayColumn = false,
+}: {
+  showAlbumColumn?: boolean;
+  showPlayColumn?: boolean;
+}) {
   const { t } = useTranslation();
   return (
     <div
-      className="hidden sm:grid sm:grid-cols-[minmax(0,4fr)_minmax(0,2fr)_auto] gap-3 sm:gap-4 px-2 py-2 text-xs text-zinc-500 border-b border-white/5 mb-1"
+      className={`hidden sm:grid gap-3 sm:gap-4 px-2 py-2 text-xs text-zinc-500 border-b border-white/5 mb-1 ${
+        showPlayColumn
+          ? "sm:grid-cols-[16px_minmax(0,4fr)_minmax(0,2fr)_auto]"
+          : "sm:grid-cols-[minmax(0,4fr)_minmax(0,2fr)_auto]"
+      }`}
     >
+      {showPlayColumn ? <div>#</div> : null}
       <div>{t("pages.playlist.headers.title")}</div>
       {showAlbumColumn ? (
         <div>{t("pages.playlist.discover.headers.album")}</div>
@@ -89,6 +101,15 @@ export function PlaylistDiscoverSection({
     fetchArtistById,
     fetchAlbumbyId,
   } = useMusicStore();
+
+  const {
+    playAlbum,
+    setCurrentSong,
+    togglePlay,
+    isPlaying,
+    currentSong,
+    queue,
+  } = usePlayerStore();
 
   const currentView = viewStack[viewStack.length - 1];
   const isRoot = currentView.kind === "root";
@@ -186,6 +207,48 @@ export function PlaylistDiscoverSection({
     [pushView],
   );
 
+  const isQueueForSongs = useCallback(
+    (songs: Song[]) => {
+      if (!songs.length || queue.length === 0) return false;
+      return songs.some((s) => s._id === queue[0]?._id);
+    },
+    [queue],
+  );
+
+  const playDiscoverSongs = useCallback(
+    (
+      songs: Song[],
+      index: number,
+      context: { entityId: string; entityTitle: string },
+    ) => {
+      if (!songs.length || index < 0 || index >= songs.length) return;
+      const song = songs[index];
+      const playbackContext = { type: "playlist" as const, ...context };
+      if (isQueueForSongs(songs)) {
+        if (currentSong?._id === song._id) {
+          togglePlay();
+        } else {
+          setCurrentSong(song);
+          playAlbum(songs, index, playbackContext);
+        }
+      } else {
+        playAlbum(songs, index, playbackContext);
+      }
+    },
+    [isQueueForSongs, currentSong?._id, togglePlay, setCurrentSong, playAlbum],
+  );
+
+  const topResultSongs = useMemo(
+    () =>
+      topResults
+        .filter((r) => r.kind === "song")
+        .map((r) => {
+          const { kind: _k, ...song } = r;
+          return song as Song;
+        }),
+    [topResults],
+  );
+
   const openSearchCategory = useCallback(
     (category: DiscoverSearchCategory, entityLabel: string) => {
       pushView({
@@ -200,33 +263,59 @@ export function PlaylistDiscoverSection({
 
   const renderSong = (
     song: Song,
-    opts?: { showAlbumColumn?: boolean; trackIndex?: number },
-  ) => (
-    <PlaylistDiscoverListItem
-      key={song._id}
-      variant="song"
-      title={song.title}
-      imageUrl={song.imageUrl}
-      artists={song.artist}
-      albumTitle={song.albumTitle}
-      showAlbumColumn={opts?.showAlbumColumn ?? true}
-      trackIndex={opts?.trackIndex}
-      isAdded={playlistSongIds.has(song._id)}
-      onAdd={() => onAddSong(song._id)}
-      onAlbumClick={() => {
-        if (song.albumId) openAlbum(song.albumId, song.albumTitle || song.title);
-      }}
-      onArtistClick={(id) => {
-        const artist = song.artist.find((a) => a._id === id);
-        openArtist(id, artist?.name || "");
-      }}
-    />
-  );
+    opts?: {
+      showAlbumColumn?: boolean;
+      trackIndex?: number;
+      playIndex?: number;
+      onPlay?: (song: Song, index: number) => void;
+    },
+  ) => {
+    const playIndex = opts?.playIndex;
+    const onPlay = opts?.onPlay;
+    return (
+      <PlaylistDiscoverListItem
+        key={song._id}
+        variant="song"
+        title={song.title}
+        imageUrl={song.imageUrl}
+        artists={song.artist}
+        albumTitle={song.albumTitle}
+        showAlbumColumn={opts?.showAlbumColumn ?? true}
+        trackIndex={opts?.trackIndex}
+        isAdded={playlistSongIds.has(song._id)}
+        onAdd={() => onAddSong(song._id)}
+        onAlbumClick={() => {
+          if (song.albumId) openAlbum(song.albumId, song.albumTitle || song.title);
+        }}
+        onArtistClick={(id) => {
+          const artist = song.artist.find((a) => a._id === id);
+          openArtist(id, artist?.name || "");
+        }}
+        playIndex={playIndex}
+        onPlay={
+          onPlay != null && playIndex != null
+            ? () => onPlay(song, playIndex)
+            : undefined
+        }
+        isCurrentlyPlaying={currentSong?._id === song._id}
+        isPlayerPlaying={isPlaying}
+      />
+    );
+  };
 
   const renderTopResultItem = (item: DiscoverTopResult) => {
     if (item.kind === "song") {
       const { kind: _k, ...song } = item;
-      return renderSong(song as Song);
+      const s = song as Song;
+      const index = topResultSongs.findIndex((x) => x._id === s._id);
+      return renderSong(s, {
+        playIndex: index,
+        onPlay: (_, i) =>
+          playDiscoverSongs(topResultSongs, i, {
+            entityId: `${playlistId}:search-preview`,
+            entityTitle: t("pages.playlist.discover.topResults"),
+          }),
+      });
     }
     if (item.kind === "album") {
       const { kind: _k, ...album } = item;
@@ -337,7 +426,9 @@ export function PlaylistDiscoverSection({
                   <h3 className="text-sm font-semibold text-white mb-2 px-2">
                     {t("pages.playlist.discover.topResults")}
                   </h3>
-                  {topResults.some((r) => r.kind === "song") && <SongListHeader />}
+                  {topResultSongs.length > 0 && (
+                    <SongListHeader showPlayColumn />
+                  )}
                   <div className="space-y-1">
                     {topResults.map((item) => renderTopResultItem(item))}
                   </div>
@@ -376,9 +467,18 @@ export function PlaylistDiscoverSection({
           ) : currentView.category === "songs" ? (
             categorySongs.length > 0 ? (
               <>
-                <SongListHeader />
+                <SongListHeader showPlayColumn />
                 <div className="space-y-1">
-                  {categorySongs.map((song) => renderSong(song))}
+                  {categorySongs.map((song, index) =>
+                    renderSong(song, {
+                      playIndex: index,
+                      onPlay: (_, i) =>
+                        playDiscoverSongs(categorySongs, i, {
+                          entityId: `${playlistId}:search-songs:${currentView.query}`,
+                          entityTitle: currentView.title,
+                        }),
+                    }),
+                  )}
                 </div>
               </>
             ) : (
@@ -442,9 +542,18 @@ export function PlaylistDiscoverSection({
             </div>
           ) : playlistRecommendations && playlistRecommendations.length > 0 ? (
             <>
-              <SongListHeader />
+              <SongListHeader showPlayColumn />
               <div className="space-y-1">
-                {playlistRecommendations.map((song) => renderSong(song))}
+                {playlistRecommendations.map((song, index) =>
+                  renderSong(song, {
+                    playIndex: index,
+                    onPlay: (_, i) =>
+                      playDiscoverSongs(playlistRecommendations, i, {
+                        entityId: `${playlistId}:recommendations`,
+                        entityTitle: t("pages.playlist.discover.recommended"),
+                      }),
+                  }),
+                )}
               </div>
             </>
           ) : null}
@@ -464,9 +573,18 @@ export function PlaylistDiscoverSection({
                   <h3 className="text-lg font-bold text-white mb-3 px-2">
                     {t("pages.playlist.discover.popular")}
                   </h3>
-                  <SongListHeader />
+                  <SongListHeader showPlayColumn />
                   <div className="space-y-1">
-                    {currentArtist.songs.map((song) => renderSong(song))}
+                    {currentArtist.songs.map((song, index) =>
+                      renderSong(song, {
+                        playIndex: index,
+                        onPlay: (_, i) =>
+                          playDiscoverSongs(currentArtist.songs, i, {
+                            entityId: `${playlistId}:artist:${currentView.artistId}`,
+                            entityTitle: currentView.name,
+                          }),
+                      }),
+                    )}
                   </div>
                 </div>
               )}
@@ -501,12 +619,17 @@ export function PlaylistDiscoverSection({
             </div>
           ) : currentAlbum?.songs && currentAlbum.songs.length > 0 ? (
             <>
-              <SongListHeader showAlbumColumn={false} />
+              <SongListHeader showAlbumColumn={false} showPlayColumn />
               <div className="space-y-1">
                 {currentAlbum.songs.map((song, index) =>
                   renderSong(song, {
                     showAlbumColumn: false,
-                    trackIndex: index + 1,
+                    playIndex: index,
+                    onPlay: (_, i) =>
+                      playDiscoverSongs(currentAlbum.songs, i, {
+                        entityId: `${playlistId}:album:${currentView.albumId}`,
+                        entityTitle: currentView.title,
+                      }),
                   }),
                 )}
               </div>
