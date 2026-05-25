@@ -118,9 +118,7 @@ const AudioPlayer = () => {
       return;
     }
 
-    let trackJustChanged = false;
     if (lastSongIdRef.current !== currentSong._id) {
-      trackJustChanged = true;
       listenRecordedRef.current = false;
       fallbackTriggeredRef.current = false; // Reset fallback trigger for new song
       lastRecordedTimeRef.current = 0; // Reset recorded time for new song
@@ -138,10 +136,7 @@ const AudioPlayer = () => {
         hls.loadSource(currentSong.hlsUrl);
         hls.attachMedia(audioEl);
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          if (
-            !iosNativePlayback &&
-            usePlayerStore.getState().isPlaying
-          ) {
+          if (usePlayerStore.getState().isPlaying) {
             audioEl
               .play()
               .catch((e) => console.error("Autoplay failed on new track", e));
@@ -154,16 +149,12 @@ const AudioPlayer = () => {
         });
       } else if (audioEl.canPlayType("application/vnd.apple.mpegurl")) {
         audioEl.src = currentSong.hlsUrl;
+        audioEl.load();
       }
     }
 
     if (isPlaying) {
-      // iOS: autoPlay on <audio> starts the next track; play() only when resuming the same track
-      const shouldPlay =
-        !iosNativePlayback || (!trackJustChanged && audioEl.paused);
-      if (shouldPlay) {
-        audioEl.play().catch((e) => console.error("Play command failed", e));
-      }
+      audioEl.play().catch((e) => console.error("Play command failed", e));
     } else {
       audioEl.pause();
     }
@@ -333,7 +324,6 @@ const AudioPlayer = () => {
   return (
     <audio
       ref={audioRef}
-      autoPlay={isPlaying}
       playsInline
       style={{ display: "none" }}
       {...(!iosNativePlayback && { crossOrigin: "anonymous" })}
