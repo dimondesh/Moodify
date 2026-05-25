@@ -215,21 +215,29 @@ function MediaSessionPositionSync() {
   const currentSong = usePlayerStore((s) => s.currentSong);
 
   useEffect(() => {
-    if (
-      typeof navigator === "undefined" ||
-      !("mediaSession" in navigator) ||
-      !("setPositionState" in navigator.mediaSession)
-    ) {
+    if (typeof navigator === "undefined" || !("mediaSession" in navigator)) {
       return;
     }
-    if (currentSong && duration > 0) {
-      const safePosition = Math.min(currentTime, duration);
-      navigator.mediaSession.setPositionState({
-        duration: duration,
-        playbackRate: 1,
-        position: safePosition,
-      });
-      navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+    if (!currentSong) return;
+
+    const trackDuration =
+      duration > 0 ? duration : currentSong.duration || 0;
+    navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+
+    if (
+      trackDuration > 0 &&
+      "setPositionState" in navigator.mediaSession
+    ) {
+      const safePosition = Math.min(currentTime, trackDuration);
+      try {
+        navigator.mediaSession.setPositionState({
+          duration: trackDuration,
+          playbackRate: 1,
+          position: safePosition,
+        });
+      } catch {
+        // Safari may reject position until the media element has buffered metadata
+      }
     }
   }, [currentTime, duration, isPlaying, currentSong]);
 
@@ -354,6 +362,8 @@ const PlaybackControls = () => {
           },
         ],
       });
+
+      navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
 
       navigator.mediaSession.setActionHandler("play", () => togglePlay());
       navigator.mediaSession.setActionHandler("pause", () => togglePlay());
