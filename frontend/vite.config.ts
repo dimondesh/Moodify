@@ -3,7 +3,9 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
-import { SITE_SLOGAN } from "./src/lib/site-meta";
+
+/** Keep in sync with src/lib/site-meta.ts */
+const SITE_SLOGAN = "Your music — your vibe";
 
 export default defineConfig({
   base: "/",
