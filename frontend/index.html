@@ -7,6 +7,18 @@
     <!-- iOS/Safari: PNG only (SVG ignored); path must match public/Moodify.png -->
     <link rel="apple-touch-icon" sizes="180x180" href="/Moodify.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Critical paint: match app bg before JS/CSS (avoids white flash) -->
+    <style>
+      html,
+      body {
+        margin: 0;
+        background-color: #0f0f0f;
+        color: #fafafa;
+      }
+      #root {
+        min-height: 100dvh;
+      }
+    </style>
 
     <title>Moodify Music</title>
 
@@ -59,7 +71,7 @@
       }
     </script>
 
-    <meta name="theme-color" content="#8b5cf6" />
+    <meta name="theme-color" content="#0f0f0f" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta
       name="apple-mobile-web-app-status-bar-style"
@@ -67,11 +79,10 @@
     />
     <meta name="apple-mobile-web-app-title" content="Moodify Music" />
     <meta name="application-name" content="Moodify Music" />
-    <meta name="msapplication-TileColor" content="#8b5cf6" />
+    <meta name="msapplication-TileColor" content="#0f0f0f" />
     <meta name="msapplication-TileImage" content="/Moodify.png" />
   </head>
   <body>
-    <h1 class="sr-only">Moodify Music</h1>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
