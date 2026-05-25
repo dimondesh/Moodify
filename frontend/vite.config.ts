@@ -3,6 +3,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
+import { SITE_SLOGAN } from "./src/lib/site-meta";
 
 export default defineConfig({
   base: "/",
@@ -71,10 +72,9 @@ export default defineConfig({
       manifest: {
         start_url: "/",
         scope: "/",
-        name: "Moodify",
-        short_name: "Moodify",
-        description:
-          "An advanced music streaming service for enthusiasts. Create complex mixes and connect with friends in a rich audio environment.",
+        name: "Moodify Music",
+        short_name: "Moodify Music",
+        description: SITE_SLOGAN,
         theme_color: "#8b5cf6",
         background_color: "#18181b",
         icons: [

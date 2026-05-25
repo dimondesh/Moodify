@@ -15,7 +15,7 @@ const MoodifyLogo = ({ isWhite = false }: MoodifyLogoProps) => {
     <div className="logo-container">
       <img
         src="/Moodify-transparent.svg"
-        alt="Moodify Logo"
+        alt="Moodify Music"
         className={`moodify-logo ${
           isReduceMotionEnabled ? "no-animation" : "animated"
         }`}

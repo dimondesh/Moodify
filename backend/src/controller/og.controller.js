@@ -7,9 +7,8 @@ export const generateOGMeta = async (req, res, next) => {
     const { id } = req.params;
     const path = req.path;
 
-    let title = "Moodify - Discover Your Music";
-    let description =
-      "Listen on Moodify, the ultimate music streaming experience.";
+    let title = "Moodify Music";
+    let description = "Your music — your vibe";
     let image = "https://moodify-music.com/Moodify.png";
     let type = "music.song";
 
@@ -17,8 +16,8 @@ export const generateOGMeta = async (req, res, next) => {
       const song = await Song.findById(id).populate("artist", "name");
       if (song) {
         const artistNames = song.artist.map((a) => a.name).join(", ");
-        title = `${song.title} - ${artistNames} | Moodify`;
-        description = `Listen to ${song.title} by ${artistNames} on Moodify.`;
+        title = `${song.title} - ${artistNames} | Moodify Music`;
+        description = `Listen to ${song.title} by ${artistNames} on Moodify Music.`;
         image = song.imageUrl || image;
       }
     } else if (path.startsWith("/albums/")) {
@@ -26,8 +25,8 @@ export const generateOGMeta = async (req, res, next) => {
       const album = await Album.findById(id).populate("artist", "name");
       if (album) {
         const artistNames = album.artist.map((a) => a.name).join(", ");
-        title = `${album.title} - ${artistNames} | Moodify`;
-        description = `Listen to the album ${album.title} on Moodify.`;
+        title = `${album.title} - ${artistNames} | Moodify Music`;
+        description = `Listen to the album ${album.title} on Moodify Music.`;
         image = album.imageUrl || image;
       }
     } else if (path.startsWith("/playlists/")) {
@@ -37,8 +36,8 @@ export const generateOGMeta = async (req, res, next) => {
         "fullName",
       );
       if (playlist) {
-        title = `${playlist.title} | Moodify`;
-        description = `Playlist by ${playlist.owner?.fullName || "Moodify User"}`;
+        title = `${playlist.title} | Moodify Music`;
+        description = `Playlist by ${playlist.owner?.fullName || "Moodify Music User"}`;
         image = playlist.imageUrl || image;
       }
     }
@@ -56,7 +55,7 @@ export const generateOGMeta = async (req, res, next) => {
         <meta property="og:title" content="${title}" />
         <meta property="og:description" content="${description}" />
         <meta property="og:image" content="${image}" />
-        <meta property="og:site_name" content="Moodify" />
+        <meta property="og:site_name" content="Moodify Music" />
         
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="${title}" />
@@ -76,6 +75,6 @@ export const generateOGMeta = async (req, res, next) => {
     console.error("OG Tag Generation Error:", error);
     res
       .status(500)
-      .send("<html><head><title>Moodify</title></head><body></body></html>");
+      .send("<html><head><title>Moodify Music</title></head><body></body></html>");
   }
 };

@@ -287,7 +287,7 @@ const LibraryPage = () => {
         <title>Your Library</title>
         <meta
           name="description"
-          content="Access your saved albums, playlists, followed artists, and liked songs all in one place on Moodify."
+          content="Access your saved albums, playlists, followed artists, and liked songs all in one place on Moodify Music."
         />
       </Helmet>
       <div className="h-full">

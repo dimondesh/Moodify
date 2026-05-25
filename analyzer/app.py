@@ -13,7 +13,7 @@ np.bool = bool
 from madmom.features.beats import RNNBeatProcessor, DBNBeatTrackingProcessor
 from madmom.features.tempo import TempoEstimationProcessor
 
-app = FastAPI(title="Moodify Analysis Service")
+app = FastAPI(title="Moodify Music Analysis Service")
 
 def get_camelot(key, scale):
     """Конвертирует стандартную тональность в формат Camelot Wheel"""
@@ -44,7 +44,7 @@ print("Models loaded successfully!")
 async def health_check():
     return {
         "status": "OK", 
-        "message": "Moodify Analysis Service is running", 
+        "message": "Moodify Music Analysis Service is running", 
         "features": "Madmom RNN (Beats/BPM), Essentia Temperley (Camelot)"
     }
 

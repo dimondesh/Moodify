@@ -184,14 +184,14 @@ const ArtistPage = () => {
   }
   const metaDescription = `Listen to ${
     artist.name
-  } on Moodify. Discover popular tracks, albums, and the full discography. ${
+  } on Moodify Music. Discover popular tracks, albums, and the full discography. ${
     artist.bio ? artist.bio.substring(0, 120) + "..." : ""
   }`;
 
   return (
     <>
       <Helmet>
-        <title>{`${artist.name} | Слушать на Moodify`}</title>
+        <title>{`${artist.name} | Слушать на Moodify Music`}</title>
         <meta name="description" content={metaDescription} />
 
         {/* Open Graph / Facebook / Telegram - чтобы ссылка была красивой */}
@@ -199,7 +199,7 @@ const ArtistPage = () => {
         <meta property="og:title" content={artist.name} />
         <meta
           property="og:description"
-          content={`Слушай треки ${artist.name} бесплатно на Moodify.`}
+          content={`Слушай треки ${artist.name} бесплатно на Moodify Music.`}
         />
         <meta
           property="og:image"

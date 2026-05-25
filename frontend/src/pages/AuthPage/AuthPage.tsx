@@ -487,9 +487,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
       <Helmet>
         <title>
           {mode === "login"
-            ? t("auth.loginTitle", "Вход")
-            : t("auth.registerTitle", "Регистрация")}{" "}
-          - Moodify
+            ? t("auth.loginTitle", "Login")
+            : t("auth.registerTitle", "Register")}{" "}
+          · Moodify Music
         </title>
       </Helmet>
       <div className="min-h-screen bg-[#0f0f0f] text-white flex flex-col justify-center items-center px-4 py-8">
@@ -574,9 +574,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
                 <AuthGoogleOAuthButton setIsLoading={setIsLoading} />
               ) : (
                 <Button
-                  onClick={() =>
-                    toast.error(t("auth.googleNotConfigured"))
-                  }
+                  onClick={() => toast.error(t("auth.googleNotConfigured"))}
                   variant="outline"
                   type="button"
                   className="w-full h-12 border-gray-700 hover:bg-gray-900 rounded-full shrink-0"
@@ -794,7 +792,10 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
           )}
 
           {step === "verify_code" && (
-            <form onSubmit={handleVerifySubmit} className="flex flex-col flex-1">
+            <form
+              onSubmit={handleVerifySubmit}
+              className="flex flex-col flex-1"
+            >
               <div className="text-center mb-8 h-[80px] flex flex-col items-center justify-start shrink-0">
                 <h1 className="text-3xl font-bold mb-2">
                   {t("auth.verifyCodeTitle")}
@@ -841,7 +842,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
                 className="mt-4 text-sm text-violet-500 hover:underline text-center disabled:opacity-50 disabled:no-underline"
               >
                 {verifyResendSecondsLeft > 0
-                  ? t("auth.resendInSeconds", { seconds: verifyResendSecondsLeft })
+                  ? t("auth.resendInSeconds", {
+                      seconds: verifyResendSecondsLeft,
+                    })
                   : t("auth.resendCode")}
               </button>
             </form>
@@ -894,7 +897,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
                 className="mt-4 text-sm text-violet-500 hover:underline text-center disabled:opacity-50 disabled:no-underline"
               >
                 {resetResendSecondsLeft > 0
-                  ? t("auth.resendInSeconds", { seconds: resetResendSecondsLeft })
+                  ? t("auth.resendInSeconds", {
+                      seconds: resetResendSecondsLeft,
+                    })
                   : t("auth.resendCode")}
               </button>
             </form>

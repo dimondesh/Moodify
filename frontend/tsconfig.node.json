@@ -11,7 +11,8 @@
   },
   "include": [
     "vite.config.ts",
+    "src/lib/site-meta.ts",
     "postcss.config.cjs",
-    "**/*.d.ts" 
+    "**/*.d.ts"
   ]
 }

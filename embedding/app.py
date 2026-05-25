@@ -5,7 +5,7 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 import uvicorn
 import essentia.standard as es
 
-app = FastAPI(title="Moodify Deep Embedding Service")
+app = FastAPI(title="Moodify Music Deep Embedding Service")
 
 MODEL_PATH = "msd-musicnn-1.pb"
 
@@ -60,7 +60,7 @@ async def get_embedding(file: UploadFile = File(...)):
 async def health_check():
     return {
         "status": "OK",
-        "message": "Moodify Deep Embedding Service is running",
+        "message": "Moodify Music Deep Embedding Service is running",
         "dimensions": 50,
         "model": "MusiCNN (Hybrid Mean 70% + Max 30%)"
     }

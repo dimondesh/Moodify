@@ -97,7 +97,7 @@ export function getSubtitle(
         playlist.type === "ON_REPEAT_REWIND" ||
         playlist.type === "NEW_RELEASES"
       ) {
-        return `${t("sidebar.subtitle.playlist")} • Moodify`;
+        return `${t("sidebar.subtitle.playlist")} • Moodify Music`;
       }
       return t("sidebar.subtitle.byUser", {
         name: playlist.owner?.fullName || t("sidebar.subtitle.user"),

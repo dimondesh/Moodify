@@ -4,35 +4,58 @@
     <meta charset="UTF-8" />
 
     <link rel="icon" type="image/svg+xml" href="/Moodify.svg" />
-    <link rel="apple-touch-icon" href="/Moodify.png" />
+    <!-- iOS/Safari: PNG only (SVG ignored); path must match public/Moodify.png -->
     <link rel="apple-touch-icon" sizes="180x180" href="/Moodify.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <title>Moodify - Discover Your Music</title>
+    <title>Moodify Music</title>
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Moodify Music" />
-    <meta property="og:title" content="Moodify - Discover Your Music" />
-    <meta property="og:description" content="Stream your favorite music..." />
+    <meta property="og:title" content="Moodify Music" />
+    <meta property="og:description" content="Your music — your vibe" />
     <meta property="og:image" content="https://moodify-music.com/Moodify.png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <link rel="canonical" href="https://moodify-music.com/" />
     <meta property="og:url" content="https://moodify-music.com/" />
 
-    <meta
-      name="description"
-      content="Moodify is a music streaming service where you can find new artists, create playlists, and enjoy music tailored to your mood."
-    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Moodify Music" />
+    <meta name="twitter:description" content="Your music — your vibe" />
+    <meta name="twitter:image" content="https://moodify-music.com/Moodify.png" />
+
+    <meta name="description" content="Your music — your vibe" />
     <meta
       name="keywords"
       content="music, streaming, playlist, mood, artists, albums, songs"
     />
 
+    <!-- Google site name (line by favicon): WebSite JSON-LD on homepage only -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "WebSite",
-        "name": "Moodify Music",
-        "alternateName": "Moodify",
-        "url": "https://moodify-music.com/"
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://moodify-music.com/#website",
+            "url": "https://moodify-music.com/",
+            "name": "Moodify Music",
+            "alternateName": ["moodify-music.com"],
+            "description": "Your music — your vibe",
+            "publisher": { "@id": "https://moodify-music.com/#organization" }
+          },
+          {
+            "@type": "Organization",
+            "@id": "https://moodify-music.com/#organization",
+            "name": "Moodify Music",
+            "url": "https://moodify-music.com/",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://moodify-music.com/Moodify.png"
+            }
+          }
+        ]
       }
     </script>
 
@@ -48,6 +71,7 @@
     <meta name="msapplication-TileImage" content="/Moodify.png" />
   </head>
   <body>
+    <h1 class="sr-only">Moodify Music</h1>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -96,8 +96,8 @@ const SearchPage = () => {
     ? `${t("common.resultsFor")} "${queryParam}"`
     : t("common.searchMusic");
   const description = queryParam
-    ? `Find artists, songs, albums, and playlists for "${queryParam}" on Moodify.`
-    : "Search for your favorite songs, artists, albums, playlists, and users on Moodify.";
+    ? `Find artists, songs, albums, and playlists for "${queryParam}" on Moodify Music.`
+    : "Search for your favorite songs, artists, albums, playlists, and users on Moodify Music.";
 
   return (
     <>

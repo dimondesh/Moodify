@@ -310,14 +310,14 @@ const AlbumPage = () => {
         <title>{`${currentAlbum.title} - ${artistNames}`}</title>
         <meta
           property="og:title"
-          content={`${currentAlbum.title} - ${artistNames} | Moodify`}
+          content={`${currentAlbum.title} - ${artistNames} | Moodify Music`}
         />
         <meta
           property="og:description"
-          content={`Listen to ${currentAlbum.title} by ${artistNames} on Moodify.`}
+          content={`Listen to ${currentAlbum.title} by ${artistNames} on Moodify Music.`}
         />
         <meta property="og:image" content={currentAlbum.imageUrl} />
-        <meta property="og:site_name" content="Moodify" />
+        <meta property="og:site_name" content="Moodify Music" />
         <meta property="og:type" content="music.album" />
         <meta name="twitter:card" content="summary_large_image" />
       </Helmet>

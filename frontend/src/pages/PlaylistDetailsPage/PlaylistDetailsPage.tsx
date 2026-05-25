@@ -517,7 +517,7 @@ const PlaylistDetailsPage = () => {
       : (currentPlaylist.description?.trim() || "");
   const metaDescription = `Listen to "${
     currentPlaylist.title
-  }", a playlist by ${ownerName} on Moodify. Features ${
+  }", a playlist by ${ownerName} on Moodify Music. Features ${
     currentPlaylist.songs?.length || 0
   } songs.${playlistDescriptionText ? ` ${playlistDescriptionText}` : ""}`;
 
@@ -601,7 +601,7 @@ const PlaylistDetailsPage = () => {
                     </button>
                   ) : (
                     <span className="font-semibold text-white">
-                      {currentPlaylist.sourceName || "Moodify"}
+                      {currentPlaylist.sourceName || "Moodify Music"}
                     </span>
                   )}
                   <span className="hidden lg:inline">

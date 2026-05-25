@@ -13,6 +13,7 @@ import { usePlayerStore } from "../../stores/usePlayerStore";
 import { useAuthStore } from "../../stores/useAuthStore";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
+import { SITE_SLOGAN } from "@/lib/site-meta";
 import { useDominantColor } from "@/hooks/useDominantColor";
 import { Song } from "@/types";
 import HorizontalSection from "./HorizontalSection";
@@ -218,11 +219,7 @@ const HomePageComponent = () => {
   return (
     <>
       <Helmet>
-        <title>Home</title>
-        <meta
-          name="description"
-          content="Listen to trending music and quick picks on Moodify."
-        />
+        <meta name="description" content={SITE_SLOGAN} />
       </Helmet>
       <main className="min-h-full bg-[#0f0f0f] pb-30 lg:pb-0">
         <div className="relative min-h-screen">

@@ -89,13 +89,13 @@ async function applyCoverAccentHexFromProfilePhoto(userDoc) {
 
 async function sendVerificationEmailToUser(user, normalizedEmail, code) {
   const html = `
-      <p>Your Moodify verification code:</p>
+      <p>Your Moodify Music verification code:</p>
       <p style="font-size:24px;font-weight:bold;letter-spacing:4px">${code}</p>
       <p>This code expires in 15 minutes.</p>
     `;
   await sendTransactionalEmail({
     to: normalizedEmail,
-    subject: "Your Moodify verification code",
+    subject: "Your Moodify Music verification code",
     html,
   });
   user.emailVerificationLastSentAt = new Date();
@@ -398,14 +398,14 @@ export const forgotPassword = async (req, res) => {
     await user.save();
 
     const html = `
-      <p>Your Moodify password reset code:</p>
+      <p>Your Moodify Music password reset code:</p>
       <p style="font-size:24px;font-weight:bold;letter-spacing:4px">${code}</p>
       <p>This code expires in 1 hour.</p>
     `;
     try {
       await sendTransactionalEmail({
         to: normalized,
-        subject: "Your Moodify password reset code",
+        subject: "Your Moodify Music password reset code",
         html,
       });
     } catch (mailErr) {

@@ -7,6 +7,7 @@ import { Helmet } from "react-helmet-async";
 import { useUIStore } from "./stores/useUIStore";
 import { isIosDevice } from "./lib/platform";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { SITE_NAME, SITE_SLOGAN, SITE_URL } from "./lib/site-meta";
 
 import HomePage from "./pages/HomePage/HomePage";
 import MainLayout from "./layout/MainLayout";
@@ -38,7 +39,10 @@ function App() {
   const lastBootstrapAuthKeyRef = useRef<string | null>(null);
 
   const { fetchInitialData, setIsIosDevice } = useUIStore();
-  const canonicalUrl = `https://moodify-music.com${location.pathname}`;
+  const canonicalUrl =
+    location.pathname === "/"
+      ? SITE_URL
+      : `https://moodify-music.com${location.pathname}`;
 
   useEffect(() => {
     setIsIosDevice(isIosDevice());
@@ -127,13 +131,11 @@ function App() {
   return (
     <>
       <Helmet
-        defaultTitle="Moodify - Discover Your Music"
-        titleTemplate="%s | Moodify"
+        defaultTitle="Moodify Music"
+        titleTemplate="%s · Moodify Music"
       >
-        <meta
-          name="description"
-          content="Moodify is an advanced music streaming service for enthusiasts. Build playlists, discover music with smart playlists, and connect with friends in a rich audio environment."
-        />
+        <meta name="description" content={SITE_SLOGAN} />
+        <meta property="og:site_name" content={SITE_NAME} />
         <link rel="canonical" href={canonicalUrl} />
       </Helmet>
       <ErrorBoundary>

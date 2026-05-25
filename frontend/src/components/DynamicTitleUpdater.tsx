@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { usePlayerStore } from "../stores/usePlayerStore";
 import { getArtistNames } from "../lib/utils";
+import { SITE_NAME } from "@/lib/site-meta";
 
 const DynamicTitleUpdater = () => {
   const {
@@ -15,14 +16,19 @@ const DynamicTitleUpdater = () => {
   useEffect(() => {
     const isLyricsOpen = isDesktopLyricsOpen || isMobileLyricsFullScreen;
 
-    if (currentSong) {
-      const artistName = getArtistNames(currentSong.artist);
+    if (!currentSong) {
+      document.title = SITE_NAME;
+      return;
+    }
 
-      if (isLyricsOpen) {
-        document.title = `Lyrics: ${currentSong.title} by ${artistName}`;
-      } else if (isPlaying) {
-        document.title = `${currentSong.title} • ${artistName}`;
-      }
+    const artistName = getArtistNames(currentSong.artist);
+
+    if (isLyricsOpen) {
+      document.title = `Lyrics: ${currentSong.title} by ${artistName}`;
+    } else if (isPlaying) {
+      document.title = `${currentSong.title} • ${artistName}`;
+    } else {
+      document.title = SITE_NAME;
     }
   }, [currentSong, isPlaying, isDesktopLyricsOpen, isMobileLyricsFullScreen]);
 
