@@ -73,7 +73,7 @@ function MobileDominantDrawerHeader({
   children: ReactNode;
 }) {
   return (
-    <div className="relative z-10 shrink-0 overflow-hidden border-b border-white/10">
+    <div className="relative z-10 shrink-0 overflow-hidden">
       <div
         className="pointer-events-none absolute inset-0 z-0 overflow-hidden bg-zinc-950"
         aria-hidden
