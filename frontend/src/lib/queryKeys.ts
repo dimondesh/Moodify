@@ -21,4 +21,7 @@ export const queryKeys = {
     results: (q: string) => ["search", "results", q] as const,
     recent: ["search", "recent"] as const,
   },
+  profile: {
+    data: (userId: string) => ["profile", userId] as const,
+  },
 };
