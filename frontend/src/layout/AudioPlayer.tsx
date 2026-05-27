@@ -207,18 +207,11 @@ const AudioPlayer = () => {
         listenRecordedRef.current = true;
         lastRecordedTimeRef.current = currentTime;
 
-        // Подготавливаем контекст воспроизведения
         const playbackContext = currentPlaybackContext;
-
-        // Валидируем контекст воспроизведения
         const validContextTypes = ["album", "playlist", "artist"];
-
         const isValidContext =
-          playbackContext &&
-          playbackContext.type &&
+          playbackContext?.type &&
           validContextTypes.includes(playbackContext.type);
-
-        // Отправляем запрос с контекстом только если он валидный
         const requestData = isValidContext ? { playbackContext } : {};
 
         axiosInstance
