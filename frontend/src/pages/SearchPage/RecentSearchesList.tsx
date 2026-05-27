@@ -2,8 +2,7 @@
 // frontend/src/pages/SearchPage/RecentSearchesList.tsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useSearchStore } from "../../stores/useSearchStore";
-import { Artist } from "../../types";
+import { Artist, RecentSearchItem } from "../../types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Loader2, X } from "lucide-react";
@@ -14,19 +13,21 @@ import { resolveUserImageUrl } from "@/lib/cdn";
 
 interface RecentSearchesListProps {
   onItemClick?: () => void;
+  recentSearches: RecentSearchItem[];
+  isRecentLoading: boolean;
+  onRemoveRecentSearch: (searchId: string) => void;
+  onClearRecentSearches: () => void;
 }
 
 const RecentSearchesList: React.FC<RecentSearchesListProps> = ({
   onItemClick,
+  recentSearches,
+  isRecentLoading,
+  onRemoveRecentSearch,
+  onClearRecentSearches,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const {
-    recentSearches,
-    isRecentLoading,
-    removeRecentSearch,
-    clearRecentSearches,
-  } = useSearchStore();
 
   const handleItemClick = (item: any) => {
     let path = "";
@@ -103,7 +104,7 @@ const RecentSearchesList: React.FC<RecentSearchesListProps> = ({
         </h2>
         <Button
           variant="link"
-          onClick={clearRecentSearches}
+          onClick={onClearRecentSearches}
           className="text-sm text-zinc-400 hover:text-white px-2 h-auto"
         >
           {t("searchpage.clear")}
@@ -165,7 +166,7 @@ const RecentSearchesList: React.FC<RecentSearchesListProps> = ({
                   variant="ghost"
                   size="icon"
                   className="w-8 h-8 rounded-full opacity-0 group-hover:opacity-100 shrink-0"
-                  onClick={() => removeRecentSearch(item.searchId)}
+                  onClick={() => onRemoveRecentSearch(item.searchId)}
                 >
                   <X className="w-4 h-4" />
                 </Button>

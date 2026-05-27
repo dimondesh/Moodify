@@ -1,10 +1,9 @@
 // frontend/src/pages/ProfilePage/ProfilePage.tsx
 
-import { useEffect, useMemo, useCallback } from "react";
+import { useEffect, useMemo, useCallback, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../stores/useAuthStore";
-import { useProfileStore } from "../../stores/useProfileStore";
-import type { Playlist, Artist } from "../../types";
+import type { Playlist, Artist, User, Song } from "../../types";
 import type { DisplayItem } from "@/types";
 import {
   Avatar,
@@ -23,8 +22,24 @@ import { useUIStore } from "../../stores/useUIStore";
 import RecentlyListenedArtists from "../../components/RecentlyListenedArtists";
 import TopTracksThisMonth from "../../components/TopTracksThisMonth";
 import FixedRowEntitySection from "../HomePage/FixedRowEntitySection";
-import type { ProfileListItem } from "../../stores/useProfileStore";
 import { resolveUserImageUrl } from "@/lib/cdn";
+import { axiosInstance } from "@/lib/axios";
+
+export interface ProfileListItem {
+  _id: string;
+  name: string;
+  imageUrl: string;
+  type: "user" | "artist" | "playlist";
+}
+
+interface ProfileTopTrack extends Song {
+  listenCount: number;
+  lastListened: string;
+}
+
+type RecentListenedPack =
+  | { ok: true; artists: Artist[] }
+  | { ok: false; code: "private" | "error"; artists: Artist[] };
 
 function relationToDisplayItem(item: ProfileListItem): DisplayItem {
   switch (item.type) {
@@ -59,21 +74,21 @@ const ProfilePage = () => {
   const { isEditProfileDialogOpen, openEditProfileDialog, closeAllDialogs } =
     useUIStore();
 
-  const profileData = useProfileStore((s) => s.profileData);
-  const followers = useProfileStore((s) => s.followers);
-  const following = useProfileStore((s) => s.following);
-  const recentlyListenedArtists = useProfileStore(
-    (s) => s.recentlyListenedArtists,
-  );
-  const recentlyListenedStatus = useProfileStore(
-    (s) => s.recentlyListenedStatus,
-  );
-  const topTracksThisMonth = useProfileStore((s) => s.topTracksThisMonth);
-  const topTracksError = useProfileStore((s) => s.topTracksError);
-  const isLoading = useProfileStore((s) => s.isLoading);
-  const isFollowingUser = useProfileStore((s) => s.isFollowingUser);
-  const loadProfile = useProfileStore((s) => s.loadProfile);
-  const toggleFollow = useProfileStore((s) => s.toggleFollow);
+  const [profileData, setProfileData] = useState<User | null>(null);
+  const [followers, setFollowers] = useState<ProfileListItem[]>([]);
+  const [following, setFollowing] = useState<ProfileListItem[]>([]);
+  const [recentlyListenedArtists, setRecentlyListenedArtists] = useState<
+    Artist[]
+  >([]);
+  const [recentlyListenedStatus, setRecentlyListenedStatus] = useState<
+    "ok" | "private" | "error"
+  >("ok");
+  const [topTracksThisMonth, setTopTracksThisMonth] = useState<
+    ProfileTopTrack[]
+  >([]);
+  const [topTracksError, setTopTracksError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFollowingUser, setIsFollowingUser] = useState(false);
 
   const { backgrounds, isColorLoading } = useDominantCoverGradient(
     isLoading ? undefined : profileData?.imageUrl,
@@ -84,6 +99,99 @@ const ProfilePage = () => {
 
   const { user: liveCurrentUser } = useAuthStore();
   const isMyProfile = liveCurrentUser?.id === userId;
+
+  const loadProfile = useCallback(async (targetUserId: string) => {
+    setIsLoading(true);
+    const currentId = useAuthStore.getState().user?.id;
+    const isOwner = currentId === targetUserId;
+
+    const recentPromise: Promise<RecentListenedPack> = axiosInstance
+      .get(`/users/${targetUserId}/recently-listened-artists`)
+      .then((r) => ({
+        ok: true as const,
+        artists: r.data.artists || [],
+      }))
+      .catch((err: { response?: { status?: number } }) => {
+        if (err.response?.status === 403) {
+          return { ok: false as const, code: "private" as const, artists: [] };
+        }
+        return { ok: false as const, code: "error" as const, artists: [] };
+      });
+
+    const topPromise = isOwner
+      ? axiosInstance
+          .get(`/users/${targetUserId}/top-tracks-this-month`)
+          .then((r) => ({
+            tracks: (r.data.tracks || []) as ProfileTopTrack[],
+            error: null as string | null,
+          }))
+          .catch((err: { response?: { data?: { message?: string } } }) => ({
+            tracks: [] as ProfileTopTrack[],
+            error:
+              err.response?.data?.message || "Failed to load top tracks",
+          }))
+      : Promise.resolve({
+          tracks: [] as ProfileTopTrack[],
+          error: null as string | null,
+        });
+
+    try {
+      const [profileRes, followersRes, followingRes, recentPack, topPack] =
+        await Promise.all([
+          axiosInstance.get(`/users/${targetUserId}`),
+          axiosInstance.get(`/users/${targetUserId}/followers`),
+          axiosInstance.get(`/users/${targetUserId}/following`),
+          recentPromise,
+          topPromise,
+        ]);
+
+      const profile = profileRes.data;
+      setProfileData(profile);
+      setFollowers(followersRes.data.items);
+      setFollowing(followingRes.data.items);
+      setRecentlyListenedArtists(recentPack.artists);
+      setRecentlyListenedStatus(recentPack.ok ? "ok" : recentPack.code);
+      setTopTracksThisMonth(topPack.tracks);
+      setTopTracksError(topPack.error);
+      setIsFollowingUser(
+        Array.isArray(profile.followers) &&
+          currentId != null &&
+          profile.followers.includes(currentId),
+      );
+    } catch (error) {
+      console.error("Failed to fetch profile data:", error);
+      setProfileData(null);
+      setFollowers([]);
+      setFollowing([]);
+      setRecentlyListenedArtists([]);
+      setRecentlyListenedStatus("ok");
+      setTopTracksThisMonth([]);
+      setTopTracksError(null);
+      setIsFollowingUser(false);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const toggleFollow = useCallback(
+    async (targetUserId: string, currentlyFollowing: boolean) => {
+      try {
+        await axiosInstance.post(`/users/${targetUserId}/follow`);
+        setIsFollowingUser(!currentlyFollowing);
+        setProfileData((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            followersCount:
+              prev.followersCount! + (currentlyFollowing ? -1 : 1),
+          };
+        });
+      } catch (error) {
+        console.error("Failed to follow/unfollow:", error);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!userId) return;

@@ -1,7 +1,7 @@
 // src/components/ui/Topbar.tsx
 
 import { useNavigate, Link, useLocation } from "react-router-dom";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Search,
   LogOut,
@@ -44,11 +44,12 @@ import MoodifyLogo from "../MoodifyLogo";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
 import { resolveUserImageUrl } from "@/lib/cdn";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
-import { useSearchStore } from "../../stores/useSearchStore";
 import { useChatStore } from "../../stores/useChatStore";
 import RecentSearchesList from "@/pages/SearchPage/RecentSearchesList";
 import { useAudioSettingsStore } from "../../lib/webAudio";
 import { usePlayerStore } from "@/stores/usePlayerStore";
+import { axiosInstance } from "@/lib/axios";
+import type { RecentSearchItem } from "@/types";
 
 const Topbar = () => {
   const { t } = useTranslation();
@@ -70,7 +71,8 @@ const Topbar = () => {
   } = useUIStore();
 
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-  const { fetchRecentSearches } = useSearchStore();
+  const [recentSearches, setRecentSearches] = useState<RecentSearchItem[]>([]);
+  const [isRecentLoading, setIsRecentLoading] = useState(false);
   const { unreadMessages } = useChatStore();
   const totalUnread = Array.from(unreadMessages.values()).reduce(
     (acc, count) => acc + count,
@@ -107,6 +109,43 @@ const Topbar = () => {
     }
   }, [location]);
 
+  const fetchRecentSearches = useCallback(async () => {
+    setIsRecentLoading(true);
+    try {
+      const res = await axiosInstance.get("/users/me/recent-searches");
+      setRecentSearches(res.data);
+    } catch (e) {
+      console.error("Failed to fetch recent searches", e);
+    } finally {
+      setIsRecentLoading(false);
+    }
+  }, []);
+
+  const removeRecentSearch = useCallback(
+    async (searchId: string) => {
+      setRecentSearches((prev) =>
+        prev.filter((s) => s.searchId !== searchId),
+      );
+      try {
+        await axiosInstance.delete(`/users/me/recent-searches/${searchId}`);
+      } catch (e) {
+        console.error("Failed to remove recent search", e);
+        void fetchRecentSearches();
+      }
+    },
+    [fetchRecentSearches],
+  );
+
+  const clearRecentSearches = useCallback(async () => {
+    setRecentSearches([]);
+    try {
+      await axiosInstance.delete("/users/me/recent-searches/all");
+    } catch (e) {
+      console.error("Failed to clear recent searches", e);
+      void fetchRecentSearches();
+    }
+  }, [fetchRecentSearches]);
+
   useEffect(() => {
     if (!location.pathname.startsWith("/search")) {
       setQuery("");
@@ -124,7 +163,7 @@ const Topbar = () => {
       setIsPopoverOpen(false);
     } else if (authUser) {
       setIsPopoverOpen(true);
-      fetchRecentSearches();
+      void fetchRecentSearches();
     }
 
     if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
@@ -139,7 +178,7 @@ const Topbar = () => {
 
   const handleTriggerClick = () => {
     if (authUser && !query) {
-      fetchRecentSearches();
+      void fetchRecentSearches();
       setIsPopoverOpen(true);
     }
   };
@@ -312,7 +351,13 @@ const Topbar = () => {
             align="start"
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
-            <RecentSearchesList onItemClick={handleItemClickInPopover} />
+            <RecentSearchesList
+              onItemClick={handleItemClickInPopover}
+              recentSearches={recentSearches}
+              isRecentLoading={isRecentLoading}
+              onRemoveRecentSearch={removeRecentSearch}
+              onClearRecentSearches={clearRecentSearches}
+            />
           </PopoverContent>
         </Popover>
         {isSearchVisible && (

@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import type { Playlist } from "../../types";
 import SectionGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton";
-import { useSearchStore } from "@/stores/useSearchStore";
 import { useTranslation } from "react-i18next";
 import { getOptimizedImageUrl } from "@/lib/utils";
 import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
@@ -13,20 +12,21 @@ type PlaylistGridProps = {
   title: string;
   playlists: Playlist[];
   isLoading: boolean;
+  onAddRecentSearch: (itemId: string, itemType: string) => void;
 };
 
 const PlaylistGridComponent = ({
   title,
   playlists,
   isLoading,
+  onAddRecentSearch,
 }: PlaylistGridProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [showAll, setShowAll] = useState(false);
-  const { addRecentSearch } = useSearchStore();
 
   const handlePlaylistClick = (playlist: Playlist) => {
-    addRecentSearch(playlist._id, "Playlist");
+    onAddRecentSearch(playlist._id, "Playlist");
     navigate(`/playlists/${playlist._id}`);
   };
 

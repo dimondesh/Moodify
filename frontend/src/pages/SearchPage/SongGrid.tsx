@@ -7,7 +7,6 @@ import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
 import SectionGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton";
 import { useMusicStore } from "../../stores/useMusicStore";
 import { getArtistNames, getOptimizedImageUrl } from "../../lib/utils";
-import { useSearchStore } from "@/stores/useSearchStore";
 import { useTranslation } from "react-i18next";
 import AlbumCoverImage from "../../components/AlbumCoverImage";
 
@@ -15,17 +14,22 @@ type SectionGridProps = {
   title: string;
   songs: Song[];
   isLoading: boolean;
+  onAddRecentSearch: (itemId: string, itemType: string) => void;
 };
 
-const SongGridComponent = ({ title, songs, isLoading }: SectionGridProps) => {
+const SongGridComponent = ({
+  title,
+  songs,
+  isLoading,
+  onAddRecentSearch,
+}: SectionGridProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [showAll, setShowAll] = useState(false);
   const { artists, fetchArtists } = useMusicStore();
-  const { addRecentSearch } = useSearchStore();
 
   const handleSongClick = (song: Song) => {
-    addRecentSearch(song._id, "Song");
+    onAddRecentSearch(song._id, "Song");
     if (typeof song.albumId === "string" && song.albumId.length > 0) {
       navigate(`/albums/${song.albumId}`);
     } else {

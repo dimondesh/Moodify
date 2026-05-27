@@ -7,23 +7,27 @@ import SectionGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { resolveUserImageUrl } from "@/lib/cdn";
 import { useTranslation } from "react-i18next";
-import { useSearchStore } from "@/stores/useSearchStore";
 import { getOptimizedImageUrl } from "@/lib/utils";
 
 type UserGridProps = {
   title: string;
   users: User[];
   isLoading: boolean;
+  onAddRecentSearch: (itemId: string, itemType: string) => void;
 };
 
-const UserGrid: React.FC<UserGridProps> = ({ title, users, isLoading }) => {
+const UserGrid: React.FC<UserGridProps> = ({
+  title,
+  users,
+  isLoading,
+  onAddRecentSearch,
+}) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [showAll, setShowAll] = useState(false);
-  const { addRecentSearch } = useSearchStore();
 
   const handleUserClick = (user: User) => {
-    addRecentSearch(user._id, "User");
+    onAddRecentSearch(user._id, "User");
     navigate(`/users/${user._id}`);
   };
 

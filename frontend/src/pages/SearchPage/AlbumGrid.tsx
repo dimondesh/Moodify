@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import type { Album } from "../../types";
 import SectionGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton";
-import { useSearchStore } from "@/stores/useSearchStore";
 import { useTranslation } from "react-i18next";
 import { getArtistNames, getOptimizedImageUrl } from "@/lib/utils";
 import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
@@ -14,16 +13,21 @@ type AlbumGridProps = {
   title: string;
   albums: Album[];
   isLoading: boolean;
+  onAddRecentSearch: (itemId: string, itemType: string) => void;
 };
 
-const AlbumGridComponent = ({ title, albums, isLoading }: AlbumGridProps) => {
+const AlbumGridComponent = ({
+  title,
+  albums,
+  isLoading,
+  onAddRecentSearch,
+}: AlbumGridProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [showAll, setShowAll] = useState(false);
-  const { addRecentSearch } = useSearchStore();
 
   const handleAlbumClick = (album: Album) => {
-    addRecentSearch(album._id, "Album");
+    onAddRecentSearch(album._id, "Album");
     navigate(`/albums/${album._id}`);
   };
 

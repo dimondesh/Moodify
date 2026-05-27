@@ -1,8 +1,7 @@
 // src/pages/SearchPage/SearchPage.tsx
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { useSearchStore } from "../../stores/useSearchStore";
 import AlbumGrid from "./AlbumGrid";
 import SongGrid from "./SongGrid";
 import PlaylistGrid from "./PlaylistGrid";
@@ -22,6 +21,15 @@ import {
 import { useAuthStore } from "../../stores/useAuthStore";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import RecentSearchesList from "./RecentSearchesList";
+import { axiosInstance } from "../../lib/axios";
+import type {
+  Playlist,
+  Song,
+  Album,
+  Artist,
+  User,
+  RecentSearchItem,
+} from "../../types";
 
 const SearchPage = () => {
   const { t } = useTranslation();
@@ -34,24 +42,103 @@ const SearchPage = () => {
   const [query, setQuery] = useState(queryParam);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [songs, setSongs] = useState<Song[]>([]);
+  const [albums, setAlbums] = useState<Album[]>([]);
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [artists, setArtists] = useState<Artist[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [recentSearches, setRecentSearches] = useState<RecentSearchItem[]>([]);
+  const [isRecentLoading, setIsRecentLoading] = useState(false);
+
   const debouncedInputSearchTerm = useDebounce(queryParam, 500);
 
-  const {
-    query: searchQuery,
-    songs,
-    albums,
-    playlists,
-    artists,
-    users,
-    loading,
-    error,
-    search,
-    fetchRecentSearches,
-  } = useSearchStore();
+  const search = useCallback(async (q: string) => {
+    if (!q.trim()) {
+      setSongs([]);
+      setAlbums([]);
+      setPlaylists([]);
+      setArtists([]);
+      setUsers([]);
+      setLoading(false);
+      setError(null);
+      setSearchQuery("");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSearchQuery(q);
+
+    try {
+      const res = await axiosInstance.get("/search", { params: { q } });
+      setSongs(res.data.songs || []);
+      setAlbums(res.data.albums || []);
+      setPlaylists(res.data.playlists || []);
+      setArtists(res.data.artists || []);
+      setUsers(res.data.users || []);
+      setLoading(false);
+    } catch (e: unknown) {
+      const message =
+        e instanceof Error ? e.message : "Failed to search";
+      setError(message);
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchRecentSearches = useCallback(async () => {
+    setIsRecentLoading(true);
+    try {
+      const res = await axiosInstance.get("/users/me/recent-searches");
+      setRecentSearches(res.data);
+    } catch (e) {
+      console.error("Failed to fetch recent searches", e);
+    } finally {
+      setIsRecentLoading(false);
+    }
+  }, []);
+
+  const addRecentSearch = useCallback(async (itemId: string, itemType: string) => {
+    try {
+      await axiosInstance.post("/users/me/recent-searches", {
+        itemId,
+        itemType,
+      });
+    } catch (e) {
+      console.error("Failed to add recent search", e);
+    }
+  }, []);
+
+  const removeRecentSearch = useCallback(
+    async (searchId: string) => {
+      setRecentSearches((prev) =>
+        prev.filter((s) => s.searchId !== searchId),
+      );
+      try {
+        await axiosInstance.delete(`/users/me/recent-searches/${searchId}`);
+      } catch (e) {
+        console.error("Failed to remove recent search", e);
+        void fetchRecentSearches();
+      }
+    },
+    [fetchRecentSearches],
+  );
+
+  const clearRecentSearches = useCallback(async () => {
+    setRecentSearches([]);
+    try {
+      await axiosInstance.delete("/users/me/recent-searches/all");
+    } catch (e) {
+      console.error("Failed to clear recent searches", e);
+      void fetchRecentSearches();
+    }
+  }, [fetchRecentSearches]);
 
   useEffect(() => {
     if (debouncedInputSearchTerm.trim() !== searchQuery) {
-      search(debouncedInputSearchTerm.trim());
+      void search(debouncedInputSearchTerm.trim());
     }
   }, [debouncedInputSearchTerm, search, searchQuery]);
 
@@ -67,7 +154,7 @@ const SearchPage = () => {
       setIsPopoverOpen(false);
     } else if (authUser) {
       setIsPopoverOpen(true);
-      fetchRecentSearches();
+      void fetchRecentSearches();
     }
 
     if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
@@ -75,14 +162,14 @@ const SearchPage = () => {
       if (val.trim() !== "") {
         navigate(`/search?q=${encodeURIComponent(val)}`);
       } else {
-        navigate(`/search`);
+        navigate("/search");
       }
     }, 300);
   };
 
   const handleTriggerClick = () => {
     if (authUser && !query) {
-      fetchRecentSearches();
+      void fetchRecentSearches();
       setIsPopoverOpen(true);
     }
   };
@@ -129,7 +216,13 @@ const SearchPage = () => {
                   align="start"
                   onOpenAutoFocus={(e) => e.preventDefault()}
                 >
-                  <RecentSearchesList onItemClick={handleItemClickInPopover} />
+                  <RecentSearchesList
+                    onItemClick={handleItemClickInPopover}
+                    recentSearches={recentSearches}
+                    isRecentLoading={isRecentLoading}
+                    onRemoveRecentSearch={removeRecentSearch}
+                    onClearRecentSearches={clearRecentSearches}
+                  />
                 </PopoverContent>
               </Popover>
             </div>
@@ -174,6 +267,7 @@ const SearchPage = () => {
                   title={t("searchpage.artists")}
                   artists={artists}
                   isLoading={loading}
+                  onAddRecentSearch={addRecentSearch}
                 />
               )}
               {songs.length > 0 && (
@@ -181,6 +275,7 @@ const SearchPage = () => {
                   title={t("searchpage.songs")}
                   songs={songs}
                   isLoading={loading}
+                  onAddRecentSearch={addRecentSearch}
                 />
               )}
               {albums.length > 0 && (
@@ -188,6 +283,7 @@ const SearchPage = () => {
                   title={t("searchpage.albums")}
                   albums={albums}
                   isLoading={loading}
+                  onAddRecentSearch={addRecentSearch}
                 />
               )}
               {playlists.length > 0 && (
@@ -195,6 +291,7 @@ const SearchPage = () => {
                   title={t("searchpage.playlists")}
                   playlists={playlists}
                   isLoading={loading}
+                  onAddRecentSearch={addRecentSearch}
                 />
               )}
               {users.length > 0 && (
@@ -202,6 +299,7 @@ const SearchPage = () => {
                   title={t("searchpage.users")}
                   users={users}
                   isLoading={loading}
+                  onAddRecentSearch={addRecentSearch}
                 />
               )}
             </>
