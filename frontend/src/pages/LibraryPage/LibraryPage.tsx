@@ -4,8 +4,7 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useLibraryStore } from "../../stores/useLibraryStore";
-import { usePlaylistStore } from "../../stores/usePlaylistStore";
-import { useMusicStore } from "../../stores/useMusicStore";
+import { useMyPlaylists, useArtists } from "@/hooks/queries";
 import LibraryGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton";
 import {
   LibraryItem,
@@ -39,10 +38,10 @@ const LibraryPage = () => {
     error: libraryError,
   } = useLibraryStore();
   const {
-    myPlaylists,
-    isLoading: isLoadingPlaylists,
+    data: myPlaylists = [],
+    isPending: isLoadingPlaylists,
     error: playlistsError,
-  } = usePlaylistStore();
+  } = useMyPlaylists();
   const {
     entityTypeFilter,
     setEntityTypeFilter,
@@ -55,7 +54,7 @@ const LibraryPage = () => {
   } = useUIStore();
 
   const quickCreatePlaylist = useQuickCreatePlaylist();
-  const { artists } = useMusicStore();
+  const { data: artists = [] } = useArtists();
   const user = useAuthStore((s) => s.user);
   const { isDownloaded, fetchAllDownloaded } = useOfflineStore(
     (s) => s.actions,

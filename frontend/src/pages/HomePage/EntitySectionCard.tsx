@@ -8,7 +8,7 @@ import {
   CDN_DEFAULT_ARTIST_IMAGE,
   resolveUserImageUrl,
 } from "@/lib/cdn";
-import { useMusicStore } from "@/stores/useMusicStore";
+import { useArtists } from "@/hooks/queries";
 import type { Song, Album, Playlist, Artist } from "@/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { DisplayItem } from "@/types";
@@ -29,7 +29,7 @@ const EntitySectionCardComponent: React.FC<EntitySectionCardProps> = ({
 }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { artists: allArtists } = useMusicStore();
+  const { data: allArtists = [] } = useArtists();
 
   const handleItemClick = useCallback(() => {
     switch (item.itemType) {

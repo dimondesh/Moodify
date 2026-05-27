@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Check, Plus } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { usePlaylistStore } from "@/stores/usePlaylistStore";
+import { useOwnedPlaylists } from "@/hooks/queries";
 import { useIsSongLiked } from "@/hooks/useLikedSongs";
 import { Song } from "@/types";
 import toast from "react-hot-toast";
@@ -36,9 +37,8 @@ const AddSongToPlaylistSheet: React.FC<AddSongToPlaylistSheetProps> = ({
   notifyLibraryChanges = false,
 }) => {
   const { t } = useTranslation();
+  const { data: ownedPlaylists = [] } = useOwnedPlaylists();
   const {
-    ownedPlaylists,
-    fetchOwnedPlaylists,
     addSongToPlaylist,
     removeSongFromPlaylist,
     createPlaylistFromSong,
@@ -50,12 +50,6 @@ const AddSongToPlaylistSheet: React.FC<AddSongToPlaylistSheetProps> = ({
     Set<string>
   >(new Set());
   const [localIsLiked, setLocalIsLiked] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      fetchOwnedPlaylists();
-    }
-  }, [isOpen, fetchOwnedPlaylists]);
 
   useEffect(() => {
     if (isOpen) {

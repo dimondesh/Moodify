@@ -16,7 +16,6 @@ import { ScrollArea } from "../components/ui/scroll-area";
 import PlaylistSkeleton from "../components/ui/skeletons/PlaylistSkeleton";
 import React, { useMemo, useEffect, useRef, useCallback } from "react";
 import { useLibraryStore } from "../stores/useLibraryStore";
-import { usePlaylistStore } from "../stores/usePlaylistStore";
 import { useAuthStore } from "../stores/useAuthStore";
 import {
   LibraryItem,
@@ -26,7 +25,7 @@ import {
   FollowedArtistItem,
 } from "../types";
 import { CDN_DEFAULT_ALBUM_COVER, CDN_LIKED_PLAYLIST_COVER } from "@/lib/cdn";
-import { useMusicStore } from "../stores/useMusicStore";
+import { useArtists, useMyPlaylists, useHomeBootstrap } from "@/hooks/queries";
 import { useTranslation } from "react-i18next";
 import { Download } from "lucide-react";
 import { useOfflineStore } from "../stores/useOfflineStore";
@@ -40,7 +39,7 @@ const LeftSidebar = () => {
   const { t } = useTranslation();
   const { albums, playlists, followedArtists } = useLibraryStore();
 
-  const { myPlaylists } = usePlaylistStore();
+  const { data: myPlaylists = [] } = useMyPlaylists();
 
   const user = useAuthStore((s) => s.user);
   const authLoading = useAuthStore((s) => s.isLoading);
@@ -57,12 +56,12 @@ const LeftSidebar = () => {
     setIsLeftSidebarSearchOpen,
   } = useUIStore();
 
-  const { artists } = useMusicStore();
+  const { data: artists = [] } = useArtists();
   const quickCreatePlaylist = useQuickCreatePlaylist();
   const playlistsFetchedRef = useRef(false);
   const sidebarSearchInputRef = useRef<HTMLInputElement>(null);
 
-  const { isHomePageLoading } = useUIStore();
+  const { isPending: isHomePageLoading } = useHomeBootstrap();
 
   const isLoading =
     (isHomePageLoading || (!user && authLoading)) && !isOffline;

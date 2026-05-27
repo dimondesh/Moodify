@@ -18,7 +18,7 @@ import type { Song, Album, Playlist } from "@/types";
 import { axiosInstance } from "@/lib/axios";
 import toast from "react-hot-toast";
 import { useAuthStore } from "./useAuthStore";
-import { useMusicStore } from "./useMusicStore";
+import { invalidateArtists } from "@/lib/invalidateQueries";
 import i18n from "@/lib/i18n";
 
 type ItemType = "albums" | "playlists";
@@ -208,7 +208,7 @@ export const useOfflineStore = create<OfflineState>()(
 
           if (isCurrentlyOffline) {
             console.log("[Offline Startup] Forcing data fetch from IndexedDB.");
-            useMusicStore.getState().fetchArtists();
+            void invalidateArtists();
           }
         },
 

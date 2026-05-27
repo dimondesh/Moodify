@@ -8,6 +8,7 @@ import { useUIStore } from "./stores/useUIStore";
 import { isIosDevice } from "./lib/platform";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { SITE_NAME, SITE_SLOGAN, SITE_URL } from "./lib/site-meta";
+import { prefetchHomeData } from "./lib/prefetchHome";
 
 import HomePage from "./pages/HomePage/HomePage";
 import MainLayout from "./layout/MainLayout";
@@ -38,7 +39,7 @@ function App() {
   /** Bootstrap/home data is auth-specific; refetch when guest ↔ logged-in (or user id) changes. */
   const lastBootstrapAuthKeyRef = useRef<string | null>(null);
 
-  const { fetchInitialData, setIsIosDevice } = useUIStore();
+  const { setIsIosDevice } = useUIStore();
   const canonicalUrl =
     location.pathname === "/"
       ? SITE_URL
@@ -58,22 +59,23 @@ function App() {
     console.log("App.tsx: Fetching initial data for session", authKey);
 
     const timeoutId = setTimeout(() => {
-      void fetchInitialData();
+      void prefetchHomeData(authKey);
     }, 100);
 
     return () => clearTimeout(timeoutId);
-  }, [userId, fetchInitialData]);
+  }, [userId]);
 
   const fetchDataForUser = useCallback(() => {
     if (!navigator.onLine) return;
 
     console.log("fetchDataForUser: Fetching initial data");
-    void fetchInitialData();
+    const authKey = useAuthStore.getState().user?.id ?? "__guest__";
+    void prefetchHomeData(authKey);
 
     const { syncLibrary } = useOfflineStore.getState().actions;
     console.log("User is online, syncing library.");
     syncLibrary();
-  }, [fetchInitialData]);
+  }, []);
 
   // Инициализация offline store
   useEffect(() => {

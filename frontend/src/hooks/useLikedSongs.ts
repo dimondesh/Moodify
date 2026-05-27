@@ -1,17 +1,17 @@
-import { usePlaylistStore } from "@/stores/usePlaylistStore";
+import { useMyPlaylists } from "@/hooks/queries";
 import {
   findLikedPlaylist,
   isSongInPlaylist,
 } from "@/lib/likedPlaylist";
 
 export function useLikedPlaylist() {
-  return usePlaylistStore((s) => findLikedPlaylist(s.myPlaylists));
+  const { data: myPlaylists = [] } = useMyPlaylists();
+  return findLikedPlaylist(myPlaylists);
 }
 
 export function useIsSongLiked(songId: string | undefined): boolean {
-  return usePlaylistStore((s) => {
-    if (!songId) return false;
-    const liked = findLikedPlaylist(s.myPlaylists);
-    return liked ? isSongInPlaylist(liked, songId) : false;
-  });
+  const { data: myPlaylists = [] } = useMyPlaylists();
+  if (!songId) return false;
+  const liked = findLikedPlaylist(myPlaylists);
+  return liked ? isSongInPlaylist(liked, songId) : false;
 }

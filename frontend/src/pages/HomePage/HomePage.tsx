@@ -7,7 +7,6 @@ import React, {
   useState,
   useRef,
 } from "react";
-import { useMusicStore } from "../../stores/useMusicStore";
 import FeaturedSection from "./FeaturedSection";
 import { usePlayerStore } from "../../stores/usePlayerStore";
 import { useAuthStore } from "../../stores/useAuthStore";
@@ -15,29 +14,28 @@ import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import { SITE_SLOGAN } from "@/lib/site-meta";
 import { useDominantColor } from "@/hooks/useDominantColor";
-import { Song } from "@/types";
+import { Song, type DisplayItem } from "@/types";
 import HorizontalSection from "./HorizontalSection";
 import { useNavigate } from "react-router-dom";
-import { useUIStore } from "../../stores/useUIStore";
 import HomePageSkeleton from "./HomePageSkeleton";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useHomeBootstrap, useListenHistory } from "@/hooks/queries";
 
 const HomePageComponent = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const isMobile = useMediaQuery("(max-width: 768px)");
 
-  const {
-    trendingAlbums,
-    featuredSongs,
-    recentlyListenedSongs,
-    recentlyListenedEntities,
-    fetchRecentlyListenedSongs,
-    isRecentlyListenedLoading,
-  } = useMusicStore();
+  const { data: homeData, isPending: isHomePageLoading } = useHomeBootstrap();
+  const { data: listenHistory, isPending: isRecentlyListenedLoading } =
+    useListenHistory();
   const { user } = useAuthStore();
 
-  const { isHomePageLoading, isSecondaryHomePageLoading } = useUIStore();
+  const featuredSongs = homeData?.featuredSongs ?? [];
+  const trendingAlbums = homeData?.trendingAlbums ?? [];
+  const recentlyListenedSongs = listenHistory?.songs ?? [];
+  const recentlyListenedEntities = listenHistory?.entities ?? [];
+
   const { initializeQueue, currentSong } = usePlayerStore();
   const { extractColor } = useDominantColor();
 
@@ -78,18 +76,6 @@ const HomePageComponent = () => {
     changeBackgroundColor,
     isMobile,
   ]);
-
-  useEffect(() => {
-    if (
-      user &&
-      !user.isAnonymous &&
-      recentlyListenedEntities.length === 0 &&
-      !isRecentlyListenedLoading
-    ) {
-      fetchRecentlyListenedSongs();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
 
   useEffect(() => {
     if (
@@ -190,10 +176,7 @@ const HomePageComponent = () => {
 
   const recentlyListenedItems = useMemo(
     () =>
-      recentlyListenedEntities.map((entity) => ({
-        ...entity,
-        itemType: entity.itemType,
-      })),
+      recentlyListenedEntities as DisplayItem[],
     [recentlyListenedEntities],
   );
 
@@ -251,6 +234,7 @@ const HomePageComponent = () => {
                 </h1>
 
                 <FeaturedSection
+                  featuredSongs={featuredSongs}
                   onSongHover={handleSongHover}
                   onSongLeave={handleSongLeave}
                 />
@@ -270,7 +254,7 @@ const HomePageComponent = () => {
                   <HorizontalSection
                     title={t("homepage.trending")}
                     items={trendingAlbumsItems}
-                    isLoading={isSecondaryHomePageLoading}
+                    isLoading={false}
                     t={t}
                     limit={12}
                     onShowAll={handleShowAllTrending}

@@ -1,11 +1,11 @@
 // src/pages/SearchPage/SongGrid.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import type { Song } from "../../types";
 import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
 import SectionGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton";
-import { useMusicStore } from "../../stores/useMusicStore";
+import { useArtists } from "@/hooks/queries";
 import { getArtistNames, getOptimizedImageUrl } from "../../lib/utils";
 import { useTranslation } from "react-i18next";
 import AlbumCoverImage from "../../components/AlbumCoverImage";
@@ -26,7 +26,7 @@ const SongGridComponent = ({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [showAll, setShowAll] = useState(false);
-  const { artists, fetchArtists } = useMusicStore();
+  const { data: artists = [] } = useArtists();
 
   const handleSongClick = (song: Song) => {
     onAddRecentSearch(song._id, "Song");
@@ -36,10 +36,6 @@ const SongGridComponent = ({
       console.warn("albumId is missing or not a string:", song.albumId);
     }
   };
-
-  useEffect(() => {
-    fetchArtists();
-  }, [fetchArtists]);
 
   if (isLoading) return <SectionGridSkeleton />;
 

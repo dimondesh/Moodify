@@ -4,7 +4,7 @@ import { useEffect, useState, startTransition, memo, useCallback } from "react";
 import { Drawer } from "vaul";
 import { useDominantColor } from "@/hooks/useDominantColor";
 import { usePlayerStore } from "../stores/usePlayerStore";
-import { usePlaylistStore } from "../stores/usePlaylistStore";
+import { useMyPlaylists } from "@/hooks/queries";
 import { Button } from "../components/ui/button";
 import { useAudioSettingsStore } from "../lib/webAudio";
 import { useNavigate } from "react-router-dom";
@@ -269,7 +269,7 @@ const PlaybackControls = () => {
   const { reverbEnabled, reverbMix, setReverbEnabled, setReverbMix } =
     useAudioSettingsStore();
 
-  const { fetchMyPlaylists } = usePlaylistStore();
+  useMyPlaylists();
 
   const [previousMasterVolume, setPreviousMasterVolume] =
     useState(masterVolume);
@@ -391,10 +391,6 @@ const PlaybackControls = () => {
     playPrevious,
     togglePlay,
   ]);
-
-  useEffect(() => {
-    fetchMyPlaylists();
-  }, [fetchMyPlaylists]);
 
   useEffect(() => {
     const checkScreenSize = () => {

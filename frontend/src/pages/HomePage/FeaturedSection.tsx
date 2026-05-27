@@ -1,7 +1,6 @@
 // src/pages/HomePage/FeaturedSection.tsx
-import React, { useEffect } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useMusicStore } from "../../stores/useMusicStore";
 import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
 import { JSX } from "react";
 import { Song } from "@/types";
@@ -9,6 +8,7 @@ import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { usePlayerStore } from "../../stores/usePlayerStore";
 import { useTranslation } from "react-i18next";
 import { cn, getOptimizedImageUrl } from "@/lib/utils";
+import { useArtists } from "@/hooks/queries";
 
 interface Artist {
   _id: string;
@@ -16,29 +16,27 @@ interface Artist {
 }
 
 interface FeaturedSectionProps {
+  featuredSongs: Song[];
   onSongHover: (song: Song) => void;
   onSongLeave: () => void;
 }
 
 const FeaturedSectionComponent = ({
+  featuredSongs,
   onSongHover,
   onSongLeave,
 }: FeaturedSectionProps) => {
   const { t } = useTranslation();
-  const { featuredSongs, error, artists, fetchArtists } = useMusicStore();
+  const { data: artists = [], error } = useArtists();
   const navigate = useNavigate();
   const isMobile = useMediaQuery("(max-width: 768px)");
   const { playAlbum, togglePlay, currentSong, isPlaying } = usePlayerStore();
-
-  useEffect(() => {
-    fetchArtists();
-  }, [fetchArtists]);
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   const getArtistNamesDisplay = (
     artistsInput: (string | Artist)[] | undefined,
-    isMobileView: boolean
+    isMobileView: boolean,
   ) => {
     if (!artistsInput || artistsInput.length === 0) {
       return <span>{t("common.unknownArtist")}</span>;
@@ -72,7 +70,7 @@ const FeaturedSectionComponent = ({
               className="hover:underline focus:outline-none focus:underline"
             >
               {artistName}
-            </span>
+            </span>,
           );
         } else {
           artistElements.push(
@@ -85,7 +83,7 @@ const FeaturedSectionComponent = ({
               className="hover:underline focus:outline-none focus:underline"
             >
               {artistName}
-            </button>
+            </button>,
           );
         }
         if (index < artistsInput.length - 1) {
@@ -97,7 +95,11 @@ const FeaturedSectionComponent = ({
     return <>{artistElements}</>;
   };
 
-  if (error) return <p className="text-red-500 mb-4 text-lg">{error}</p>;
+  if (error) {
+    return (
+      <p className="text-red-500 mb-4 text-lg">{error.message}</p>
+    );
+  }
 
   const songsArray = Array.isArray(featuredSongs) ? featuredSongs : [];
   const songsToShow = isDesktop
@@ -146,7 +148,7 @@ const FeaturedSectionComponent = ({
             key={song._id}
             className={cn(
               "flex items-center bg-zinc-800/50 rounded-md overflow-hidden hover:bg-zinc-700/50 transition-colors group cursor-pointer relative text-left",
-              isThisSongPlaying && "bg-violet-500/20 hover:bg-violet-500/30"
+              isThisSongPlaying && "bg-violet-500/20 hover:bg-violet-500/30",
             )}
             onClick={() => handleItemClick(song, index)}
             onMouseEnter={() => !isMobile && onSongHover(song)}
@@ -155,7 +157,7 @@ const FeaturedSectionComponent = ({
               <img
                 src={getOptimizedImageUrl(
                   song.imageUrl || "/default-song-cover.png",
-                  160
+                  160,
                 )}
                 alt={song.title}
                 className="w-14 h-14 sm:w-20 sm:h-20 object-cover"
@@ -169,7 +171,7 @@ const FeaturedSectionComponent = ({
               <p
                 className={cn(
                   "font-medium truncate text-sm sm:text-base transition-all duration-400",
-                  isThisSongPlaying ? "text-violet-400" : "text-white"
+                  isThisSongPlaying ? "text-violet-400" : "text-white",
                 )}
               >
                 {song.title || t("common.noTitle")}

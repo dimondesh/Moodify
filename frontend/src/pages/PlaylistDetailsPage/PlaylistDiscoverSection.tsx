@@ -6,9 +6,12 @@ import {
   type DiscoverSearchCategory,
   type DiscoverTopResult,
 } from "@/lib/playlistDiscoverSearch";
-import { useMusicStore } from "@/stores/useMusicStore";
 import { usePlayerStore } from "@/stores/usePlayerStore";
-import { usePlaylistStore } from "@/stores/usePlaylistStore";
+import {
+  useArtist,
+  useAlbum,
+  usePlaylistRecommendations,
+} from "@/hooks/queries";
 import type { Album, Artist, Song } from "@/types";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -84,23 +87,29 @@ export function PlaylistDiscoverSection({
   const [categoryAlbums, setCategoryAlbums] = useState<Album[]>([]);
   const [categoryArtists, setCategoryArtists] = useState<Artist[]>([]);
 
-  const {
-    recommendations,
-    recommendationsPlaylistId,
-    isRecommendationsLoading,
-    fetchRecommendations,
-  } = usePlaylistStore();
+  const currentView = viewStack[viewStack.length - 1];
+  const isRoot = currentView.kind === "root";
+  const hasSearchQuery = searchTerm.trim().length > 0;
+  const showRecommendations =
+    isRoot && !hasSearchQuery && playlistSongCount > 3;
 
-  const playlistRecommendations =
-    recommendationsPlaylistId === playlistId ? recommendations : null;
+  const artistId =
+    currentView.kind === "artist" ? currentView.artistId : undefined;
+  const albumId =
+    currentView.kind === "album" ? currentView.albumId : undefined;
+
+  const { data: artistData, isPending: artistLoading } = useArtist(artistId);
+  const { data: currentAlbum, isPending: albumLoading } = useAlbum(albumId);
+  const currentArtist = artistData?.artist;
+  const musicLoading = artistLoading || albumLoading;
 
   const {
-    currentArtist,
-    currentAlbum,
-    isLoading: musicLoading,
-    fetchArtistById,
-    fetchAlbumbyId,
-  } = useMusicStore();
+    data: playlistRecommendations = null,
+    isPending: isRecommendationsLoading,
+    refetch: refetchRecommendations,
+  } = usePlaylistRecommendations(
+    showRecommendations ? playlistId : undefined,
+  );
 
   const {
     playAlbum,
@@ -110,23 +119,6 @@ export function PlaylistDiscoverSection({
     currentSong,
     queue,
   } = usePlayerStore();
-
-  const currentView = viewStack[viewStack.length - 1];
-  const isRoot = currentView.kind === "root";
-  const hasSearchQuery = searchTerm.trim().length > 0;
-  const showRecommendations =
-    isRoot && !hasSearchQuery && playlistSongCount > 3;
-
-  useEffect(() => {
-    if (!showRecommendations) return;
-    if (recommendationsPlaylistId === playlistId) return;
-    void fetchRecommendations(playlistId);
-  }, [
-    showRecommendations,
-    playlistId,
-    recommendationsPlaylistId,
-    fetchRecommendations,
-  ]);
 
   const hasSearchResults =
     topResults.length > 0 ||
@@ -159,11 +151,7 @@ export function PlaylistDiscoverSection({
   }, [searchTerm, hasSearchQuery, isRoot]);
 
   useEffect(() => {
-    if (currentView.kind === "artist") {
-      fetchArtistById(currentView.artistId);
-    } else if (currentView.kind === "album") {
-      fetchAlbumbyId(currentView.albumId);
-    } else if (currentView.kind === "searchCategory") {
+    if (currentView.kind === "searchCategory") {
       const loadCategory = async () => {
         setCategoryLoading(true);
         setCategorySongs([]);
@@ -183,7 +171,7 @@ export function PlaylistDiscoverSection({
       };
       loadCategory();
     }
-  }, [currentView, fetchArtistById, fetchAlbumbyId]);
+  }, [currentView]);
 
   const pushView = useCallback((view: DiscoverView) => {
     setViewStack((prev) => [...prev, view]);
@@ -529,7 +517,7 @@ export function PlaylistDiscoverSection({
               size="sm"
               type="button"
               disabled={isRecommendationsLoading}
-              onClick={() => fetchRecommendations(playlistId)}
+              onClick={() => void refetchRecommendations()}
               title={t("common.refreshRecommendations")}
               className="text-zinc-400 hover:text-white hover:bg-transparent! font-medium"
             >

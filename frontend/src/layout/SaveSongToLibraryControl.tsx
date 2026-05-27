@@ -1,6 +1,6 @@
 // src/layout/SaveSongToLibraryControl.tsx
 
-import React, { useEffect, useState, useMemo, memo, useCallback } from "react";
+import React, { useState, useMemo, memo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronDown, Plus, PlusCircle, Search } from "lucide-react";
 import { Drawer } from "vaul";
@@ -18,6 +18,8 @@ import { cn } from "@/lib/utils";
 import { CDN_LIKED_PLAYLIST_COVER } from "@/lib/cdn";
 import { useLibraryStore } from "../stores/useLibraryStore";
 import { usePlaylistStore } from "../stores/usePlaylistStore";
+import { useOwnedPlaylists } from "@/hooks/queries";
+import { invalidatePlaylistLists } from "@/lib/invalidateQueries";
 import { useIsSongLiked } from "@/hooks/useLikedSongs";
 import type { Playlist, Song } from "../types";
 import toast from "react-hot-toast";
@@ -159,8 +161,6 @@ const SongLibraryPickerPanel = memo(function SongLibraryPickerPanel({
     addSongToPlaylist,
     removeSongFromPlaylist,
     createPlaylistFromSong,
-    fetchMyPlaylists,
-    fetchOwnedPlaylists,
   } = usePlaylistStore();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -176,12 +176,8 @@ const SongLibraryPickerPanel = memo(function SongLibraryPickerPanel({
   );
 
   const refreshAfterLibraryChange = useCallback(async () => {
-    await Promise.all([
-      fetchLibrary(),
-      fetchMyPlaylists(),
-      fetchOwnedPlaylists(),
-    ]);
-  }, [fetchLibrary, fetchMyPlaylists, fetchOwnedPlaylists]);
+    await Promise.all([fetchLibrary(), invalidatePlaylistLists()]);
+  }, [fetchLibrary]);
 
   const togglePlaylistMembership = useCallback(
     async (playlistId: string, shouldBeInPlaylist: boolean) => {
@@ -335,15 +331,11 @@ function SaveSongToLibraryControlInner({
   disabled = false,
 }: SaveSongToLibraryControlProps) {
   const { t } = useTranslation();
-  const { toggleSongLike, ownedPlaylists, fetchOwnedPlaylists } =
-    usePlaylistStore();
+  const { data: ownedPlaylists = [] } = useOwnedPlaylists();
+  const { toggleSongLike } = usePlaylistStore();
   const liked = useIsSongLiked(song?._id);
   const isMobile = useMediaQuery("(max-width: 1024px)");
   const [menuOpen, setMenuOpen] = useState(false);
-
-  useEffect(() => {
-    if (song) void fetchOwnedPlaylists();
-  }, [song, fetchOwnedPlaylists]);
 
   const playlistIdsContainingSong = useMemo(() => {
     if (!song) return [];
@@ -360,7 +352,6 @@ function SaveSongToLibraryControlInner({
     e.stopPropagation();
     if (inLibrary) return;
     await toggleSongLike(song._id);
-    await fetchOwnedPlaylists();
     toast.success(t("player.addedToLiked"));
   };
 

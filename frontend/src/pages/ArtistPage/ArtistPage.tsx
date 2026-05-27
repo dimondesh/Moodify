@@ -1,6 +1,6 @@
 // frontend/src/pages/ArtistPage/ArtistPage.tsx
 
-import { useEffect, useMemo, useCallback } from "react";
+import { useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { Play, UserPlus, UserCheck, Pause } from "lucide-react";
@@ -12,7 +12,7 @@ import Equalizer from "../../components/ui/equalizer";
 import type { Song, Album } from "../../types";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
-import { useMusicStore } from "../../stores/useMusicStore";
+import { useArtist } from "@/hooks/queries";
 import { getOptimizedImageUrl } from "@/lib/utils";
 import { CDN_DEFAULT_ARTIST_IMAGE } from "@/lib/cdn";
 import HorizontalSection from "../HomePage/HorizontalSection";
@@ -30,19 +30,14 @@ const ArtistPage = () => {
     useLibraryStore();
 
   const {
-    currentArtist: artist,
-    artistAppearsOn,
-    isLoading: loading,
-    isAppearsOnLoading,
+    data: artistData,
+    isPending: loading,
     error,
-    fetchArtistById,
-  } = useMusicStore();
-
-  useEffect(() => {
-    if (id) {
-      fetchArtistById(id);
-    }
-  }, [id, fetchArtistById]);
+    refetch,
+  } = useArtist(id);
+  const artist = artistData?.artist;
+  const artistAppearsOn = artistData?.appearsOn ?? [];
+  const isAppearsOnLoading = loading;
 
   const { popularSongs, albums, singlesAndEps } = useMemo(() => {
     const allArtistSongs: Song[] = artist?.songs || [];
@@ -152,12 +147,12 @@ const ArtistPage = () => {
     if (!artist || !id) return;
     try {
       await toggleArtistFollow(artist._id);
-      fetchArtistById(id, true);
+      void refetch();
     } catch (e) {
       toast.error(t("common.failedToChangeFollowStatus"));
       console.error("Error toggling artist follow:", e);
     }
-  }, [artist, id, toggleArtistFollow, fetchArtistById, t]);
+  }, [artist, id, toggleArtistFollow, refetch, t]);
 
   if (loading) {
     return (
@@ -170,7 +165,7 @@ const ArtistPage = () => {
   if (error) {
     return (
       <main className="flex items-center justify-center h-full text-red-500">
-        <p>{error}</p>
+        <p>{error.message}</p>
       </main>
     );
   }

@@ -4,7 +4,7 @@ import SectionGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton"
 import type { Playlist } from "../../types";
 import { useTranslation } from "react-i18next";
 import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
-import { useMusicStore } from "../../stores/useMusicStore";
+import { useHomeBootstrap, useSecondaryHome } from "@/hooks/queries";
 
 type BrowseLocationState = { playlists?: Playlist[]; title?: string };
 
@@ -15,40 +15,42 @@ const PlaylistBrowsePage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
-  const genreMixes = useMusicStore((s) => s.genreMixes);
-  const moodMixes = useMusicStore((s) => s.moodMixes);
-  const fetchSecondaryHomePlaylists = useMusicStore(
-    (s) => s.fetchSecondaryHomePlaylists,
-  );
+  const { data: bootstrap } = useHomeBootstrap();
+  const { data: secondary, isFetching: isSecondaryFetching } =
+    useSecondaryHome();
+
+  const genreMixes =
+    (bootstrap?.genreMixes?.length ? bootstrap.genreMixes : secondary?.genreMixes) ??
+    [];
+  const moodMixes =
+    (bootstrap?.moodMixes?.length ? bootstrap.moodMixes : secondary?.moodMixes) ??
+    [];
 
   const { playlists: initialFromState, title: stateTitle } =
     (location.state as BrowseLocationState) || {};
 
   useEffect(() => {
-    const run = async () => {
-      if (initialFromState?.length) {
-        setPlaylists(initialFromState);
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(true);
-      if (genreMixes.length === 0 && moodMixes.length === 0) {
-        await fetchSecondaryHomePlaylists();
-      }
-      const { genreMixes: g, moodMixes: m } = useMusicStore.getState();
-      if (category === "genres") setPlaylists(g);
-      else if (category === "moods") setPlaylists(m);
-      else setPlaylists([]);
+    if (initialFromState?.length) {
+      setPlaylists(initialFromState);
       setIsLoading(false);
-    };
-    void run();
+      return;
+    }
+
+    if (genreMixes.length === 0 && moodMixes.length === 0 && isSecondaryFetching) {
+      setIsLoading(true);
+      return;
+    }
+
+    if (category === "genres") setPlaylists(genreMixes);
+    else if (category === "moods") setPlaylists(moodMixes);
+    else setPlaylists([]);
+    setIsLoading(false);
   }, [
     category,
     initialFromState,
-    genreMixes.length,
-    moodMixes.length,
-    fetchSecondaryHomePlaylists,
+    genreMixes,
+    moodMixes,
+    isSecondaryFetching,
   ]);
 
   const pageTitle = useMemo(() => {

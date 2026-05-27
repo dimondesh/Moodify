@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { useMusicStore } from "@/stores/useMusicStore";
+import { useAlbum } from "@/hooks/queries";
 import { Button } from "@/components/ui/button";
 import { Clock, Pause, Play, PlusCircle, MoreHorizontal } from "lucide-react";
 import CheckedIcon from "@/components/ui/checkedIcon";
@@ -44,10 +44,9 @@ const AlbumPage = () => {
   const { closeAllDialogs, shareEntity } = useUIStore();
 
   const {
-    fetchAlbumbyId,
-    currentAlbum,
-    isLoading: isAlbumDataLoading,
-  } = useMusicStore();
+    data: currentAlbum,
+    isPending: isAlbumDataLoading,
+  } = useAlbum(albumId);
   const { currentSong, isPlaying, playAlbum, togglePlay } = usePlayerStore();
   const { albums, toggleAlbum } = useLibraryStore();
   const [inLibrary, setInLibrary] = useState(false);
@@ -62,12 +61,6 @@ const AlbumPage = () => {
     albumId,
     currentAlbum?.coverAccentHex,
   );
-
-  useEffect(() => {
-    if (albumId) {
-      fetchAlbumbyId(albumId);
-    }
-  }, [albumId, fetchAlbumbyId]);
 
   useEffect(() => {
     if (!currentAlbum) return;

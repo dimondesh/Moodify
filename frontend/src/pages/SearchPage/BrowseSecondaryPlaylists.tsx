@@ -1,12 +1,11 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useMusicStore } from "../../stores/useMusicStore";
+import { useHomeBootstrap, useSecondaryHome } from "@/hooks/queries";
 import { Loader2 } from "lucide-react";
 import type { Album, Playlist } from "../../types";
 import { useTranslation } from "react-i18next";
 import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
 import { getArtistNames, getOptimizedImageUrl } from "@/lib/utils";
 import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
+import { useNavigate } from "react-router-dom";
 
 const PlaylistCategoryGrid = ({
   title,
@@ -90,8 +89,7 @@ const AlbumsBrowseGrid = ({
               <div className="relative aspect-square shadow-lg overflow-hidden rounded-md">
                 <img
                   src={getOptimizedImageUrl(
-                    album.imageUrl ||
-                      CDN_DEFAULT_ALBUM_COVER,
+                    album.imageUrl || CDN_DEFAULT_ALBUM_COVER,
                     200,
                   )}
                   alt={album.title}
@@ -126,30 +124,22 @@ const AlbumsBrowseGrid = ({
 
 const BrowseSecondaryPlaylists = () => {
   const { t } = useTranslation();
-  const genreMixes = useMusicStore((s) => s.genreMixes);
-  const moodMixes = useMusicStore((s) => s.moodMixes);
-  const browseRandomAlbums = useMusicStore((s) => s.browseRandomAlbums);
-  const fetchSecondaryHomePlaylists = useMusicStore(
-    (s) => s.fetchSecondaryHomePlaylists,
-  );
+  const { data: bootstrap } = useHomeBootstrap();
+  const { data: secondary, isPending } = useSecondaryHome();
 
-  const [isFetching, setIsFetching] = useState(false);
+  const genreMixes =
+    (bootstrap?.genreMixes?.length ? bootstrap.genreMixes : secondary?.genreMixes) ??
+    [];
+  const moodMixes =
+    (bootstrap?.moodMixes?.length ? bootstrap.moodMixes : secondary?.moodMixes) ??
+    [];
+  const browseRandomAlbums = secondary?.browseRandomAlbums ?? [];
 
-  useEffect(() => {
-    if (
-      genreMixes.length > 0 ||
-      moodMixes.length > 0 ||
-      browseRandomAlbums.length > 0
-    )
-      return;
-    setIsFetching(true);
-    void fetchSecondaryHomePlaylists().finally(() => setIsFetching(false));
-  }, [
-    fetchSecondaryHomePlaylists,
-    genreMixes.length,
-    moodMixes.length,
-    browseRandomAlbums.length,
-  ]);
+  const isFetching =
+    isPending &&
+    genreMixes.length === 0 &&
+    moodMixes.length === 0 &&
+    browseRandomAlbums.length === 0;
 
   if (isFetching) {
     return (

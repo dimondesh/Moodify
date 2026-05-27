@@ -3,12 +3,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Playlist } from "../types";
-import { useMusicStore } from "./useMusicStore";
-import { useLibraryStore } from "./useLibraryStore";
-import { usePlaylistStore } from "./usePlaylistStore";
-import { useAuthStore } from "./useAuthStore";
-import { axiosInstance } from "../lib/axios";
-import toast from "react-hot-toast";
 
 interface ShareEntity {
   type: "song" | "album" | "playlist";
@@ -33,11 +27,9 @@ interface UIStore {
   playlistToDelete: Playlist | null;
   songToRemoveFromPlaylist: SongRemovalInfo | null;
   isUserSheetOpen: boolean;
-  isHomePageLoading: boolean;
-  isSecondaryHomePageLoading: boolean;
   libraryFilter: LibraryFilter;
   entityTypeFilter: EntityTypeFilter | null;
-  isIosDevice: boolean; // <-- НОВЫЙ ФЛАГ
+  isIosDevice: boolean;
   isFriendsActivityOpen: boolean;
   isChatConversationOpen: boolean;
   librarySearchQuery: string;
@@ -46,9 +38,7 @@ interface UIStore {
   isLeftSidebarSearchOpen: boolean;
   isLibraryPageSearchOpen: boolean;
 
-  setIsIosDevice: (isIos: boolean) => void; // <-- НОВАЯ ФУНКЦИЯ
-  setIsHomePageLoading: (isLoading: boolean) => void;
-  setIsSecondaryHomePageLoading: (isLoading: boolean) => void;
+  setIsIosDevice: (isIos: boolean) => void;
   setLibraryFilter: (filter: LibraryFilter) => void;
   setEntityTypeFilter: (filter: EntityTypeFilter | null) => void;
   setIsFriendsActivityOpen: (isOpen: boolean) => void;
@@ -67,7 +57,6 @@ interface UIStore {
   setUserSheetOpen: (isOpen: boolean) => void;
 
   closeAllDialogs: () => void;
-  fetchInitialData: () => Promise<void>;
 }
 
 export const useUIStore = create<UIStore>()(
@@ -80,11 +69,9 @@ export const useUIStore = create<UIStore>()(
       playlistToDelete: null,
       songToRemoveFromPlaylist: null,
       isUserSheetOpen: false,
-      isHomePageLoading: true,
-      isSecondaryHomePageLoading: true,
       libraryFilter: "all",
       entityTypeFilter: null,
-      isIosDevice: false, // <-- ЗНАЧЕНИЕ ПО УМОЛЧАНИЮ
+      isIosDevice: false,
       isFriendsActivityOpen: true,
       isChatConversationOpen: false,
       librarySearchQuery: "",
@@ -93,12 +80,7 @@ export const useUIStore = create<UIStore>()(
       isLeftSidebarSearchOpen: false,
       isLibraryPageSearchOpen: false,
 
-      setIsIosDevice: (isIos: boolean) => set({ isIosDevice: isIos }), // <-- РЕАЛИЗАЦИЯ
-      setIsHomePageLoading: (isLoading) =>
-        set({ isHomePageLoading: isLoading }),
-      setIsSecondaryHomePageLoading: (isLoading) =>
-        set({ isSecondaryHomePageLoading: isLoading }),
-
+      setIsIosDevice: (isIos: boolean) => set({ isIosDevice: isIos }),
       setLibraryFilter: (filter) => set({ libraryFilter: filter }),
       setEntityTypeFilter: (filter) => set({ entityTypeFilter: filter }),
       setIsFriendsActivityOpen: (isOpen) =>
@@ -135,56 +117,6 @@ export const useUIStore = create<UIStore>()(
           playlistToDelete: null,
           songToRemoveFromPlaylist: null,
         }),
-
-      fetchInitialData: async () => {
-        set({ isHomePageLoading: true, isSecondaryHomePageLoading: true });
-        const isLoggedIn = Boolean(useAuthStore.getState().accessToken);
-        try {
-          const [bootstrapResponse] = await Promise.all([
-            axiosInstance.get("/home/bootstrap"),
-            usePlaylistStore.getState().fetchMyPlaylists(),
-            isLoggedIn
-              ? useLibraryStore.getState().fetchLibrary()
-              : Promise.resolve(),
-          ]);
-
-          const { data } = bootstrapResponse;
-
-          useMusicStore.setState({
-            featuredSongs: data.featuredSongs || [],
-            trendingSongs: data.trendingSongs || [],
-            trendingAlbums: data.trendingAlbums || [],
-            madeForYouSongs: data.madeForYouSongs || [],
-            recentlyListenedSongs: data.recentlyListenedSongs || [],
-            favoriteArtists: data.favoriteArtists || [],
-            newReleases: data.newReleases || [],
-            homePersonalPlaylists: data.personalMixes || [],
-            homeSmartPlaylists: data.allGeneratedPlaylists || [],
-            genreMixes: data.genreMixes || [],
-            moodMixes: data.moodMixes || [],
-            homePageDataLastFetched: Date.now(),
-          });
-
-          if (!isLoggedIn) {
-            useLibraryStore.setState({
-              albums: [],
-              playlists: [],
-              followedArtists: [],
-            });
-          }
-
-          usePlaylistStore.setState({
-            publicPlaylists: data.publicPlaylists || [],
-            recommendedPlaylists: data.recommendedPlaylists || [],
-          });
-
-        } catch (error) {
-          console.error("Failed to fetch initial app data", error);
-          toast.error("Could not load essential app data.");
-        } finally {
-          set({ isHomePageLoading: false, isSecondaryHomePageLoading: false });
-        }
-      },
     }),
     {
       name: "ui-store",
@@ -196,6 +128,6 @@ export const useUIStore = create<UIStore>()(
         leftSidebarViewMode: state.leftSidebarViewMode,
         libraryPageViewMode: state.libraryPageViewMode,
       }),
-    }
-  )
+    },
+  ),
 );

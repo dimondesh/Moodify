@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { usePlaylistStore } from "@/stores/usePlaylistStore";
+import { useMyPlaylists } from "@/hooks/queries";
 import { Song, Artist } from "@/types";
 import toast from "react-hot-toast";
 import { Label } from "@/components/ui/label";
@@ -47,15 +48,14 @@ export const AddSongToPlaylistDialog: React.FC<
 > = ({ isOpen, onClose, songToAdd }) => {
   const { t } = useTranslation();
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string>("");
-  const { myPlaylists, fetchMyPlaylists, addSongToPlaylist, isLoading } =
-    usePlaylistStore();
+  const { data: myPlaylists = [] } = useMyPlaylists();
+  const { addSongToPlaylist, isLoading } = usePlaylistStore();
 
   useEffect(() => {
     if (isOpen) {
-      fetchMyPlaylists();
       setSelectedPlaylistId("");
     }
-  }, [isOpen, fetchMyPlaylists]);
+  }, [isOpen]);
 
   const handleSubmit = useCallback(async () => {
     if (!songToAdd) {

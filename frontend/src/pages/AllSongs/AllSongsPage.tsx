@@ -6,7 +6,7 @@ import PlayButton from "../../pages/HomePage/PlayButton";
 import SectionGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton";
 import type { Song } from "../../types/index";
 import axios from "axios";
-import { useMusicStore } from "../../stores/useMusicStore";
+import { useArtists } from "@/hooks/queries";
 import { useTranslation } from "react-i18next";
 import AlbumCoverImage from "../../components/AlbumCoverImage";
 import { getArtistNames, getOptimizedImageUrl } from "@/lib/utils";
@@ -21,7 +21,7 @@ const AllSongsPage = () => {
   const initialSongs = location.state?.songs;
   const pageTitle = location.state?.title || t("searchpage.songs");
   const apiEndpoint = location.state?.apiEndpoint;
-  const { artists, fetchArtists } = useMusicStore();
+  const { data: artists = [] } = useArtists();
 
   useEffect(() => {
     if (initialSongs && initialSongs.length > 0) {
@@ -50,8 +50,7 @@ const AllSongsPage = () => {
       setIsLoading(false);
       setError(t("common.noData"));
     }
-    fetchArtists();
-  }, [initialSongs, apiEndpoint, fetchArtists, t]);
+  }, [initialSongs, apiEndpoint, t]);
 
   const handleNavigateToAlbum = (albumId: string | null | undefined) => {
     if (albumId) {

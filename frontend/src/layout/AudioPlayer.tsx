@@ -7,7 +7,7 @@ import { webAudioService, useAudioSettingsStore } from "../lib/webAudio";
 import { isIosDevice } from "@/lib/platform";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { axiosInstance } from "@/lib/axios";
-import { useMusicStore } from "@/stores/useMusicStore";
+import { invalidateListenHistory } from "@/lib/invalidateQueries";
 import { useOfflineStore } from "@/stores/useOfflineStore";
 import type { Song } from "../types";
 
@@ -229,7 +229,7 @@ const AudioPlayer = () => {
                   : ""
               }`,
             );
-            useMusicStore.getState().fetchRecentlyListenedSongs();
+            void invalidateListenHistory();
           })
           .catch((e) => {
             listenRecordedRef.current = false;

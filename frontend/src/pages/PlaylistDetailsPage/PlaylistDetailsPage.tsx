@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { usePlaylistStore } from "@/stores/usePlaylistStore";
+import { usePlaylist } from "@/hooks/queries";
 import PlaylistDetailsSkeleton from "@/components/ui/skeletons/PlaylistDetailsSkeleton";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -87,13 +88,17 @@ const PlaylistDetailsPage = () => {
   const { t } = useTranslation();
   const { playlistId } = useParams<{ playlistId: string }>();
   const {
-    currentPlaylist,
-    error,
-    fetchPlaylistDetails,
+    data: currentPlaylist,
+    isPending: isPlaylistLoading,
+    error: playlistQueryError,
+    refetch: refetchPlaylist,
+  } = usePlaylist(playlistId);
+  const {
     deletePlaylist,
     addSongToPlaylist,
     removeSongFromPlaylist,
   } = usePlaylistStore();
+  const error = playlistQueryError?.message ?? null;
   const {
     openEditPlaylistDialog,
     playlistToDelete,
@@ -111,7 +116,6 @@ const PlaylistDetailsPage = () => {
     togglePlaylist,
   } = useLibraryStore();
   const [isTogglingLibrary, setIsTogglingLibrary] = useState(false);
-  const [localIsLoading, setLocalIsLoading] = useState(true);
   const [selectedSongForMenu, setSelectedSongForMenu] = useState<Song | null>(
     null,
   );
@@ -142,17 +146,6 @@ const PlaylistDetailsPage = () => {
     playlistId,
     currentPlaylist?.coverAccentHex,
   );
-
-  useEffect(() => {
-    const loadPlaylist = async () => {
-      setLocalIsLoading(true);
-      if (playlistId) {
-        await fetchPlaylistDetails(playlistId);
-      }
-      setLocalIsLoading(false);
-    };
-    loadPlaylist();
-  }, [playlistId, fetchPlaylistDetails]);
 
   const playlistSongIds = useMemo(
     () => new Set(currentPlaylist?.songs?.map((s) => s._id) ?? []),
@@ -449,7 +442,7 @@ const PlaylistDetailsPage = () => {
     });
   };
 
-  if (localIsLoading || isColorLoading) {
+  if (isPlaylistLoading || isColorLoading) {
     return (
       <>
         <Helmet>
@@ -540,7 +533,7 @@ const PlaylistDetailsPage = () => {
                   type="button"
                   onClick={() =>
                     openEditPlaylistDialog(currentPlaylist, () =>
-                      fetchPlaylistDetails(currentPlaylist._id, true),
+                      void refetchPlaylist(),
                     )
                   }
                   className="group w-64 h-64 sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px] shadow-xl rounded-md object-cover flex-shrink-0 mx-auto sm:mx-0 overflow-hidden border-0 p-0 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5cf6] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f0f0f]"
@@ -723,7 +716,7 @@ const PlaylistDetailsPage = () => {
                             className="justify-start p-3 h-auto text-base"
                             onClick={() =>
                               openEditPlaylistDialog(currentPlaylist, () =>
-                                fetchPlaylistDetails(currentPlaylist._id, true),
+                                void refetchPlaylist(),
                               )
                             }
                           >
@@ -783,7 +776,7 @@ const PlaylistDetailsPage = () => {
                           className="cursor-pointer hover:bg-zinc-800/50"
                           onSelect={() =>
                             openEditPlaylistDialog(currentPlaylist, () =>
-                              fetchPlaylistDetails(currentPlaylist._id, true),
+                              void refetchPlaylist(),
                             )
                           }
                         >

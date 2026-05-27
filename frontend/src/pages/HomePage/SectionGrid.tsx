@@ -3,8 +3,8 @@ import { Button } from "../../components/ui/button";
 import type { Song } from "../../types";
 import PlayButton from "./PlayButton";
 import SectionGridSkeleton from "./SectionGridSkeleton";
-import { useMusicStore } from "../../stores/useMusicStore";
-import { JSX, useEffect } from "react";
+import { useArtists } from "@/hooks/queries";
+import { JSX } from "react";
 import { useTranslation } from "react-i18next";
 import AlbumCoverImage from "../../components/AlbumCoverImage";
 
@@ -29,11 +29,7 @@ const SectionGrid = ({
 }: SectionGridProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { artists, fetchArtists } = useMusicStore();
-
-  useEffect(() => {
-    fetchArtists();
-  }, [fetchArtists]);
+  const { data: artists = [] } = useArtists();
 
   const getArtistNamesDisplay = (
     artistsInput: (string | Artist)[] | undefined
