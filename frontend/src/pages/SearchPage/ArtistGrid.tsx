@@ -8,25 +8,26 @@ import { useTranslation } from "react-i18next";
 import { getOptimizedImageUrl } from "@/lib/utils";
 import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
 
+import { useAddRecentSearch } from "@/hooks/useSearch";
+
 type ArtistGridProps = {
   title: string;
   artists: Artist[];
   isLoading: boolean;
-  onAddRecentSearch: (itemId: string, itemType: string) => void;
 };
 
 const ArtistGridComponent: React.FC<ArtistGridProps> = ({
   title,
   artists,
   isLoading,
-  onAddRecentSearch,
 }) => {
   const navigate = useNavigate();
   const [showAll, setShowAll] = useState(false);
   const { t } = useTranslation();
+  const { mutate: addRecentSearch } = useAddRecentSearch();
 
   const handleArtistClick = (artist: Artist) => {
-    onAddRecentSearch(artist._id, "Artist");
+    addRecentSearch({ itemId: artist._id, itemType: "Artist" });
     navigate(`/artists/${artist._id}`);
   };
 

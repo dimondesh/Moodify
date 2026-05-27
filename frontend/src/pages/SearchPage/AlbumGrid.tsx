@@ -9,25 +9,26 @@ import { getArtistNames, getOptimizedImageUrl } from "@/lib/utils";
 import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
 
+import { useAddRecentSearch } from "@/hooks/useSearch";
+
 type AlbumGridProps = {
   title: string;
   albums: Album[];
   isLoading: boolean;
-  onAddRecentSearch: (itemId: string, itemType: string) => void;
 };
 
 const AlbumGridComponent = ({
   title,
   albums,
   isLoading,
-  onAddRecentSearch,
 }: AlbumGridProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [showAll, setShowAll] = useState(false);
+  const { mutate: addRecentSearch } = useAddRecentSearch();
 
   const handleAlbumClick = (album: Album) => {
-    onAddRecentSearch(album._id, "Album");
+    addRecentSearch({ itemId: album._id, itemType: "Album" });
     navigate(`/albums/${album._id}`);
   };
 

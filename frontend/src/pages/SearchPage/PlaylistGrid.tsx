@@ -8,25 +8,26 @@ import { useTranslation } from "react-i18next";
 import { getOptimizedImageUrl } from "@/lib/utils";
 import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
 
+import { useAddRecentSearch } from "@/hooks/useSearch";
+
 type PlaylistGridProps = {
   title: string;
   playlists: Playlist[];
   isLoading: boolean;
-  onAddRecentSearch: (itemId: string, itemType: string) => void;
 };
 
 const PlaylistGridComponent = ({
   title,
   playlists,
   isLoading,
-  onAddRecentSearch,
 }: PlaylistGridProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [showAll, setShowAll] = useState(false);
+  const { mutate: addRecentSearch } = useAddRecentSearch();
 
   const handlePlaylistClick = (playlist: Playlist) => {
-    onAddRecentSearch(playlist._id, "Playlist");
+    addRecentSearch({ itemId: playlist._id, itemType: "Playlist" });
     navigate(`/playlists/${playlist._id}`);
   };
 

@@ -17,4 +17,8 @@ export const queryKeys = {
     secondary: ["home", "secondary"] as const,
   },
   listenHistory: ["songs", "history"] as const,
+  search: {
+    results: (q: string) => ["search", "results", q] as const,
+    recent: ["search", "recent"] as const,
+  },
 };

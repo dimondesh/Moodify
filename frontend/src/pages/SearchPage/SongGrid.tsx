@@ -10,26 +10,27 @@ import { getArtistNames, getOptimizedImageUrl } from "../../lib/utils";
 import { useTranslation } from "react-i18next";
 import AlbumCoverImage from "../../components/AlbumCoverImage";
 
+import { useAddRecentSearch } from "@/hooks/useSearch";
+
 type SectionGridProps = {
   title: string;
   songs: Song[];
   isLoading: boolean;
-  onAddRecentSearch: (itemId: string, itemType: string) => void;
 };
 
 const SongGridComponent = ({
   title,
   songs,
   isLoading,
-  onAddRecentSearch,
 }: SectionGridProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [showAll, setShowAll] = useState(false);
   const { data: artists = [] } = useArtists();
+  const { mutate: addRecentSearch } = useAddRecentSearch();
 
   const handleSongClick = (song: Song) => {
-    onAddRecentSearch(song._id, "Song");
+    addRecentSearch({ itemId: song._id, itemType: "Song" });
     if (typeof song.albumId === "string" && song.albumId.length > 0) {
       navigate(`/albums/${song.albumId}`);
     } else {

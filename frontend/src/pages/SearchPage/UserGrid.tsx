@@ -9,25 +9,26 @@ import { resolveUserImageUrl } from "@/lib/cdn";
 import { useTranslation } from "react-i18next";
 import { getOptimizedImageUrl } from "@/lib/utils";
 
+import { useAddRecentSearch } from "@/hooks/useSearch";
+
 type UserGridProps = {
   title: string;
   users: User[];
   isLoading: boolean;
-  onAddRecentSearch: (itemId: string, itemType: string) => void;
 };
 
 const UserGrid: React.FC<UserGridProps> = ({
   title,
   users,
   isLoading,
-  onAddRecentSearch,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [showAll, setShowAll] = useState(false);
+  const { mutate: addRecentSearch } = useAddRecentSearch();
 
   const handleUserClick = (user: User) => {
-    onAddRecentSearch(user._id, "User");
+    addRecentSearch({ itemId: user._id, itemType: "User" });
     navigate(`/users/${user._id}`);
   };
 

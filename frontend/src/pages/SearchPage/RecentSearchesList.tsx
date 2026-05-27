@@ -1,8 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // frontend/src/pages/SearchPage/RecentSearchesList.tsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Artist, RecentSearchItem } from "../../types";
+import type { Artist, RecentSearchItem } from "../../types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Loader2, X } from "lucide-react";
@@ -10,26 +9,29 @@ import { useTranslation } from "react-i18next";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import UniversalPlayButton from "@/components/ui/UniversalPlayButton";
 import { resolveUserImageUrl } from "@/lib/cdn";
+import {
+  useClearRecentSearches,
+  useRecentSearches,
+  useRemoveRecentSearch,
+} from "@/hooks/useSearch";
 
 interface RecentSearchesListProps {
   onItemClick?: () => void;
-  recentSearches: RecentSearchItem[];
-  isRecentLoading: boolean;
-  onRemoveRecentSearch: (searchId: string) => void;
-  onClearRecentSearches: () => void;
+  enabled?: boolean;
 }
 
 const RecentSearchesList: React.FC<RecentSearchesListProps> = ({
   onItemClick,
-  recentSearches,
-  isRecentLoading,
-  onRemoveRecentSearch,
-  onClearRecentSearches,
+  enabled = true,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { data: recentSearches = [], isPending: isRecentLoading } =
+    useRecentSearches(enabled);
+  const { mutate: removeRecentSearch } = useRemoveRecentSearch();
+  const { mutate: clearRecentSearches } = useClearRecentSearches();
 
-  const handleItemClick = (item: any) => {
+  const handleItemClick = (item: RecentSearchItem) => {
     let path = "";
     switch (item.itemType) {
       case "Artist":
@@ -48,22 +50,24 @@ const RecentSearchesList: React.FC<RecentSearchesListProps> = ({
         if (item.albumId) {
           path = `/albums/${item.albumId}`;
         } else console.warn("No albumId for this song:", item);
-
         break;
     }
 
     if (path) {
       navigate(path);
-      if (onItemClick) onItemClick();
+      onItemClick?.();
     } else {
       console.warn("Could not determine navigation path for item:", item);
     }
   };
 
-  const getDisplayData = (item: any) => {
-    const title = String(
-      item.isTranslatable ? t(item.title, item.title) : item.title,
-    );
+  const getDisplayData = (item: RecentSearchItem) => {
+    const translatableItem = item as RecentSearchItem & {
+      isTranslatable?: boolean;
+    };
+    const title = translatableItem.isTranslatable
+      ? String(t(translatableItem.title ?? ""))
+      : String(translatableItem.title ?? translatableItem.name ?? "");
     const subtitleKey = `sidebar.subtitle.${item.itemType.toLowerCase()}`;
     let subtitle = String(t(subtitleKey, item.itemType));
 
@@ -91,7 +95,7 @@ const RecentSearchesList: React.FC<RecentSearchesListProps> = ({
   if (recentSearches.length === 0) {
     return (
       <div className="p-4 text-center text-sm text-zinc-500">
-        <p>{t("searchpage.noRecentSearches")}</p>{" "}
+        <p>{t("searchpage.noRecentSearches")}</p>
       </div>
     );
   }
@@ -104,7 +108,7 @@ const RecentSearchesList: React.FC<RecentSearchesListProps> = ({
         </h2>
         <Button
           variant="link"
-          onClick={onClearRecentSearches}
+          onClick={() => clearRecentSearches()}
           className="text-sm text-zinc-400 hover:text-white px-2 h-auto"
         >
           {t("searchpage.clear")}
@@ -112,7 +116,7 @@ const RecentSearchesList: React.FC<RecentSearchesListProps> = ({
       </div>
       <div className="flex flex-col gap-1 pr-1">
         <ScrollArea className="max-h-80 overflow-auto hide-scrollbar">
-          {(recentSearches as any[]).map((item) => {
+          {recentSearches.map((item) => {
             const { title, subtitle } = getDisplayData(item);
             return (
               <div
@@ -142,7 +146,11 @@ const RecentSearchesList: React.FC<RecentSearchesListProps> = ({
                       <AvatarFallback>{title[0]}</AvatarFallback>
                     </Avatar>
                     <UniversalPlayButton
-                      entity={item}
+                      entity={
+                        item as unknown as Parameters<
+                          typeof UniversalPlayButton
+                        >[0]["entity"]
+                      }
                       entityType={
                         item.itemType.toLowerCase() as
                           | "song"
@@ -166,7 +174,7 @@ const RecentSearchesList: React.FC<RecentSearchesListProps> = ({
                   variant="ghost"
                   size="icon"
                   className="w-8 h-8 rounded-full opacity-0 group-hover:opacity-100 shrink-0"
-                  onClick={() => onRemoveRecentSearch(item.searchId)}
+                  onClick={() => removeRecentSearch(item.searchId)}
                 >
                   <X className="w-4 h-4" />
                 </Button>
