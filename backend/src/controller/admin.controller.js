@@ -65,22 +65,21 @@ const DOWNLOAD_OPTS = {
   maxContentLength: 8 * 1024 * 1024,
 };
 
-const updateArtistsContent = async (artistIds, contentId, contentType) => {
-  if (!artistIds || artistIds.length === 0) return;
-  const updateField = contentType === "songs" ? "songs" : "albums";
-  await Artist.updateMany(
-    { _id: { $in: artistIds } },
-    { $addToSet: { [updateField]: contentId } },
-  );
-};
+const attachSongsToAlbums = (albums, songs) => {
+  const songsByAlbumId = new Map();
+  for (const song of songs) {
+    if (!song.albumId) continue;
+    const albumKey = song.albumId.toString();
+    if (!songsByAlbumId.has(albumKey)) {
+      songsByAlbumId.set(albumKey, []);
+    }
+    songsByAlbumId.get(albumKey).push(song);
+  }
 
-const removeContentFromArtists = async (artistIds, contentId, contentType) => {
-  if (!artistIds || artistIds.length === 0) return;
-  const updateField = contentType === "songs" ? "songs" : "albums";
-  await Artist.updateMany(
-    { _id: { $in: artistIds } },
-    { $pull: { [updateField]: contentId } },
-  );
+  return albums.map((album) => ({
+    ...album,
+    songs: songsByAlbumId.get(album._id.toString()) || [],
+  }));
 };
 
 const processAndUploadSong = async (audioFilePath) => {
@@ -163,7 +162,6 @@ export const createSong = async (req, res, next) => {
         await newAlbum.save();
         finalAlbumId = newAlbum._id;
         songCoverAccentHex = coverAccentHex;
-        await updateArtistsContent(artistIds, newAlbum._id, "albums");
       } else {
         const existingAlbum = await Album.findById(finalAlbumId);
         if (!existingAlbum) throw new Error("Album not found.");
@@ -171,10 +169,21 @@ export const createSong = async (req, res, next) => {
         songCoverAccentHex = existingAlbum.coverAccentHex ?? null;
       }
 
+      let trackNumber = 1;
+      if (albumId && albumId !== "none") {
+        const parsedTrackNumber = req.body.trackNumber
+          ? parseInt(req.body.trackNumber, 10)
+          : null;
+        trackNumber =
+          parsedTrackNumber ||
+          (await Song.countDocuments({ albumId: finalAlbumId })) + 1;
+      }
+
       const song = new Song({
         title,
         artist: artistIds,
         albumId: finalAlbumId,
+        trackNumber,
         ...imageFields,
         coverAccentHex: songCoverAccentHex,
         hlsUrl,
@@ -185,8 +194,6 @@ export const createSong = async (req, res, next) => {
       });
 
       await song.save();
-      await Album.findByIdAndUpdate(finalAlbumId, { $push: { songs: song._id } });
-      await updateArtistsContent(artistIds, song._id, "songs");
 
       // Попытка анализа аудио (не блокирующая)
       try {
@@ -248,17 +255,7 @@ export const updateSong = async (req, res, next) => {
       }
 
       if (artistIdsJson) {
-        const newArtistIds = JSON.parse(artistIdsJson);
-        const oldArtistIds = song.artist.map((artist) => artist.toString());
-        const artistsToRemove = oldArtistIds.filter(
-          (oldId) => !newArtistIds.includes(oldId),
-        );
-        await removeContentFromArtists(artistsToRemove, song._id, "songs");
-        const artistsToAdd = newArtistIds.filter(
-          (newId) => !oldArtistIds.includes(newId),
-        );
-        await updateArtistsContent(artistsToAdd, song._id, "songs");
-        song.artist = newArtistIds;
+        song.artist = JSON.parse(artistIdsJson);
       }
 
       if (audioFile) {
@@ -299,20 +296,8 @@ export const updateSong = async (req, res, next) => {
       }
 
       if (albumId !== undefined) {
-        const oldAlbumId = song.albumId ? song.albumId.toString() : null;
         const newAlbumId =
           albumId === "none" || albumId === "" ? null : albumId;
-
-        if (oldAlbumId && oldAlbumId !== newAlbumId) {
-          await Album.findByIdAndUpdate(oldAlbumId, {
-            $pull: { songs: song._id },
-          });
-        }
-        if (newAlbumId && newAlbumId !== oldAlbumId) {
-          await Album.findByIdAndUpdate(newAlbumId, {
-            $addToSet: { songs: song._id },
-          });
-        }
         song.albumId = newAlbumId;
       }
 
@@ -355,9 +340,9 @@ export const deleteSong = async (req, res, next) => {
 
     if (song.albumId) {
       const album = await Album.findById(song.albumId);
-      if (album && album.type === "Single" && album.songs.length <= 1) {
+      const songsInAlbum = await Song.countDocuments({ albumId: song.albumId });
+      if (album && album.type === "Single" && songsInAlbum <= 1) {
         await deleteImageVariants(album);
-        await removeContentFromArtists(album.artist, album._id, "albums");
         await Album.findByIdAndDelete(album._id);
       } else if (album) {
         const sameCover =
@@ -367,15 +352,11 @@ export const deleteSong = async (req, res, next) => {
         if (!sameCover) {
           await deleteImageVariants(song);
         }
-        await Album.findByIdAndUpdate(song.albumId, {
-          $pull: { songs: song._id },
-        });
       }
     } else {
       await deleteImageVariants(song);
     }
 
-    await removeContentFromArtists(song.artist, song._id, "songs");
     await Song.findByIdAndDelete(id);
 
     res
@@ -415,7 +396,6 @@ export const createAlbum = async (req, res, next) => {
       coverAccentHex,
     });
     await album.save();
-    await updateArtistsContent(artistIds, album._id, "albums");
 
     res.status(201).json(album);
   } catch (error) {
@@ -459,18 +439,6 @@ export const updateAlbum = async (req, res, next) => {
           .status(404)
           .json({ message: "One or more new artists not found." });
       }
-
-      const oldArtistIds = album.artist.map((id) => id.toString());
-
-      const artistsToRemove = oldArtistIds.filter(
-        (oldId) => !newArtistIds.includes(oldId),
-      );
-      await removeContentFromArtists(artistsToRemove, album._id, "albums");
-
-      const artistsToAdd = newArtistIds.filter(
-        (newId) => !oldArtistIds.includes(newId),
-      );
-      await updateArtistsContent(artistsToAdd, album._id, "albums");
 
       album.artist = newArtistIds;
     } else {
@@ -541,7 +509,6 @@ export const deleteAlbum = async (req, res, next) => {
 
     // Удаляем все треки из базы данных
     await Song.deleteMany({ albumId: id });
-    await removeContentFromArtists(album.artist, album._id, "albums");
     await Album.findByIdAndDelete(id);
 
     res
@@ -918,12 +885,10 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
       ...toImageFields(albumImageUpload),
       releaseYear: parseInt(spotifyAlbumData.release_date.split("-")[0]),
       type: albumType,
-      songs: [],
       coverAccentHex: albumCoverAccentHex,
     });
     await album.save();
     console.log(`[AdminController] Album created in DB: ${album.title}`);
-    await updateArtistsContent(albumArtistIds, album._id, "albums");
 
     const primaryAlbumArtistName =
       spotifyAlbumData.artists?.[0]?.name || "Unknown Artist";
@@ -1019,6 +984,7 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
           title: songName,
           artist: songArtistIds,
           albumId: album._id,
+          trackNumber: spotifyTrack.track_number || trackIndex,
           hlsUrl,
           lyrics: lrcText || "",
           duration,
@@ -1049,11 +1015,6 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
           );
           // Не прерываем создание песни, если анализ не удался
         }
-
-        await Album.findByIdAndUpdate(album._id, {
-          $push: { songs: song._id },
-        });
-        await updateArtistsContent(songArtistIds, song._id, "songs");
       } catch (trackError) {
         console.error(
           `[AdminController] Ошибка обработки трека "${songName}":`,
@@ -1093,7 +1054,6 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
       await Song.deleteMany({ _id: { $in: createdSongIds } });
     }
     if (album) {
-      await removeContentFromArtists(album.artist, album._id, "albums");
       await Album.findByIdAndDelete(album._id);
     }
     if (newlyCreatedArtistIds.length > 0) {
@@ -1198,10 +1158,10 @@ export const getPaginatedAlbums = async (req, res, next) => {
 
     const albumsQuery = Album.find()
       .populate("artist", "name images")
-      .populate("songs")
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
     const totalAlbumsQuery = Album.countDocuments();
 
@@ -1210,8 +1170,15 @@ export const getPaginatedAlbums = async (req, res, next) => {
       totalAlbumsQuery.exec(),
     ]);
 
+    const albumIds = albums.map((album) => album._id);
+    const songs = albumIds.length
+      ? await Song.find({ albumId: { $in: albumIds } })
+          .sort({ trackNumber: 1, createdAt: 1 })
+          .lean()
+      : [];
+
     res.status(200).json({
-      albums,
+      albums: attachSongsToAlbums(albums, songs),
       totalPages: Math.ceil(totalAlbums / limit),
       currentPage: page,
     });

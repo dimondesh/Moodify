@@ -343,15 +343,46 @@ export const getFollowing = async (req, res, next) => {
         .populate({
           path: "artist",
           select: "name images",
-          populate: {
-            path: "songs",
-            select: SONG_MINIMAL_SELECT,
-            populate: { path: "artist", select: "name images" },
-            options: { sort: { playCount: -1 }, limit: 5 },
-          },
         })
         .lean(),
     ]);
+
+    const followedArtistDocs = artistRows
+      .filter((row) => row.artist)
+      .map((row) => row.artist);
+    const artistsWithSongs = await (async () => {
+      if (!followedArtistDocs.length) return new Map();
+
+      const artistIdSet = new Set(
+        followedArtistDocs.map((artist) => artist._id.toString()),
+      );
+      const songs = await Song.find({
+        artist: { $in: followedArtistDocs.map((artist) => artist._id) },
+      })
+        .select(SONG_MINIMAL_SELECT)
+        .populate({ path: "artist", select: "name images" })
+        .sort({ playCount: -1 })
+        .lean();
+
+      const songsByArtistId = new Map(
+        [...artistIdSet].map((id) => [id, []]),
+      );
+
+      for (const song of songs) {
+        for (const artistRef of song.artist || []) {
+          const artistKey = artistRef._id
+            ? artistRef._id.toString()
+            : artistRef.toString();
+          if (!artistIdSet.has(artistKey)) continue;
+          const bucket = songsByArtistId.get(artistKey);
+          if (bucket.length < 5) {
+            bucket.push(song);
+          }
+        }
+      }
+
+      return songsByArtistId;
+    })();
 
     const followingUsers = userRows
       .filter((row) => row.following)
@@ -369,7 +400,7 @@ export const getFollowing = async (req, res, next) => {
         name: row.artist.name,
         images: row.artist.images || [],
         type: "artist",
-        songs: row.artist.songs || [],
+        songs: artistsWithSongs.get(row.artist._id.toString()) || [],
       }));
 
     const combinedFollowing = [...followingUsers, ...followedArtists];

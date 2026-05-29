@@ -18,31 +18,32 @@ export const getArtistById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const artist = await Artist.findById(id)
-      .populate({
-        path: "songs",
-        select: SONG_MINIMAL_SELECT,
-        populate: {
+    const [artist, songs, albums] = await Promise.all([
+      Artist.findById(id).lean(),
+      Song.find({ artist: id })
+        .select(SONG_MINIMAL_SELECT)
+        .populate({
           path: "artist",
           select: "name images",
-        },
-        options: { sort: { playCount: -1 }, limit: 5 },
-      })
-      .populate({
-        path: "albums",
-        populate: {
+        })
+        .sort({ playCount: -1 })
+        .limit(5)
+        .lean(),
+      Album.find({ artist: id })
+        .populate({
           path: "artist",
           select: "name images",
-        },
-      })
-      .lean();
+        })
+        .lean(),
+    ]);
 
     if (!artist) {
       return res
         .status(404)
         .json({ success: false, message: "Artist not found" });
     }
-    res.status(200).json(artist);
+
+    res.status(200).json({ ...artist, songs, albums });
   } catch (error) {
     next(error);
   }

@@ -24,18 +24,6 @@ const artistSchema = new mongoose.Schema(
     bannerPublicId: {
       type: String,
     },
-    songs: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Song",
-      },
-    ],
-    albums: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Album",
-      },
-    ],
   },
   { timestamps: true }
 );

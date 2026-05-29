@@ -1,25 +1,47 @@
 import { Album } from "../models/album.model.js";
+import { Song } from "../models/song.model.js";
 import { ListenHistory } from "../models/listenHistory.model.js";
 
 const SONG_MINIMAL_SELECT =
   "_id title images coverAccentHex duration playCount albumId createdAt";
 
+const attachSongsToAlbums = async (albums) => {
+  if (!albums.length) return albums;
+
+  const albumIds = albums.map((album) => album._id);
+  const songs = await Song.find({ albumId: { $in: albumIds } })
+    .select(SONG_MINIMAL_SELECT)
+    .populate({
+      path: "artist",
+      model: "Artist",
+      select: "name images",
+    })
+    .sort({ trackNumber: 1, createdAt: 1 })
+    .lean();
+
+  const songsByAlbumId = new Map();
+  for (const song of songs) {
+    if (!song.albumId) continue;
+    const albumKey = song.albumId.toString();
+    if (!songsByAlbumId.has(albumKey)) {
+      songsByAlbumId.set(albumKey, []);
+    }
+    songsByAlbumId.get(albumKey).push(song);
+  }
+
+  return albums.map((album) => ({
+    ...album,
+    songs: songsByAlbumId.get(album._id.toString()) || [],
+  }));
+};
+
 export const getAllAlbums = async (req, res, next) => {
   try {
     const albums = await Album.find()
       .populate("artist", "name images")
-      .populate({
-        path: "songs",
-        select: SONG_MINIMAL_SELECT,
-        populate: {
-          path: "artist",
-          model: "Artist",
-          select: "name images",
-        },
-      })
       .lean();
 
-    res.status(200).json(albums);
+    res.status(200).json(await attachSongsToAlbums(albums));
   } catch (error) {
     next(error);
   }
@@ -31,15 +53,6 @@ export const getAlbumById = async (req, res, next) => {
 
     const album = await Album.findById(id)
       .populate("artist", "name images")
-      .populate({
-        path: "songs",
-        select: SONG_MINIMAL_SELECT,
-        populate: {
-          path: "artist",
-          model: "Artist",
-          select: "name images",
-        },
-      })
       .lean();
 
     if (!album) {
@@ -47,7 +60,9 @@ export const getAlbumById = async (req, res, next) => {
         .status(404)
         .json({ success: false, message: "Album not found" });
     }
-    res.status(200).json({ album });
+
+    const [albumWithSongs] = await attachSongsToAlbums([album]);
+    res.status(200).json({ album: albumWithSongs });
   } catch (error) {
     next(error);
   }
@@ -79,24 +94,21 @@ export const getTrendingAlbums = async (
       .map((item) => item._id)
       .filter((id) => id);
 
+    const trendingAlbumIds = await Song.distinct("albumId", {
+      _id: { $in: trendingSongIds },
+    });
+
     const albumsWithTrendingSongs = await Album.find({
-      songs: { $in: trendingSongIds },
+      _id: { $in: trendingAlbumIds.filter(Boolean) },
     })
       .populate("artist", "name images")
-      .populate({
-        path: "songs",
-        select: SONG_MINIMAL_SELECT,
-        populate: {
-          path: "artist",
-          model: "Artist",
-          select: "name images",
-        },
-      })
       .lean();
+
+    const albumsWithSongs = await attachSongsToAlbums(albumsWithTrendingSongs);
 
     const albumPopularity = new Map();
 
-    albumsWithTrendingSongs.forEach((album) => {
+    albumsWithSongs.forEach((album) => {
       let totalListenCount = 0;
       let songCount = 0;
 
@@ -137,20 +149,11 @@ export const getTrendingAlbums = async (
         _id: { $nin: sortedAlbums.map((album) => album._id) },
       })
         .populate("artist", "name images")
-        .populate({
-          path: "songs",
-          select: SONG_MINIMAL_SELECT,
-          populate: {
-            path: "artist",
-            model: "Artist",
-            select: "name images",
-          },
-        })
         .sort({ createdAt: -1 })
         .limit(limit - sortedAlbums.length)
         .lean();
 
-      sortedAlbums.push(...additionalAlbums);
+      sortedAlbums.push(...(await attachSongsToAlbums(additionalAlbums)));
     }
 
     if (returnInternal) {

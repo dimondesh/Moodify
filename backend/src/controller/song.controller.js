@@ -320,12 +320,14 @@ export const getListenHistory = async (
                 entityData = await Album.findById(entityId)
                   .select("title images type artist")
                   .populate("artist", "name")
-                  .populate({
-                    path: "songs",
-                    select: SONG_MINIMAL_SELECT,
-                    populate: { path: "artist", select: "name images" },
-                  })
                   .lean();
+                if (entityData) {
+                  entityData.songs = await Song.find({ albumId: entityId })
+                    .select(SONG_MINIMAL_SELECT)
+                    .populate({ path: "artist", select: "name images" })
+                    .sort({ trackNumber: 1, createdAt: 1 })
+                    .lean();
+                }
                 break;
               case "playlist":
                 entityData = await Playlist.findById(entityId)
@@ -341,14 +343,16 @@ export const getListenHistory = async (
               case "artist":
                 entityData = await Artist.findById(entityId)
                   .select("name images")
-                  .populate({
-                    path: "songs",
-                    select: SONG_MINIMAL_SELECT,
-                    populate: { path: "artist", select: "name images" },
-                    options: { sort: { playCount: -1 }, limit: 5 },
-                  })
                   .lean();
-                if (entityData) entityData.title = entityData.name;
+                if (entityData) {
+                  entityData.title = entityData.name;
+                  entityData.songs = await Song.find({ artist: entityId })
+                    .select(SONG_MINIMAL_SELECT)
+                    .populate({ path: "artist", select: "name images" })
+                    .sort({ playCount: -1 })
+                    .limit(5)
+                    .lean();
+                }
                 break;
             }
 

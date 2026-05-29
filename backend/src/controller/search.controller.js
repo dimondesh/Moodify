@@ -43,17 +43,71 @@ const formatArtist = (artist) => ({
   _id: artist._id.toString(),
 });
 
+const attachTopSongsToArtists = async (artists, perArtistLimit = 5) => {
+  if (!artists.length) return artists;
+
+  const artistIdSet = new Set(artists.map((artist) => artist._id.toString()));
+  const songs = await Song.find({ artist: { $in: artists.map((a) => a._id) } })
+    .select(SONG_MINIMAL_SELECT)
+    .populate({ path: "artist", select: "name images" })
+    .sort({ playCount: -1 })
+    .lean();
+
+  const songsByArtistId = new Map(
+    [...artistIdSet].map((id) => [id, []]),
+  );
+
+  for (const song of songs) {
+    for (const artistRef of song.artist || []) {
+      const artistKey = artistRef._id
+        ? artistRef._id.toString()
+        : artistRef.toString();
+      if (!artistIdSet.has(artistKey)) continue;
+      const bucket = songsByArtistId.get(artistKey);
+      if (bucket.length < perArtistLimit) {
+        bucket.push(song);
+      }
+    }
+  }
+
+  return artists.map((artist) => ({
+    ...artist,
+    songs: songsByArtistId.get(artist._id.toString()) || [],
+  }));
+};
+
+const attachSongsToAlbums = async (albums) => {
+  if (!albums.length) return albums;
+
+  const albumIds = albums.map((album) => album._id);
+  const songs = await Song.find({ albumId: { $in: albumIds } })
+    .select(SONG_MINIMAL_SELECT)
+    .populate({ path: "artist", select: "name images" })
+    .sort({ trackNumber: 1, createdAt: 1 })
+    .lean();
+
+  const songsByAlbumId = new Map();
+  for (const song of songs) {
+    if (!song.albumId) continue;
+    const albumKey = song.albumId.toString();
+    if (!songsByAlbumId.has(albumKey)) {
+      songsByAlbumId.set(albumKey, []);
+    }
+    songsByAlbumId.get(albumKey).push(song);
+  }
+
+  return albums.map((album) => ({
+    ...album,
+    songs: songsByAlbumId.get(album._id.toString()) || [],
+  }));
+};
+
 async function getSearchContext(q) {
   const regex = new RegExp(q.trim(), "i");
-  const matchingArtists = await Artist.find({ name: regex })
-    .populate({
-      path: "songs",
-      select: SONG_MINIMAL_SELECT,
-      populate: { path: "artist", select: "name images" },
-      options: { sort: { playCount: -1 }, limit: 5 },
-    })
+  const matchingArtistsRaw = await Artist.find({ name: regex })
     .limit(50)
     .lean();
+  const matchingArtists = await attachTopSongsToArtists(matchingArtistsRaw);
 
   const matchingArtistIds = matchingArtists.map((artist) => artist._id);
 
@@ -178,8 +232,9 @@ async function handleSearchByType(q, type, limit, res) {
       .sort({ releaseYear: -1 })
       .limit(limit)
       .lean();
+    const albumsWithSongs = await attachSongsToAlbums(albumsRaw);
     return res.json({
-      albums: albumsRaw.map(formatAlbum),
+      albums: albumsWithSongs.map(formatAlbum),
     });
   }
 
@@ -250,11 +305,6 @@ export const searchSongs = async (req, res, next) => {
 
       Album.find(albumMatch)
         .populate("artist", "name images")
-        .populate({
-          path: "songs",
-          select: SONG_MINIMAL_SELECT,
-          populate: { path: "artist", select: "name images" },
-        })
         .limit(50)
         .lean(),
 
@@ -282,7 +332,7 @@ export const searchSongs = async (req, res, next) => {
     ]);
 
     const songs = songsRaw.map(formatSongWithAlbum);
-    const albums = albumsRaw.map(formatAlbum);
+    const albums = (await attachSongsToAlbums(albumsRaw)).map(formatAlbum);
     const playlists = playlistsRaw.map((playlist) => ({
       ...playlist,
       _id: playlist._id.toString(),

@@ -31,13 +31,6 @@ const albumSchema = new mongoose.Schema(
       enum: ["Album", "Single", "EP"],
       default: "Album",
     },
-    songs: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Song",
-        required: false,
-      },
-    ],
   },
   { timestamps: true }
 );
