@@ -1,277 +1,46 @@
 // frontend/src/pages/LibraryPage/LibraryPage.tsx
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState, useMemo, useCallback, useRef } from "react";
-import { Link } from "react-router-dom";
-import { useLibraryStore } from "../../stores/useLibraryStore";
-import { useMyPlaylists, useArtists } from "@/hooks/queries";
-import LibraryGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton";
-import {
-  LibraryItem,
-  AlbumItem,
-  PlaylistItem,
-  Artist,
-  FollowedArtistItem,
-  Album,
-  Playlist,
-} from "../../types";
-import { Button } from "@/components/ui/button";
-import { useAuthStore } from "../../stores/useAuthStore";
-import { Plus, Grid3X3, List, Search } from "lucide-react";
+import { Plus, Grid3X3, List } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
-import { Download } from "lucide-react";
-import { useOfflineStore } from "../../stores/useOfflineStore";
-import { cn, normalizeAlbumKind } from "@/lib/utils";
-import {
-  CDN_DEFAULT_ALBUM_COVER,
-  CDN_DEFAULT_ARTIST_IMAGE,
-  CDN_LIKED_PLAYLIST_COVER,
-} from "@/lib/cdn";
-import { CoverImage } from "@/components/CoverImage";
-import { buildStaticCdnImages } from "@/lib/imageUrl";
+import { Button } from "@/components/ui/button";
+import { useAuthStore } from "../../stores/useAuthStore";
 import { useUIStore } from "../../stores/useUIStore";
 import { useQuickCreatePlaylist } from "@/hooks/useQuickCreatePlaylist";
+import { useLibraryData } from "@/hooks/useLibraryData";
+import { getLibraryItemDisplay } from "@/lib/libraryDisplay";
 import EntityTypeFilter from "../../components/ui/EntityTypeFilter";
+import LibraryGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton";
+import { LibrarySearchBar } from "@/components/library/LibrarySearchBar";
+import { LibraryItemRow } from "@/components/library/LibraryItemRow";
+import { LibraryItemCard } from "@/components/library/LibraryItemCard";
 
 const LibraryPage = () => {
   const { t } = useTranslation();
+  const user = useAuthStore((s) => s.user);
+  const quickCreatePlaylist = useQuickCreatePlaylist();
   const {
-    albums,
-    playlists,
-    followedArtists,
-    isLoading: isLoadingLibrary,
-    error: libraryError,
-  } = useLibraryStore();
-  const {
-    data: myPlaylists = [],
-    isPending: isLoadingPlaylists,
-    error: playlistsError,
-  } = useMyPlaylists();
-  const {
-    entityTypeFilter,
-    setEntityTypeFilter,
     librarySearchQuery,
     setLibrarySearchQuery,
-    libraryPageViewMode,
-    setLibraryPageViewMode,
-    isLibraryPageSearchOpen,
-    setIsLibraryPageSearchOpen,
+    libraryViewMode,
+    setLibraryViewMode,
+    isLibrarySearchOpen,
+    setIsLibrarySearchOpen,
+    entityTypeFilter,
+    setEntityTypeFilter,
   } = useUIStore();
 
-  const quickCreatePlaylist = useQuickCreatePlaylist();
-  const { data: artists = [] } = useArtists();
-  const user = useAuthStore((s) => s.user);
-  const { isDownloaded, fetchAllDownloaded } = useOfflineStore(
-    (s) => s.actions,
-  );
-  const isOffline = useOfflineStore((s) => s.isOffline);
-
-  const [downloadedItems, setDownloadedItems] = useState<LibraryItem[]>([]);
-  const librarySearchInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (isOffline) {
-      setEntityTypeFilter("downloaded");
-    }
-  }, [isOffline, setEntityTypeFilter]);
-
-  useEffect(() => {
-    if (entityTypeFilter === "downloaded") {
-      const loadDownloaded = async () => {
-        const items = await fetchAllDownloaded();
-        const downloadedLibraryItemsMap = new Map<string, LibraryItem>();
-
-        items.forEach((item) => {
-          const raw = item as unknown as Record<string, unknown>;
-          if (
-            Array.isArray(raw.artist) &&
-            raw.releaseYear !== undefined &&
-            raw.title
-          ) {
-            downloadedLibraryItemsMap.set(item._id, {
-              _id: item._id,
-              type: "album",
-              title: (item as Album).title,
-              images: (item as Album).images,
-              createdAt: new Date((item as Album).updatedAt),
-              artist: (item as Album).artist,
-              albumType: (item as Album).type,
-            } as AlbumItem);
-            return;
-          }
-          const title =
-            (raw.title as string) ||
-            (raw.name as string) ||
-            (raw.nameKey ? t(raw.nameKey as string) : "Playlist");
-          downloadedLibraryItemsMap.set(item._id, {
-            _id: item._id,
-            type: "playlist",
-            title,
-            images: item.images,
-            createdAt: new Date(
-              (raw.updatedAt as string) ||
-                (raw.generatedOn as string) ||
-                (raw.addedAt as string) ||
-                Date.now(),
-            ),
-            owner: (raw.owner as Playlist["owner"]) ?? null,
-            playlistKind: raw.type as Playlist["type"],
-          } as PlaylistItem);
-        });
-        const sortedItems = Array.from(downloadedLibraryItemsMap.values()).sort(
-          (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
-        );
-        setDownloadedItems(sortedItems);
-      };
-      loadDownloaded();
-    }
-  }, [entityTypeFilter, fetchAllDownloaded, t]);
-
-  // Автофокус на строку поиска когда она открывается
-  useEffect(() => {
-    if (isLibraryPageSearchOpen && librarySearchInputRef.current) {
-      // Небольшая задержка для корректного отображения элемента
-      const timer = setTimeout(() => {
-        librarySearchInputRef.current?.focus();
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [isLibraryPageSearchOpen]);
-
-  const getArtistNames = useCallback(
-    (artistsInput: (string | Artist)[] | undefined) => {
-      if (!artistsInput || artistsInput.length === 0)
-        return t("common.unknownArtist");
-      const names = artistsInput
-        .map((artistOrId) => {
-          if (typeof artistOrId === "string") {
-            const foundArtist = artists.find(
-              (a: Artist) => a._id === artistOrId,
-            );
-            return foundArtist ? foundArtist.name : null;
-          } else {
-            return artistOrId.name;
-          }
-        })
-        .filter(Boolean);
-      return names.join(", ") || t("common.unknownArtist");
-    },
-    [artists, t],
-  );
-
-  const isLoading = (isLoadingLibrary || isLoadingPlaylists) && !isOffline;
-  const combinedError: string | null =
-    (libraryError as string | null) || (playlistsError as string | null);
-  const errorMessage = combinedError;
-
-  const libraryItems = useMemo(() => {
-    const libraryItemsMap = new Map<string, LibraryItem>();
-
-    (albums || []).forEach((album) =>
-      libraryItemsMap.set(album._id, {
-        _id: album._id,
-        type: "album",
-        title: album.title,
-        images: album.images,
-        createdAt: new Date(album.addedAt ?? new Date()),
-        artist: album.artist,
-        albumType: album.type,
-      } as AlbumItem),
-    );
-
-    [...(myPlaylists || []), ...(playlists || [])].forEach((playlist) => {
-      if (!libraryItemsMap.has(playlist._id)) {
-        libraryItemsMap.set(playlist._id, {
-          _id: playlist._id,
-          type: "playlist",
-          title:
-            playlist.type === "LIKED_SONGS"
-              ? t("sidebar.likedSongs")
-              : playlist.title,
-          images:
-            playlist.images?.length
-              ? playlist.images
-              : playlist.type === "LIKED_SONGS"
-                ? buildStaticCdnImages(CDN_LIKED_PLAYLIST_COVER)
-                : undefined,
-          createdAt: new Date(
-            (playlist as { addedAt?: string }).addedAt ||
-              playlist.updatedAt ||
-              new Date(),
-          ),
-          owner: playlist.owner ?? null,
-          playlistKind: playlist.type,
-        } as PlaylistItem);
-      }
-    });
-
-    (followedArtists || []).forEach((artist) =>
-      libraryItemsMap.set(artist._id, {
-        _id: artist._id,
-        type: "artist",
-        title: artist.name,
-        images: artist.images,
-        createdAt: new Date(artist.addedAt || artist.createdAt),
-        artistId: artist._id,
-      } as FollowedArtistItem),
-    );
-
-    return Array.from(libraryItemsMap.values()).sort(
-      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
-    );
-  }, [
-    albums,
+  const {
+    filteredLibraryItems,
     myPlaylists,
-    playlists,
-    followedArtists,
-    t,
-  ]);
-
-  const filteredLibraryItems = useMemo(() => {
-    let filtered = libraryItems;
-
-    // Apply entity type filter first
-    if (entityTypeFilter) {
-      switch (entityTypeFilter) {
-        case "playlists":
-          filtered = filtered.filter((item) => item.type === "playlist");
-          break;
-        case "albums":
-          filtered = filtered.filter((item) => item.type === "album");
-          break;
-        case "artists":
-          filtered = filtered.filter((item) => item.type === "artist");
-          break;
-        case "downloaded":
-          filtered = downloadedItems;
-          break;
-        default:
-          break;
-      }
-    }
-
-    // Apply search query filter to already filtered items
-    if (librarySearchQuery.trim()) {
-      const query = librarySearchQuery.toLowerCase().trim();
-      filtered = filtered.filter((item) => {
-        const title = item.title.toLowerCase();
-        const subtitle = getArtistNames(
-          item.type === "album" ? (item as AlbumItem).artist : undefined,
-        ).toLowerCase();
-
-        return title.includes(query) || subtitle.includes(query);
-      });
-    }
-
-    return filtered;
-  }, [
-    libraryItems,
-    downloadedItems,
-    entityTypeFilter,
-    librarySearchQuery,
-    getArtistNames,
-  ]);
+    artists,
+    isDownloaded,
+    isLoading,
+    errorMessage,
+    hasDownloadedItems,
+    isOffline,
+  } = useLibraryData();
 
   if (isLoading && !entityTypeFilter) return <LibraryGridSkeleton />;
 
@@ -281,12 +50,12 @@ const LibraryPage = () => {
         <h1 className="text-2xl sm:text-3xl mb-6 font-bold">
           {t("sidebar.library")}
         </h1>
-        <p className="text-red-500 mt-4 text-center">
-          Error loading library: {errorMessage}
-        </p>
+        <p className="text-red-500 mt-4 text-center">{errorMessage}</p>
       </div>
     );
   }
+
+  const displayContext = { t, artists, myPlaylists };
 
   return (
     <>
@@ -325,76 +94,31 @@ const LibraryPage = () => {
               <EntityTypeFilter
                 currentFilter={entityTypeFilter}
                 onFilterChange={(filter) => setEntityTypeFilter(filter as any)}
-                hasDownloaded={!!user}
+                hasDownloaded={hasDownloadedItems}
                 className="w-full"
               />
             </div>
 
             <div className="mb-6 space-y-4">
-              {/* Search and toggle controls */}
               <div className="flex items-center gap-4 max-w-screen">
-                {/* Search button and input container */}
-                <div className="flex-1">
-                  <div
-                    className="relative"
-                    onClick={() =>
-                      setIsLibraryPageSearchOpen(!isLibraryPageSearchOpen)
-                    }
-                  >
-                    {/* Search button - always visible and clickable */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        setIsLibraryPageSearchOpen(!isLibraryPageSearchOpen)
-                      }
-                      className={cn(
-                        "text-gray-400 hover:text-white hover:bg-zinc-800/50 h-12 w-12 p-0 transition-all duration-300 ease-in-out z-20",
-                        isLibraryPageSearchOpen
-                          ? "opacity-0 pointer-events-none"
-                          : "opacity-100",
-                      )}
-                    >
-                      <Search className="size-5" />
-                    </Button>
-
-                    {/* Search input - appears in place of button */}
-                    <div
-                      className={cn(
-                        "absolute top-0 left-0 transition-all duration-300 ease-in-out overflow-hidden z-10",
-                        isLibraryPageSearchOpen
-                          ? "w-full opacity-100"
-                          : "w-12 opacity-0",
-                      )}
-                    >
-                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
-                      <input
-                        ref={librarySearchInputRef}
-                        type="text"
-                        placeholder={t("sidebar.searchLibrary")}
-                        value={librarySearchQuery}
-                        onChange={(e) => setLibrarySearchQuery(e.target.value)}
-                        onBlur={() => setIsLibraryPageSearchOpen(false)}
-                        className="w-full bg-zinc-800/50 rounded-md py-3 pl-12 pr-4 text-base text-white placeholder:text-gray-400 focus:outline-none transition duration-150 ease-in-out"
-                        spellCheck={false}
-                        autoComplete="off"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Single toggle button */}
+                <LibrarySearchBar
+                  variant="page"
+                  isOpen={isLibrarySearchOpen}
+                  onOpenChange={setIsLibrarySearchOpen}
+                  query={librarySearchQuery}
+                  onQueryChange={setLibrarySearchQuery}
+                />
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() =>
-                    setLibraryPageViewMode(
-                      libraryPageViewMode === "grid" ? "list" : "grid",
+                    setLibraryViewMode(
+                      libraryViewMode === "grid" ? "list" : "grid",
                     )
                   }
                   className="text-gray-400 hover:text-white hover:bg-zinc-800/50 h-12 w-12 p-0 flex-shrink-0"
                 >
-                  {libraryPageViewMode === "grid" ? (
+                  {libraryViewMode === "grid" ? (
                     <List className="w-5 h-5" />
                   ) : (
                     <Grid3X3 className="w-5 h-5" />
@@ -408,176 +132,31 @@ const LibraryPage = () => {
                 <p className="text-gray-400 px-2">
                   {librarySearchQuery.trim()
                     ? t("sidebar.noSearchResults")
-                    : entityTypeFilter === "downloaded"
-                      ? "You have no downloaded content yet."
-                      : t("sidebar.emptyLibrary")}
+                    : t("sidebar.emptyLibrary")}
                 </p>
-              ) : libraryPageViewMode === "grid" ? (
+              ) : libraryViewMode === "grid" ? (
                 <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5">
-                  {filteredLibraryItems.map((item) => {
-                    let linkPath: string = "#";
-                    let subtitle: string = "";
-                    let coverDefault = CDN_DEFAULT_ALBUM_COVER;
-
-                    switch (item.type) {
-                      case "album": {
-                        const albumItem = item as AlbumItem;
-                        linkPath = `/albums/${albumItem._id}`;
-                        subtitle = `${t(`sidebar.subtitle.${normalizeAlbumKind(albumItem.albumType)}`)} • ${getArtistNames(albumItem.artist)}`;
-                        break;
-                      }
-                      case "playlist": {
-                        const playlistItem = item as PlaylistItem;
-                        linkPath = `/playlists/${playlistItem._id}`;
-                        if (playlistItem.playlistKind === "LIKED_SONGS") {
-                          const likedPl = myPlaylists.find(
-                            (p) => p._id === playlistItem._id,
-                          );
-                          const count = likedPl?.songs?.length ?? 0;
-                          subtitle = `${t("sidebar.subtitle.playlist")} • ${count} ${
-                            count !== 1
-                              ? t("sidebar.subtitle.songs")
-                              : t("sidebar.subtitle.song")
-                          }`;
-                          coverDefault = CDN_LIKED_PLAYLIST_COVER;
-                        } else {
-                          subtitle = `${t("sidebar.subtitle.playlist")} • ${
-                            playlistItem.owner?.fullName ||
-                            t("common.unknownArtist")
-                          }`;
-                        }
-                        break;
-                      }
-                      case "artist": {
-                        const artistItem = item as FollowedArtistItem;
-                        linkPath = `/artists/${artistItem._id}`;
-                        subtitle = t("sidebar.subtitle.artist");
-                        coverDefault = CDN_DEFAULT_ARTIST_IMAGE;
-                        break;
-                      }
-                    }
-
-                    return (
-                      <Link
-                        key={`${item.type}-${item._id}`}
-                        to={linkPath}
-                        className="bg-transparent p-2 rounded-md hover:bg-zinc-800/50 transition-all group cursor-pointer flex flex-col items-center text-center"
-                      >
-                        <div className="relative mb-2 w-full">
-                          <div
-                            className={cn(
-                              "relative aspect-square w-full overflow-hidden shadow-lg",
-                              item.type === "artist"
-                                ? "rounded-full"
-                                : "rounded-md",
-                            )}
-                          >
-                            <CoverImage
-                              entity={item}
-                              size="card"
-                              defaultUrl={coverDefault}
-                              alt={item.title}
-                              className={cn(
-                                "absolute inset-0 w-full h-full object-cover duration-300",
-                                item.type === "artist" && "rounded-full",
-                              )}
-                            />
-                          </div>
-                        </div>
-                        <div className="px-1 w-full">
-                          <h3 className="font-semibold text-sm truncate text-white">
-                            {item.title}
-                          </h3>
-                          <div className="flex items-center gap-1.5 justify-center">
-                            {isDownloaded(item._id) && (
-                              <Download className="size-3 text-[#8b5cf6] flex-shrink-0" />
-                            )}
-                            <p className="text-xs text-gray-400 truncate">
-                              {subtitle}
-                            </p>
-                          </div>
-                        </div>
-                      </Link>
-                    );
-                  })}
+                  {filteredLibraryItems.map((item) => (
+                    <LibraryItemCard
+                      key={`${item.type}-${item._id}`}
+                      item={item}
+                      display={getLibraryItemDisplay(item, displayContext)}
+                      isDownloaded={isDownloaded(item._id)}
+                      variant="page"
+                    />
+                  ))}
                 </div>
               ) : (
-                <div className="">
-                  {filteredLibraryItems.map((item) => {
-                    let linkPath: string = "#";
-                    let subtitle: string = "";
-                    let fallbackImage: string = CDN_DEFAULT_ALBUM_COVER;
-                    let imageClass = "rounded-md";
-
-                    switch (item.type) {
-                      case "album": {
-                        const albumItem = item as AlbumItem;
-                        linkPath = `/albums/${albumItem._id}`;
-                        subtitle = `${t(`sidebar.subtitle.${normalizeAlbumKind(albumItem.albumType)}`)} • ${getArtistNames(albumItem.artist)}`;
-                        break;
-                      }
-                      case "playlist": {
-                        const playlistItem = item as PlaylistItem;
-                        linkPath = `/playlists/${playlistItem._id}`;
-                        if (playlistItem.playlistKind === "LIKED_SONGS") {
-                          const likedPl = myPlaylists.find(
-                            (p) => p._id === playlistItem._id,
-                          );
-                          const count = likedPl?.songs?.length ?? 0;
-                          subtitle = `${t("sidebar.subtitle.playlist")} • ${count} ${
-                            count !== 1
-                              ? t("sidebar.subtitle.songs")
-                              : t("sidebar.subtitle.song")
-                          }`;
-                          fallbackImage = CDN_LIKED_PLAYLIST_COVER;
-                        } else {
-                          subtitle = `${t("sidebar.subtitle.playlist")} • ${
-                            playlistItem.owner?.fullName ||
-                            t("common.unknownArtist")
-                          }`;
-                        }
-                        break;
-                      }
-                      case "artist": {
-                        const artistItem = item as FollowedArtistItem;
-                        linkPath = `/artists/${artistItem._id}`;
-                        subtitle = t("sidebar.subtitle.artist");
-                        imageClass = "rounded-full";
-                        break;
-                      }
-                    }
-
-                    return (
-                      <Link
-                        key={`${item.type}-${item._id}`}
-                        to={linkPath}
-                        className="bg-transparent p-3 rounded-md hover:bg-zinc-800/50 transition-all group cursor-pointer flex items-center gap-4"
-                      >
-                        <div className="relative flex-shrink-0">
-                          <CoverImage
-                            entity={item}
-                            size="thumb"
-                            defaultUrl={fallbackImage}
-                            alt={item.title}
-                            className={`size-16 object-cover ${imageClass} transition-opacity group-hover:opacity-50`}
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-lg truncate text-white mb-1">
-                            {item.title}
-                          </h3>
-                          <div className="flex items-center gap-2">
-                            {isDownloaded(item._id) && (
-                              <Download className="size-4 text-[#8b5cf6] flex-shrink-0" />
-                            )}
-                            <p className="text-sm text-gray-400 truncate">
-                              {subtitle}
-                            </p>
-                          </div>
-                        </div>
-                      </Link>
-                    );
-                  })}
+                <div>
+                  {filteredLibraryItems.map((item) => (
+                    <LibraryItemRow
+                      key={`${item.type}-${item._id}`}
+                      item={item}
+                      display={getLibraryItemDisplay(item, displayContext)}
+                      isDownloaded={isDownloaded(item._id)}
+                      variant="page"
+                    />
+                  ))}
                 </div>
               )}
             </div>

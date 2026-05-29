@@ -33,10 +33,8 @@ interface UIStore {
   isFriendsActivityOpen: boolean;
   isChatConversationOpen: boolean;
   librarySearchQuery: string;
-  leftSidebarViewMode: LibraryViewMode;
-  libraryPageViewMode: LibraryViewMode;
-  isLeftSidebarSearchOpen: boolean;
-  isLibraryPageSearchOpen: boolean;
+  libraryViewMode: LibraryViewMode;
+  isLibrarySearchOpen: boolean;
 
   setIsIosDevice: (isIos: boolean) => void;
   setLibraryFilter: (filter: LibraryFilter) => void;
@@ -44,10 +42,8 @@ interface UIStore {
   setIsFriendsActivityOpen: (isOpen: boolean) => void;
   setChatConversationOpen: (isOpen: boolean) => void;
   setLibrarySearchQuery: (query: string) => void;
-  setLeftSidebarViewMode: (mode: LibraryViewMode) => void;
-  setLibraryPageViewMode: (mode: LibraryViewMode) => void;
-  setIsLeftSidebarSearchOpen: (isOpen: boolean) => void;
-  setIsLibraryPageSearchOpen: (isOpen: boolean) => void;
+  setLibraryViewMode: (mode: LibraryViewMode) => void;
+  setIsLibrarySearchOpen: (isOpen: boolean) => void;
 
   openEditPlaylistDialog: (playlist: Playlist, onSuccess?: () => void) => void;
   openShareDialog: (entity: ShareEntity) => void;
@@ -75,10 +71,8 @@ export const useUIStore = create<UIStore>()(
       isFriendsActivityOpen: true,
       isChatConversationOpen: false,
       librarySearchQuery: "",
-      leftSidebarViewMode: "list",
-      libraryPageViewMode: "grid",
-      isLeftSidebarSearchOpen: false,
-      isLibraryPageSearchOpen: false,
+      libraryViewMode: "grid",
+      isLibrarySearchOpen: false,
 
       setIsIosDevice: (isIos: boolean) => set({ isIosDevice: isIos }),
       setLibraryFilter: (filter) => set({ libraryFilter: filter }),
@@ -88,12 +82,8 @@ export const useUIStore = create<UIStore>()(
       setChatConversationOpen: (isOpen) =>
         set({ isChatConversationOpen: isOpen }),
       setLibrarySearchQuery: (query) => set({ librarySearchQuery: query }),
-      setLeftSidebarViewMode: (mode) => set({ leftSidebarViewMode: mode }),
-      setLibraryPageViewMode: (mode) => set({ libraryPageViewMode: mode }),
-      setIsLeftSidebarSearchOpen: (isOpen) =>
-        set({ isLeftSidebarSearchOpen: isOpen }),
-      setIsLibraryPageSearchOpen: (isOpen) =>
-        set({ isLibraryPageSearchOpen: isOpen }),
+      setLibraryViewMode: (mode) => set({ libraryViewMode: mode }),
+      setIsLibrarySearchOpen: (isOpen) => set({ isLibrarySearchOpen: isOpen }),
 
       openEditPlaylistDialog: (playlist, onSuccess) =>
         set({
@@ -125,8 +115,7 @@ export const useUIStore = create<UIStore>()(
         libraryFilter: state.libraryFilter,
         entityTypeFilter: state.entityTypeFilter,
         isIosDevice: state.isIosDevice,
-        leftSidebarViewMode: state.leftSidebarViewMode,
-        libraryPageViewMode: state.libraryPageViewMode,
+        libraryViewMode: state.libraryViewMode,
       }),
     },
   ),

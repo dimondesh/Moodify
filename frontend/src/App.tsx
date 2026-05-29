@@ -9,6 +9,7 @@ import { isIosDevice } from "./lib/platform";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { SITE_NAME, SITE_SLOGAN, SITE_URL } from "./lib/site-meta";
 import { prefetchHomeData } from "./lib/prefetchHome";
+import { isDesktopLibraryContext } from "./lib/libraryPlatform";
 
 import HomePage from "./pages/HomePage/HomePage";
 import MainLayout from "./layout/MainLayout";
@@ -24,7 +25,7 @@ import DisplayListPage from "./pages/DisplayListPage/DisplayListPage";
 import PlaylistBrowsePage from "./pages/PlaylistBrowsePage/PlaylistBrowsePage";
 import TopTracksPage from "./pages/TopTracksPage/TopTracksPage";
 import OfflinePage from "./pages/OfflinePage/OfflinePage";
-import LibraryPage from "./pages/LibraryPage/LibraryPage";
+import LibraryRoute from "./pages/LibraryPage/LibraryRoute";
 import SettingsPage from "./pages/SettingsPage/SettingsPage";
 import SearchPage from "./pages/SearchPage/SearchPage";
 import ChatPage from "./pages/ChatPage/ChatPage";
@@ -119,7 +120,9 @@ function App() {
     const exactSafePaths = ["/library", "/settings", "/offline"];
     const prefixSafePaths = ["/albums/", "/playlists/"];
 
-    const isExactSafe = exactSafePaths.includes(location.pathname);
+    const isExactSafe =
+      exactSafePaths.includes(location.pathname) &&
+      !(isDesktopLibraryContext() && location.pathname === "/library");
     const isPrefixSafe = prefixSafePaths.some((path) =>
       location.pathname.startsWith(path),
     );
@@ -132,10 +135,7 @@ function App() {
 
   return (
     <>
-      <Helmet
-        defaultTitle="Moodify Music"
-        titleTemplate="%s · Moodify Music"
-      >
+      <Helmet defaultTitle="Moodify Music" titleTemplate="%s · Moodify Music">
         <meta name="description" content={SITE_SLOGAN} />
         <meta property="og:site_name" content={SITE_NAME} />
         <link rel="canonical" href={canonicalUrl} />
@@ -152,7 +152,7 @@ function App() {
             <Route path="/albums/:albumId" element={<AlbumPage />} />
             <Route path="*" element={<NotFoundPage />} />
             <Route path="/search" element={<SearchPage />} />
-            <Route path="/library" element={<LibraryPage />} />
+            <Route path="/library" element={<LibraryRoute />} />
             <Route
               path="/playlists/browse/:category"
               element={<PlaylistBrowsePage />}

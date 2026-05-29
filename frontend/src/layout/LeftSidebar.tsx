@@ -7,67 +7,48 @@ import {
   LibraryIcon,
   Grid3X3,
   List,
-  Search,
 } from "lucide-react";
-import { Link } from "react-router-dom";
 import { cn } from "../lib/utils";
 import { Button } from "../components/ui/button";
-import { ScrollArea } from "../components/ui/scroll-area";
 import PlaylistSkeleton from "../components/ui/skeletons/PlaylistSkeleton";
-import React, { useMemo, useEffect, useRef, useCallback } from "react";
-import { useLibraryStore } from "../stores/useLibraryStore";
+import React from "react";
 import { useAuthStore } from "../stores/useAuthStore";
-import {
-  LibraryItem,
-  AlbumItem,
-  PlaylistItem,
-  Artist,
-  FollowedArtistItem,
-} from "../types";
-import { CDN_DEFAULT_ALBUM_COVER, CDN_LIKED_PLAYLIST_COVER } from "@/lib/cdn";
-import { useArtists, useMyPlaylists, useHomeBootstrap } from "@/hooks/queries";
-import { useTranslation } from "react-i18next";
-import { Download } from "lucide-react";
-import { useOfflineStore } from "../stores/useOfflineStore";
 import { useUIStore } from "../stores/useUIStore";
-import { normalizeAlbumKind } from "@/lib/utils";
-import { CoverImage } from "@/components/CoverImage";
-import { buildStaticCdnImages } from "@/lib/imageUrl";
-import { CDN_DEFAULT_ARTIST_IMAGE } from "@/lib/cdn";
-import UniversalPlayButton from "../components/ui/UniversalPlayButton";
-import EntityTypeFilter from "../components/ui/EntityTypeFilter";
+import { useTranslation } from "react-i18next";
 import { useQuickCreatePlaylist } from "@/hooks/useQuickCreatePlaylist";
+import { useLibraryData } from "@/hooks/useLibraryData";
+import { getLibraryItemDisplay } from "@/lib/libraryDisplay";
+import EntityTypeFilter from "../components/ui/EntityTypeFilter";
+import { LibrarySearchBar } from "@/components/library/LibrarySearchBar";
+import { LibraryItemRow } from "@/components/library/LibraryItemRow";
+import { LibraryItemCard } from "@/components/library/LibraryItemCard";
 
 const LeftSidebar = () => {
   const { t } = useTranslation();
-  const { albums, playlists, followedArtists } = useLibraryStore();
-
-  const { data: myPlaylists = [] } = useMyPlaylists();
-
   const user = useAuthStore((s) => s.user);
   const authLoading = useAuthStore((s) => s.isLoading);
-  const { isOffline } = useOfflineStore();
-  const { isDownloaded } = useOfflineStore((s) => s.actions);
+  const quickCreatePlaylist = useQuickCreatePlaylist();
   const {
     entityTypeFilter,
     setEntityTypeFilter,
     librarySearchQuery,
     setLibrarySearchQuery,
-    leftSidebarViewMode,
-    setLeftSidebarViewMode,
-    isLeftSidebarSearchOpen,
-    setIsLeftSidebarSearchOpen,
+    libraryViewMode,
+    setLibraryViewMode,
+    isLibrarySearchOpen,
+    setIsLibrarySearchOpen,
   } = useUIStore();
 
-  const { data: artists = [] } = useArtists();
-  const quickCreatePlaylist = useQuickCreatePlaylist();
-  const playlistsFetchedRef = useRef(false);
-  const sidebarSearchInputRef = useRef<HTMLInputElement>(null);
-
-  const { isPending: isHomePageLoading } = useHomeBootstrap();
-
-  const isLoading =
-    (isHomePageLoading || (!user && authLoading)) && !isOffline;
+  const {
+    filteredLibraryItems,
+    myPlaylists,
+    artists,
+    isDownloaded,
+    isLoading,
+    errorMessage,
+    hasDownloadedItems,
+    isOffline,
+  } = useLibraryData();
 
   const GridSkeleton = React.memo(() => (
     <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,1fr))] gap-1">
@@ -85,269 +66,67 @@ const LeftSidebar = () => {
       ))}
     </div>
   ));
-  GridSkeleton.displayName = "GridSkeleton"; // Хорошая практика для отладки
+  GridSkeleton.displayName = "GridSkeleton";
 
-  useEffect(() => {
-    playlistsFetchedRef.current = false;
-  }, [user]);
-
-  // Автофокус на строку поиска когда она открывается
-  useEffect(() => {
-    if (isLeftSidebarSearchOpen && sidebarSearchInputRef.current) {
-      // Небольшая задержка для корректного отображения элемента
-      const timer = setTimeout(() => {
-        sidebarSearchInputRef.current?.focus();
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [isLeftSidebarSearchOpen]);
-
-  const getArtistNames = useCallback(
-    (artistsData: string[] | Artist[] | undefined) => {
-      if (!artistsData || artistsData.length === 0)
-        return t("common.unknownArtist");
-
-      const names = artistsData
-        .map((item) => {
-          if (typeof item === "string") {
-            const artist = artists.find((a) => a._id === item);
-            return artist ? artist.name : null;
-          } else if (item && typeof item === "object" && "name" in item) {
-            return (item as Artist).name;
-          }
-          return null;
-        })
-        .filter(Boolean);
-
-      return names.join(", ") || t("common.unknownArtist");
-    },
-    [artists, t],
-  );
-
-  const libraryItems = useMemo(() => {
-    const libraryItemsMap = new Map<string, LibraryItem>();
-
-    // Helper function to check if item should be included based on offline state
-    const shouldIncludeItem = (
-      itemId: string,
-      _itemType: "album" | "playlist" | "artist",
-    ) => {
-      if (!isOffline) return true;
-      return isDownloaded(itemId);
-    };
-
-    (albums || []).forEach((album) => {
-      if (shouldIncludeItem(album._id, "album")) {
-        libraryItemsMap.set(album._id, {
-          _id: album._id,
-          type: "album",
-          title: album.title,
-          images: album.images,
-          createdAt: new Date(album.addedAt ?? new Date()),
-          artist: album.artist,
-          albumType: album.type,
-        } as AlbumItem);
-      }
-    });
-
-    [...(myPlaylists || []), ...(playlists || [])].forEach((playlist) => {
-      if (!libraryItemsMap.has(playlist._id)) {
-        if (shouldIncludeItem(playlist._id, "playlist")) {
-          libraryItemsMap.set(playlist._id, {
-            _id: playlist._id,
-            type: "playlist",
-            title:
-              playlist.type === "LIKED_SONGS"
-                ? t("sidebar.likedSongs")
-                : playlist.title,
-            images:
-              playlist.images?.length
-                ? playlist.images
-                : playlist.type === "LIKED_SONGS"
-                  ? buildStaticCdnImages(CDN_LIKED_PLAYLIST_COVER)
-                  : undefined,
-            createdAt: new Date(
-              (playlist as { addedAt?: string }).addedAt ||
-                playlist.updatedAt ||
-                new Date(),
-            ),
-            owner: playlist.owner ?? null,
-            playlistKind: playlist.type,
-          } as PlaylistItem);
-        }
-      }
-    });
-
-    (followedArtists || []).forEach((artist) => {
-      if (shouldIncludeItem(artist._id, "artist")) {
-        libraryItemsMap.set(artist._id, {
-          _id: artist._id,
-          type: "artist",
-          title: artist.name,
-          images: artist.images,
-          createdAt: new Date(artist.addedAt || artist.createdAt),
-          artistId: artist._id,
-        } as FollowedArtistItem);
-      }
-    });
-
-    return Array.from(libraryItemsMap.values()).sort(
-      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
-    );
-  }, [
-    albums,
-    myPlaylists,
-    playlists,
-    followedArtists,
-    t,
-    isOffline,
-    isDownloaded,
-  ]);
-
-  const filteredLibraryItems = useMemo(() => {
-    let filtered = libraryItems;
-
-    // Apply entity type filter first
-    if (entityTypeFilter) {
-      switch (entityTypeFilter) {
-        case "playlists":
-          filtered = filtered.filter((item) => item.type === "playlist");
-          break;
-        case "albums":
-          filtered = filtered.filter((item) => item.type === "album");
-          break;
-        case "artists":
-          filtered = filtered.filter((item) => item.type === "artist");
-          break;
-        case "downloaded":
-          filtered = filtered.filter((item) => isDownloaded(item._id));
-          break;
-        default:
-          break;
-      }
-    }
-
-    // Apply search query filter to already filtered items
-    if (librarySearchQuery.trim()) {
-      const query = librarySearchQuery.toLowerCase().trim();
-      filtered = filtered.filter((item) => {
-        const title = item.title.toLowerCase();
-        const subtitle = getArtistNames(
-          item.type === "album" ? (item as AlbumItem).artist : undefined,
-        ).toLowerCase();
-
-        return title.includes(query) || subtitle.includes(query);
-      });
-    }
-
-    return filtered;
-  }, [
-    libraryItems,
-    entityTypeFilter,
-    librarySearchQuery,
-    isDownloaded,
-    getArtistNames,
-  ]);
+  const displayContext = { t, artists, myPlaylists };
+  const showLoading = !user
+    ? authLoading && !isOffline
+    : isLoading;
 
   return (
-    <div className="h-full flex flex-col bg-[#0f0f0f]">
-      <div className="p-4 flex justify-between items-center border-b border-[#2a2a2a]">
-        <div className="flex items-center text-gray-300">
-          <Library className="size-4 mr-3" />
-          <span className="text-sm font-semibold">{t("sidebar.library")}</span>
+    <div className="h-full min-h-0 flex flex-col bg-[#0f0f0f]">
+      {user && (
+        <div className="p-4 flex justify-between items-center border-b border-[#2a2a2a]">
+          <div className="flex items-center text-gray-300">
+            <Library className="size-4 mr-3" />
+            <span className="text-sm font-semibold">{t("sidebar.library")}</span>
+          </div>
+          {!isOffline && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hover:bg-transparent! text-gray-300 hover:text-white! h-6 w-6"
+              onClick={() => void quickCreatePlaylist()}
+              title={t("sidebar.createPlaylist")}
+            >
+              <Plus className="size-4" />
+            </Button>
+          )}
         </div>
+      )}
+      <div className={cn("flex-1 min-h-0 flex flex-col px-1", user && "mt-4")}>
         {user && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="hover:bg-transparent! text-gray-300 hover:text-white! h-6 w-6"
-            onClick={() => void quickCreatePlaylist()}
-            title={t("sidebar.createPlaylist")}
-          >
-            <Plus className="size-4" />
-          </Button>
-        )}
-      </div>
-      <div className="flex-1 overflow-hidden flex flex-col px-1 mt-4">
-        {user && (
-          <div className="mb-3">
+          <div className="mb-3 shrink-0">
             <EntityTypeFilter
               currentFilter={entityTypeFilter}
               onFilterChange={(filter) => setEntityTypeFilter(filter as any)}
-              hasDownloaded={libraryItems.some((item) =>
-                isDownloaded(item._id),
-              )}
+              hasDownloaded={hasDownloadedItems}
               className="w-full"
             />
           </div>
         )}
 
         {user && (
-          <div className="mb-3 space-y-2">
-            {/* Search and toggle controls */}
+          <div className="mb-3 shrink-0 space-y-2">
             <div className="flex items-center gap-2">
-              {/* Search button and input container */}
-              <div className="flex-1">
-                <div
-                  className="relative"
-                  onClick={() =>
-                    setIsLeftSidebarSearchOpen(!isLeftSidebarSearchOpen)
-                  }
-                >
-                  {/* Search button - always visible and clickable */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      setIsLeftSidebarSearchOpen(!isLeftSidebarSearchOpen)
-                    }
-                    className={cn(
-                      "text-gray-400 hover:text-white hover:bg-transparent! mt-0.5 h-8 w-8 p-0 transition-all! duration-300 ease-in-out z-20",
-                      isLeftSidebarSearchOpen
-                        ? "opacity-0 pointer-events-none"
-                        : "opacity-100",
-                    )}
-                  >
-                    <Search className="w-4 h-4" />
-                  </Button>
-
-                  {/* Search input - appears in place of button */}
-                  <div
-                    className={cn(
-                      "absolute top-0 left-0 transition-all! duration-300 ease-in-out overflow-hidden z-10",
-                      isLeftSidebarSearchOpen
-                        ? "w-full opacity-100"
-                        : "w-8 opacity-0",
-                    )}
-                  >
-                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
-                    <input
-                      ref={sidebarSearchInputRef}
-                      type="text"
-                      placeholder={t("sidebar.searchLibrary")}
-                      value={librarySearchQuery}
-                      onChange={(e) => setLibrarySearchQuery(e.target.value)}
-                      onBlur={() => setIsLeftSidebarSearchOpen(false)}
-                      className="w-full bg-zinc-800/50 rounded-md py-2 pl-10 pr-4 text-sm text-white placeholder:text-gray-400 focus:outline-none transition duration-150 ease-in-out cursor-pointer"
-                      spellCheck={false}
-                      autoComplete="off"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Single toggle button */}
+              <LibrarySearchBar
+                variant="sidebar"
+                isOpen={isLibrarySearchOpen}
+                onOpenChange={setIsLibrarySearchOpen}
+                query={librarySearchQuery}
+                onQueryChange={setLibrarySearchQuery}
+              />
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() =>
-                  setLeftSidebarViewMode(
-                    leftSidebarViewMode === "list" ? "grid" : "list",
+                  setLibraryViewMode(
+                    libraryViewMode === "list" ? "grid" : "list",
                   )
                 }
                 className="text-gray-400 hover:text-white mt-0.5 hover:bg-transparent! h-8 w-8 p-0 flex-shrink-0"
               >
-                {leftSidebarViewMode === "list" ? (
+                {libraryViewMode === "list" ? (
                   <Grid3X3 className="w-4 h-4" />
                 ) : (
                   <List className="w-4 h-4" />
@@ -356,14 +135,17 @@ const LeftSidebar = () => {
             </div>
           </div>
         )}
-        {isLoading ? (
-          leftSidebarViewMode === "grid" ? (
+
+        {showLoading ? (
+          libraryViewMode === "grid" ? (
             <GridSkeleton />
           ) : (
             <PlaylistSkeleton />
           )
         ) : !user ? (
-          <LoginPrompt className="flex-1" />
+          <LoginPrompt />
+        ) : errorMessage && !isOffline ? (
+          <p className="text-red-500 px-2 text-sm text-center">{errorMessage}</p>
         ) : filteredLibraryItems.length === 0 ? (
           <p className="text-zinc-400 px-2">
             {librarySearchQuery.trim()
@@ -371,227 +153,40 @@ const LeftSidebar = () => {
               : t("sidebar.emptyLibrary")}
           </p>
         ) : (
-          <ScrollArea
-            className={`flex-1 h-full ${leftSidebarViewMode === "list" ? "pb-7" : "pb-26"}`}
+          <div
+            className={cn(
+              "flex-1 min-h-0 overflow-y-auto hide-scrollbar",
+              libraryViewMode === "list" ? "pb-7" : "pb-26",
+            )}
           >
-            {leftSidebarViewMode === "list" ? (
+            {libraryViewMode === "list" ? (
               <div>
-                {filteredLibraryItems.map((item) => {
-                  let linkPath: string = "#";
-                  let subtitle: string = "";
-                  let fallbackImage: string = CDN_DEFAULT_ALBUM_COVER;
-                  let imageClass = "rounded-md";
-
-                  switch (item.type) {
-                    case "album": {
-                      const albumItem = item as AlbumItem;
-                      linkPath = `/albums/${albumItem._id}`;
-                      subtitle = `${t(`sidebar.subtitle.${normalizeAlbumKind(albumItem.albumType)}`)} • ${getArtistNames(albumItem.artist)}`;
-                      break;
-                    }
-                    case "playlist": {
-                      const playlistItem = item as PlaylistItem;
-                      linkPath = `/playlists/${playlistItem._id}`;
-                      if (playlistItem.playlistKind === "LIKED_SONGS") {
-                        const likedPl = myPlaylists.find(
-                          (p) => p._id === playlistItem._id,
-                        );
-                        const count = likedPl?.songs?.length ?? 0;
-                        subtitle = `${t("sidebar.subtitle.playlist")} • ${count} ${
-                          count !== 1
-                            ? t("sidebar.subtitle.songs")
-                            : t("sidebar.subtitle.song")
-                        }`;
-                        fallbackImage = CDN_LIKED_PLAYLIST_COVER;
-                      } else {
-                        subtitle = `${t("sidebar.subtitle.playlist")} • ${
-                          playlistItem.owner?.fullName ||
-                          t("common.unknownArtist")
-                        }`;
-                      }
-                      break;
-                    }
-                    case "artist": {
-                      const artistItem = item as FollowedArtistItem;
-                      linkPath = `/artists/${artistItem._id}`;
-                      subtitle = t("sidebar.subtitle.artist");
-                      imageClass = "rounded-full";
-                      break;
-                    }
-                    default:
-                      break;
-                  }
-
-                  return (
-                    <Link
-                      to={linkPath}
-                      key={`${item.type}-${item._id}`}
-                      className="p-2 hover:bg-zinc-800/50 rounded-md flex items-center gap-2 cursor-pointer relative"
-                    >
-                      <div className="relative flex-shrink-0 group">
-                        <CoverImage
-                          entity={item}
-                          size="thumb"
-                          defaultUrl={
-                            item.type === "artist"
-                              ? CDN_DEFAULT_ARTIST_IMAGE
-                              : fallbackImage
-                          }
-                          alt={item.title}
-                          className={`size-10 object-cover ${imageClass} transition-opacity group-hover:opacity-50`}
-                        />
-                        <div
-                          className="absolute inset-0 cursor-pointer"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            // Находим UniversalPlayButton и вызываем его onClick
-                            const playButton =
-                              e.currentTarget.parentElement?.querySelector(
-                                "button",
-                              );
-                            if (playButton) {
-                              playButton.click();
-                            }
-                          }}
-                        />
-                        <UniversalPlayButton
-                          entity={item}
-                          entityType={
-                            item.type as "album" | "playlist" | "artist"
-                          }
-                          variant="overlay"
-                          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-                          size="sm"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate text-white text-sm">
-                          {item.title}
-                        </p>
-                        <div className="flex items-center gap-1.5">
-                          {isDownloaded(item._id) && (
-                            <Download className="size-3 text-[#8b5cf6] flex-shrink-0" />
-                          )}
-                          <p className="text-xs text-gray-400 truncate">
-                            {subtitle}
-                          </p>
-                        </div>
-                      </div>
-                    </Link>
-                  );
-                })}
+                {filteredLibraryItems.map((item) => (
+                  <LibraryItemRow
+                    key={`${item.type}-${item._id}`}
+                    item={item}
+                    display={getLibraryItemDisplay(item, displayContext)}
+                    isDownloaded={isDownloaded(item._id)}
+                    variant="sidebar"
+                    showPlayButton
+                  />
+                ))}
               </div>
             ) : (
               <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,1fr))]">
-                {filteredLibraryItems.map((item) => {
-                  let linkPath: string = "#";
-                  let subtitle: string = "";
-                  let fallbackImage: string = CDN_DEFAULT_ALBUM_COVER;
-                  let imageClass = "rounded-md";
-
-                  switch (item.type) {
-                    case "album": {
-                      const albumItem = item as AlbumItem;
-                      linkPath = `/albums/${albumItem._id}`;
-                      subtitle = `${t(`sidebar.subtitle.${normalizeAlbumKind(albumItem.albumType)}`)} • ${getArtistNames(albumItem.artist)}`;
-                      break;
-                    }
-                    case "playlist": {
-                      const playlistItem = item as PlaylistItem;
-                      linkPath = `/playlists/${playlistItem._id}`;
-                      if (playlistItem.playlistKind === "LIKED_SONGS") {
-                        const likedPl = myPlaylists.find(
-                          (p) => p._id === playlistItem._id,
-                        );
-                        const count = likedPl?.songs?.length ?? 0;
-                        subtitle = `${t("sidebar.subtitle.playlist")} • ${count} ${
-                          count !== 1
-                            ? t("sidebar.subtitle.songs")
-                            : t("sidebar.subtitle.song")
-                        }`;
-                        fallbackImage = CDN_LIKED_PLAYLIST_COVER;
-                      } else {
-                        subtitle = `${t("sidebar.subtitle.playlist")} • ${
-                          playlistItem.owner?.fullName ||
-                          t("common.unknownArtist")
-                        }`;
-                      }
-                      break;
-                    }
-                    case "artist": {
-                      const artistItem = item as FollowedArtistItem;
-                      linkPath = `/artists/${artistItem._id}`;
-                      subtitle = t("sidebar.subtitle.artist");
-                      imageClass = "rounded-full";
-                      break;
-                    }
-                    default:
-                      break;
-                  }
-
-                  return (
-                    <Link
-                      to={linkPath}
-                      key={`${item.type}-${item._id}`}
-                      className="p-1 hover:bg-zinc-800/50 rounded-md flex flex-col items-center text-center cursor-pointer relative flex-shrink-0"
-                    >
-                      <div className="relative flex-shrink-0 group mb-0.5">
-                        <CoverImage
-                          entity={item}
-                          size="thumb"
-                          defaultUrl={
-                            item.type === "artist"
-                              ? CDN_DEFAULT_ARTIST_IMAGE
-                              : fallbackImage
-                          }
-                          alt={item.title}
-                          className={`h-20 w-20 object-cover ${imageClass} transition-opacity group-hover:opacity-50`}
-                        />
-                        <div
-                          className="absolute inset-0 cursor-pointer"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            // Находим UniversalPlayButton и вызываем его onClick
-                            const playButton =
-                              e.currentTarget.parentElement?.querySelector(
-                                "button",
-                              );
-                            if (playButton) {
-                              playButton.click();
-                            }
-                          }}
-                        />
-                        <UniversalPlayButton
-                          entity={item}
-                          entityType={
-                            item.type as "album" | "playlist" | "artist"
-                          }
-                          variant="overlay"
-                          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-                          size="sm"
-                        />
-                      </div>
-                      <div className="w-full">
-                        <p className="font-medium truncate text-white text-xs mb-0">
-                          {item.title}
-                        </p>
-                        <div className="flex items-center gap-0.5 justify-center">
-                          {isDownloaded(item._id) && (
-                            <Download className="size-2 text-[#8b5cf6] flex-shrink-0" />
-                          )}
-                          <p className="text-xs text-gray-400 truncate">
-                            {subtitle}
-                          </p>
-                        </div>
-                      </div>
-                    </Link>
-                  );
-                })}
+                {filteredLibraryItems.map((item) => (
+                  <LibraryItemCard
+                    key={`${item.type}-${item._id}`}
+                    item={item}
+                    display={getLibraryItemDisplay(item, displayContext)}
+                    isDownloaded={isDownloaded(item._id)}
+                    variant="sidebar"
+                    showPlayButton
+                  />
+                ))}
               </div>
             )}
-          </ScrollArea>
+          </div>
         )}
       </div>
     </div>
@@ -600,15 +195,10 @@ const LeftSidebar = () => {
 
 export default LeftSidebar;
 
-const LoginPrompt = ({ className }: { className?: string }) => {
+const LoginPrompt = () => {
   const { t } = useTranslation();
   return (
-    <div
-      className={cn(
-        "flex flex-col items-center justify-center p-6 text-center space-y-4",
-        className,
-      )}
-    >
+    <div className="h-full flex flex-col items-center justify-center p-4 text-center space-y-4">
       <div className="relative">
         <div className="relative bg-zinc-900 rounded-full p-4">
           <LibraryIcon className="size-8 text-[#8b5cf6]" />
