@@ -1,6 +1,5 @@
 // backend/src/lib/recommendation.service.js
 import mongoose from "mongoose";
-import { Library } from "../models/library.model.js";
 import { Album } from "../models/album.model.js";
 import { User } from "../models/user.model.js";
 import { Playlist } from "../models/playlist.model.js";

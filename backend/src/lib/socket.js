@@ -2,6 +2,7 @@
 import { Server } from "socket.io";
 import { Message } from "../models/message.model.js";
 import { User } from "../models/user.model.js";
+import { FollowedUser } from "../models/followedUser.model.js";
 import { Playlist } from "../models/playlist.model.js";
 import { Song } from "../models/song.model.js";
 import { Artist } from "../models/artist.model.js";
@@ -181,24 +182,24 @@ export const initializeSocket = (server) => {
           );
           return;
         }
-        const sender = await User.findById(senderId)
-          .select("followingUsers")
-          .lean();
-        const receiver = await User.findById(receiverId)
-          .select("followingUsers")
-          .lean();
+        const [sender, receiver, senderFollowsReceiver, receiverFollowsSender] =
+          await Promise.all([
+            User.findById(senderId).select("_id").lean(),
+            User.findById(receiverId).select("_id").lean(),
+            FollowedUser.exists({
+              follower: senderId,
+              following: receiverId,
+            }),
+            FollowedUser.exists({
+              follower: receiverId,
+              following: senderId,
+            }),
+          ]);
 
         if (!sender || !receiver) {
           socket.emit("message_error", "User not found.");
           return;
         }
-
-        const senderFollowsReceiver = sender.followingUsers.some((id) =>
-          id.equals(receiverId)
-        );
-        const receiverFollowsSender = receiver.followingUsers.some((id) =>
-          id.equals(senderId)
-        );
 
         if (!senderFollowsReceiver || !receiverFollowsSender) {
           console.log(

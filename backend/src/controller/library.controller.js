@@ -1,5 +1,6 @@
-import mongoose from "mongoose";
-import { Library } from "../models/library.model.js";
+import { SavedAlbum } from "../models/savedAlbum.model.js";
+import { SavedPlaylist } from "../models/savedPlaylist.model.js";
+import { FollowedArtist } from "../models/followedArtist.model.js";
 import { Playlist } from "../models/playlist.model.js";
 import { LikedSong } from "../models/likedSong.model.js";
 import { LIKED_PLAYLIST_ID } from "./playlist.controller.js";
@@ -7,102 +8,92 @@ import { LIKED_PLAYLIST_ID } from "./playlist.controller.js";
 const SONG_MINIMAL_SELECT =
   "_id title artist albumId images coverAccentHex duration playCount";
 
-const sortByLibraryAddedAtDesc = (a, b) => {
-  const ta = new Date(a.addedAt ?? 0).getTime();
-  const tb = new Date(b.addedAt ?? 0).getTime();
-  return tb - ta;
+const mapPopulated = (rows, refPath) =>
+  rows
+    .filter((r) => r[refPath])
+    .map((r) => ({
+      ...(r[refPath].toObject?.() ?? r[refPath]),
+      addedAt: r.addedAt,
+    }));
+
+function applyOptionalLimit(query, limit) {
+  if (limit > 0) {
+    return query.limit(limit);
+  }
+  return query;
+}
+
+const albumPopulate = {
+  path: "album",
+  select: "title images type artist",
+  populate: { path: "artist", select: "name images" },
 };
+
+const playlistPopulate = {
+  path: "playlist",
+  select: "title images owner isPublic type isSystem updatedAt",
+  populate: { path: "owner", select: "fullName images" },
+};
+
+const playlistPopulateWithSongs = {
+  path: "playlist",
+  populate: [
+    { path: "owner", select: "fullName images" },
+    {
+      path: "songs",
+      select: SONG_MINIMAL_SELECT,
+      populate: { path: "artist", select: "name images" },
+    },
+  ],
+};
+
+const artistPopulate = {
+  path: "artist",
+  select: "name images createdAt",
+};
+
+async function fetchLibraryRows(userId, { limit = 0 } = {}) {
+  const [albumRows, playlistRows, artistRows] = await Promise.all([
+    applyOptionalLimit(
+      SavedAlbum.find({ user: userId })
+        .sort({ addedAt: -1 })
+        .populate(albumPopulate),
+      limit,
+    ).lean(),
+    applyOptionalLimit(
+      SavedPlaylist.find({ user: userId })
+        .sort({ addedAt: -1 })
+        .populate(playlistPopulate),
+      limit,
+    ).lean(),
+    applyOptionalLimit(
+      FollowedArtist.find({ user: userId })
+        .sort({ addedAt: -1 })
+        .populate(artistPopulate),
+      limit,
+    ).lean(),
+  ]);
+
+  return {
+    albums: mapPopulated(albumRows, "album"),
+    playlists: mapPopulated(playlistRows, "playlist"),
+    followedArtists: mapPopulated(artistRows, "artist"),
+  };
+}
 
 /** GET /library/summary — preserves addedAt and newest-first order. */
 export async function buildLibrarySummaryForUser(userId) {
   if (!userId) {
     return { albums: [], playlists: [], followedArtists: [] };
   }
-
-  const library = await Library.findOne({ userId }).lean();
-  if (!library) {
-    return { albums: [], playlists: [], followedArtists: [] };
-  }
-
-  const albumEntries = library.albums || [];
-  const playlistEntries = library.playlists || [];
-  const artistEntries = library.followedArtists || [];
-
-  const albumIds = albumEntries.map((a) => a.albumId);
-  const playlistIds = playlistEntries.map((p) => p.playlistId);
-  const artistIds = artistEntries.map((a) => a.artistId);
-
-  const [albumDocs, playlistDocs, artistDocs] = await Promise.all([
-    mongoose
-      .model("Album")
-      .find({ _id: { $in: albumIds } })
-      .select("title images type artist")
-      .populate({ path: "artist", select: "name images" })
-      .lean(),
-    mongoose
-      .model("Playlist")
-      .find({ _id: { $in: playlistIds } })
-      .select("title images owner isPublic type isSystem updatedAt")
-      .populate({ path: "owner", select: "fullName images" })
-      .lean(),
-    mongoose
-      .model("Artist")
-      .find({ _id: { $in: artistIds } })
-      .select("name images createdAt")
-      .lean(),
-  ]);
-
-  const albumById = new Map(albumDocs.map((a) => [a._id.toString(), a]));
-  const playlistById = new Map(
-    playlistDocs.map((p) => [p._id.toString(), p]),
-  );
-  const artistById = new Map(artistDocs.map((a) => [a._id.toString(), a]));
-
-  const albums = albumEntries
-    .map((entry) => {
-      const doc = albumById.get(entry.albumId.toString());
-      if (!doc) return null;
-      return { ...doc, addedAt: entry.addedAt };
-    })
-    .filter(Boolean)
-    .sort(sortByLibraryAddedAtDesc);
-
-  const playlists = playlistEntries
-    .map((entry) => {
-      const doc = playlistById.get(entry.playlistId.toString());
-      if (!doc) return null;
-      return { ...doc, addedAt: entry.addedAt };
-    })
-    .filter(Boolean)
-    .sort(sortByLibraryAddedAtDesc);
-
-  const followedArtists = artistEntries
-    .map((entry) => {
-      const doc = artistById.get(entry.artistId.toString());
-      if (!doc) return null;
-      return { ...doc, addedAt: entry.addedAt };
-    })
-    .filter(Boolean)
-    .sort(sortByLibraryAddedAtDesc);
-
-  return { albums, playlists, followedArtists };
+  return fetchLibraryRows(userId);
 }
 
 export const getLibraryAlbums = async (req, res, next) => {
   try {
     const userId = req.user?.id;
-    const library = await Library.findOne({ userId }).populate(
-      "albums.albumId",
-    );
-    if (!library || !library.albums) return res.json({ albums: [] });
-
-    const albums = library.albums
-      .filter((a) => a.albumId && a.albumId._doc)
-      .map((a) => ({ ...a.albumId._doc, addedAt: a.addedAt }))
-      .sort(
-        (a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime(),
-      );
-
+    const limit = Number(req.query.limit) || 0;
+    const { albums } = await fetchLibraryRows(userId, { limit });
     res.json({ albums });
   } catch (err) {
     next(err);
@@ -114,29 +105,28 @@ export const toggleAlbumInLibrary = async (req, res, next) => {
     const userId = req.user?.id;
     const { albumId } = req.body;
 
-    const library = await Library.findOneAndUpdate(
-      { userId },
-      {},
-      { upsert: true, new: true },
-    );
-    if (!library.albums) library.albums = [];
+    const existing = await SavedAlbum.findOne({ user: userId, album: albumId });
 
-    const exists = library.albums.some(
-      (a) => a.albumId?.toString() === albumId,
-    );
-    if (exists) {
-      library.albums = library.albums.filter(
-        (a) => a.albumId?.toString() !== albumId,
-      );
-    } else {
-      library.albums.push({
-        albumId: new mongoose.Types.ObjectId(albumId),
-        addedAt: new Date(),
-      });
+    if (existing) {
+      await SavedAlbum.deleteOne({ _id: existing._id });
+      return res.json({ success: true, isAdded: false });
     }
 
-    await library.save();
-    res.json({ success: true, isAdded: !exists });
+    try {
+      await SavedAlbum.create({
+        user: userId,
+        album: albumId,
+        addedAt: new Date(),
+      });
+    } catch (err) {
+      if (err?.code === 11000) {
+        await SavedAlbum.deleteOne({ user: userId, album: albumId });
+        return res.json({ success: true, isAdded: false });
+      }
+      throw err;
+    }
+
+    res.json({ success: true, isAdded: true });
   } catch (err) {
     next(err);
   }
@@ -189,20 +179,14 @@ export const toggleSongLikeInLibrary = async (req, res, next) => {
 export const getPlaylistsInLibrary = async (req, res, next) => {
   try {
     const userId = req.user?.id;
-    const library = await Library.findOne({ userId }).populate({
-      path: "playlists.playlistId",
-      model: "Playlist",
-      populate: { path: "owner", select: "fullName images" },
-    });
+    const limit = Number(req.query.limit) || 0;
 
-    if (!library || !library.playlists) return res.json({ playlists: [] });
+    const query = SavedPlaylist.find({ user: userId })
+      .sort({ addedAt: -1 })
+      .populate(playlistPopulateWithSongs);
 
-    const playlists = library.playlists
-      .filter((item) => item.playlistId && item.playlistId._doc)
-      .map((item) => ({ ...item.playlistId._doc, addedAt: item.addedAt }))
-      .sort(
-        (a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime(),
-      );
+    const playlistRows = await applyOptionalLimit(query, limit).lean();
+    const playlists = mapPopulated(playlistRows, "playlist");
 
     res.json({ playlists });
   } catch (err) {
@@ -215,29 +199,31 @@ export const togglePlaylistInLibrary = async (req, res, next) => {
     const userId = req.user?.id;
     const { playlistId } = req.body;
 
-    const library = await Library.findOneAndUpdate(
-      { userId },
-      {},
-      { upsert: true, new: true },
-    );
-    if (!library.playlists) library.playlists = [];
+    const existing = await SavedPlaylist.findOne({
+      user: userId,
+      playlist: playlistId,
+    });
 
-    const exists = library.playlists.some(
-      (p) => p.playlistId?.toString() === playlistId,
-    );
-    if (exists) {
-      library.playlists = library.playlists.filter(
-        (p) => p.playlistId?.toString() !== playlistId,
-      );
-    } else {
-      library.playlists.push({
-        playlistId: new mongoose.Types.ObjectId(playlistId),
-        addedAt: new Date(),
-      });
+    if (existing) {
+      await SavedPlaylist.deleteOne({ _id: existing._id });
+      return res.json({ success: true, isAdded: false });
     }
 
-    await library.save();
-    res.json({ success: true, isAdded: !exists });
+    try {
+      await SavedPlaylist.create({
+        user: userId,
+        playlist: playlistId,
+        addedAt: new Date(),
+      });
+    } catch (err) {
+      if (err?.code === 11000) {
+        await SavedPlaylist.deleteOne({ user: userId, playlist: playlistId });
+        return res.json({ success: true, isAdded: false });
+      }
+      throw err;
+    }
+
+    res.json({ success: true, isAdded: true });
   } catch (err) {
     next(err);
   }
@@ -248,29 +234,31 @@ export const toggleArtistInLibrary = async (req, res, next) => {
     const userId = req.user?.id;
     const { artistId } = req.body;
 
-    const library = await Library.findOneAndUpdate(
-      { userId },
-      {},
-      { upsert: true, new: true },
-    );
-    if (!library.followedArtists) library.followedArtists = [];
+    const existing = await FollowedArtist.findOne({
+      user: userId,
+      artist: artistId,
+    });
 
-    const exists = library.followedArtists.some(
-      (a) => a.artistId?.toString() === artistId,
-    );
-    if (exists) {
-      library.followedArtists = library.followedArtists.filter(
-        (a) => a.artistId?.toString() !== artistId,
-      );
-    } else {
-      library.followedArtists.push({
-        artistId: new mongoose.Types.ObjectId(artistId),
-        addedAt: new Date(),
-      });
+    if (existing) {
+      await FollowedArtist.deleteOne({ _id: existing._id });
+      return res.json({ success: true, isFollowed: false });
     }
 
-    await library.save();
-    res.json({ success: true, isFollowed: !exists });
+    try {
+      await FollowedArtist.create({
+        user: userId,
+        artist: artistId,
+        addedAt: new Date(),
+      });
+    } catch (err) {
+      if (err?.code === 11000) {
+        await FollowedArtist.deleteOne({ user: userId, artist: artistId });
+        return res.json({ success: true, isFollowed: false });
+      }
+      throw err;
+    }
+
+    res.json({ success: true, isFollowed: true });
   } catch (err) {
     next(err);
   }
@@ -279,22 +267,14 @@ export const toggleArtistInLibrary = async (req, res, next) => {
 export const getFollowedArtists = async (req, res, next) => {
   try {
     const userId = req.user?.id;
-    const library = await Library.findOne({ userId })
-      .populate({
-        path: "followedArtists.artistId",
-        model: "Artist",
-        select: "name images createdAt",
-      })
-      .lean();
+    const limit = Number(req.query.limit) || 0;
 
-    if (!library || !library.followedArtists) return res.json({ artists: [] });
+    const query = FollowedArtist.find({ user: userId })
+      .sort({ addedAt: -1 })
+      .populate(artistPopulate);
 
-    const artists = library.followedArtists
-      .filter((item) => item.artistId && item.artistId._id)
-      .map((item) => ({ ...item.artistId, addedAt: item.addedAt }))
-      .sort(
-        (a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime(),
-      );
+    const artistRows = await applyOptionalLimit(query, limit).lean();
+    const artists = mapPopulated(artistRows, "artist");
 
     res.json({ artists });
   } catch (err) {
@@ -305,7 +285,6 @@ export const getFollowedArtists = async (req, res, next) => {
 export const getOwnedPlaylists = async (req, res) => {
   try {
     const userId = req.user.id;
-    // Ищем все плейлисты, которыми владеет пользователь (исключая системные, если фронт ожидает только обычные)
     const playlists = await Playlist.find({
       owner: userId,
       type: "USER_CREATED",

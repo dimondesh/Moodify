@@ -3,7 +3,8 @@
 import mongoose from "mongoose";
 import { Message } from "../models/message.model.js";
 import { User } from "../models/user.model.js";
-import { Library } from "../models/library.model.js";
+import { FollowedUser } from "../models/followedUser.model.js";
+import { FollowedArtist } from "../models/followedArtist.model.js";
 import { Album } from "../models/album.model.js";
 import { RecentSearch } from "../models/recentSearch.model.js";
 import {
@@ -68,32 +69,35 @@ export const getCurrentUser = (req, res) => {
 export const getUserProfile = async (req, res, next) => {
   try {
     const { userId } = req.params;
-    const profileUser = await User.findById(userId)
-      .populate({
-        path: "playlists",
-        match: { isPublic: true },
-        populate: [
-          { path: "owner", model: "User", select: "fullName" },
-          {
-            path: "songs",
-            select: SONG_MINIMAL_SELECT,
-            populate: { path: "artist", select: "name images" },
-          },
-        ],
-        select: "title images isPublic owner songs",
-      })
-      .select("-email -passwordHash");
-
-    const library = await Library.findOne({ userId: userId }).lean();
+    const profileUser = await User.findById(userId).select(
+      "-email -passwordHash",
+    );
 
     if (!profileUser)
       return res.status(404).json({ message: "User not found" });
 
+    const [
+      followersCount,
+      followingUsersCount,
+      followingArtistsCount,
+      publicPlaylistsCount,
+      followerRows,
+    ] = await Promise.all([
+      FollowedUser.countDocuments({ following: userId }),
+      FollowedUser.countDocuments({ follower: userId }),
+      FollowedArtist.countDocuments({ user: userId }),
+      Playlist.countDocuments({ owner: userId, isPublic: true }),
+      FollowedUser.find({ following: userId }).select("follower").lean(),
+    ]);
+
     const profileData = profileUser.toObject();
-    profileData.followersCount = profileUser.followers.length;
-    profileData.followingUsersCount = profileUser.followingUsers.length;
-    profileData.followingArtistsCount = library?.followedArtists?.length || 0;
-    profileData.publicPlaylistsCount = profileUser.playlists.length;
+    profileData.followersCount = followersCount;
+    profileData.followingUsersCount = followingUsersCount;
+    profileData.followingArtistsCount = followingArtistsCount;
+    profileData.publicPlaylistsCount = publicPlaylistsCount;
+    profileData.followers = followerRows.map((row) =>
+      row.follower.toString(),
+    );
 
     res.status(200).json(profileData);
   } catch (error) {
@@ -104,18 +108,22 @@ export const getUserProfile = async (req, res, next) => {
 export const getFollowers = async (req, res, next) => {
   try {
     const { userId } = req.params;
-    const user = await User.findById(userId)
-      .populate({ path: "followers", select: "fullName images" })
-      .select("followers");
-
+    const user = await User.findById(userId).select("_id");
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const followers = user.followers.map((f) => ({
-      _id: f._id,
-      name: f.fullName,
-      images: f.images || [],
-      type: "user",
-    }));
+    const rows = await FollowedUser.find({ following: userId })
+      .sort({ addedAt: -1 })
+      .populate({ path: "follower", select: "fullName images" })
+      .lean();
+
+    const followers = rows
+      .filter((row) => row.follower)
+      .map((row) => ({
+        _id: row.follower._id,
+        name: row.follower.fullName,
+        images: row.follower.images || [],
+        type: "user",
+      }));
 
     res.status(200).json({ items: followers });
   } catch (error) {
@@ -132,33 +140,28 @@ export const followUser = async (req, res, next) => {
       return res.status(400).json({ message: "You cannot follow yourself" });
     }
 
-    const currentUser = await User.findById(currentUserMongoId);
     const userToFollow = await User.findById(userToFollowId);
 
     if (!userToFollow)
       return res.status(404).json({ message: "User to follow not found" });
 
-    const isFollowing = currentUser.followingUsers.includes(userToFollowId);
+    const existing = await FollowedUser.findOne({
+      follower: currentUserMongoId,
+      following: userToFollowId,
+    });
 
-    if (isFollowing) {
-      await User.updateOne(
-        { _id: currentUserMongoId },
-        { $pull: { followingUsers: userToFollowId } },
-      );
-      await User.updateOne(
-        { _id: userToFollowId },
-        { $pull: { followers: currentUserMongoId } },
-      );
+    if (existing) {
+      await FollowedUser.deleteOne({ _id: existing._id });
       res.status(200).json({ message: "Unfollowed successfully" });
     } else {
-      await User.updateOne(
-        { _id: currentUserMongoId },
-        { $addToSet: { followingUsers: userToFollowId } },
-      );
-      await User.updateOne(
-        { _id: userToFollowId },
-        { $addToSet: { followers: currentUserMongoId } },
-      );
+      try {
+        await FollowedUser.create({
+          follower: currentUserMongoId,
+          following: userToFollowId,
+        });
+      } catch (err) {
+        if (err?.code !== 11000) throw err;
+      }
       res.status(200).json({ message: "Followed successfully" });
     }
   } catch (error) {
@@ -193,9 +196,7 @@ export const updateUserProfile = async (req, res, next) => {
 
     const updatedUser = await User.findByIdAndUpdate(userId, updateDataMongo, {
       new: true,
-    }).select(
-      "-email -passwordHash -followers -followingUsers -followingArtists",
-    );
+    }).select("-email -passwordHash");
 
     res
       .status(200)
@@ -274,22 +275,30 @@ export const updateUserPrivacy = async (req, res, next) => {
 export const getMutualFollowers = async (req, res, next) => {
   try {
     const currentUserMongoId = req.user.id;
-    const currentUser =
-      await User.findById(currentUserMongoId).select("followingUsers");
 
-    if (!currentUser)
-      return res.status(404).json({ message: "Current user not found." });
+    const myFollowing = await FollowedUser.find({
+      follower: currentUserMongoId,
+    })
+      .select("following")
+      .lean();
 
-    const followedUsers = await User.find({
-      _id: { $in: currentUser.followingUsers },
-    }).select(
-      "fullName images followers isAnonymous lastListeningActivity",
-    );
+    if (!myFollowing.length) {
+      return res.status(200).json({ users: [] });
+    }
 
-    const mutuals = followedUsers.filter((user) =>
-      user.followers.some((followerId) =>
-        followerId.equals(currentUserMongoId),
-      ),
+    const followingIds = myFollowing.map((row) => row.following);
+
+    const mutualRows = await FollowedUser.find({
+      follower: { $in: followingIds },
+      following: currentUserMongoId,
+    })
+      .select("follower")
+      .lean();
+
+    const mutualIds = mutualRows.map((row) => row.follower);
+
+    const mutuals = await User.find({ _id: { $in: mutualIds } }).select(
+      "fullName images isAnonymous lastListeningActivity",
     );
 
     const users = await Promise.all(
@@ -321,43 +330,47 @@ export const getFollowing = async (req, res, next) => {
   try {
     const { userId } = req.params;
 
-    const user = await User.findById(userId)
-      .populate({ path: "followingUsers", select: "fullName images" })
-      .select("followingUsers");
-
-    const library = await Library.findOne({ userId })
-      .populate({
-        path: "followedArtists.artistId",
-        model: "Artist",
-        select: "name images",
-        populate: {
-          path: "songs",
-          select: SONG_MINIMAL_SELECT,
-          populate: { path: "artist", select: "name images" },
-          options: { sort: { playCount: -1 }, limit: 5 },
-        },
-      })
-      .select("followedArtists");
-
+    const user = await User.findById(userId).select("_id");
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const followingUsers = user.followingUsers.map((u) => ({
-      _id: u._id,
-      name: u.fullName,
-      images: u.images || [],
-      type: "user",
-    }));
+    const [userRows, artistRows] = await Promise.all([
+      FollowedUser.find({ follower: userId })
+        .sort({ addedAt: -1 })
+        .populate({ path: "following", select: "fullName images" })
+        .lean(),
+      FollowedArtist.find({ user: userId })
+        .sort({ addedAt: -1 })
+        .populate({
+          path: "artist",
+          select: "name images",
+          populate: {
+            path: "songs",
+            select: SONG_MINIMAL_SELECT,
+            populate: { path: "artist", select: "name images" },
+            options: { sort: { playCount: -1 }, limit: 5 },
+          },
+        })
+        .lean(),
+    ]);
 
-    const followedArtists =
-      library?.followedArtists
-        .filter((item) => item && item.artistId)
-        .map((a) => ({
-          _id: a.artistId._id,
-          name: a.artistId.name,
-          images: a.artistId.images || [],
-          type: "artist",
-          songs: a.artistId.songs || [],
-        })) || [];
+    const followingUsers = userRows
+      .filter((row) => row.following)
+      .map((row) => ({
+        _id: row.following._id,
+        name: row.following.fullName,
+        images: row.following.images || [],
+        type: "user",
+      }));
+
+    const followedArtists = artistRows
+      .filter((row) => row.artist)
+      .map((row) => ({
+        _id: row.artist._id,
+        name: row.artist.name,
+        images: row.artist.images || [],
+        type: "artist",
+        songs: row.artist.songs || [],
+      }));
 
     const combinedFollowing = [...followingUsers, ...followedArtists];
     res.status(200).json({ items: combinedFollowing });
@@ -369,22 +382,19 @@ export const getFollowing = async (req, res, next) => {
 export const getPublicPlaylists = async (req, res, next) => {
   try {
     const { userId } = req.params;
-    const user = await User.findById(userId)
-      .populate({
-        path: "playlists",
-        match: { isPublic: true },
-        select: "title images owner",
-        populate: { path: "owner", model: "User", select: "fullName" },
-      })
-      .select("playlists");
-
+    const user = await User.findById(userId).select("_id");
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const playlists = user.playlists.map((p) => ({
-      ...p.toObject(),
+    const playlists = await Playlist.find({ owner: userId, isPublic: true })
+      .select("title images owner")
+      .populate({ path: "owner", model: "User", select: "fullName" })
+      .lean();
+
+    const items = playlists.map((p) => ({
+      ...p,
       type: "playlist",
     }));
-    res.status(200).json({ items: playlists });
+    res.status(200).json({ items });
   } catch (error) {
     next(error);
   }

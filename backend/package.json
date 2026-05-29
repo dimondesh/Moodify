@@ -10,7 +10,8 @@
     "seed:songs": "node src/seeds/songs.js",
     "seed:albums": "node src/seeds/albums.js",
     "backfill:cover-accent": "node scripts/backfill-cover-accent.js",
-    "migrate:liked-songs": "node src/scripts/migrateLikedSongs.js"
+    "migrate:liked-songs": "node src/scripts/migrateLikedSongs.js",
+    "migrate:library-social": "node src/scripts/migrateLibraryAndSocial.js"
   },
   "keywords": [],
   "type": "module",

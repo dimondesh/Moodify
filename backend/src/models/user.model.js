@@ -31,30 +31,6 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    playlists: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Playlist",
-      },
-    ],
-    followers: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-    ],
-    followingUsers: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-    ],
-    followingArtists: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Artist",
-      },
-    ],
     showRecentlyListenedArtists: {
       type: Boolean,
       default: true,

@@ -2,7 +2,7 @@ import { Playlist } from "../models/playlist.model.js";
 import { LikedSong } from "../models/likedSong.model.js";
 import { User } from "../models/user.model.js";
 import { Song } from "../models/song.model.js";
-import { Library } from "../models/library.model.js";
+import { SavedPlaylist } from "../models/savedPlaylist.model.js";
 import { getPlaylistEmbeddingRecommendations } from "../lib/recommendation.service.js";
 import { deletePlaylistCoverFromCdn } from "../lib/playlistCover.service.js";
 import {
@@ -133,10 +133,6 @@ export const createPlaylist = async (req, res, next) => {
 
     await playlist.save();
 
-    await User.findByIdAndUpdate(ownerId, {
-      $push: { playlists: playlist._id },
-    });
-
     res.status(201).json(playlist);
   } catch (error) {
     console.error("Error in createPlaylist:", error);
@@ -153,28 +149,23 @@ export const getMyPlaylists = async (req, res, next) => {
       .populate(populatePlaylistEmbeddedSongs)
       .lean();
 
-    const userLibrary = await Library.findOne({ userId })
+    const savedRows = await SavedPlaylist.find({ user: userId })
+      .sort({ addedAt: -1 })
       .populate({
-        path: "playlists.playlistId",
-        model: "Playlist",
+        path: "playlist",
         populate: [
-          {
-            path: "owner",
-            select: "fullName images",
-          },
+          { path: "owner", select: "fullName images" },
           populatePlaylistEmbeddedSongs,
         ],
       })
       .lean();
 
-    const addedPlaylists = userLibrary
-      ? userLibrary.playlists
-          .filter((item) => item.playlistId)
-          .map((item) => ({
-            ...item.playlistId,
-            addedAt: item.addedAt,
-          }))
-      : [];
+    const addedPlaylists = savedRows
+      .filter((row) => row.playlist)
+      .map((row) => ({
+        ...row.playlist,
+        addedAt: row.addedAt,
+      }));
 
     const combinedPlaylistsMap = new Map();
 
@@ -327,9 +318,6 @@ export const deletePlaylist = async (req, res, next) => {
     await deletePlaylistCoverFromCdn(playlist);
 
     await Playlist.findByIdAndDelete(playlistId);
-    await User.findByIdAndUpdate(playlist.owner, {
-      $pull: { playlists: playlist._id },
-    });
 
     res.status(200).json({ message: "Playlist deleted successfully" });
   } catch (error) {
@@ -545,10 +533,6 @@ export const createPlaylistFromSong = async (req, res, next) => {
     });
 
     await newPlaylist.save();
-
-    await User.findByIdAndUpdate(ownerId, {
-      $push: { playlists: newPlaylist._id },
-    });
 
     res.status(201).json(newPlaylist);
   } catch (error) {
