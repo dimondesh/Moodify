@@ -42,6 +42,12 @@ const playlistSchema = new mongoose.Schema(
     searchableNames: { type: [String], index: true },
 
     lastGeneratedAt: { type: Date, default: Date.now },
+
+    embedding: {
+      type: [Number],
+      default: null,
+      index: true,
+    },
   },
   { timestamps: true },
 );
@@ -52,3 +58,6 @@ playlistSchema.index({ type: 1, isPublic: 1 });
 playlistSchema.index({ title: "text" });
 
 export const Playlist = mongoose.model("Playlist", playlistSchema);
+
+import { registerEntityEmbeddingHooks } from "./hooks/entityEmbedding.hooks.js";
+registerEntityEmbeddingHooks();

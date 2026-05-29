@@ -104,3 +104,6 @@ songSchema.index({ moods: 1 });
 songSchema.index({ title: "text" });
 
 export const Song = mongoose.model("Song", songSchema);
+
+import { registerEntityEmbeddingHooks } from "./hooks/entityEmbedding.hooks.js";
+registerEntityEmbeddingHooks();

@@ -31,6 +31,11 @@ const albumSchema = new mongoose.Schema(
       enum: ["Album", "Single", "EP"],
       default: "Album",
     },
+    embedding: {
+      type: [Number],
+      default: null,
+      index: true,
+    },
   },
   { timestamps: true }
 );

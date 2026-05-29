@@ -1,10 +1,109 @@
 // backend/src/lib/recommendation.service.js
 import mongoose from "mongoose";
 import { Album } from "../models/album.model.js";
+import { Artist } from "../models/artist.model.js";
 import { User } from "../models/user.model.js";
 import { Playlist } from "../models/playlist.model.js";
 import { Song } from "../models/song.model.js";
 import { ListenHistory } from "../models/listenHistory.model.js";
+import {
+  EMBEDDING_DIM,
+  ARTIST_TOP_TRACKS_LIMIT,
+} from "../constants/embedding.js";
+
+const extractValidEmbeddings = (songs) =>
+  songs
+    .map((s) => s.audioFeatures?.embedding)
+    .filter((e) => Array.isArray(e) && e.length === EMBEDDING_DIM);
+
+const normalizeEmbedding = (vec) => {
+  let norm = 0;
+  for (let i = 0; i < vec.length; i++) {
+    norm += vec[i] * vec[i];
+  }
+  norm = Math.sqrt(norm);
+  if (norm === 0) return vec;
+  return vec.map((v) => v / norm);
+};
+
+/** Mean pooling of 50d track vectors + L2 normalization (same as embedding service output). */
+export const meanPoolEmbeddings = (vectors) => {
+  const valid = vectors.filter(
+    (v) => Array.isArray(v) && v.length === EMBEDDING_DIM,
+  );
+  if (valid.length === 0) return null;
+
+  const sum = new Array(EMBEDDING_DIM).fill(0);
+  for (const vec of valid) {
+    for (let i = 0; i < EMBEDDING_DIM; i++) {
+      sum[i] += vec[i];
+    }
+  }
+  const n = valid.length;
+  for (let i = 0; i < EMBEDDING_DIM; i++) {
+    sum[i] /= n;
+  }
+  return normalizeEmbedding(sum);
+};
+
+export const computeAlbumEmbedding = async (albumId) => {
+  if (!albumId) return null;
+  const songs = await Song.find({ albumId })
+    .select("audioFeatures.embedding")
+    .lean();
+  return meanPoolEmbeddings(extractValidEmbeddings(songs));
+};
+
+export const computePlaylistEmbedding = async (playlistId) => {
+  if (!playlistId) return null;
+  const playlist = await Playlist.findById(playlistId).select("songs").lean();
+  if (!playlist?.songs?.length) return null;
+
+  const songs = await Song.find({ _id: { $in: playlist.songs } })
+    .select("audioFeatures.embedding")
+    .lean();
+  return meanPoolEmbeddings(extractValidEmbeddings(songs));
+};
+
+export const computeArtistEmbedding = async (artistId) => {
+  if (!artistId) return null;
+  const songs = await Song.find({ artist: artistId })
+    .select("audioFeatures.embedding")
+    .sort({ playCount: -1 })
+    .limit(ARTIST_TOP_TRACKS_LIMIT)
+    .lean();
+  return meanPoolEmbeddings(extractValidEmbeddings(songs));
+};
+
+export const updateAlbumEmbedding = async (albumId) => {
+  if (!albumId) return;
+  try {
+    const embedding = await computeAlbumEmbedding(albumId);
+    await Album.updateOne({ _id: albumId }, { $set: { embedding } });
+  } catch (error) {
+    console.error("updateAlbumEmbedding:", error);
+  }
+};
+
+export const updatePlaylistEmbedding = async (playlistId) => {
+  if (!playlistId) return;
+  try {
+    const embedding = await computePlaylistEmbedding(playlistId);
+    await Playlist.updateOne({ _id: playlistId }, { $set: { embedding } });
+  } catch (error) {
+    console.error("updatePlaylistEmbedding:", error);
+  }
+};
+
+export const updateArtistEmbedding = async (artistId) => {
+  if (!artistId) return;
+  try {
+    const embedding = await computeArtistEmbedding(artistId);
+    await Artist.updateOne({ _id: artistId }, { $set: { embedding } });
+  } catch (error) {
+    console.error("updateArtistEmbedding:", error);
+  }
+};
 
 // Вспомогательная функция для расчета разницы (чем меньше, тем лучше)
 
@@ -210,27 +309,6 @@ export const getVibeMatchTracks = async (currentSongId, limit = 10) => {
   return topMatches.sort(() => 0.5 - Math.random()).slice(0, limit);
 };
 
-const computeCentroidEmbedding = (embeddings) => {
-  const dim = embeddings[0].length;
-  const sum = new Array(dim).fill(0);
-  for (const vec of embeddings) {
-    for (let i = 0; i < dim; i++) {
-      sum[i] += vec[i];
-    }
-  }
-  const n = embeddings.length;
-  for (let i = 0; i < dim; i++) {
-    sum[i] /= n;
-  }
-  let norm = 0;
-  for (let i = 0; i < dim; i++) {
-    norm += sum[i] * sum[i];
-  }
-  norm = Math.sqrt(norm);
-  if (norm === 0) return sum;
-  return sum.map((v) => v / norm);
-};
-
 const scoreCandidateAgainstPlaylist = (
   centroidEmbedding,
   avgAudioFeatures,
@@ -305,25 +383,30 @@ export const getPlaylistEmbeddingRecommendations = async (
   limit = 10,
 ) => {
   try {
-    const playlist = await Playlist.findById(playlistId).select("songs").lean();
+    const playlist = await Playlist.findById(playlistId)
+      .select("songs embedding")
+      .lean();
     if (!playlist?.songs?.length || playlist.songs.length <= 3) {
       return null;
     }
 
-    const playlistSongIds = playlist.songs.map((id) => id.toString());
     const playlistSongs = await Song.find({ _id: { $in: playlist.songs } })
       .select("genres moods audioFeatures")
       .lean();
 
     if (!playlistSongs.length) return null;
 
-    const embeddings = playlistSongs
-      .map((s) => s.audioFeatures?.embedding)
-      .filter((e) => Array.isArray(e) && e.length > 0);
+    const storedEmbedding =
+      Array.isArray(playlist.embedding) &&
+      playlist.embedding.length === EMBEDDING_DIM
+        ? playlist.embedding
+        : null;
 
-    if (embeddings.length === 0) return null;
+    const centroidEmbedding =
+      storedEmbedding ??
+      meanPoolEmbeddings(extractValidEmbeddings(playlistSongs));
 
-    const centroidEmbedding = computeCentroidEmbedding(embeddings);
+    if (!centroidEmbedding) return null;
 
     const genreIds = [
       ...new Map(

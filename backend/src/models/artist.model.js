@@ -24,6 +24,11 @@ const artistSchema = new mongoose.Schema(
     bannerPublicId: {
       type: String,
     },
+    embedding: {
+      type: [Number],
+      default: null,
+      index: true,
+    },
   },
   { timestamps: true }
 );

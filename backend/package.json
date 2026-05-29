@@ -15,7 +15,8 @@
     "backfill:cover-accent": "node scripts/backfill-cover-accent.js",
     "migrate:liked-songs": "node src/scripts/migrateLikedSongs.js",
     "migrate:library-social": "node src/scripts/migrateLibraryAndSocial.js",
-    "migrate:unbounded-arrays": "node src/scripts/migrateUnboundedArrays.js"
+    "migrate:unbounded-arrays": "node src/scripts/migrateUnboundedArrays.js",
+    "generate:entity-embeddings": "node src/scripts/generateEntityEmbeddings.js"
   },
   "keywords": [],
   "type": "module",
