@@ -5,7 +5,8 @@ import { Button } from "../../components/ui/button";
 import type { Artist } from "../../types";
 import SectionGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton";
 import { useTranslation } from "react-i18next";
-import { getOptimizedImageUrl } from "@/lib/utils";
+import { CoverImage } from "@/components/CoverImage";
+import { CDN_DEFAULT_ARTIST_IMAGE } from "@/lib/cdn";
 import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
 
 import { useAddRecentSearch } from "@/hooks/useSearch";
@@ -59,17 +60,12 @@ const ArtistGridComponent: React.FC<ArtistGridProps> = ({
           >
             <div className="relative mb-2">
               <div className="relative aspect-square shadow-lg overflow-hidden rounded-full">
-                <img
-                  src={getOptimizedImageUrl(
-                    artist.imageUrl || "/default_artist_cover.png",
-                    200
-                  )}
+                <CoverImage
+                  entity={artist}
+                  size="card"
+                  defaultUrl={CDN_DEFAULT_ARTIST_IMAGE}
                   alt={artist.name}
                   className="absolute inset-0 h-full w-full object-cover rounded-full transition-transform duration-300 group-hover:scale-105"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src =
-                      "/default_artist_cover.png";
-                  }}
                 />
               </div>
               <UniversalPlayButton

@@ -5,8 +5,9 @@ import { Button } from "../../components/ui/button";
 import type { Album } from "../../types";
 import SectionGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton";
 import { useTranslation } from "react-i18next";
-import { getArtistNames, getOptimizedImageUrl } from "@/lib/utils";
+import { getArtistNames } from "@/lib/utils";
 import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
+import { CoverImage } from "@/components/CoverImage";
 import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
 
 import { useAddRecentSearch } from "@/hooks/useSearch";
@@ -60,18 +61,12 @@ const AlbumGridComponent = ({
           >
             <div className="relative mb-2">
               <div className="relative aspect-square shadow-lg overflow-hidden rounded-md">
-                <img
-                  src={getOptimizedImageUrl(
-                    album.imageUrl ||
-                      CDN_DEFAULT_ALBUM_COVER,
-                    200
-                  )}
+                <CoverImage
+                  entity={album}
+                  size="card"
+                  defaultUrl={CDN_DEFAULT_ALBUM_COVER}
                   alt={album.title}
                   className="absolute inset-0 h-full w-full object-cover rounded-md transition-transform duration-300 group-hover:scale-105"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src =
-                      CDN_DEFAULT_ALBUM_COVER;
-                  }}
                 />
               </div>
               <UniversalPlayButton

@@ -1,8 +1,13 @@
+export interface ImageVariant {
+  size: number;
+  url: string;
+}
+
 export interface Artist {
   _id: string;
   name: string;
   bio?: string;
-  imageUrl: string;
+  images?: ImageVariant[];
   songs: Song[];
   albums: Album[];
   addedAt?: string;
@@ -25,7 +30,7 @@ export interface Song {
   title: string;
   artist: Artist[];
   albumId: string | null;
-  imageUrl: string;
+  images?: ImageVariant[];
   hlsUrl?: string;
   canvasUrl?: string;
   duration: number;
@@ -48,7 +53,7 @@ export interface RecentSearchItem {
 
   name?: string;
   title?: string;
-  imageUrl: string;
+  images?: ImageVariant[];
 
   artist?: Artist[];
   owner?: User;
@@ -60,7 +65,7 @@ export interface Album {
   _id: string;
   title: string;
   artist: Artist[];
-  imageUrl: string;
+  images?: ImageVariant[];
   releaseYear: number;
   songs: Song[];
   type: string;
@@ -96,7 +101,7 @@ export interface Message {
 export interface User {
   _id: string;
   fullName: string;
-  imageUrl: string;
+  images?: ImageVariant[];
   email: string;
   isAdmin?: boolean;
   playlists?: Playlist[];
@@ -161,7 +166,7 @@ export interface Playlist {
   songs: Song[];
   /** Server playlist category (not the library UI discriminator) */
   type?: PlaylistKind;
-  imageUrl?: string;
+  images?: ImageVariant[];
   likes?: number;
   createdAt: string;
   updatedAt: string;
@@ -176,7 +181,7 @@ export interface Playlist {
 export interface BaseLibraryItem {
   _id: string;
   title: string;
-  imageUrl?: string | null;
+  images?: ImageVariant[];
   createdAt: Date;
 }
 
@@ -204,9 +209,9 @@ export interface LibraryPlaylist extends Playlist {
 
 /** Row in profile followers/following or home horizontal sections */
 export type UserSectionItem = {
+  images?: ImageVariant[];
   _id: string;
   name: string;
-  imageUrl: string;
   itemType: "user";
 };
 

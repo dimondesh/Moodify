@@ -12,9 +12,10 @@ import {
   formatDuration,
   formatPlaylistTotalDuration,
   getArtistNames,
-  getOptimizedImageUrl,
 } from "@/lib/utils";
-import { CDN_DEFAULT_ALBUM_COVER, resolveUserImageUrl } from "@/lib/cdn";
+import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
+import { getUserAvatarUrl } from "@/lib/imageUrl";
+import { CoverImage } from "@/components/CoverImage";
 import { CollectionGradientLayout } from "@/components/CollectionGradientLayout";
 import { useDominantCoverGradient } from "@/hooks/useDominantCoverGradient";
 import { DeletePlaylistDialog } from "./DeletePlaylistDialog";
@@ -142,7 +143,6 @@ const PlaylistDetailsPage = () => {
   );
 
   const { backgrounds, isColorLoading } = useDominantCoverGradient(
-    currentPlaylist?.imageUrl,
     playlistId,
     currentPlaylist?.coverAccentHex,
   );
@@ -283,11 +283,10 @@ const PlaylistDetailsPage = () => {
           className="flex items-center justify-between gap-4 p-2 rounded-md group cursor-pointer hover:bg-white/5"
         >
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <img
-              src={getOptimizedImageUrl(
-                song.imageUrl || "/default-song-cover.png",
-                100,
-              )}
+            <CoverImage
+              entity={song}
+              size="thumb"
+              defaultUrl={CDN_DEFAULT_ALBUM_COVER}
               alt={song.title}
               className="size-12 object-cover rounded-md flex-shrink-0"
             />
@@ -361,11 +360,10 @@ const PlaylistDetailsPage = () => {
               }}
               className="flex-shrink-0"
             >
-              <img
-                src={getOptimizedImageUrl(
-                  song.imageUrl || "/default-song-cover.png",
-                  80,
-                )}
+              <CoverImage
+                entity={song}
+                size="thumb"
+                defaultUrl={CDN_DEFAULT_ALBUM_COVER}
                 alt={song.title}
                 className="size-10 object-cover rounded-md"
               />
@@ -539,22 +537,19 @@ const PlaylistDetailsPage = () => {
                   className="group w-64 h-64 sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px] shadow-xl rounded-md object-cover flex-shrink-0 mx-auto sm:mx-0 overflow-hidden border-0 p-0 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5cf6] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f0f0f]"
                   title={t("pages.playlist.actions.edit")}
                 >
-                  <img
-                    src={getOptimizedImageUrl(
-                      currentPlaylist.imageUrl || CDN_DEFAULT_ALBUM_COVER,
-                      500,
-                    )}
+                  <CoverImage
+                    entity={currentPlaylist}
+                    size="large"
+                    defaultUrl={CDN_DEFAULT_ALBUM_COVER}
                     alt={currentPlaylist.title}
                     className="h-full w-full object-cover transition-opacity group-hover:opacity-80"
                   />
                 </button>
               ) : (
-                <img
-                  src={getOptimizedImageUrl(
-                    currentPlaylist.imageUrl ||
-                      CDN_DEFAULT_ALBUM_COVER,
-                    500,
-                  )}
+                <CoverImage
+                  entity={currentPlaylist}
+                  size="large"
+                  defaultUrl={CDN_DEFAULT_ALBUM_COVER}
                   alt={currentPlaylist.title}
                   className="w-64 h-64 sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px] shadow-xl rounded-md object-cover flex-shrink-0 mx-auto sm:mx-0"
                 />
@@ -585,7 +580,7 @@ const PlaylistDetailsPage = () => {
                       className="font-semibold text-white flex items-center hover:underline focus:outline-none focus:underline"
                     >
                       <img
-                        src={resolveUserImageUrl(currentPlaylist.owner.imageUrl)}
+                        src={getUserAvatarUrl(currentPlaylist.owner)}
                         className="size-4 rounded-full mr-1"
                         alt={currentPlaylist.owner.fullName}
                       />

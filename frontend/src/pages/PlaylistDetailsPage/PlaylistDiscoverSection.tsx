@@ -265,7 +265,7 @@ export function PlaylistDiscoverSection({
         key={song._id}
         variant="song"
         title={song.title}
-        imageUrl={song.imageUrl}
+        images={song.images}
         artists={song.artist}
         albumTitle={song.albumTitle}
         showAlbumColumn={opts?.showAlbumColumn ?? true}
@@ -312,7 +312,7 @@ export function PlaylistDiscoverSection({
           key={album._id}
           variant="album"
           title={album.title}
-          imageUrl={album.imageUrl}
+          images={album.images}
           onDrillDown={() => openAlbum(album._id, album.title)}
         />
       );
@@ -323,7 +323,7 @@ export function PlaylistDiscoverSection({
         key={artist._id}
         variant="artist"
         title={artist.name}
-        imageUrl={artist.imageUrl}
+        images={artist.images}
         onDrillDown={() => openArtist(artist._id, artist.name)}
       />
     );
@@ -480,7 +480,7 @@ export function PlaylistDiscoverSection({
                     key={album._id}
                     variant="album"
                     title={album.title}
-                    imageUrl={album.imageUrl}
+                    images={album.images}
                     onDrillDown={() => openAlbum(album._id, album.title)}
                   />
                 ))}
@@ -495,7 +495,7 @@ export function PlaylistDiscoverSection({
                   key={artist._id}
                   variant="artist"
                   title={artist.name}
-                  imageUrl={artist.imageUrl}
+                  images={artist.images}
                   onDrillDown={() => openArtist(artist._id, artist.name)}
                 />
               ))}
@@ -587,7 +587,7 @@ export function PlaylistDiscoverSection({
                         key={album._id}
                         variant="album"
                         title={album.title}
-                        imageUrl={album.imageUrl}
+                        images={album.images}
                         onDrillDown={() => openAlbum(album._id, album.title)}
                       />
                     ))}

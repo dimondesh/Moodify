@@ -20,7 +20,6 @@ import { useNavigate } from "react-router-dom";
 import HomePageSkeleton from "./HomePageSkeleton";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useHomeBootstrap, useListenHistory } from "@/hooks/queries";
-import { getLargeCoverUrl } from "@/lib/imageUrl";
 
 const HomePageComponent = () => {
   const { t } = useTranslation();
@@ -38,7 +37,7 @@ const HomePageComponent = () => {
   const recentlyListenedEntities = listenHistory?.entities ?? [];
 
   const { initializeQueue, currentSong } = usePlayerStore();
-  const { extractColor } = useDominantColor();
+  const { resolveAccentColor } = useDominantColor();
 
   const [currentBgColor, setCurrentBgColor] = useState("#18181b");
   const defaultColorRef = useRef("#18181b");
@@ -58,20 +57,17 @@ const HomePageComponent = () => {
 
   useEffect(() => {
     if (featuredSongs.length > 0 && !isHomePageLoading && !isMobile) {
-      extractColor(
-        getLargeCoverUrl(featuredSongs[0]),
+      const newDefaultColor = resolveAccentColor(
         featuredSongs[0].coverAccentHex,
-      ).then((color) => {
-        const newDefaultColor = color || "#18181b";
-        defaultColorRef.current = newDefaultColor;
-        if (currentBgColor === "#18181b") {
-          changeBackgroundColor(newDefaultColor);
-        }
-      });
+      );
+      defaultColorRef.current = newDefaultColor;
+      if (currentBgColor === "#18181b") {
+        changeBackgroundColor(newDefaultColor);
+      }
     }
   }, [
     featuredSongs,
-    extractColor,
+    resolveAccentColor,
     currentBgColor,
     isHomePageLoading,
     changeBackgroundColor,
@@ -114,32 +110,25 @@ const HomePageComponent = () => {
       }
 
       hoverTimeoutRef.current = setTimeout(() => {
-        const coverUrl = getLargeCoverUrl(song);
-        if (!coverUrl) {
-          changeBackgroundColor("#18181b");
-          return;
-        }
-
-        const cachedColor = colorCacheRef.current.get(coverUrl);
+        const cacheKey = `${song._id}:${song.coverAccentHex ?? ""}`;
+        const cachedColor = colorCacheRef.current.get(cacheKey);
         if (cachedColor) {
           changeBackgroundColor(cachedColor);
           return;
         }
 
-        extractColor(coverUrl, song.coverAccentHex).then((color) => {
-          const finalColor = color || "#18181b";
-          colorCacheRef.current.set(coverUrl, finalColor);
-          if (colorCacheRef.current.size > 50) {
-            const firstKey = colorCacheRef.current.keys().next().value;
-            if (firstKey) {
-              colorCacheRef.current.delete(firstKey);
-            }
+        const finalColor = resolveAccentColor(song.coverAccentHex);
+        colorCacheRef.current.set(cacheKey, finalColor);
+        if (colorCacheRef.current.size > 50) {
+          const firstKey = colorCacheRef.current.keys().next().value;
+          if (firstKey) {
+            colorCacheRef.current.delete(firstKey);
           }
-          changeBackgroundColor(finalColor);
-        });
+        }
+        changeBackgroundColor(finalColor);
       }, 50);
     },
-    [extractColor, changeBackgroundColor, isMobile],
+    [resolveAccentColor, changeBackgroundColor, isMobile],
   );
 
   const handleSongLeave = useCallback(() => {

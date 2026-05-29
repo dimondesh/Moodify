@@ -6,7 +6,7 @@ import type { Song } from "../../types";
 import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
 import SectionGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton";
 import { useArtists } from "@/hooks/queries";
-import { getArtistNames, getOptimizedImageUrl } from "../../lib/utils";
+import { getArtistNames } from "../../lib/utils";
 import { useTranslation } from "react-i18next";
 import AlbumCoverImage from "../../components/AlbumCoverImage";
 
@@ -68,14 +68,10 @@ const SongGridComponent = ({
               <div className="relative mb-2">
                 <div className="relative aspect-square shadow-lg overflow-hidden rounded-md">
                   <AlbumCoverImage
-                    src={getOptimizedImageUrl(
-                      song.imageUrl || "/default-song-cover.png",
-                      200
-                    )}
+                    entity={song}
                     alt={song.title || t("common.noTitle")}
                     className="absolute inset-0 h-full w-full object-cover rounded-md transition-transform duration-300 group-hover:scale-105"
-                    albumId={song.albumId || undefined}
-                    fallbackSrc="/default-song-cover.png"
+                    size="card"
                   />
                 </div>
                 <UniversalPlayButton

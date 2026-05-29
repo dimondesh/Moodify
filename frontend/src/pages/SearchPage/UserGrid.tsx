@@ -5,9 +5,9 @@ import { Button } from "../../components/ui/button";
 import type { User } from "../../types";
 import SectionGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { resolveUserImageUrl } from "@/lib/cdn";
+import { CDN_DEFAULT_USER_IMAGE } from "@/lib/cdn";
 import { useTranslation } from "react-i18next";
-import { getOptimizedImageUrl } from "@/lib/utils";
+import { getImageUrlByKey } from "@/lib/imageUrl";
 
 import { useAddRecentSearch } from "@/hooks/useSearch";
 
@@ -62,9 +62,10 @@ const UserGrid: React.FC<UserGridProps> = ({
               <div className="relative aspect-square shadow-lg overflow-hidden rounded-full">
                 <Avatar className="h-full w-full">
                   <AvatarImage
-                    src={getOptimizedImageUrl(
-                      resolveUserImageUrl(user.imageUrl),
-                      200,
+                    src={getImageUrlByKey(
+                      user,
+                      "card",
+                      CDN_DEFAULT_USER_IMAGE,
                     )}
                     className="object-cover rounded-full transition-transform duration-300 group-hover:scale-105"
                   />

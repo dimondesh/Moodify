@@ -59,7 +59,6 @@ const AlbumPage = () => {
   const [isCoverModalOpen, setIsCoverModalOpen] = useState(false);
 
   const { backgrounds, isColorLoading } = useDominantCoverGradient(
-    getLargeCoverUrl(currentAlbum),
     albumId,
     currentAlbum?.coverAccentHex,
   );

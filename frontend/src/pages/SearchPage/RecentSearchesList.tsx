@@ -8,7 +8,8 @@ import { Loader2, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import UniversalPlayButton from "@/components/ui/UniversalPlayButton";
-import { resolveUserImageUrl } from "@/lib/cdn";
+import { CDN_DEFAULT_ARTIST_IMAGE } from "@/lib/cdn";
+import { getImageUrlByKey, getUserAvatarUrl } from "@/lib/imageUrl";
 import {
   useClearRecentSearches,
   useRecentSearches,
@@ -138,8 +139,8 @@ const RecentSearchesList: React.FC<RecentSearchesListProps> = ({
                       <AvatarImage
                         src={
                           item.itemType === "User"
-                            ? resolveUserImageUrl(item.imageUrl)
-                            : item.imageUrl
+                            ? getUserAvatarUrl(item)
+                            : getImageUrlByKey(item, "card", CDN_DEFAULT_ARTIST_IMAGE)
                         }
                         className="object-cover"
                       />

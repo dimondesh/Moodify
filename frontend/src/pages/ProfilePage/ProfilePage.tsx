@@ -23,7 +23,7 @@ import { useUIStore } from "../../stores/useUIStore";
 import RecentlyListenedArtists from "../../components/RecentlyListenedArtists";
 import TopTracksThisMonth from "../../components/TopTracksThisMonth";
 import FixedRowEntitySection from "../HomePage/FixedRowEntitySection";
-import { resolveUserImageUrl } from "@/lib/cdn";
+import { getUserAvatarUrl } from "@/lib/cdn";
 import { useProfileData, useToggleFollow } from "@/hooks/useProfile";
 
 function relationToDisplayItem(item: ProfileListItem): DisplayItem {
@@ -32,21 +32,21 @@ function relationToDisplayItem(item: ProfileListItem): DisplayItem {
       return {
         _id: item._id,
         name: item.name,
-        imageUrl: item.imageUrl,
+        images: item.images,
         itemType: "user",
       };
     case "artist":
       return {
         _id: item._id,
         name: item.name,
-        imageUrl: item.imageUrl,
+        images: item.images,
         itemType: "artist",
       } as Artist & { itemType: "artist" };
     case "playlist":
       return {
         _id: item._id,
         title: item.name,
-        imageUrl: item.imageUrl,
+        images: item.images,
         itemType: "playlist",
       } as Playlist & { itemType: "playlist" };
   }
@@ -72,8 +72,7 @@ const ProfilePage = () => {
   const isFollowingUser = data?.isFollowingUser ?? false;
 
   const { backgrounds, isColorLoading } = useDominantCoverGradient(
-    isLoading ? undefined : profileData?.imageUrl,
-    userId,
+    isLoading ? undefined : userId,
     profileData?.coverAccentHex,
   );
   const heroAccent = backgrounds[0]?.color ?? "#18181b";
@@ -149,7 +148,7 @@ const ProfilePage = () => {
           <div className="flex flex-col items-center sm:flex-row sm:items-end gap-4">
             <Avatar className="w-24 h-24 sm:w-48 sm:h-48 shadow-2xl ring-0 ring-black/20 flex-shrink-0">
               <AvatarImage
-                src={resolveUserImageUrl(profileData.imageUrl)}
+                src={getUserAvatarUrl(profileData)}
                 className="object-cover"
               />
               <AvatarFallback>{profileData.fullName[0]}</AvatarFallback>

@@ -160,11 +160,10 @@ const SectionGrid = ({
                     className="w-full h-full block"
                   >
                     <AlbumCoverImage
-                      src={song.imageUrl || "/default-song-cover.png"}
+                      entity={song}
                       alt={song.title || t("common.noTitle")}
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      albumId={song.albumId || undefined}
-                      fallbackSrc="/default-song-cover.png"
+                      size="card"
                     />
                   </button>
                 </div>

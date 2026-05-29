@@ -11,21 +11,17 @@ function normalizeAccentHex(hex: string): string | null {
   return null;
 }
 
-
+/** Accent color from API (`coverAccentHex`) or app default — no client image sampling. */
 export const useDominantColor = () => {
-  const extractColor = useCallback(
-    async (
-      _imageUrl: string | null | undefined,
-      coverAccentHex?: string | null,
-    ): Promise<string> => {
+  const resolveAccentColor = useCallback(
+    (coverAccentHex?: string | null): string => {
       const fromServer = coverAccentHex
         ? normalizeAccentHex(coverAccentHex)
         : null;
-      if (fromServer) return fromServer;
-      return DEFAULT_DOMINANT_COLOR;
+      return fromServer ?? DEFAULT_DOMINANT_COLOR;
     },
     [],
   );
 
-  return { extractColor };
+  return { resolveAccentColor };
 };

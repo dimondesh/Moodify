@@ -3,7 +3,8 @@ import { Loader2 } from "lucide-react";
 import type { Album, Playlist } from "../../types";
 import { useTranslation } from "react-i18next";
 import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
-import { getArtistNames, getOptimizedImageUrl } from "@/lib/utils";
+import { getArtistNames } from "@/lib/utils";
+import { CoverImage } from "@/components/CoverImage";
 import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 import { useNavigate } from "react-router-dom";
 
@@ -37,8 +38,10 @@ const PlaylistCategoryGrid = ({
           >
             <div className="relative mb-2">
               <div className="relative aspect-square shadow-lg overflow-hidden rounded-md">
-                <img
-                  src={pl.imageUrl}
+                <CoverImage
+                  entity={pl}
+                  size="card"
+                  defaultUrl={CDN_DEFAULT_ALBUM_COVER}
                   alt={pl.title}
                   className="absolute inset-0 h-full w-full object-cover rounded-md transition-transform duration-300 group-hover:scale-105"
                 />
@@ -87,17 +90,12 @@ const AlbumsBrowseGrid = ({
           >
             <div className="relative mb-2">
               <div className="relative aspect-square shadow-lg overflow-hidden rounded-md">
-                <img
-                  src={getOptimizedImageUrl(
-                    album.imageUrl || CDN_DEFAULT_ALBUM_COVER,
-                    200,
-                  )}
+                <CoverImage
+                  entity={album}
+                  size="card"
+                  defaultUrl={CDN_DEFAULT_ALBUM_COVER}
                   alt={album.title}
                   className="absolute inset-0 h-full w-full object-cover rounded-md"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src =
-                      CDN_DEFAULT_ALBUM_COVER;
-                  }}
                 />
               </div>
               <UniversalPlayButton

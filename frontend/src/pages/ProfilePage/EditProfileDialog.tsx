@@ -18,7 +18,7 @@ import { User } from "@/types";
 import toast from "react-hot-toast";
 import { Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { resolveUserImageUrl } from "@/lib/cdn";
+import { getUserAvatarUrl } from "@/lib/imageUrl";
 
 interface EditProfileDialogProps {
   user: User;
@@ -37,7 +37,7 @@ export const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
   const [fullName, setFullName] = useState(user?.fullName || "");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(
-    user?.imageUrl || null
+    getUserAvatarUrl(user) || null
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { updateUserProfile, isLoading } = useAuthStore();
@@ -46,7 +46,7 @@ export const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
     if (user) {
       setFullName(user.fullName);
       setImageFile(null);
-      setImagePreviewUrl(user.imageUrl || null);
+      setImagePreviewUrl(getUserAvatarUrl(user) || null);
     }
   }, [user]);
 
@@ -57,7 +57,7 @@ export const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
       setImagePreviewUrl(URL.createObjectURL(file));
     } else {
       setImageFile(null);
-      setImagePreviewUrl(user?.imageUrl || null);
+      setImagePreviewUrl(getUserAvatarUrl(user) || null);
     }
   };
 
@@ -80,7 +80,7 @@ export const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
     if (user) {
       setFullName(user.fullName);
       setImageFile(null);
-      setImagePreviewUrl(user.imageUrl || null);
+      setImagePreviewUrl(getUserAvatarUrl(user) || null);
     }
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -103,7 +103,7 @@ export const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
           <div className="flex flex-col items-center gap-4">
             <Avatar className="w-24 h-24 object-cover">
               <AvatarImage
-                src={imagePreviewUrl || resolveUserImageUrl(user.imageUrl)}
+                src={imagePreviewUrl || getUserAvatarUrl(user)}
                 className="object-cover"
               />
               <AvatarFallback>{user.fullName?.[0] || "U"}</AvatarFallback>

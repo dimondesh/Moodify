@@ -5,6 +5,8 @@ import type { Playlist } from "../../types";
 import { useTranslation } from "react-i18next";
 import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
 import { useHomeBootstrap, useSecondaryHome } from "@/hooks/queries";
+import { getImageUrlByKey } from "@/lib/imageUrl";
+import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 
 type BrowseLocationState = { playlists?: Playlist[]; title?: string };
 
@@ -89,7 +91,7 @@ const PlaylistBrowsePage = () => {
               <div className="relative mb-2">
                 <div className="relative aspect-square shadow-lg overflow-hidden rounded-md">
                   <img
-                    src={pl.imageUrl}
+                    src={getImageUrlByKey(pl, "card", CDN_DEFAULT_ALBUM_COVER)}
                     alt={pl.title}
                     className="absolute inset-0 h-full w-full object-cover rounded-md transition-transform duration-300 group-hover:scale-105"
                   />

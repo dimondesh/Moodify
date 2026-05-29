@@ -25,7 +25,7 @@ export interface AuthUser {
   id: string;
   email: string;
   fullName: string;
-  imageUrl?: string | null;
+  images?: { size: number; url: string }[];
   coverAccentHex?: string | null;
   isAdmin?: boolean;
   language?: string;
@@ -43,7 +43,7 @@ function mapBackendUser(u: any): AuthUser {
     id: u._id,
     email: u.email,
     fullName: u.fullName || u.email,
-    imageUrl: u.imageUrl || null,
+    images: u.images || [],
     coverAccentHex: u.coverAccentHex ?? null,
     language: u.language,
     isAnonymous: u.isAnonymous,

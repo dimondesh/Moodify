@@ -14,9 +14,8 @@ function validAccentHex(hex: string): string | null {
   return null;
 }
 
-/** Фон страницы альбома / плейлиста: только `coverAccentHex` с API или дефолт. */
+/** Page backdrop from `coverAccentHex` on the API or default when entity is shown. */
 export function useDominantCoverGradient(
-  imageUrl: string | null | undefined,
   entityKey: string | null | undefined,
   coverAccentHex?: string | null,
 ) {
@@ -28,7 +27,7 @@ export function useDominantCoverGradient(
 
   useLayoutEffect(() => {
     setIsColorLoading(false);
-  }, [imageUrl, coverAccentHex, entityKey]);
+  }, [coverAccentHex, entityKey]);
 
   useEffect(() => {
     const updateBackgroundColor = (color: string) => {
@@ -43,10 +42,10 @@ export function useDominantCoverGradient(
       return;
     }
 
-    if (imageUrl || entityKey) {
+    if (entityKey) {
       updateBackgroundColor(DEFAULT_COLOR);
     }
-  }, [imageUrl, entityKey, coverAccentHex]);
+  }, [entityKey, coverAccentHex]);
 
   return { backgrounds, isColorLoading };
 }

@@ -61,7 +61,6 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
     try {
       const response = await axiosInstance.post("/playlists/from-song", {
         title: song.title,
-        imageUrl: song.imageUrl,
         initialSongId: song._id,
       });
 

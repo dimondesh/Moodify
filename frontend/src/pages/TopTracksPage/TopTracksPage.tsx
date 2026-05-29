@@ -6,7 +6,8 @@ import { Play } from "lucide-react";
 import { usePlayerStore } from "../../stores/usePlayerStore";
 import { axiosInstance } from "../../lib/axios";
 import Equalizer from "../../components/ui/equalizer";
-import { getOptimizedImageUrl } from "../../lib/utils";
+import { CoverImage } from "@/components/CoverImage";
+import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 import { Helmet } from "react-helmet-async";
 import type { Song } from "../../types";
 import { useAuthStore } from "../../stores/useAuthStore";
@@ -144,11 +145,10 @@ const TopTracksPage = () => {
                   )}
                 </div>
                 <div className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0">
-                  <img
-                    src={getOptimizedImageUrl(
-                      track.imageUrl || "/default-song-cover.png",
-                      100,
-                    )}
+                  <CoverImage
+                    entity={track}
+                    size="thumb"
+                    defaultUrl={CDN_DEFAULT_ALBUM_COVER}
                     alt={track.title}
                     className="w-full h-full object-cover rounded-md"
                   />

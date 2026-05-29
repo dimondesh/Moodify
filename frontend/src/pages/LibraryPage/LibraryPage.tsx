@@ -23,7 +23,13 @@ import { Helmet } from "react-helmet-async";
 import { Download } from "lucide-react";
 import { useOfflineStore } from "../../stores/useOfflineStore";
 import { cn, normalizeAlbumKind } from "@/lib/utils";
-import { CDN_DEFAULT_ALBUM_COVER, CDN_LIKED_PLAYLIST_COVER } from "@/lib/cdn";
+import {
+  CDN_DEFAULT_ALBUM_COVER,
+  CDN_DEFAULT_ARTIST_IMAGE,
+  CDN_LIKED_PLAYLIST_COVER,
+} from "@/lib/cdn";
+import { CoverImage } from "@/components/CoverImage";
+import { buildStaticCdnImages } from "@/lib/imageUrl";
 import { useUIStore } from "../../stores/useUIStore";
 import { useQuickCreatePlaylist } from "@/hooks/useQuickCreatePlaylist";
 import EntityTypeFilter from "../../components/ui/EntityTypeFilter";
@@ -87,7 +93,7 @@ const LibraryPage = () => {
               _id: item._id,
               type: "album",
               title: (item as Album).title,
-              imageUrl: (item as Album).imageUrl,
+              images: (item as Album).images,
               createdAt: new Date((item as Album).updatedAt),
               artist: (item as Album).artist,
               albumType: (item as Album).type,
@@ -102,7 +108,7 @@ const LibraryPage = () => {
             _id: item._id,
             type: "playlist",
             title,
-            imageUrl: item.imageUrl,
+            images: item.images,
             createdAt: new Date(
               (raw.updatedAt as string) ||
                 (raw.generatedOn as string) ||
@@ -167,7 +173,7 @@ const LibraryPage = () => {
         _id: album._id,
         type: "album",
         title: album.title,
-        imageUrl: album.imageUrl,
+        images: album.images,
         createdAt: new Date(album.addedAt ?? new Date()),
         artist: album.artist,
         albumType: album.type,
@@ -183,10 +189,12 @@ const LibraryPage = () => {
             playlist.type === "LIKED_SONGS"
               ? t("sidebar.likedSongs")
               : playlist.title,
-          imageUrl:
-            playlist.type === "LIKED_SONGS"
-              ? playlist.imageUrl || CDN_LIKED_PLAYLIST_COVER
-              : playlist.imageUrl,
+          images:
+            playlist.images?.length
+              ? playlist.images
+              : playlist.type === "LIKED_SONGS"
+                ? buildStaticCdnImages(CDN_LIKED_PLAYLIST_COVER)
+                : undefined,
           createdAt: new Date(
             (playlist as { addedAt?: string }).addedAt ||
               playlist.updatedAt ||
@@ -203,7 +211,7 @@ const LibraryPage = () => {
         _id: artist._id,
         type: "artist",
         title: artist.name,
-        imageUrl: artist.imageUrl,
+        images: artist.images,
         createdAt: new Date(artist.addedAt || artist.createdAt),
         artistId: artist._id,
       } as FollowedArtistItem),
@@ -409,8 +417,7 @@ const LibraryPage = () => {
                   {filteredLibraryItems.map((item) => {
                     let linkPath: string = "#";
                     let subtitle: string = "";
-                    let coverImageUrl: string | null | undefined =
-                      item.imageUrl;
+                    let coverDefault = CDN_DEFAULT_ALBUM_COVER;
 
                     switch (item.type) {
                       case "album": {
@@ -432,8 +439,7 @@ const LibraryPage = () => {
                               ? t("sidebar.subtitle.songs")
                               : t("sidebar.subtitle.song")
                           }`;
-                          coverImageUrl =
-                            item.imageUrl || CDN_LIKED_PLAYLIST_COVER;
+                          coverDefault = CDN_LIKED_PLAYLIST_COVER;
                         } else {
                           subtitle = `${t("sidebar.subtitle.playlist")} • ${
                             playlistItem.owner?.fullName ||
@@ -446,6 +452,7 @@ const LibraryPage = () => {
                         const artistItem = item as FollowedArtistItem;
                         linkPath = `/artists/${artistItem._id}`;
                         subtitle = t("sidebar.subtitle.artist");
+                        coverDefault = CDN_DEFAULT_ARTIST_IMAGE;
                         break;
                       }
                     }
@@ -465,14 +472,15 @@ const LibraryPage = () => {
                                 : "rounded-md",
                             )}
                           >
-                            <img
-                              src={coverImageUrl || CDN_DEFAULT_ALBUM_COVER}
+                            <CoverImage
+                              entity={item}
+                              size="card"
+                              defaultUrl={coverDefault}
                               alt={item.title}
-                              className="absolute inset-0 w-full h-full object-cover duration-300 "
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src =
-                                  CDN_DEFAULT_ALBUM_COVER;
-                              }}
+                              className={cn(
+                                "absolute inset-0 w-full h-full object-cover duration-300",
+                                item.type === "artist" && "rounded-full",
+                              )}
                             />
                           </div>
                         </div>
@@ -546,14 +554,12 @@ const LibraryPage = () => {
                         className="bg-transparent p-3 rounded-md hover:bg-zinc-800/50 transition-all group cursor-pointer flex items-center gap-4"
                       >
                         <div className="relative flex-shrink-0">
-                          <img
-                            src={item.imageUrl || fallbackImage}
+                          <CoverImage
+                            entity={item}
+                            size="thumb"
+                            defaultUrl={fallbackImage}
                             alt={item.title}
                             className={`size-16 object-cover ${imageClass} transition-opacity group-hover:opacity-50`}
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src =
-                                fallbackImage;
-                            }}
                           />
                         </div>
                         <div className="flex-1 min-w-0">

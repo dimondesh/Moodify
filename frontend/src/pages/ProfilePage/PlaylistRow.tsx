@@ -4,6 +4,8 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Playlist } from "@/types";
 import { Music } from "lucide-react";
+import { CoverImage } from "@/components/CoverImage";
+import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 import { useTranslation } from "react-i18next";
 
 interface PlaylistRowProps {
@@ -18,9 +20,11 @@ const PlaylistRowComponent = ({ playlist }: PlaylistRowProps) => {
       className="flex items-center gap-4 p-2 rounded-md hover:bg-zinc-800/50"
     >
       <div className="w-14 h-14 bg-zinc-800 flex items-center justify-center rounded-md flex-shrink-0">
-        {playlist.imageUrl ? (
-          <img
-            src={playlist.imageUrl}
+        {playlist.images?.length ? (
+          <CoverImage
+            entity={playlist}
+            size="thumb"
+            defaultUrl={CDN_DEFAULT_ALBUM_COVER}
             alt={playlist.title}
             className="w-full h-full object-cover rounded-md"
           />

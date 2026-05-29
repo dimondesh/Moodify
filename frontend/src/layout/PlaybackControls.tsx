@@ -15,10 +15,7 @@ import { SaveSongToLibraryControl } from "./SaveSongToLibraryControl";
 import Repeat from "@/components/ui/repeat-icon";
 import { CoverDominantBackdrop } from "@/components/CoverDominantBackdrop";
 import { CoverImage } from "@/components/CoverImage";
-import {
-  buildMediaSessionArtwork,
-  getImageUrlByKey,
-} from "@/lib/imageUrl";
+import { buildMediaSessionArtwork } from "@/lib/imageUrl";
 import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 
 import {
@@ -284,26 +281,14 @@ const PlaybackControls = () => {
   const [lyrics, setLyrics] = useState<LyricLine[]>([]);
   const [isQueueDrawerOpen, setIsQueueDrawerOpen] = useState(false);
 
-  const { extractColor } = useDominantColor();
+  const { resolveAccentColor } = useDominantColor();
   const [lyricsBgColor, setLyricsBgColor] = useState<string>("#27272a");
 
-  // Подтягиваем доминантный цвет при смене трека
   useEffect(() => {
-    let isMounted = true;
-    const fetchColor = async () => {
-      if (currentSong) {
-        const color = await extractColor(
-          getImageUrlByKey(currentSong, "thumb", CDN_DEFAULT_ALBUM_COVER),
-          currentSong.coverAccentHex,
-        );
-        if (isMounted) setLyricsBgColor(color);
-      }
-    };
-    fetchColor();
-    return () => {
-      isMounted = false;
-    };
-  }, [currentSong, currentSong?.coverAccentHex, extractColor]);
+    if (currentSong) {
+      setLyricsBgColor(resolveAccentColor(currentSong.coverAccentHex));
+    }
+  }, [currentSong, currentSong?.coverAccentHex, resolveAccentColor]);
 
   useEffect(() => {
     if ("mediaSession" in navigator) {

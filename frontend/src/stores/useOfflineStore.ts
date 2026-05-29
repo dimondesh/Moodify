@@ -20,6 +20,7 @@ import toast from "react-hot-toast";
 import { useAuthStore } from "./useAuthStore";
 import { invalidateArtists } from "@/lib/invalidateQueries";
 import i18n from "@/lib/i18n";
+import { getLargeCoverUrl } from "@/lib/imageUrl";
 
 type ItemType = "albums" | "playlists";
 const HLS_ASSETS_CACHE_NAME = "moodify-hls-assets-cache";
@@ -418,12 +419,13 @@ export const useOfflineStore = create<OfflineState>()(
 
             // 2. Collect all URLs to cache (images, manifests, variants, segments, keys)
             const urlsToCache = new Set<string>();
-            if (serverItemData.imageUrl)
-              urlsToCache.add(serverItemData.imageUrl);
+            const itemCoverUrl = getLargeCoverUrl(serverItemData);
+            if (itemCoverUrl) urlsToCache.add(itemCoverUrl);
 
             const resolvedSongs: Song[] = [];
             for (const song of serverItemData.songs as Song[]) {
-              if (song.imageUrl) urlsToCache.add(song.imageUrl);
+              const songCover = getLargeCoverUrl(song);
+              if (songCover) urlsToCache.add(songCover);
 
               // ВАЖНО: многие списки отдают "минимальный" Song без hlsUrl.
               // Для оффлайн загрузки догружаем полные данные по /songs/:id.
@@ -616,11 +618,13 @@ export const useOfflineStore = create<OfflineState>()(
 
             // 1. Collect all URLs to delete from cache
             const urlsToDelete = new Set<string>();
-            if (itemToDelete.imageUrl) urlsToDelete.add(itemToDelete.imageUrl);
+            const deleteItemCover = getLargeCoverUrl(itemToDelete);
+            if (deleteItemCover) urlsToDelete.add(deleteItemCover);
 
             const songs: Song[] = (itemToDelete as any).songsData || [];
             for (const song of songs) {
-              if (song.imageUrl) urlsToDelete.add(song.imageUrl);
+              const songCover = getLargeCoverUrl(song);
+              if (songCover) urlsToDelete.add(songCover);
               if (song.hlsUrl) {
                 urlsToDelete.add(song.hlsUrl);
                 try {

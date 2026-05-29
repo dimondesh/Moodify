@@ -5,7 +5,7 @@ import {
   CDN_DEFAULT_ALBUM_COVER,
   CDN_DEFAULT_ARTIST_IMAGE,
 } from "@/lib/cdn";
-import { getOptimizedImageUrl } from "@/lib/utils";
+import { getImageUrl, type ImageEntity } from "@/lib/imageUrl";
 import type { Artist } from "@/types";
 import { ChevronRight, Play } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -15,7 +15,7 @@ export type DiscoverListVariant = "song" | "album" | "artist";
 type PlaylistDiscoverListItemProps = {
   variant: DiscoverListVariant;
   title: string;
-  imageUrl?: string;
+  images?: ImageEntity["images"];
   artists?: Artist[];
   albumTitle?: string;
   trackIndex?: number;
@@ -34,7 +34,7 @@ type PlaylistDiscoverListItemProps = {
 export function PlaylistDiscoverListItem({
   variant,
   title,
-  imageUrl,
+  images,
   artists = [],
   albumTitle,
   trackIndex,
@@ -51,12 +51,12 @@ export function PlaylistDiscoverListItem({
 }: PlaylistDiscoverListItemProps) {
   const { t } = useTranslation();
 
-  const coverSrc = getOptimizedImageUrl(
-    imageUrl ||
-      (variant === "artist"
-        ? CDN_DEFAULT_ARTIST_IMAGE
-        : CDN_DEFAULT_ALBUM_COVER),
-    80,
+  const coverDefault =
+    variant === "artist" ? CDN_DEFAULT_ARTIST_IMAGE : CDN_DEFAULT_ALBUM_COVER;
+  const coverSrc = getImageUrl(
+    { images },
+    64,
+    coverDefault,
   );
 
   const isPlayableSong = variant === "song" && onPlay != null;
