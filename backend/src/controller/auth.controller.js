@@ -11,6 +11,11 @@ import {
   isSkippableCoverImageUrl,
 } from "../lib/coverAccent.service.js";
 import { isAdminUser } from "../lib/userRoles.js";
+import {
+  getLargeImageUrl,
+  toImageFields,
+  uploadImageVariantsFromSource,
+} from "../lib/imageVariants.service.js";
 
 const BCRYPT_ROUNDS = 12;
 const CODE_EXPIRY_MS = 15 * 60 * 1000;
@@ -64,7 +69,7 @@ function buildAuthPayload(user) {
       _id: user._id,
       email: user.email,
       fullName: user.fullName,
-      imageUrl: user.imageUrl,
+      images: user.images || [],
       coverAccentHex: user.coverAccentHex ?? null,
       language: user.language,
       isAnonymous: user.isAnonymous,
@@ -75,7 +80,7 @@ function buildAuthPayload(user) {
 }
 
 async function applyCoverAccentHexFromProfilePhoto(userDoc) {
-  const url = userDoc.imageUrl;
+  const url = getLargeImageUrl(userDoc.images);
   if (!url || isSkippableCoverImageUrl(url)) {
     userDoc.coverAccentHex = null;
     return;
@@ -330,8 +335,12 @@ export const googleAuth = async (req, res) => {
         }
         byEmail.googleId = googleId;
         byEmail.emailVerified = true;
-        if (payload.picture && !byEmail.imageUrl) {
-          byEmail.imageUrl = payload.picture;
+        if (payload.picture && !byEmail.images?.length) {
+          const upload = await uploadImageVariantsFromSource(
+            payload.picture,
+            "profile_pictures",
+          );
+          Object.assign(byEmail, toImageFields(upload));
           await applyCoverAccentHexFromProfilePhoto(byEmail);
         }
         if (payload.name && !byEmail.fullName) {
@@ -340,16 +349,23 @@ export const googleAuth = async (req, res) => {
         await byEmail.save();
         user = byEmail;
       } else {
-        user = await User.create({
+        const newUserFields = {
           email,
           googleId,
           fullName: payload.name || email.split("@")[0],
-          imageUrl: payload.picture || null,
           emailVerified: true,
           language: "en",
           isAnonymous: false,
-        });
-        if (user.imageUrl) {
+        };
+        if (payload.picture) {
+          const upload = await uploadImageVariantsFromSource(
+            payload.picture,
+            "profile_pictures",
+          );
+          Object.assign(newUserFields, toImageFields(upload));
+        }
+        user = await User.create(newUserFields);
+        if (user.images?.length) {
           await applyCoverAccentHexFromProfilePhoto(user);
           await user.save();
         }

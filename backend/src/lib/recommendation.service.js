@@ -100,7 +100,7 @@ export const getVibeMatchTracks = async (currentSongId, limit = 10) => {
     ]);
     const populated = await Song.populate(fallbackAgg, {
       path: "artist",
-      select: "name imageUrl",
+      select: "name images",
     });
     return populated.sort(() => 0.5 - Math.random());
   }
@@ -161,7 +161,7 @@ export const getVibeMatchTracks = async (currentSongId, limit = 10) => {
 
   const candidates = await Song.populate(candidatesAgg, {
     path: "artist",
-    select: "name imageUrl",
+    select: "name images",
   });
 
   // 3. Оценка кандидатов: применяем ЖАНРОВЫЙ ШТРАФ И КОСИНУСНОЕ СХОДСТВО
@@ -282,7 +282,7 @@ const scoreCandidateAgainstPlaylist = (
 const formatPlaylistRecommendationSong = (song) => ({
   _id: song._id.toString(),
   title: song.title,
-  imageUrl: song.imageUrl,
+  images: song.images || [],
   coverAccentHex: song.coverAccentHex ?? null,
   duration: song.duration,
   playCount: song.playCount ?? 0,
@@ -296,7 +296,7 @@ const formatPlaylistRecommendationSong = (song) => ({
     ? song.artist.map((a) => ({
         _id: a._id.toString(),
         name: a.name,
-        imageUrl: a.imageUrl,
+        images: a.images || [],
       }))
     : [],
 });
@@ -425,8 +425,8 @@ export const getPlaylistEmbeddingRecommendations = async (
     if (candidatesAgg.length === 0) return null;
 
     const candidates = await Song.populate(candidatesAgg, [
-      { path: "artist", select: "name imageUrl" },
-      { path: "albumId", select: "title imageUrl" },
+      { path: "artist", select: "name images" },
+      { path: "albumId", select: "title images" },
     ]);
 
     const scoredCandidates = candidates.map((candidate) => ({

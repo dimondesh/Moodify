@@ -8,6 +8,7 @@ import {
   CDN_DISCOVER_WEEKLY_IMAGE,
   CDN_ON_REPEAT_REWIND_IMAGE,
 } from "../constants/cdn.js";
+import { buildStaticCdnImages } from "./imageVariants.service.js";
 
 const ON_REPEAT_SONG_COUNT = 30;
 const ON_REPEAT_IMAGE_URL = CDN_ON_REPEAT_IMAGE;
@@ -39,7 +40,7 @@ export const generateOnRepeatPlaylistForUser = async (userId) => {
         songs: songIds,
         nameKey: "generatedPlaylists.onRepeat.title",
         descriptionKey: "generatedPlaylists.onRepeat.description",
-        imageUrl: ON_REPEAT_IMAGE_URL,
+        images: buildStaticCdnImages(ON_REPEAT_IMAGE_URL),
         generatedOn: new Date(),
       },
     },
@@ -118,7 +119,7 @@ export const generateDiscoverWeeklyForUser = async (userId) => {
     })
       .sort({ playCount: -1 })
       .limit(200)
-      .populate("artist", "name imageUrl");
+      .populate("artist", "name images");
 
     const finalTracks = candidates.sort(() => 0.5 - Math.random()).slice(0, 30);
 
@@ -134,7 +135,7 @@ export const generateDiscoverWeeklyForUser = async (userId) => {
       type: "DISCOVER_WEEKLY",
       nameKey: "generatedPlaylists.discoverWeekly.title",
       descriptionKey: "generatedPlaylists.discoverWeekly.description",
-      imageUrl: CDN_DISCOVER_WEEKLY_IMAGE,
+      images: buildStaticCdnImages(CDN_DISCOVER_WEEKLY_IMAGE),
       songs: finalTracks.map((song) => song._id),
       generatedOn: new Date(),
     };
@@ -211,7 +212,7 @@ export const generateOnRepeatRewindForUser = async (userId) => {
       type: "ON_REPEAT_REWIND",
       nameKey: "generatedPlaylists.onRepeatRewind.title",
       descriptionKey: "generatedPlaylists.onRepeatRewind.description",
-      imageUrl: CDN_ON_REPEAT_REWIND_IMAGE,
+      images: buildStaticCdnImages(CDN_ON_REPEAT_REWIND_IMAGE),
       songs: finalTracks.map((song) => song._id),
       generatedOn: new Date(),
     };

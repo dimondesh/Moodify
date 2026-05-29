@@ -1,6 +1,7 @@
 import { Song } from "../models/song.model.js";
 import { Album } from "../models/album.model.js";
 import { Playlist } from "../models/playlist.model.js";
+import { getLargeImageUrl } from "../lib/imageVariants.service.js";
 
 export const generateOGMeta = async (req, res, next) => {
   try {
@@ -18,7 +19,7 @@ export const generateOGMeta = async (req, res, next) => {
         const artistNames = song.artist.map((a) => a.name).join(", ");
         title = `${song.title} - ${artistNames} | Moodify Music`;
         description = `Listen to ${song.title} by ${artistNames} on Moodify Music.`;
-        image = song.imageUrl || image;
+        image = getLargeImageUrl(song.images) || image;
       }
     } else if (path.startsWith("/albums/")) {
       type = "music.album";
@@ -27,7 +28,7 @@ export const generateOGMeta = async (req, res, next) => {
         const artistNames = album.artist.map((a) => a.name).join(", ");
         title = `${album.title} - ${artistNames} | Moodify Music`;
         description = `Listen to the album ${album.title} on Moodify Music.`;
-        image = album.imageUrl || image;
+        image = getLargeImageUrl(album.images) || image;
       }
     } else if (path.startsWith("/playlists/")) {
       type = "music.playlist";
@@ -38,7 +39,7 @@ export const generateOGMeta = async (req, res, next) => {
       if (playlist) {
         title = `${playlist.title} | Moodify Music`;
         description = `Playlist by ${playlist.owner?.fullName || "Moodify Music User"}`;
-        image = playlist.imageUrl || image;
+        image = getLargeImageUrl(playlist.images) || image;
       }
     }
 

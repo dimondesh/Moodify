@@ -11,11 +11,11 @@ export const getSharedEntity = async (req, res, next) => {
       path: "songs",
       select: "-lyrics",
       select:
-        "title duration imageUrl artist albumId hlsUrl playCount genres moods",
+        "title duration images artist albumId hlsUrl playCount genres moods",
       populate: {
         path: "artist",
         model: "Artist",
-        select: "name imageUrl",
+        select: "name images",
       },
     };
 
@@ -30,7 +30,7 @@ export const getSharedEntity = async (req, res, next) => {
         break;
       case "playlist":
         entity = await Playlist.findById(entityId)
-          .populate("owner", "fullName imageUrl")
+          .populate("owner", "fullName images")
           .populate(songPopulateOptions);
         if (entity && !entity.isPublic) {
           return res

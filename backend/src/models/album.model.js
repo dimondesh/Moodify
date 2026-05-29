@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { imagesField } from "./schemas/imageVariants.schema.js";
 
 const albumSchema = new mongoose.Schema(
   {
@@ -13,13 +14,10 @@ const albumSchema = new mongoose.Schema(
         required: true,
       },
     ],
-    imageUrl: {
-      type: String,
-      required: true,
-    },
     imagePublicId: {
       type: String,
     },
+    images: imagesField,
     coverAccentHex: {
       type: String,
       default: null,

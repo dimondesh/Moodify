@@ -17,12 +17,15 @@ import { ListenHistory } from "../models/listenHistory.model.js";
 import { Song } from "../models/song.model.js";
 import { Playlist } from "../models/playlist.model.js";
 import { populatePlaylistEmbeddedSongs } from "./playlist.controller.js";
-import { optimizeAndUploadImage } from "../lib/image.service.js";
+import {
+  toImageFields,
+  replaceEntityImageVariants,
+} from "../lib/imageVariants.service.js";
 import { extractCoverAccentHexFromBuffer } from "../lib/coverAccent.service.js";
 import { getPersistedActivity } from "../lib/activityPersistence.service.js";
 
 const SONG_MINIMAL_SELECT =
-  "_id title artist albumId imageUrl coverAccentHex duration playCount";
+  "_id title artist albumId images coverAccentHex duration playCount";
 
 export const getAllUsers = async (req, res, next) => {
   try {
@@ -74,10 +77,10 @@ export const getUserProfile = async (req, res, next) => {
           {
             path: "songs",
             select: SONG_MINIMAL_SELECT,
-            populate: { path: "artist", select: "name imageUrl" },
+            populate: { path: "artist", select: "name images" },
           },
         ],
-        select: "title imageUrl isPublic owner songs",
+        select: "title images isPublic owner songs",
       })
       .select("-email -passwordHash");
 
@@ -102,7 +105,7 @@ export const getFollowers = async (req, res, next) => {
   try {
     const { userId } = req.params;
     const user = await User.findById(userId)
-      .populate({ path: "followers", select: "fullName imageUrl" })
+      .populate({ path: "followers", select: "fullName images" })
       .select("followers");
 
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -110,7 +113,7 @@ export const getFollowers = async (req, res, next) => {
     const followers = user.followers.map((f) => ({
       _id: f._id,
       name: f.fullName,
-      imageUrl: f.imageUrl,
+      images: f.images || [],
       type: "user",
     }));
 
@@ -177,19 +180,15 @@ export const updateUserProfile = async (req, res, next) => {
 
     if (req.files && req.files.imageUrl) {
       const file = req.files.imageUrl;
-      if (currentUser.imageUrl) {
-        const oldImagePath = getPathFromUrl(currentUser.imageUrl);
-        if (oldImagePath) await deleteFromBunny(oldImagePath);
-      }
       const coverBuf = await fs.readFile(file.tempFilePath);
       updateDataMongo.coverAccentHex =
         await extractCoverAccentHexFromBuffer(coverBuf);
-      const result = await optimizeAndUploadImage(
+      const uploadResult = await replaceEntityImageVariants(
+        currentUser,
         file,
-        file.name,
         "profile_pictures",
       );
-      updateDataMongo.imageUrl = result.url;
+      Object.assign(updateDataMongo, toImageFields(uploadResult));
     }
 
     const updatedUser = await User.findByIdAndUpdate(userId, updateDataMongo, {
@@ -284,7 +283,7 @@ export const getMutualFollowers = async (req, res, next) => {
     const followedUsers = await User.find({
       _id: { $in: currentUser.followingUsers },
     }).select(
-      "fullName imageUrl followers isAnonymous lastListeningActivity",
+      "fullName images followers isAnonymous lastListeningActivity",
     );
 
     const mutuals = followedUsers.filter((user) =>
@@ -298,7 +297,7 @@ export const getMutualFollowers = async (req, res, next) => {
         const base = {
           _id: user._id,
           fullName: user.fullName,
-          imageUrl: user.imageUrl,
+          images: user.images || [],
         };
 
         if (user.isAnonymous) return base;
@@ -323,18 +322,18 @@ export const getFollowing = async (req, res, next) => {
     const { userId } = req.params;
 
     const user = await User.findById(userId)
-      .populate({ path: "followingUsers", select: "fullName imageUrl" })
+      .populate({ path: "followingUsers", select: "fullName images" })
       .select("followingUsers");
 
     const library = await Library.findOne({ userId })
       .populate({
         path: "followedArtists.artistId",
         model: "Artist",
-        select: "name imageUrl",
+        select: "name images",
         populate: {
           path: "songs",
           select: SONG_MINIMAL_SELECT,
-          populate: { path: "artist", select: "name imageUrl" },
+          populate: { path: "artist", select: "name images" },
           options: { sort: { playCount: -1 }, limit: 5 },
         },
       })
@@ -345,7 +344,7 @@ export const getFollowing = async (req, res, next) => {
     const followingUsers = user.followingUsers.map((u) => ({
       _id: u._id,
       name: u.fullName,
-      imageUrl: u.imageUrl,
+      images: u.images || [],
       type: "user",
     }));
 
@@ -355,7 +354,7 @@ export const getFollowing = async (req, res, next) => {
         .map((a) => ({
           _id: a.artistId._id,
           name: a.artistId.name,
-          imageUrl: a.artistId.imageUrl,
+          images: a.artistId.images || [],
           type: "artist",
           songs: a.artistId.songs || [],
         })) || [];
@@ -374,7 +373,7 @@ export const getPublicPlaylists = async (req, res, next) => {
       .populate({
         path: "playlists",
         match: { isPublic: true },
-        select: "title imageUrl owner",
+        select: "title images owner",
         populate: { path: "owner", model: "User", select: "fullName" },
       })
       .select("playlists");
@@ -432,31 +431,31 @@ export const getRecentSearches = async (req, res, next) => {
       switch (effectiveType) {
         case "Playlist":
           query = Playlist.findById(search.item)
-            .select("title imageUrl owner type sourceName")
+            .select("title images owner type sourceName")
             .populate("owner", "fullName");
           break;
         case "Album":
           query = mongoose
             .model("Album")
             .findById(search.item)
-            .select("title imageUrl artist")
+            .select("title images artist")
             .populate("artist", "name");
           break;
         case "Artist":
           query = mongoose
             .model("Artist")
             .findById(search.item)
-            .select("name imageUrl");
+            .select("name images");
           break;
         case "User":
           query = mongoose
             .model("User")
             .findById(search.item)
-            .select("fullName imageUrl");
+            .select("fullName images");
           break;
         case "Song":
           query = Song.findById(search.item)
-            .select("title imageUrl artist albumId")
+            .select("title images artist albumId")
             .populate("artist", "name");
           break;
         default:
@@ -566,7 +565,7 @@ export const getFavoriteArtists = async (
         populate: {
           path: "artist",
           model: "Artist",
-          select: "name imageUrl bio bannerUrl createdAt updatedAt",
+          select: "name images bio bannerUrl createdAt updatedAt",
         },
       })
       .lean();
@@ -592,7 +591,7 @@ export const getFavoriteArtists = async (
         artistMap.set(artistId, {
           _id: artist._id,
           name: artist.name,
-          imageUrl: artist.imageUrl,
+          images: artist.images || [],
           bio: artist.bio || "",
           bannerUrl: artist.bannerUrl || null,
           createdAt: artist.createdAt,
@@ -610,7 +609,7 @@ export const getFavoriteArtists = async (
     for (const artist of favoriteArtists) {
       const songs = await Song.find({ artist: artist._id })
         .select(SONG_MINIMAL_SELECT)
-        .populate({ path: "artist", select: "name imageUrl" })
+        .populate({ path: "artist", select: "name images" })
         .sort({ playCount: -1 })
         .limit(5)
         .lean();
@@ -636,7 +635,7 @@ export const getNewReleases = async (
     const albums = await Album.find()
       .sort({ createdAt: -1 })
       .limit(10)
-      .populate("artist", "name imageUrl")
+      .populate("artist", "name images")
       .lean();
 
     if (returnInternal) return albums;
@@ -702,7 +701,7 @@ export const getRecentlyListenedArtists = async (req, res, next) => {
         populate: {
           path: "artist",
           model: "Artist",
-          select: "name imageUrl bio bannerUrl createdAt updatedAt",
+          select: "name images bio bannerUrl createdAt updatedAt",
         },
       })
       .lean();
@@ -726,7 +725,7 @@ export const getRecentlyListenedArtists = async (req, res, next) => {
         artistMap.set(artistId, {
           _id: artist._id,
           name: artist.name,
-          imageUrl: artist.imageUrl,
+          images: artist.images || [],
           bio: artist.bio || "",
           bannerUrl: artist.bannerUrl || null,
           createdAt: artist.createdAt,
@@ -749,7 +748,7 @@ export const getRecentlyListenedArtists = async (req, res, next) => {
     for (const artist of recentlyListenedArtists) {
       const songs = await Song.find({ artist: artist._id })
         .select(SONG_MINIMAL_SELECT)
-        .populate({ path: "artist", select: "name imageUrl" })
+        .populate({ path: "artist", select: "name images" })
         .sort({ playCount: -1 })
         .limit(5)
         .lean();
@@ -859,7 +858,7 @@ export const getTopTracksThisMonth = async (req, res, next) => {
           newRoot: {
             _id: "$songDetails._id",
             title: "$songDetails.title",
-            imageUrl: "$songDetails.imageUrl",
+            images: "$songDetails.images",
             duration: "$songDetails.duration",
             playCount: "$songDetails.playCount",
             listenCount: "$listenCount",
@@ -868,7 +867,7 @@ export const getTopTracksThisMonth = async (req, res, next) => {
             album: {
               _id: "$album._id" || null,
               title: "$album.title" || "Unknown Album",
-              imageUrl: "$album.imageUrl" || null,
+              images: "$album.images",
             },
           },
         },
@@ -954,7 +953,7 @@ export const getAllTopTracksThisMonth = async (req, res, next) => {
           newRoot: {
             _id: "$songDetails._id",
             title: "$songDetails.title",
-            imageUrl: "$songDetails.imageUrl",
+            images: "$songDetails.images",
             duration: "$songDetails.duration",
             playCount: "$songDetails.playCount",
             listenCount: "$listenCount",
@@ -963,7 +962,7 @@ export const getAllTopTracksThisMonth = async (req, res, next) => {
             album: {
               _id: "$album._id" || null,
               title: "$album.title" || "Unknown Album",
-              imageUrl: "$album.imageUrl" || null,
+              images: "$album.images",
             },
           },
         },

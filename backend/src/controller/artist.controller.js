@@ -3,7 +3,7 @@ import { Album } from "../models/album.model.js";
 import { Song } from "../models/song.model.js";
 
 const SONG_MINIMAL_SELECT =
-  "_id title artist albumId imageUrl coverAccentHex duration playCount";
+  "_id title artist albumId images coverAccentHex duration playCount";
 
 export const getAllArtists = async (req, res, next) => {
   try {
@@ -24,7 +24,7 @@ export const getArtistById = async (req, res, next) => {
         select: SONG_MINIMAL_SELECT,
         populate: {
           path: "artist",
-          select: "name imageUrl",
+          select: "name images",
         },
         options: { sort: { playCount: -1 }, limit: 5 },
       })
@@ -32,7 +32,7 @@ export const getArtistById = async (req, res, next) => {
         path: "albums",
         populate: {
           path: "artist",
-          select: "name imageUrl",
+          select: "name images",
         },
       })
       .lean();
@@ -69,7 +69,7 @@ export const getArtistAppearsOn = async (req, res, next) => {
     );
 
     const albums = await Album.find({ _id: { $in: appearsOnAlbumIds } })
-      .populate("artist", "name imageUrl")
+      .populate("artist", "name images")
       .lean();
 
     res.status(200).json(albums);

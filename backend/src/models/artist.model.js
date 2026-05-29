@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { imagesField } from "./schemas/imageVariants.schema.js";
 
 const artistSchema = new mongoose.Schema(
   {
@@ -6,13 +7,10 @@ const artistSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    imageUrl: {
-      type: String,
-      required: true,
-    },
     imagePublicId: {
       type: String,
     },
+    images: imagesField,
     bio: {
       type: String,
       required: false,

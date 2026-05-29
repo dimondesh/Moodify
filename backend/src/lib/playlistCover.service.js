@@ -10,7 +10,7 @@ export function isUserUploadedPlaylistCoverPath(remotePath) {
 }
 
 /**
- * @param {{ imageUrl?: string | null, imagePublicId?: string | null }} playlist
+ * @param {{ images?: { url?: string }[], imagePublicId?: string | null }} playlist
  * @param {string | null} [excludePath] — newly uploaded path to keep
  * @returns {string[]}
  */
@@ -18,13 +18,17 @@ export function collectDeletablePlaylistCoverPaths(playlist, excludePath = null)
   const paths = new Set();
   const normalizedExclude = excludePath?.replace(/\\/g, "/") ?? null;
 
-  if (isUserUploadedPlaylistCoverPath(playlist.imagePublicId)) {
-    paths.add(playlist.imagePublicId.replace(/\\/g, "/"));
+  if (Array.isArray(playlist.images)) {
+    for (const img of playlist.images) {
+      const p = getPathFromUrl(img?.url);
+      if (p && isUserUploadedPlaylistCoverPath(p)) {
+        paths.add(p);
+      }
+    }
   }
 
-  const fromUrl = getPathFromUrl(playlist.imageUrl);
-  if (isUserUploadedPlaylistCoverPath(fromUrl)) {
-    paths.add(fromUrl);
+  if (isUserUploadedPlaylistCoverPath(playlist.imagePublicId)) {
+    paths.add(playlist.imagePublicId.replace(/\\/g, "/"));
   }
 
   if (normalizedExclude) {
@@ -35,7 +39,7 @@ export function collectDeletablePlaylistCoverPaths(playlist, excludePath = null)
 }
 
 /**
- * @param {{ imageUrl?: string | null, imagePublicId?: string | null }} playlist
+ * @param {{ images?: { url?: string }[], imagePublicId?: string | null }} playlist
  * @param {string | null} [excludePath]
  */
 export async function deletePlaylistCoverFromCdn(playlist, excludePath = null) {

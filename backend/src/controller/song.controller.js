@@ -10,13 +10,13 @@ import { Artist } from "../models/artist.model.js";
 import { getVibeMatchTracks } from "../lib/recommendation.service.js";
 
 const SONG_MINIMAL_SELECT =
-  "_id title artist albumId imageUrl coverAccentHex duration playCount";
+  "_id title artist albumId images coverAccentHex duration playCount";
 
 export const getAllSongs = async (req, res, next) => {
   try {
     const songs = await Song.find()
       .select(SONG_MINIMAL_SELECT)
-      .populate("artist", "name imageUrl")
+      .populate("artist", "name images")
       .lean()
       .sort({ createdAt: -1 });
 
@@ -84,11 +84,11 @@ export const getTrendingSongs = async (
         .sort({ playCount: -1 })
         .limit(limit)
         .select(SONG_MINIMAL_SELECT)
-        .populate("artist", "name imageUrl");
+        .populate("artist", "name images");
     } else {
       const unorderedSongs = await Song.find({ _id: { $in: orderedSongIds } })
         .select(SONG_MINIMAL_SELECT)
-        .populate("artist", "name imageUrl");
+        .populate("artist", "name images");
 
       const songMap = new Map(
         unorderedSongs.map((song) => [song._id.toString(), song]),
@@ -183,7 +183,7 @@ export const getMadeForYouSongs = async (
     })
       .limit(50)
       .select(SONG_MINIMAL_SELECT)
-      .populate("artist", "name imageUrl");
+      .populate("artist", "name images");
 
     const shuffledRecommendations = recommendations
       .sort(() => 0.5 - Math.random())
@@ -273,7 +273,7 @@ export const getListenHistory = async (
       .sort({ listenedAt: -1 })
       .populate({
         path: "song",
-        populate: { path: "artist", model: "Artist", select: "name imageUrl" },
+        populate: { path: "artist", model: "Artist", select: "name images" },
       })
       .lean();
 
@@ -308,7 +308,7 @@ export const getListenHistory = async (
           _id: entityId,
           itemType: normalizedType,
           title: entityTitle || "Unknown",
-          imageUrl: null,
+          images: [],
           songs: [],
         };
 
@@ -318,33 +318,33 @@ export const getListenHistory = async (
             switch (normalizedType) {
               case "album":
                 entityData = await Album.findById(entityId)
-                  .select("title imageUrl type artist")
+                  .select("title images type artist")
                   .populate("artist", "name")
                   .populate({
                     path: "songs",
                     select: SONG_MINIMAL_SELECT,
-                    populate: { path: "artist", select: "name imageUrl" },
+                    populate: { path: "artist", select: "name images" },
                   })
                   .lean();
                 break;
               case "playlist":
                 entityData = await Playlist.findById(entityId)
-                  .select("title imageUrl owner type sourceName")
+                  .select("title images owner type sourceName")
                   .populate("owner", "fullName")
                   .populate({
                     path: "songs",
                     select: SONG_MINIMAL_SELECT,
-                    populate: { path: "artist", select: "name imageUrl" },
+                    populate: { path: "artist", select: "name images" },
                   })
                   .lean();
                 break;
               case "artist":
                 entityData = await Artist.findById(entityId)
-                  .select("name imageUrl")
+                  .select("name images")
                   .populate({
                     path: "songs",
                     select: SONG_MINIMAL_SELECT,
-                    populate: { path: "artist", select: "name imageUrl" },
+                    populate: { path: "artist", select: "name images" },
                     options: { sort: { playCount: -1 }, limit: 5 },
                   })
                   .lean();
@@ -354,7 +354,7 @@ export const getListenHistory = async (
 
             if (entityData) {
               entity.title = entityData.title || entityTitle;
-              entity.imageUrl = entityData.imageUrl;
+              entity.images = entityData.images || [];
               entity.songs = entityData.songs || [];
               if (normalizedType === "album") {
                 entity.type = entityData.type;
@@ -368,7 +368,7 @@ export const getListenHistory = async (
               }
             }
           } catch (error) {
-            entity.imageUrl = "/default-album-cover.png";
+            entity.images = [];
           }
         }
         uniqueEntities.push(entity);

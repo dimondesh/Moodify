@@ -2,19 +2,19 @@ import { Album } from "../models/album.model.js";
 import { ListenHistory } from "../models/listenHistory.model.js";
 
 const SONG_MINIMAL_SELECT =
-  "_id title imageUrl coverAccentHex duration playCount albumId createdAt";
+  "_id title images coverAccentHex duration playCount albumId createdAt";
 
 export const getAllAlbums = async (req, res, next) => {
   try {
     const albums = await Album.find()
-      .populate("artist", "name imageUrl")
+      .populate("artist", "name images")
       .populate({
         path: "songs",
         select: SONG_MINIMAL_SELECT,
         populate: {
           path: "artist",
           model: "Artist",
-          select: "name imageUrl",
+          select: "name images",
         },
       })
       .lean();
@@ -30,14 +30,14 @@ export const getAlbumById = async (req, res, next) => {
     const { id } = req.params;
 
     const album = await Album.findById(id)
-      .populate("artist", "name imageUrl")
+      .populate("artist", "name images")
       .populate({
         path: "songs",
         select: SONG_MINIMAL_SELECT,
         populate: {
           path: "artist",
           model: "Artist",
-          select: "name imageUrl",
+          select: "name images",
         },
       })
       .lean();
@@ -82,14 +82,14 @@ export const getTrendingAlbums = async (
     const albumsWithTrendingSongs = await Album.find({
       songs: { $in: trendingSongIds },
     })
-      .populate("artist", "name imageUrl")
+      .populate("artist", "name images")
       .populate({
         path: "songs",
         select: SONG_MINIMAL_SELECT,
         populate: {
           path: "artist",
           model: "Artist",
-          select: "name imageUrl",
+          select: "name images",
         },
       })
       .lean();
@@ -136,14 +136,14 @@ export const getTrendingAlbums = async (
       const additionalAlbums = await Album.find({
         _id: { $nin: sortedAlbums.map((album) => album._id) },
       })
-        .populate("artist", "name imageUrl")
+        .populate("artist", "name images")
         .populate({
           path: "songs",
           select: SONG_MINIMAL_SELECT,
           populate: {
             path: "artist",
             model: "Artist",
-            select: "name imageUrl",
+            select: "name images",
           },
         })
         .sort({ createdAt: -1 })

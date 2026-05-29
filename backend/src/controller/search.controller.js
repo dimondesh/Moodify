@@ -5,7 +5,7 @@ import { Artist } from "../models/artist.model.js";
 import { User } from "../models/user.model.js";
 
 const SONG_MINIMAL_SELECT =
-  "_id title artist albumId imageUrl coverAccentHex duration playCount";
+  "_id title artist albumId images coverAccentHex duration playCount";
 
 const TOP_RESULTS_LIMIT = 4;
 const CATEGORY_DEFAULT_LIMIT = 10;
@@ -29,7 +29,7 @@ const formatSong = (song) => ({
 const formatSongWithAlbum = (song) => ({
   ...formatSong(song),
   albumTitle: song.albumId?.title || null,
-  albumImageUrl: song.albumId?.imageUrl || null,
+  albumImages: song.albumId?.images || [],
 });
 
 const formatAlbum = (album) => ({
@@ -49,7 +49,7 @@ async function getSearchContext(q) {
     .populate({
       path: "songs",
       select: SONG_MINIMAL_SELECT,
-      populate: { path: "artist", select: "name imageUrl" },
+      populate: { path: "artist", select: "name images" },
       options: { sort: { playCount: -1 }, limit: 5 },
     })
     .limit(50)
@@ -124,13 +124,13 @@ async function handleSearchPreview(q, res) {
   ] = await Promise.all([
     Song.find(songMatch)
       .select(SONG_MINIMAL_SELECT)
-      .populate("artist", "name imageUrl")
-      .populate("albumId", "title imageUrl")
+      .populate("artist", "name images")
+      .populate("albumId", "title images")
       .sort({ playCount: -1 })
       .limit(TOP_RESULTS_LIMIT)
       .lean(),
     Album.find(albumMatch)
-      .populate("artist", "name imageUrl")
+      .populate("artist", "name images")
       .sort({ releaseYear: -1 })
       .limit(TOP_RESULTS_LIMIT)
       .lean(),
@@ -162,8 +162,8 @@ async function handleSearchByType(q, type, limit, res) {
   if (type === "songs") {
     const songsRaw = await Song.find(songMatch)
       .select(SONG_MINIMAL_SELECT)
-      .populate("artist", "name imageUrl")
-      .populate("albumId", "title imageUrl")
+      .populate("artist", "name images")
+      .populate("albumId", "title images")
       .sort({ playCount: -1 })
       .limit(limit)
       .lean();
@@ -174,7 +174,7 @@ async function handleSearchByType(q, type, limit, res) {
 
   if (type === "albums") {
     const albumsRaw = await Album.find(albumMatch)
-      .populate("artist", "name imageUrl")
+      .populate("artist", "name images")
       .sort({ releaseYear: -1 })
       .limit(limit)
       .lean();
@@ -243,17 +243,17 @@ export const searchSongs = async (req, res, next) => {
     const [songsRaw, albumsRaw, playlistsRaw, usersRaw] = await Promise.all([
       Song.find(songMatch)
         .select(SONG_MINIMAL_SELECT)
-        .populate("artist", "name imageUrl")
-        .populate("albumId", "title imageUrl")
+        .populate("artist", "name images")
+        .populate("albumId", "title images")
         .limit(50)
         .lean(),
 
       Album.find(albumMatch)
-        .populate("artist", "name imageUrl")
+        .populate("artist", "name images")
         .populate({
           path: "songs",
           select: SONG_MINIMAL_SELECT,
-          populate: { path: "artist", select: "name imageUrl" },
+          populate: { path: "artist", select: "name images" },
         })
         .limit(50)
         .lean(),
@@ -270,14 +270,14 @@ export const searchSongs = async (req, res, next) => {
         .populate({
           path: "songs",
           select: SONG_MINIMAL_SELECT,
-          populate: { path: "artist", select: "name imageUrl" },
+          populate: { path: "artist", select: "name images" },
         })
         .limit(50)
         .lean(),
 
       User.find({ fullName: regex })
         .limit(50)
-        .select("fullName imageUrl")
+        .select("fullName images")
         .lean(),
     ]);
 
@@ -298,7 +298,7 @@ export const searchSongs = async (req, res, next) => {
     const users = usersRaw.map((user) => ({
       _id: user._id.toString(),
       fullName: user.fullName,
-      imageUrl: user.imageUrl,
+      images: user.images || [],
       type: "user",
     }));
 

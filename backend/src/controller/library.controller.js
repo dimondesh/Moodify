@@ -5,7 +5,7 @@ import { LikedSong } from "../models/likedSong.model.js";
 import { LIKED_PLAYLIST_ID } from "./playlist.controller.js";
 
 const SONG_MINIMAL_SELECT =
-  "_id title artist albumId imageUrl coverAccentHex duration playCount";
+  "_id title artist albumId images coverAccentHex duration playCount";
 
 const sortByLibraryAddedAtDesc = (a, b) => {
   const ta = new Date(a.addedAt ?? 0).getTime();
@@ -36,19 +36,19 @@ export async function buildLibrarySummaryForUser(userId) {
     mongoose
       .model("Album")
       .find({ _id: { $in: albumIds } })
-      .select("title imageUrl type artist")
-      .populate({ path: "artist", select: "name imageUrl" })
+      .select("title images type artist")
+      .populate({ path: "artist", select: "name images" })
       .lean(),
     mongoose
       .model("Playlist")
       .find({ _id: { $in: playlistIds } })
-      .select("title imageUrl owner isPublic type isSystem updatedAt")
-      .populate({ path: "owner", select: "fullName imageUrl" })
+      .select("title images owner isPublic type isSystem updatedAt")
+      .populate({ path: "owner", select: "fullName images" })
       .lean(),
     mongoose
       .model("Artist")
       .find({ _id: { $in: artistIds } })
-      .select("name imageUrl createdAt")
+      .select("name images createdAt")
       .lean(),
   ]);
 
@@ -192,7 +192,7 @@ export const getPlaylistsInLibrary = async (req, res, next) => {
     const library = await Library.findOne({ userId }).populate({
       path: "playlists.playlistId",
       model: "Playlist",
-      populate: { path: "owner", select: "fullName imageUrl" },
+      populate: { path: "owner", select: "fullName images" },
     });
 
     if (!library || !library.playlists) return res.json({ playlists: [] });
@@ -283,7 +283,7 @@ export const getFollowedArtists = async (req, res, next) => {
       .populate({
         path: "followedArtists.artistId",
         model: "Artist",
-        select: "name imageUrl createdAt",
+        select: "name images createdAt",
       })
       .lean();
 

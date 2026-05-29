@@ -52,24 +52,17 @@ import {
   CDN_DEFAULT_ALBUM_COVER,
   CDN_DEFAULT_ARTIST_IMAGE,
 } from "../constants/cdn.js";
+import {
+  deleteImageVariants,
+  replaceEntityImageVariants,
+  toImageFields,
+  uploadImageVariantsFromSource,
+} from "../lib/imageVariants.service.js";
 
-const uploadFile = async (file, folder) => {
-  try {
-    const sourcePath = file.tempFilePath;
-    const fileName = `${uuidv4()}${path.extname(file.name)}`;
-    const result = await uploadToBunny(sourcePath, folder, fileName);
-
-    return {
-      url: result.url,
-      publicId: result.path,
-    };
-  } catch (error) {
-    console.error(
-      `Error uploading to Bunny.net from source ${file.name}:`,
-      error,
-    );
-    throw new Error("Failed to upload file to Bunny.net");
-  }
+const DOWNLOAD_OPTS = {
+  responseType: "arraybuffer",
+  timeout: 20000,
+  maxContentLength: 8 * 1024 * 1024,
 };
 
 const updateArtistsContent = async (artistIds, contentId, contentType) => {
@@ -137,7 +130,10 @@ export const createSong = async (req, res, next) => {
       const { hlsUrl, duration } =
         await processAndUploadSong(req.files.audioFile.tempFilePath);
 
-      let imageUpload = { url: null, publicId: null };
+      let imageFields = {
+        imagePublicId: null,
+        images: [],
+      };
       let finalAlbumId = albumId && albumId !== "none" ? albumId : null;
       const artistIds = JSON.parse(artistIdsJsonString);
       let songCoverAccentHex = null;
@@ -150,13 +146,16 @@ export const createSong = async (req, res, next) => {
         const coverAccentHex =
           await extractCoverAccentHexFromBuffer(coverBuf);
 
-        imageUpload = await uploadFile(req.files.imageFile, "songs/images");
+        const variantUpload = await uploadImageVariantsFromSource(
+          req.files.imageFile,
+          "albums",
+        );
+        imageFields = toImageFields(variantUpload);
 
         const newAlbum = new Album({
           title,
           artist: artistIds,
-          imageUrl: imageUpload.url,
-          imagePublicId: imageUpload.publicId,
+          ...imageFields,
           releaseYear: releaseYear || new Date().getFullYear(),
           type: "Single",
           coverAccentHex,
@@ -168,8 +167,7 @@ export const createSong = async (req, res, next) => {
       } else {
         const existingAlbum = await Album.findById(finalAlbumId);
         if (!existingAlbum) throw new Error("Album not found.");
-        imageUpload.url = existingAlbum.imageUrl;
-        imageUpload.publicId = existingAlbum.imagePublicId;
+        imageFields = toImageFields(existingAlbum);
         songCoverAccentHex = existingAlbum.coverAccentHex ?? null;
       }
 
@@ -177,8 +175,7 @@ export const createSong = async (req, res, next) => {
         title,
         artist: artistIds,
         albumId: finalAlbumId,
-        imageUrl: imageUpload.url,
-        imagePublicId: imageUpload.publicId,
+        ...imageFields,
         coverAccentHex: songCoverAccentHex,
         hlsUrl,
         duration,
@@ -295,15 +292,10 @@ export const updateSong = async (req, res, next) => {
       }
 
       if (imageFile) {
-        if (song.imagePublicId) {
-          await deleteFromBunny(getPathFromUrl(song.imageUrl));
-        }
         const coverBuf = await fs.readFile(imageFile.tempFilePath);
         song.coverAccentHex =
           await extractCoverAccentHexFromBuffer(coverBuf);
-        const imageUpload = await uploadFile(imageFile, "songs/images");
-        song.imageUrl = imageUpload.url;
-        song.imagePublicId = imageUpload.publicId;
+        await replaceEntityImageVariants(song, imageFile, "songs/images");
       }
 
       if (albumId !== undefined) {
@@ -364,19 +356,23 @@ export const deleteSong = async (req, res, next) => {
     if (song.albumId) {
       const album = await Album.findById(song.albumId);
       if (album && album.type === "Single" && album.songs.length <= 1) {
-        if (album.imagePublicId) await deleteFromBunny(album.imagePublicId);
+        await deleteImageVariants(album);
         await removeContentFromArtists(album.artist, album._id, "albums");
         await Album.findByIdAndDelete(album._id);
       } else if (album) {
-        if (song.imagePublicId && song.imagePublicId !== album.imagePublicId) {
-          await deleteFromBunny(song.imagePublicId);
+        const sameCover =
+          song.imagePublicId &&
+          album.imagePublicId &&
+          song.imagePublicId === album.imagePublicId;
+        if (!sameCover) {
+          await deleteImageVariants(song);
         }
         await Album.findByIdAndUpdate(song.albumId, {
           $pull: { songs: song._id },
         });
       }
-    } else if (song.imagePublicId) {
-      await deleteFromBunny(song.imagePublicId);
+    } else {
+      await deleteImageVariants(song);
     }
 
     await removeContentFromArtists(song.artist, song._id, "songs");
@@ -405,13 +401,15 @@ export const createAlbum = async (req, res, next) => {
     const artistIds = JSON.parse(artistIdsJsonString);
     const coverBuf = await fs.readFile(req.files.imageFile.tempFilePath);
     const coverAccentHex = await extractCoverAccentHexFromBuffer(coverBuf);
-    const imageUpload = await uploadToBunny(req.files.imageFile, "albums");
+    const imageUpload = await uploadImageVariantsFromSource(
+      req.files.imageFile,
+      "albums",
+    );
 
     const album = new Album({
       title,
       artist: artistIds,
-      imageUrl: imageUpload.url,
-      imagePublicId: imageUpload.path,
+      ...toImageFields(imageUpload),
       releaseYear,
       type,
       coverAccentHex,
@@ -482,14 +480,9 @@ export const updateAlbum = async (req, res, next) => {
     }
 
     if (imageFile) {
-      if (album.imagePublicId) {
-        await deleteFromBunny(album.imagePublicId);
-      }
       const coverBuf = await fs.readFile(imageFile.tempFilePath);
       album.coverAccentHex = await extractCoverAccentHexFromBuffer(coverBuf);
-      const imageUpload = await uploadToBunny(imageFile, "albums");
-      album.imageUrl = imageUpload.url;
-      album.imagePublicId = imageUpload.path;
+      await replaceEntityImageVariants(album, imageFile, "albums");
     }
 
     album.title = title || album.title;
@@ -502,7 +495,12 @@ export const updateAlbum = async (req, res, next) => {
     if (imageFile) {
       await Song.updateMany(
         { albumId: album._id },
-        { $set: { coverAccentHex: album.coverAccentHex ?? null } },
+        {
+          $set: {
+            ...toImageFields(album),
+            coverAccentHex: album.coverAccentHex ?? null,
+          },
+        },
       );
     }
     res.status(200).json(album);
@@ -519,28 +517,25 @@ export const deleteAlbum = async (req, res, next) => {
 
     if (!album) return res.status(404).json({ message: "Album not found." });
 
-    // Удаляем обложку альбома
-    if (album.imagePublicId) await deleteFromBunny(album.imagePublicId);
+    await deleteImageVariants(album);
 
-    // Получаем все треки альбома и удаляем их файлы
     const songsInAlbum = await Song.find({ albumId: id });
     for (const song of songsInAlbum) {
-      // Удаляем HLS файлы из Bunny CDN
       if (song.hlsUrl) {
         const hlsPath = getPathFromUrl(song.hlsUrl);
         if (hlsPath) {
-          // Удаляем master.m3u8 файл
           await deleteFromBunny(hlsPath);
-
-          // Удаляем директорию HLS (включая все .ts сегменты)
           const hlsDir = hlsPath.replace("/master.m3u8", "");
           await deleteFromBunny(hlsDir + "/");
         }
       }
 
-      // Удаляем обложку трека (если не совпадает с альбомом)
-      if (song.imagePublicId && song.imagePublicId !== album.imagePublicId) {
-        await deleteFromBunny(song.imagePublicId);
+      const sameCover =
+        song.imagePublicId &&
+        album.imagePublicId &&
+        song.imagePublicId === album.imagePublicId;
+      if (!sameCover) {
+        await deleteImageVariants(song);
       }
     }
 
@@ -566,7 +561,10 @@ export const createArtist = async (req, res, next) => {
         .status(400)
         .json({ message: "Name and image file are required." });
 
-    const imageUpload = await uploadToBunny(req.files.imageFile, "artists");
+    const imageUpload = await uploadImageVariantsFromSource(
+      req.files.imageFile,
+      "artists",
+    );
     let bannerUpload = { url: null, publicId: null };
     if (req.files.bannerFile) {
       bannerUpload = await uploadToBunny(
@@ -578,8 +576,7 @@ export const createArtist = async (req, res, next) => {
     const newArtist = new Artist({
       name,
       bio,
-      imageUrl: imageUpload.url,
-      imagePublicId: imageUpload.publicId,
+      ...toImageFields(imageUpload),
       bannerUrl: bannerUpload.url,
       bannerPublicId: bannerUpload.publicId,
     });
@@ -602,10 +599,7 @@ export const updateArtist = async (req, res, next) => {
     if (!artist) return res.status(404).json({ message: "Artist not found." });
 
     if (imageFile) {
-      if (artist.imagePublicId) await deleteFromBunny(artist.imagePublicId);
-      const imageUpload = await uploadToBunny(imageFile, "artists");
-      artist.imageUrl = imageUpload.url;
-      artist.imagePublicId = imageUpload.path;
+      await replaceEntityImageVariants(artist, imageFile, "artists");
     }
 
     if (bannerFile) {
@@ -667,8 +661,7 @@ export const deleteArtist = async (req, res, next) => {
     await Album.updateMany({ artist: id }, { $pull: { artist: id } });
     await Song.updateMany({ artist: id }, { $pull: { artist: id } });
 
-    // Удаляем изображения артиста
-    if (artist.imagePublicId) await deleteFromBunny(artist.imagePublicId);
+    await deleteImageVariants(artist);
     if (artist.bannerPublicId) await deleteFromBunny(artist.bannerPublicId);
 
     await Artist.findByIdAndDelete(id);
@@ -870,17 +863,16 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
         const artistDetails = await getArtistDataFromSpotify(spotifyArtist.id);
         const artistImageUrl =
           artistDetails?.images?.[0]?.url || DEFAULT_ARTIST_IMAGE_URL;
-        const imageUploadResult = await uploadToBunny(
+        const imageUploadResult = await uploadImageVariantsFromSource(
           artistImageUrl,
           "artists",
         );
-        uploadedBunnyPaths.push(imageUploadResult.path);
+        for (const img of imageUploadResult.images) {
+          uploadedBunnyPaths.push(getPathFromUrl(img.url));
+        }
         artist = new Artist({
           name: spotifyArtist.name,
-          imageUrl: imageUploadResult.url,
-          imagePublicId: imageUploadResult.path,
-          bannerUrl: imageUploadResult.url,
-          bannerPublicId: imageUploadResult.path,
+          ...toImageFields(imageUploadResult),
         });
         await artist.save();
         newlyCreatedArtistIds.push(artist._id);
@@ -906,30 +898,24 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
     let albumImageUpload;
 
     if (!isSkippableCoverImageUrl(albumImageUrl)) {
-      const imgRes = await axios.get(albumImageUrl, {
-        responseType: "arraybuffer",
-        timeout: 20000,
-        maxContentLength: 8 * 1024 * 1024,
-      });
+      const imgRes = await axios.get(albumImageUrl, DOWNLOAD_OPTS);
       const imgBuf = Buffer.from(imgRes.data);
       albumCoverAccentHex = await extractCoverAccentHexFromBuffer(imgBuf);
-      const tmpAlbumImg = path.join(os.tmpdir(), `albcov_${uuidv4()}.jpg`);
-      await fs.writeFile(tmpAlbumImg, imgBuf);
-      try {
-        albumImageUpload = await uploadToBunny(tmpAlbumImg, "albums");
-      } finally {
-        await fs.unlink(tmpAlbumImg).catch(() => {});
-      }
+      albumImageUpload = await uploadImageVariantsFromSource(imgBuf, "albums");
     } else {
-      albumImageUpload = await uploadToBunny(albumImageUrl, "albums");
+      albumImageUpload = await uploadImageVariantsFromSource(
+        albumImageUrl,
+        "albums",
+      );
     }
-    uploadedBunnyPaths.push(albumImageUpload.path);
+    for (const img of albumImageUpload.images) {
+      uploadedBunnyPaths.push(getPathFromUrl(img.url));
+    }
 
     album = new Album({
       title: spotifyAlbumData.name,
       artist: albumArtistIds,
-      imageUrl: albumImageUpload.url,
-      imagePublicId: albumImageUpload.path,
+      ...toImageFields(albumImageUpload),
       releaseYear: parseInt(spotifyAlbumData.release_date.split("-")[0]),
       type: albumType,
       songs: [],
@@ -989,15 +975,16 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
             );
             const artistImageUrl =
               artistDetails?.images?.[0]?.url || DEFAULT_ARTIST_IMAGE_URL;
-            const imageUploadResult = await uploadToBunny(
+            const imageUploadResult = await uploadImageVariantsFromSource(
               artistImageUrl,
               "artists",
             );
-            uploadedBunnyPaths.push(imageUploadResult.path);
+            for (const img of imageUploadResult.images) {
+              uploadedBunnyPaths.push(getPathFromUrl(img.url));
+            }
             artist = new Artist({
               name: spotifyTrackArtist.name,
-              imageUrl: imageUploadResult.url,
-              imagePublicId: imageUploadResult.path,
+              ...toImageFields(imageUploadResult),
             });
             await artist.save();
             newlyCreatedArtistIds.push(artist._id);
@@ -1035,8 +1022,7 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
           hlsUrl,
           lyrics: lrcText || "",
           duration,
-          imageUrl: album.imageUrl,
-          imagePublicId: album.imagePublicId,
+          ...toImageFields(album),
           coverAccentHex: albumCoverAccentHex,
           genres: genreIds,
           moods: moodIds,
@@ -1181,7 +1167,7 @@ export const getPaginatedSongs = async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     const songsQuery = Song.find()
-      .populate("artist", "name imageUrl")
+      .populate("artist", "name images")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -1211,7 +1197,7 @@ export const getPaginatedAlbums = async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     const albumsQuery = Album.find()
-      .populate("artist", "name imageUrl")
+      .populate("artist", "name images")
       .populate("songs")
       .sort({ createdAt: -1 })
       .skip(skip)

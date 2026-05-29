@@ -1,9 +1,11 @@
 import mongoose from "mongoose";
+import { imagesField } from "./schemas/imageVariants.schema.js";
 
 const userSchema = new mongoose.Schema(
   {
     fullName: String,
-    imageUrl: String,
+    imagePublicId: { type: String, default: null },
+    images: imagesField,
     coverAccentHex: { type: String, default: null },
     email: { type: String, required: true, unique: true, lowercase: true },
     role: {

@@ -1,5 +1,6 @@
 // backend/src/models/song.model.js
 import mongoose from "mongoose";
+import { imagesField } from "./schemas/imageVariants.schema.js";
 
 const songSchema = new mongoose.Schema(
   {
@@ -20,14 +21,11 @@ const songSchema = new mongoose.Schema(
       ref: "Album",
       default: null,
     },
-    imageUrl: {
-      type: String,
-      required: true,
-    },
     imagePublicId: {
       type: String,
       default: null,
     },
+    images: imagesField,
     coverAccentHex: {
       type: String,
       default: null,

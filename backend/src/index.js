@@ -19,7 +19,6 @@ import libraryRoutes from "./routes/library.route.js";
 import artistRoutes from "./routes/artist.route.js";
 import cronRoutes from "./routes/cron.route.js";
 import shareRoutes from "./routes/share.route.js";
-import imageRoutes from "./routes/image.route.js";
 import { ListenHistory } from "./models/listenHistory.model.js";
 import {
   generateOnRepeatPlaylistForUser,
@@ -247,7 +246,6 @@ app.get("/sitemap.xml", getSitemap);
 app.use(jsonParser);
 
 app.use("/api/users", userRoutes);
-app.use("/api/images", imageRoutes);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);

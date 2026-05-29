@@ -4,8 +4,12 @@ import { User } from "../models/user.model.js";
 import { Song } from "../models/song.model.js";
 import { Library } from "../models/library.model.js";
 import { getPlaylistEmbeddingRecommendations } from "../lib/recommendation.service.js";
-import { optimizeAndUploadImage } from "../lib/image.service.js";
 import { deletePlaylistCoverFromCdn } from "../lib/playlistCover.service.js";
+import {
+  buildStaticCdnImages,
+  toImageFields,
+  replaceEntityImageVariants,
+} from "../lib/imageVariants.service.js";
 import fs from "fs/promises";
 import {
   extractCoverAccentHexFromBuffer,
@@ -20,7 +24,7 @@ import {
 export const LIKED_PLAYLIST_ID = "liked";
 
 const SONG_MINIMAL_SELECT =
-  "_id title imageUrl coverAccentHex duration playCount albumId createdAt";
+  "_id title images coverAccentHex duration playCount albumId createdAt";
 
 export const populatePlaylistEmbeddedSongs = {
   path: "songs",
@@ -28,7 +32,7 @@ export const populatePlaylistEmbeddedSongs = {
   populate: {
     path: "artist",
     model: "Artist",
-    select: "name imageUrl",
+    select: "name images",
   },
 };
 
@@ -38,7 +42,7 @@ const likedSongPopulate = {
   populate: {
     path: "artist",
     model: "Artist",
-    select: "name imageUrl",
+    select: "name images",
   },
 };
 
@@ -57,7 +61,7 @@ export async function buildVirtualLikedPlaylist(
   }
 
   const owner = await User.findById(userId)
-    .select("fullName imageUrl")
+    .select("fullName images")
     .lean();
 
   const songs = populateSongs
@@ -72,7 +76,7 @@ export async function buildVirtualLikedPlaylist(
   return {
     _id: LIKED_PLAYLIST_ID,
     title: "Liked Songs",
-    imageUrl: CDN_LIKED_PLAYLIST_COVER,
+    images: buildStaticCdnImages(CDN_LIKED_PLAYLIST_COVER),
     type: "LIKED_SONGS",
     isSystem: true,
     isPublic: false,
@@ -101,27 +105,26 @@ export const createPlaylist = async (req, res, next) => {
       return res.status(400).json({ message: "Playlist title is required" });
     }
 
-    let imageUrl = CDN_DEFAULT_ALBUM_COVER;
-    let imagePublicId = null;
+    let imageFields = {
+      imagePublicId: null,
+      images: buildStaticCdnImages(CDN_DEFAULT_ALBUM_COVER),
+    };
     let coverAccentHex = null;
 
     if (req.files && req.files.image) {
       const coverBuf = await fs.readFile(req.files.image.tempFilePath);
       coverAccentHex = await extractCoverAccentHexFromBuffer(coverBuf);
-      const imageUpload = await optimizeAndUploadImage(
+      const imageUpload = await uploadImageVariantsFromSource(
         req.files.image,
-        req.files.image.name,
         "playlist_covers",
       );
-      imageUrl = imageUpload.url;
-      imagePublicId = imageUpload.path;
+      imageFields = toImageFields(imageUpload);
     }
 
     const playlist = new Playlist({
       title,
       description,
-      imageUrl,
-      imagePublicId,
+      ...imageFields,
       coverAccentHex,
       owner: ownerId,
       isPublic: isPublic === "true",
@@ -146,7 +149,7 @@ export const getMyPlaylists = async (req, res, next) => {
     const userId = req.user.id;
 
     const createdPlaylists = await Playlist.find({ owner: userId })
-      .populate("owner", "fullName imageUrl")
+      .populate("owner", "fullName images")
       .populate(populatePlaylistEmbeddedSongs)
       .lean();
 
@@ -157,7 +160,7 @@ export const getMyPlaylists = async (req, res, next) => {
         populate: [
           {
             path: "owner",
-            select: "fullName imageUrl",
+            select: "fullName images",
           },
           populatePlaylistEmbeddedSongs,
         ],
@@ -216,7 +219,7 @@ export const getPlaylistById = async (req, res, next) => {
     }
 
     const playlist = await Playlist.findById(playlistId)
-      .populate("owner", "fullName imageUrl")
+      .populate("owner", "fullName images")
       .populate(populatePlaylistEmbeddedSongs)
       .lean();
 
@@ -267,27 +270,24 @@ export const updatePlaylist = async (req, res, next) => {
 
     if (req.files && req.files.image) {
       const previousCover = {
-        imageUrl: playlist.imageUrl,
         imagePublicId: playlist.imagePublicId,
+        images: playlist.images,
       };
       const coverBuf = await fs.readFile(req.files.image.tempFilePath);
       playlist.coverAccentHex =
         await extractCoverAccentHexFromBuffer(coverBuf);
-      const imageUpload = await optimizeAndUploadImage(
+      await replaceEntityImageVariants(
+        playlist,
         req.files.image,
-        req.files.image.name,
         "playlist_covers",
       );
-      playlist.imageUrl = imageUpload.url;
-      playlist.imagePublicId = imageUpload.path;
-      await deletePlaylistCoverFromCdn(previousCover, imageUpload.path);
     } else if (req.body.removeImage === "true") {
       const previousCover = {
-        imageUrl: playlist.imageUrl,
         imagePublicId: playlist.imagePublicId,
+        images: playlist.images,
       };
-      playlist.imageUrl = CDN_DEFAULT_ALBUM_COVER;
       playlist.imagePublicId = null;
+      playlist.images = buildStaticCdnImages(CDN_DEFAULT_ALBUM_COVER);
       playlist.coverAccentHex = null;
       await deletePlaylistCoverFromCdn(previousCover);
     }
@@ -295,7 +295,7 @@ export const updatePlaylist = async (req, res, next) => {
     await playlist.save();
 
     const updatedPlaylist = await Playlist.findById(playlistId)
-      .populate("owner", "fullName imageUrl")
+      .populate("owner", "fullName images")
       .populate(populatePlaylistEmbeddedSongs)
       .lean();
 
@@ -370,7 +370,7 @@ export const addSongToPlaylist = async (req, res, next) => {
     await playlist.save();
 
     const updatedPlaylist = await Playlist.findById(playlistId)
-      .populate("owner", "fullName imageUrl")
+      .populate("owner", "fullName images")
       .populate(populatePlaylistEmbeddedSongs)
       .lean();
 
@@ -413,7 +413,7 @@ export const removeSongFromPlaylist = async (req, res, next) => {
 
     await playlist.save();
     const updatedPlaylist = await Playlist.findById(playlistId)
-      .populate("owner", "fullName imageUrl")
+      .populate("owner", "fullName images")
       .populate(populatePlaylistEmbeddedSongs)
       .lean();
     res.status(200).json({ message: "Song removed from playlist", playlist });
@@ -489,7 +489,7 @@ export const getPublicPlaylists = async (
 ) => {
   try {
     const publicPlaylists = await Playlist.find({ isPublic: true })
-      .populate("owner", "fullName imageUrl")
+      .populate("owner", "fullName images")
       .populate(populatePlaylistEmbeddedSongs)
       .limit(18)
       .lean();
@@ -509,7 +509,7 @@ export const getPublicPlaylists = async (
 
 export const createPlaylistFromSong = async (req, res, next) => {
   try {
-    const { title, imageUrl, initialSongId } = req.body;
+    const { title, initialSongId } = req.body;
     const ownerId = req.user.id;
 
     if (!title || !initialSongId) {
@@ -518,19 +518,28 @@ export const createPlaylistFromSong = async (req, res, next) => {
         .json({ message: "Title and initial song ID are required." });
     }
 
-    const resolvedImageUrl =
-      imageUrl || CDN_DEFAULT_ALBUM_COVER;
-    let coverAccentHex = null;
-    if (!isSkippableCoverImageUrl(resolvedImageUrl)) {
-      coverAccentHex = await extractCoverAccentHexFromUrl(resolvedImageUrl);
-    }
+    const song = await Song.findById(initialSongId)
+      .select("images coverAccentHex albumId")
+      .populate({ path: "albumId", select: "images coverAccentHex" })
+      .lean();
+
+    const sourceImages =
+      song?.images?.length > 0
+        ? song.images
+        : song?.albumId?.images?.length > 0
+          ? song.albumId.images
+          : buildStaticCdnImages(CDN_DEFAULT_ALBUM_COVER);
+
+    const coverAccentHex =
+      song?.coverAccentHex ?? song?.albumId?.coverAccentHex ?? null;
 
     const newPlaylist = new Playlist({
       title,
       description: ``,
       isPublic: true,
       owner: ownerId,
-      imageUrl: resolvedImageUrl,
+      imagePublicId: null,
+      images: sourceImages,
       coverAccentHex,
       songs: [initialSongId],
     });

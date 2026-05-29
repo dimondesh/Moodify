@@ -23,7 +23,7 @@ const getRandomAlbumsForBrowse = async (limit = BROWSE_RANDOM_ALBUMS_LIMIT) => {
   try {
     const sampled = await Album.aggregate([{ $sample: { size: limit } }]);
     const populated = await Album.populate(sampled, [
-      { path: "artist", select: "name imageUrl" },
+      { path: "artist", select: "name images" },
     ]);
     return populated;
   } catch (err) {

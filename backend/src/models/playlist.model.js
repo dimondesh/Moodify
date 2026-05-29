@@ -1,15 +1,13 @@
 import mongoose from "mongoose";
 import { CDN_DEFAULT_ALBUM_COVER } from "../constants/cdn.js";
+import { imagesField } from "./schemas/imageVariants.schema.js";
 
 const playlistSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true },
     description: { type: String, default: "", trim: true },
-    imageUrl: {
-      type: String,
-      default: CDN_DEFAULT_ALBUM_COVER,
-    },
-    imagePublicId: { type: String, default: null }, // Для загруженных обложек
+    imagePublicId: { type: String, default: null },
+    images: imagesField,
     coverAccentHex: { type: String, default: null },
 
     // owner === null означает, что это глобальный системный микс (например, Жанр/Настроение)

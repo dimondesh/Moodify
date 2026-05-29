@@ -21,7 +21,7 @@ const bunnyAxios = axios.create({
   headers: { AccessKey: BUNNY_STORAGE_ACCESS_KEY },
 });
 
-const putFileToBunny = async (localFilePath, remoteFullPath, mimeType) => {
+export const putFileToBunny = async (localFilePath, remoteFullPath, mimeType) => {
   const fileStream = fsSync.createReadStream(localFilePath);
   await bunnyAxios.put(remoteFullPath, fileStream, {
     headers: {
