@@ -13,21 +13,12 @@ import playlistRoutes from "./routes/playlist.route.js";
 import fileUpload from "express-fileupload";
 import path from "path";
 import cors from "cors";
-import cron from "node-cron";
 import { initializeSocket, io } from "./lib/socket.js";
 import libraryRoutes from "./routes/library.route.js";
 import artistRoutes from "./routes/artist.route.js";
 import cronRoutes from "./routes/cron.route.js";
 import shareRoutes from "./routes/share.route.js";
-import { ListenHistory } from "./models/listenHistory.model.js";
-import {
-  generateOnRepeatPlaylistForUser,
-  generateDiscoverWeeklyForUser,
-  generateOnRepeatRewindForUser,
-} from "./lib/playlistGenerator.service.js";
-import { User } from "./models/user.model.js";
 import homeRoutes from "./routes/home.route.js";
-import { cleanAllTempDirectories } from "./lib/tempCleanup.service.js";
 import { getSitemap } from "./controller/sitemap.controller.js";
 import ogRoutes from "./routes/og.route.js";
 import redisClient, { connectRedis } from "./lib/redis.js";
@@ -72,166 +63,6 @@ app.use(
     createParentPath: true,
     limits: { fileSize: 800 * 1024 * 1024 },
   }),
-);
-
-cron.schedule(
-  "0 */6 * * *", // Каждые 6 часов
-  async () => {
-    console.log(
-      'CRON JOB: Starting "Featured Songs" generation for all users...',
-    );
-    try {
-      const allUsers = await User.find({}).select("_id");
-      for (const user of allUsers) {
-        await generateFeaturedSongsForUser(user._id);
-      }
-      console.log(
-        `CRON JOB: "Featured Songs" generation finished for ${allUsers.length} users.`,
-      );
-    } catch (error) {
-      console.error('CRON JOB: Error in "Featured Songs" generation:', error);
-    }
-  },
-  {
-    scheduled: true,
-    timezone: "Europe/Kyiv",
-  },
-);
-
-cron.schedule(
-  "0 2 */3 * *",
-  async () => {
-    console.log('CRON JOB: Starting "Playlists for You" generation...');
-    const allUsers = await User.find({}).select("_id");
-    for (const user of allUsers) {
-      await generatePlaylistRecommendationsForUser(user._id);
-    }
-    console.log(`CRON JOB: "Playlists for You" generation finished.`);
-  },
-  { scheduled: true, timezone: "Europe/Kyiv" },
-);
-cron.schedule(
-  "0 3 * * *",
-  async () => {
-    console.log('CRON JOB: Starting "New Releases" generation...');
-    const allUsers = await User.find({}).select("_id");
-    for (const user of allUsers) {
-      await generateNewReleasesForUser(user._id);
-    }
-    console.log(`CRON JOB: "New Releases" generation finished.`);
-  },
-  { scheduled: true, timezone: "Europe/Kyiv" },
-);
-cron.schedule(
-  "0 5 1 * *",
-  async () => {
-    console.log('CRON JOB: Starting "On Repeat Rewind" playlist generation...');
-    try {
-      const allUsers = await User.find({}).select("_id");
-      for (const user of allUsers) {
-        await generateOnRepeatRewindForUser(user._id);
-      }
-      console.log(
-        `CRON JOB: "On Repeat Rewind" generation finished for ${allUsers.length} users.`,
-      );
-    } catch (error) {
-      console.error('CRON JOB: Error in "On Repeat Rewind" generation:', error);
-    }
-  },
-  {
-    scheduled: true,
-    timezone: "Europe/Kyiv",
-  },
-);
-
-cron.schedule(
-  "0 4 * * 1",
-  async () => {
-    console.log('CRON JOB: Starting "Discover Weekly" playlist generation...');
-    try {
-      const allUsers = await User.find({}).select("_id");
-      for (const user of allUsers) {
-        await generateDiscoverWeeklyForUser(user._id);
-      }
-      console.log(
-        `CRON JOB: "Discover Weekly" generation finished for ${allUsers.length} users.`,
-      );
-    } catch (error) {
-      console.error('CRON JOB: Error in "Discover Weekly" generation:', error);
-    }
-  },
-  {
-    scheduled: true,
-    timezone: "Europe/Kyiv",
-  },
-);
-cron.schedule(
-  "0 0 * * *",
-  async () => {
-    console.log('CRON JOB: Starting "Personal Mixes" generation...');
-    try {
-      const eligibleUsers = await ListenHistory.aggregate([
-        { $group: { _id: "$user", count: { $sum: 1 } } },
-        { $match: { count: { $gte: 10 } } },
-      ]);
-
-      for (const user of eligibleUsers) {
-        await generatePersonalMixes(user._id);
-      }
-      console.log(
-        `CRON JOB: "Personal Mixes" generation finished for ${eligibleUsers.length} users.`,
-      );
-    } catch (error) {
-      console.error('CRON JOB: Error in "Personal Mixes" generation:', error);
-    }
-  },
-  {
-    scheduled: true,
-    timezone: "Europe/Kyiv",
-  },
-);
-
-cron.schedule("*/20 * * * *", () => {
-  console.log("[CronJob] Запуск очистки временных директорий...");
-  cleanAllTempDirectories();
-});
-
-cron.schedule(
-  "0 1 * * *",
-  () => {
-    updateDailyMixes();
-  },
-  {
-    scheduled: true,
-    timezone: "Europe/Kyiv",
-  },
-);
-
-// Запускаем каждый день в 4 часа утра
-cron.schedule(
-  "0 * */3 * *",
-  async () => {
-    console.log('CRON JOB: Starting "On Repeat" playlist generation...');
-    try {
-      const eligibleUsers = await ListenHistory.aggregate([
-        { $group: { _id: "$user", count: { $sum: 1 } } },
-        { $match: { count: { $gte: 30 } } },
-      ]);
-
-      for (const user of eligibleUsers) {
-        await generateOnRepeatPlaylistForUser(user._id);
-      }
-      console.log(
-        `CRON JOB: "On Repeat" generation finished for ${eligibleUsers.length} users.`,
-      );
-    } catch (error) {
-      console.error('CRON JOB: Error in "On Repeat" generation:', error);
-    }
-  },
-  {
-    scheduled: true,
-    timezone: "Europe/Kyiv",
-  },
 );
 
 app.use((req, res, next) => {

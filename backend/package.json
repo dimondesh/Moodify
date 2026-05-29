@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/index.js",
+    "start:cron": "node src/cron/index.js",
+    "start:pm2": "pm2 start ecosystem.config.cjs",
     "dev": "nodemon src/index.js",
+    "dev:cron": "nodemon src/cron/index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "seed:songs": "node src/seeds/songs.js",
     "seed:albums": "node src/seeds/albums.js",
