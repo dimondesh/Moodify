@@ -4,7 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { Play } from "lucide-react";
 import { usePlayerStore } from "../stores/usePlayerStore";
 import Equalizer from "./ui/equalizer";
-import { getOptimizedImageUrl } from "../lib/utils";
+import { CoverImage } from "@/components/CoverImage";
+import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 import type { Song } from "../types";
 import { Button } from "./ui/button";
 import { useAuthStore } from "../stores/useAuthStore";
@@ -122,11 +123,10 @@ const TopTracksThisMonth: React.FC<TopTracksThisMonthProps> = ({
                 )}
               </div>
               <div className="w-12 h-12 flex-shrink-0">
-                <img
-                  src={getOptimizedImageUrl(
-                    track.imageUrl || "/default-song-cover.png",
-                    100,
-                  )}
+                <CoverImage
+                  entity={track}
+                  size="thumb"
+                  defaultUrl={CDN_DEFAULT_ALBUM_COVER}
                   alt={track.title}
                   className="w-full h-full object-cover rounded-md"
                 />

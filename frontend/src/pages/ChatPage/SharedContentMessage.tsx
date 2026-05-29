@@ -10,6 +10,8 @@ import { useIsSongLiked } from "@/hooks/useLikedSongs";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { getImageUrlByKey } from "@/lib/imageUrl";
+import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 
 interface SharedContentMessageProps {
   entityType: "song" | "album" | "playlist";
@@ -169,9 +171,9 @@ export const SharedContentMessage: React.FC<SharedContentMessageProps> = ({
         className="flex gap-3 items-start cursor-pointer"
         onClick={handleNavigate}
       >
-        {entity.imageUrl ? (
+        {entity.images?.length ? (
           <img
-            src={entity.imageUrl}
+            src={getImageUrlByKey(entity, "thumb", CDN_DEFAULT_ALBUM_COVER)}
             alt={getDisplayTitle()}
             className="w-16 h-16 object-cover rounded"
           />

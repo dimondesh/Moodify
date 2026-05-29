@@ -15,7 +15,7 @@ import {
   shouldShowInFriendsActivity,
 } from "../lib/friendsActivityUtils";
 import type { User } from "../types";
-import { resolveUserImageUrl } from "@/lib/cdn";
+import { getUserAvatarUrl } from "@/lib/cdn";
 
 const FriendsActivity = () => {
   const { t } = useTranslation();
@@ -156,7 +156,7 @@ function FriendActivityCard({
         <div className="relative flex-shrink-0">
           <Avatar className="size-8 border border-[#2a2a2a]">
             <AvatarImage
-              src={resolveUserImageUrl(userObj.imageUrl)}
+              src={getUserAvatarUrl(userObj)}
               alt={userObj.fullName}
               className="object-cover"
             />

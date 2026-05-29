@@ -20,8 +20,10 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import SongOptionsDrawer from "@/components/SongOptionsDrawer";
 import { Song } from "@/types";
 import EqualizerTitle from "@/components/ui/equalizer-title";
-import { getOptimizedImageUrl } from "@/lib/utils";
 import { CollectionGradientLayout } from "@/components/CollectionGradientLayout";
+import { CoverImage } from "@/components/CoverImage";
+import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
+import { getLargeCoverUrl } from "@/lib/imageUrl";
 import { useDominantCoverGradient } from "@/hooks/useDominantCoverGradient";
 import { AlbumCoverDialog } from "./AlbumCoverDialog";
 import { SaveSongToLibraryControl } from "@/layout/SaveSongToLibraryControl";
@@ -57,7 +59,7 @@ const AlbumPage = () => {
   const [isCoverModalOpen, setIsCoverModalOpen] = useState(false);
 
   const { backgrounds, isColorLoading } = useDominantCoverGradient(
-    currentAlbum?.imageUrl,
+    getLargeCoverUrl(currentAlbum),
     albumId,
     currentAlbum?.coverAccentHex,
   );
@@ -193,11 +195,10 @@ const AlbumPage = () => {
             
           </div>
           <div className="flex items-center gap-3 min-w-0">
-            <img
-              src={getOptimizedImageUrl(
-                song.imageUrl || "/default-song-cover.png",
-                80,
-              )}
+            <CoverImage
+              entity={song}
+              size="thumb"
+              defaultUrl={CDN_DEFAULT_ALBUM_COVER}
               alt={song.title}
               className="size-10 object-cover rounded-md flex-shrink-0"
             />
@@ -309,7 +310,7 @@ const AlbumPage = () => {
           property="og:description"
           content={`Listen to ${currentAlbum.title} by ${artistNames} on Moodify Music.`}
         />
-        <meta property="og:image" content={currentAlbum.imageUrl} />
+        <meta property="og:image" content={getLargeCoverUrl(currentAlbum)} />
         <meta property="og:site_name" content="Moodify Music" />
         <meta property="og:type" content="music.album" />
         <meta name="twitter:card" content="summary_large_image" />
@@ -322,9 +323,12 @@ const AlbumPage = () => {
       >
         <div className="relative z-10">
           <div className="flex flex-col sm:flex-row p-4 sm:p-6 gap-4 sm:gap-6 pb-8 sm:pb-8 items-center sm:items-end">
-            <img
-              src={getOptimizedImageUrl(currentAlbum.imageUrl, 500)}
+            <CoverImage
+              entity={currentAlbum}
+              size="large"
+              defaultUrl={CDN_DEFAULT_ALBUM_COVER}
               alt={currentAlbum.title}
+              loading="eager"
               onClick={() => {
                 if (!isMobile) setIsCoverModalOpen(true);
               }}
@@ -472,7 +476,7 @@ const AlbumPage = () => {
         <AlbumCoverDialog
           open={isCoverModalOpen}
           onOpenChange={setIsCoverModalOpen}
-          imageUrl={currentAlbum.imageUrl}
+          coverUrl={getLargeCoverUrl(currentAlbum)}
           albumTitle={currentAlbum.title}
         />
       )}

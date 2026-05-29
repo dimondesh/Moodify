@@ -2,11 +2,12 @@ import React, { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import UniversalPlayButton from "@/components/ui/UniversalPlayButton";
-import { getOptimizedImageUrl } from "@/lib/utils";
+import { CoverImage } from "@/components/CoverImage";
+import { getImageUrlByKey } from "@/lib/imageUrl";
 import {
   CDN_DEFAULT_ALBUM_COVER,
   CDN_DEFAULT_ARTIST_IMAGE,
-  resolveUserImageUrl,
+  CDN_DEFAULT_USER_IMAGE,
 } from "@/lib/cdn";
 import { useArtists } from "@/hooks/queries";
 import type { Song, Album, Playlist, Artist } from "@/types";
@@ -69,11 +70,12 @@ const EntitySectionCardComponent: React.FC<EntitySectionCardProps> = ({
           {item.itemType === "artist" || item.itemType === "user" ? (
             <Avatar className="absolute inset-0 h-full w-full object-cover rounded-full">
               <AvatarImage
-                src={getOptimizedImageUrl(
+                src={getImageUrlByKey(
+                  item,
+                  "card",
                   item.itemType === "user"
-                    ? resolveUserImageUrl(item.imageUrl)
-                    : item.imageUrl || CDN_DEFAULT_ARTIST_IMAGE,
-                  200,
+                    ? CDN_DEFAULT_USER_IMAGE
+                    : CDN_DEFAULT_ARTIST_IMAGE,
                 )}
                 alt={title}
                 className="object-cover h-auto w-auto rounded-full"
@@ -81,12 +83,10 @@ const EntitySectionCardComponent: React.FC<EntitySectionCardProps> = ({
               <AvatarFallback>{title?.[0] || "?"}</AvatarFallback>
             </Avatar>
           ) : (
-            <img
-              src={getOptimizedImageUrl(
-                item.imageUrl ||
-                  CDN_DEFAULT_ALBUM_COVER,
-                200,
-              )}
+            <CoverImage
+              entity={item}
+              size="card"
+              defaultUrl={CDN_DEFAULT_ALBUM_COVER}
               alt={title}
               className="absolute inset-0 h-full w-full object-cover rounded-md"
             />

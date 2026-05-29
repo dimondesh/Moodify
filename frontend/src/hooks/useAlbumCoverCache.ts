@@ -1,107 +1,42 @@
-// src/hooks/useAlbumCoverCache.ts
+import { useEffect, useRef } from "react";
+import { getImageUrl, IMAGE_SIZES } from "@/lib/imageUrl";
+import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 
-import { useState, useEffect, useRef } from "react";
+const preloaded = new Set<string>();
 
-interface AlbumCoverCache {
-  [albumId: string]: {
-    imageUrl: string;
-    loaded: boolean;
-    loading: boolean;
-  };
-}
-
-const albumCoverCache: AlbumCoverCache = {};
-
-export const useAlbumCoverCache = (songs: any[]) => {
-  const [cache, setCache] = useState<AlbumCoverCache>(albumCoverCache);
+export const useAlbumCoverCache = (songs: { albumId?: string; images?: { size: number; url: string }[] }[]) => {
   const loadingRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    if (!songs || songs.length === 0) return;
+    if (!songs?.length) return;
 
-    // Group songs by albumId and get unique album covers
-    const albumCovers = new Map<string, string>();
+    const albumCovers = new Map<string, { albumId: string; entity: { images?: { size: number; url: string }[] } }>();
 
     songs.forEach((song) => {
-      if (song.albumId && song.imageUrl) {
-        albumCovers.set(song.albumId, song.imageUrl);
+      if (song.albumId && song.images?.length) {
+        albumCovers.set(song.albumId, {
+          albumId: song.albumId,
+          entity: { images: song.images },
+        });
       }
     });
 
-    // Process each unique album cover
-    albumCovers.forEach((imageUrl, albumId) => {
-      // Skip if already cached or currently loading
-      if (cache[albumId]?.loaded || loadingRef.current.has(albumId)) {
+    albumCovers.forEach(({ albumId, entity }) => {
+      const url = getImageUrl(entity, IMAGE_SIZES.thumb, CDN_DEFAULT_ALBUM_COVER);
+      const cacheKey = `${albumId}:${url}`;
+      if (preloaded.has(cacheKey) || loadingRef.current.has(cacheKey)) {
         return;
       }
-
-      // Mark as loading
-      loadingRef.current.add(albumId);
-
-      // Create a new image element to preload the image
+      loadingRef.current.add(cacheKey);
       const img = new Image();
-
       img.onload = () => {
-        // Image loaded successfully
-        setCache((prev) => ({
-          ...prev,
-          [albumId]: {
-            imageUrl,
-            loaded: true,
-            loading: false,
-          },
-        }));
-        loadingRef.current.delete(albumId);
+        preloaded.add(cacheKey);
+        loadingRef.current.delete(cacheKey);
       };
-
       img.onerror = () => {
-        // Image failed to load
-        setCache((prev) => ({
-          ...prev,
-          [albumId]: {
-            imageUrl: "/default-song-cover.png",
-            loaded: true,
-            loading: false,
-          },
-        }));
-        loadingRef.current.delete(albumId);
+        loadingRef.current.delete(cacheKey);
       };
-
-      // Start loading the image
-      img.src = imageUrl;
-
-      // Set initial cache entry
-      setCache((prev) => ({
-        ...prev,
-        [albumId]: {
-          imageUrl,
-          loaded: false,
-          loading: true,
-        },
-      }));
+      img.src = url;
     });
   }, [songs]);
-
-  const getAlbumCover = (albumId: string, fallbackImageUrl?: string) => {
-    const cached = cache[albumId];
-    if (cached?.loaded) {
-      return cached.imageUrl;
-    }
-    return fallbackImageUrl || "/default-song-cover.png";
-  };
-
-  const isAlbumCoverLoading = (albumId: string) => {
-    return cache[albumId]?.loading || false;
-  };
-
-  const isAlbumCoverLoaded = (albumId: string) => {
-    return cache[albumId]?.loaded || false;
-  };
-
-  return {
-    getAlbumCover,
-    isAlbumCoverLoading,
-    isAlbumCoverLoaded,
-    cache,
-  };
 };

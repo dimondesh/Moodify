@@ -5,7 +5,7 @@ import { useAuthStore } from "../../stores/useAuthStore";
 import { useUIStore } from "../../stores/useUIStore";
 import { useTranslation } from "react-i18next";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
-import { resolveUserImageUrl } from "@/lib/cdn";
+import { getUserAvatarUrl } from "@/lib/cdn";
 import { Button } from "./button";
 import {
   Drawer,
@@ -122,7 +122,7 @@ const MobileHeader = ({ title }: MobileHeaderProps) => {
               >
                 <Avatar className="w-8 h-8 object-cover">
                   <AvatarImage
-                    src={resolveUserImageUrl(authUser.imageUrl)}
+                    src={getUserAvatarUrl(authUser)}
                     alt="avatar"
                     className="object-cover"
                   />
@@ -144,7 +144,7 @@ const MobileHeader = ({ title }: MobileHeaderProps) => {
                 <div className="flex items-center gap-3">
                   <Avatar className="w-10 h-10 object-cover">
                     <AvatarImage
-                      src={resolveUserImageUrl(authUser.imageUrl)}
+                      src={getUserAvatarUrl(authUser)}
                       alt="avatar"
                       className="object-cover"
                     />

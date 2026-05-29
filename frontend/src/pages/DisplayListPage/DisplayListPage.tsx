@@ -6,11 +6,13 @@ import { axiosInstance } from "@/lib/axios";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SectionGridSkeleton from "@/components/ui/skeletons/PlaylistSkeleton";
 import { useTranslation } from "react-i18next";
-import { getOptimizedImageUrl, getArtistNames } from "@/lib/utils";
+import { getArtistNames } from "@/lib/utils";
+import { CoverImage } from "@/components/CoverImage";
+import { getImageUrlByKey } from "@/lib/imageUrl";
 import {
   CDN_DEFAULT_ALBUM_COVER,
   CDN_DEFAULT_ARTIST_IMAGE,
-  resolveUserImageUrl,
+  CDN_DEFAULT_USER_IMAGE,
 } from "@/lib/cdn";
 import { Artist, User } from "@/types";
 import UniversalPlayButton from "@/components/ui/UniversalPlayButton";
@@ -19,7 +21,7 @@ interface ListItem {
   _id: string;
   name?: string;
   title?: string;
-  imageUrl: string;
+  images?: { size: number; url: string }[];
   type: "user" | "artist" | "playlist" | "album";
   itemType?: "user" | "artist" | "playlist" | "album";
   artist?: Artist[];
@@ -127,11 +129,10 @@ const DisplayListPage = () => {
               <div className="relative mb-2">
                 {item.type === "playlist" || item.type === "album" ? (
                   <div className="relative aspect-square shadow-lg overflow-hidden rounded-md">
-                    <img
-                      src={
-                        getOptimizedImageUrl(item.imageUrl, 300) ||
-                          CDN_DEFAULT_ALBUM_COVER
-                      }
+                    <CoverImage
+                      entity={item}
+                      size="card"
+                      defaultUrl={CDN_DEFAULT_ALBUM_COVER}
                       alt={item.title || t("common.itemCover")}
                       className="absolute inset-0 h-full w-full object-cover rounded-md transition-transform duration-300 group-hover:scale-105"
                     />
@@ -140,11 +141,12 @@ const DisplayListPage = () => {
                   <div className="relative aspect-square shadow-lg overflow-hidden rounded-full">
                     <Avatar className="h-full w-full">
                       <AvatarImage
-                        src={getOptimizedImageUrl(
+                        src={getImageUrlByKey(
+                          item,
+                          "card",
                           item.type === "user"
-                            ? resolveUserImageUrl(item.imageUrl)
-                            : item.imageUrl || CDN_DEFAULT_ARTIST_IMAGE,
-                          300,
+                            ? CDN_DEFAULT_USER_IMAGE
+                            : CDN_DEFAULT_ARTIST_IMAGE,
                         )}
                         className="object-cover rounded-full transition-transform duration-300 group-hover:scale-105"
                       />

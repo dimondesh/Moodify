@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { Lock, MoreHorizontal, Unlock } from "lucide-react";
 
 import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
+import { getLargeCoverUrl } from "@/lib/imageUrl";
 
 const DEFAULT_PLAYLIST_COVER = CDN_DEFAULT_ALBUM_COVER;
 
@@ -64,7 +65,7 @@ export const PlaylistFormDialog: React.FC<PlaylistFormDialogProps> = ({
     setDescription(playlist.description || "");
     setIsPublic(playlist.isPublic ?? false);
     setImageFile(null);
-    setImagePreviewUrl(playlist.imageUrl || null);
+    setImagePreviewUrl(getLargeCoverUrl(playlist) || null);
     setRemoveCoverOnSubmit(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }, [isOpen, playlist?._id, playlist]);

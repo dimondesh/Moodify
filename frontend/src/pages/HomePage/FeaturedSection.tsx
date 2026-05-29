@@ -7,7 +7,9 @@ import { Song } from "@/types";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { usePlayerStore } from "../../stores/usePlayerStore";
 import { useTranslation } from "react-i18next";
-import { cn, getOptimizedImageUrl } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { CoverImage } from "@/components/CoverImage";
+import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 import { useArtists } from "@/hooks/queries";
 
 interface Artist {
@@ -154,17 +156,12 @@ const FeaturedSectionComponent = ({
             onMouseEnter={() => !isMobile && onSongHover(song)}
           >
             <div className="flex-shrink-0">
-              <img
-                src={getOptimizedImageUrl(
-                  song.imageUrl || "/default-song-cover.png",
-                  160,
-                )}
+              <CoverImage
+                entity={song}
+                size="card"
+                defaultUrl={CDN_DEFAULT_ALBUM_COVER}
                 alt={song.title}
                 className="w-14 h-14 sm:w-20 sm:h-20 object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src =
-                    "/default-song-cover.png";
-                }}
               />
             </div>
             <div className="flex-1 p-2 sm:p-3 min-w-0">

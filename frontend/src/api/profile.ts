@@ -5,7 +5,7 @@ import type { Artist, Song, User } from "@/types";
 export interface ProfileListItem {
   _id: string;
   name: string;
-  imageUrl: string;
+  images?: { size: number; url: string }[];
   type: "user" | "artist" | "playlist";
 }
 

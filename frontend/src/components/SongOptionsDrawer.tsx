@@ -14,6 +14,8 @@ import { useTranslation } from "react-i18next";
 import { getArtistNames } from "@/lib/utils";
 import AddSongToPlaylistSheet from "@/components/AddSongToPlaylistSheet";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { CoverImage } from "@/components/CoverImage";
+import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 
 export type SongOptionsDrawerContext = "album" | "playlist";
 
@@ -90,10 +92,12 @@ const SongOptionsDrawer: React.FC<SongOptionsDrawerProps> = ({
         >
           <div className="mx-auto w-full max-w-md">
             <DrawerHeader className="flex flex-col items-center text-center p-4 gap-4">
-              <img
-                src={song.imageUrl}
+              <CoverImage
+                entity={song}
+                size="card"
+                defaultUrl={CDN_DEFAULT_ALBUM_COVER}
                 alt={song.title}
-                className="w-24 h-24 rounded-md"
+                className="w-24 h-24 rounded-md object-cover"
               />
               <div>
                 <DrawerTitle className="text-xl font-bold">

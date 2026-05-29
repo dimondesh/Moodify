@@ -44,17 +44,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export const getOptimizedImageUrl = (
-  originalUrl: string,
-  width: number,
-  quality = 85
-): string => {
-  if (!originalUrl || !originalUrl.includes("b-cdn.net")) {
-    return originalUrl;
-  }
-  return `${originalUrl}?width=${width}&quality=${quality}`;
-};
-
 export const formatDuration = (seconds: number): string => {
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = Math.floor(seconds % 60);

@@ -14,6 +14,12 @@ import { ShareDialog } from "@/components/ui/ShareDialog";
 import { SaveSongToLibraryControl } from "./SaveSongToLibraryControl";
 import Repeat from "@/components/ui/repeat-icon";
 import { CoverDominantBackdrop } from "@/components/CoverDominantBackdrop";
+import { CoverImage } from "@/components/CoverImage";
+import {
+  buildMediaSessionArtwork,
+  getImageUrlByKey,
+} from "@/lib/imageUrl";
+import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 
 import {
   Pause,
@@ -285,9 +291,9 @@ const PlaybackControls = () => {
   useEffect(() => {
     let isMounted = true;
     const fetchColor = async () => {
-      if (currentSong?.imageUrl) {
+      if (currentSong) {
         const color = await extractColor(
-          currentSong.imageUrl,
+          getImageUrlByKey(currentSong, "thumb", CDN_DEFAULT_ALBUM_COVER),
           currentSong.coverAccentHex,
         );
         if (isMounted) setLyricsBgColor(color);
@@ -297,7 +303,7 @@ const PlaybackControls = () => {
     return () => {
       isMounted = false;
     };
-  }, [currentSong?.imageUrl, currentSong?.coverAccentHex, extractColor]);
+  }, [currentSong, currentSong?.coverAccentHex, extractColor]);
 
   useEffect(() => {
     if ("mediaSession" in navigator) {
@@ -321,38 +327,7 @@ const PlaybackControls = () => {
           [],
         ),
         album: currentSong.albumTitle || "",
-        artwork: [
-          {
-            src: currentSong.imageUrl || "/Moodify.svg",
-            sizes: "96x96",
-            type: "image/png",
-          },
-          {
-            src: currentSong.imageUrl || "/Moodify.svg",
-            sizes: "128x128",
-            type: "image/png",
-          },
-          {
-            src: currentSong.imageUrl || "/Moodify.svg",
-            sizes: "192x192",
-            type: "image/png",
-          },
-          {
-            src: currentSong.imageUrl || "/Moodify.svg",
-            sizes: "256x256",
-            type: "image/png",
-          },
-          {
-            src: currentSong.imageUrl || "/Moodify.svg",
-            sizes: "384x384",
-            type: "image/png",
-          },
-          {
-            src: currentSong.imageUrl || "/Moodify.svg",
-            sizes: "512x512",
-            type: "image/png",
-          },
-        ],
+        artwork: buildMediaSessionArtwork(currentSong),
       });
 
       navigator.mediaSession.setActionHandler("play", () => togglePlay());
@@ -526,10 +501,13 @@ const PlaybackControls = () => {
                   onClick={() => setIsFullScreenPlayerOpen(true)}
                 >
                   <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md">
-                    <img
-                      src={currentSong.imageUrl || "/default-song-cover.png"}
+                    <CoverImage
+                      entity={currentSong}
+                      size="thumb"
+                      defaultUrl={CDN_DEFAULT_ALBUM_COVER}
                       alt={currentSong.title}
                       className="h-full w-full object-cover"
+                      loading="eager"
                     />
                   </div>
 
@@ -625,12 +603,13 @@ const PlaybackControls = () => {
                   <div className="flex-1 flex flex-col items-center overflow-y-auto w-full hide-scrollbar">
                     <div className="flex flex-col items-center justify-center px-4 py-8 pb-0 flex-shrink-0 w-full">
                       {currentSong ? (
-                        <img
-                          src={
-                            currentSong.imageUrl || "/default-song-cover.png"
-                          }
+                        <CoverImage
+                          entity={currentSong}
+                          size="large"
+                          defaultUrl={CDN_DEFAULT_ALBUM_COVER}
                           alt={currentSong.title}
                           className="w-full max-w-md aspect-square object-cover rounded-lg shadow-2xl mb-10"
+                          loading="eager"
                         />
                       ) : (
                         <div className="w-full max-w-md aspect-square bg-zinc-800 rounded-lg flex items-center justify-center text-zinc-500 mb-8">
@@ -868,10 +847,13 @@ const PlaybackControls = () => {
                     }}
                     className="flex-shrink-0 rounded-md overflow-hidden hover-scale"
                   >
-                    <img
-                      src={currentSong.imageUrl || "/default-song-cover.png"}
+                    <CoverImage
+                      entity={currentSong}
+                      size="thumb"
+                      defaultUrl={CDN_DEFAULT_ALBUM_COVER}
                       alt={currentSong.title}
                       className="w-12 h-12 object-cover"
+                      loading="eager"
                     />
                   </button>
                   <div className="flex flex-col min-w-0">

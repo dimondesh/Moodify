@@ -30,7 +30,10 @@ import { useTranslation } from "react-i18next";
 import { Download } from "lucide-react";
 import { useOfflineStore } from "../stores/useOfflineStore";
 import { useUIStore } from "../stores/useUIStore";
-import { getOptimizedImageUrl, normalizeAlbumKind } from "@/lib/utils";
+import { normalizeAlbumKind } from "@/lib/utils";
+import { CoverImage } from "@/components/CoverImage";
+import { buildStaticCdnImages } from "@/lib/imageUrl";
+import { CDN_DEFAULT_ARTIST_IMAGE } from "@/lib/cdn";
 import UniversalPlayButton from "../components/ui/UniversalPlayButton";
 import EntityTypeFilter from "../components/ui/EntityTypeFilter";
 import { useQuickCreatePlaylist } from "@/hooks/useQuickCreatePlaylist";
@@ -139,7 +142,7 @@ const LeftSidebar = () => {
           _id: album._id,
           type: "album",
           title: album.title,
-          imageUrl: album.imageUrl,
+          images: album.images,
           createdAt: new Date(album.addedAt ?? new Date()),
           artist: album.artist,
           albumType: album.type,
@@ -157,10 +160,12 @@ const LeftSidebar = () => {
               playlist.type === "LIKED_SONGS"
                 ? t("sidebar.likedSongs")
                 : playlist.title,
-            imageUrl:
-              playlist.type === "LIKED_SONGS"
-                ? playlist.imageUrl || CDN_LIKED_PLAYLIST_COVER
-                : playlist.imageUrl,
+            images:
+              playlist.images?.length
+                ? playlist.images
+                : playlist.type === "LIKED_SONGS"
+                  ? buildStaticCdnImages(CDN_LIKED_PLAYLIST_COVER)
+                  : undefined,
             createdAt: new Date(
               (playlist as { addedAt?: string }).addedAt ||
                 playlist.updatedAt ||
@@ -179,7 +184,7 @@ const LeftSidebar = () => {
           _id: artist._id,
           type: "artist",
           title: artist.name,
-          imageUrl: artist.imageUrl,
+          images: artist.images,
           createdAt: new Date(artist.addedAt || artist.createdAt),
           artistId: artist._id,
         } as FollowedArtistItem);
@@ -424,16 +429,16 @@ const LeftSidebar = () => {
                       className="p-2 hover:bg-zinc-800/50 rounded-md flex items-center gap-2 cursor-pointer relative"
                     >
                       <div className="relative flex-shrink-0 group">
-                        <img
-                          src={getOptimizedImageUrl(
-                            item.imageUrl || fallbackImage,
-                            100,
-                          )}
+                        <CoverImage
+                          entity={item}
+                          size="thumb"
+                          defaultUrl={
+                            item.type === "artist"
+                              ? CDN_DEFAULT_ARTIST_IMAGE
+                              : fallbackImage
+                          }
                           alt={item.title}
                           className={`size-10 object-cover ${imageClass} transition-opacity group-hover:opacity-50`}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = fallbackImage;
-                          }}
                         />
                         <div
                           className="absolute inset-0 cursor-pointer"
@@ -532,16 +537,16 @@ const LeftSidebar = () => {
                       className="p-1 hover:bg-zinc-800/50 rounded-md flex flex-col items-center text-center cursor-pointer relative flex-shrink-0"
                     >
                       <div className="relative flex-shrink-0 group mb-0.5">
-                        <img
-                          src={getOptimizedImageUrl(
-                            item.imageUrl || fallbackImage,
-                            100,
-                          )}
+                        <CoverImage
+                          entity={item}
+                          size="thumb"
+                          defaultUrl={
+                            item.type === "artist"
+                              ? CDN_DEFAULT_ARTIST_IMAGE
+                              : fallbackImage
+                          }
                           alt={item.title}
                           className={`h-20 w-20 object-cover ${imageClass} transition-opacity group-hover:opacity-50`}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = fallbackImage;
-                          }}
                         />
                         <div
                           className="absolute inset-0 cursor-pointer"

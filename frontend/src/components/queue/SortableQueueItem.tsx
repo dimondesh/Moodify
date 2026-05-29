@@ -5,6 +5,8 @@ import { GripVertical, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, formatDuration, getArtistNames } from "@/lib/utils";
 import type { Song } from "@/types";
+import { getImageUrlByKey } from "@/lib/imageUrl";
+import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 
 export type QueueItemDensity = "compact" | "comfortable";
 
@@ -105,7 +107,7 @@ export const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
         className={cn("flex-shrink-0 rounded overflow-hidden", styles.cover)}
       >
         <img
-          src={song.imageUrl || "/default-song-cover.png"}
+          src={getImageUrlByKey(song, "thumb", CDN_DEFAULT_ALBUM_COVER)}
           alt={song.title}
           className="w-full h-full object-cover"
         />

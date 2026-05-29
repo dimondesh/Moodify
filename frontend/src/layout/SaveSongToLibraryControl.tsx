@@ -15,7 +15,8 @@ import { ScrollArea } from "../components/ui/scroll-area";
 import CheckedIcon from "@/components/ui/checkedIcon";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
-import { CDN_LIKED_PLAYLIST_COVER } from "@/lib/cdn";
+import { CDN_DEFAULT_ALBUM_COVER, CDN_LIKED_PLAYLIST_COVER } from "@/lib/cdn";
+import { buildStaticCdnImages, getImageUrlByKey } from "@/lib/imageUrl";
 import { useLibraryStore } from "../stores/useLibraryStore";
 import { usePlaylistStore } from "../stores/usePlaylistStore";
 import { useOwnedPlaylists } from "@/hooks/queries";
@@ -35,7 +36,7 @@ type LibraryPickerDensity = "compact" | "comfortable";
 
 type LibraryPickerRowProps = {
   checked: boolean;
-  imageUrl?: string;
+  coverSrc?: string;
   title: string;
   subtitle?: string;
   actionLabel: string;
@@ -46,7 +47,7 @@ type LibraryPickerRowProps = {
 /** Row body is display-only; only the trailing control toggles (matches desktop UX). */
 const LibraryPickerRow = memo(function LibraryPickerRow({
   checked,
-  imageUrl,
+  coverSrc,
   title,
   subtitle,
   actionLabel,
@@ -67,9 +68,9 @@ const LibraryPickerRow = memo(function LibraryPickerRow({
           comfortable ? "gap-3" : "gap-1.5",
         )}
       >
-        {imageUrl ? (
+        {coverSrc ? (
           <img
-            src={imageUrl}
+            src={coverSrc}
             alt=""
             className={cn(
               "shrink-0 rounded bg-zinc-800 object-cover",
@@ -267,7 +268,11 @@ const SongLibraryPickerPanel = memo(function SongLibraryPickerPanel({
           <LibraryPickerRow
             checked={isLiked}
             density={density}
-            imageUrl={CDN_LIKED_PLAYLIST_COVER}
+            coverSrc={getImageUrlByKey(
+              { images: buildStaticCdnImages(CDN_LIKED_PLAYLIST_COVER) },
+              "thumb",
+              CDN_LIKED_PLAYLIST_COVER,
+            )}
             title={t("sidebar.likedSongs")}
             actionLabel={likedActionLabel}
             onToggle={toggleLiked}
@@ -279,7 +284,11 @@ const SongLibraryPickerPanel = memo(function SongLibraryPickerPanel({
                 key={playlist._id}
                 checked={inPl}
                 density={density}
-                imageUrl={playlist.imageUrl}
+                coverSrc={getImageUrlByKey(
+                  playlist,
+                  "thumb",
+                  CDN_DEFAULT_ALBUM_COVER,
+                )}
                 title={playlist.title}
                 subtitle={`${playlist.songs.length} ${t("sidebar.subtitle.songs")}`}
                 actionLabel={

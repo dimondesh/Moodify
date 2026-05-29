@@ -10,7 +10,7 @@ export interface ListPagePrefetchItem {
   _id: string;
   name?: string;
   title?: string;
-  imageUrl: string;
+  images?: { size: number; url: string }[];
   type?: string;
   itemType?: string;
 }

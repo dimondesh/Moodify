@@ -6,7 +6,8 @@ import { useTranslation } from "react-i18next";
 import UniversalPlayButton from "./ui/UniversalPlayButton";
 import type { Artist } from "../types";
 import FixedRowEntitySection from "@/pages/HomePage/FixedRowEntitySection";
-import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
+import { CDN_DEFAULT_ARTIST_IMAGE } from "@/lib/cdn";
+import { getImageUrlByKey } from "@/lib/imageUrl";
 
 interface RecentlyListenedArtistsProps {
   isMyProfile: boolean;
@@ -39,7 +40,7 @@ const RecentlyListenedArtists: React.FC<RecentlyListenedArtistsProps> = ({
       artists.map((a) => ({
         _id: a._id,
         name: a.name,
-        imageUrl: a.imageUrl || "",
+        images: a.images,
         type: "artist" as const,
         itemType: "artist" as const,
       })),
@@ -104,15 +105,16 @@ const RecentlyListenedArtists: React.FC<RecentlyListenedArtistsProps> = ({
               <div className="w-12 h-12 flex-shrink-0">
                 <div className="relative aspect-square shadow-lg overflow-hidden rounded-full">
                   <img
-                    src={
-                      artist.imageUrl ||
-                      CDN_DEFAULT_ALBUM_COVER
-                    }
+                    src={getImageUrlByKey(
+                      artist,
+                      "card",
+                      CDN_DEFAULT_ARTIST_IMAGE,
+                    )}
                     alt={artist.name}
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src =
-                        CDN_DEFAULT_ALBUM_COVER;
+                        CDN_DEFAULT_ARTIST_IMAGE;
                     }}
                   />
                 </div>

@@ -13,7 +13,7 @@ import type { User } from "../../types";
 import { useTranslation } from "react-i18next";
 import { Music } from "lucide-react";
 import { formatShortRelativeTime } from "../../lib/formatShortRelativeTime";
-import { resolveUserImageUrl } from "@/lib/cdn";
+import { getUserAvatarUrl } from "@/lib/cdn";
 import { getEffectiveActivity } from "../../lib/friendsActivityUtils";
 
 interface UsersListProps {
@@ -98,7 +98,7 @@ const UsersList = ({
                   <div className="relative shrink-0">
                     <Avatar className="size-12">
                       <AvatarImage
-                        src={resolveUserImageUrl(user.imageUrl)}
+                        src={getUserAvatarUrl(user)}
                         className="object-cover"
                       />
                       <AvatarFallback>

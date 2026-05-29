@@ -17,7 +17,8 @@ import { Song } from "@/types";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { CDN_LIKED_PLAYLIST_COVER } from "@/lib/cdn";
+import { CDN_DEFAULT_ALBUM_COVER, CDN_LIKED_PLAYLIST_COVER } from "@/lib/cdn";
+import { buildStaticCdnImages, getImageUrlByKey } from "@/lib/imageUrl";
 
 interface AddSongToPlaylistSheetProps {
   song: Song;
@@ -121,13 +122,13 @@ const AddSongToPlaylistSheet: React.FC<AddSongToPlaylistSheetProps> = ({
   const CheckboxItem = ({
     checked,
     onClick,
-    imageUrl,
+    coverSrc,
     title,
     subtitle,
   }: {
     checked: boolean;
     onClick: () => void;
-    imageUrl?: string;
+    coverSrc?: string;
     title: string;
     subtitle?: string;
   }) => (
@@ -135,9 +136,9 @@ const AddSongToPlaylistSheet: React.FC<AddSongToPlaylistSheetProps> = ({
       className="flex items-center gap-3 p-2 rounded-md hover:bg-zinc-700 cursor-pointer"
       onClick={onClick}
     >
-      {imageUrl && (
+      {coverSrc && (
         <img
-          src={imageUrl}
+          src={coverSrc}
           alt={title}
           className="w-12 h-12 object-cover rounded-md flex-shrink-0"
         />
@@ -184,7 +185,11 @@ const AddSongToPlaylistSheet: React.FC<AddSongToPlaylistSheetProps> = ({
             <CheckboxItem
               checked={localIsLiked}
               onClick={handleLikeToggle}
-              imageUrl={CDN_LIKED_PLAYLIST_COVER}
+              coverSrc={getImageUrlByKey(
+                { images: buildStaticCdnImages(CDN_LIKED_PLAYLIST_COVER) },
+                "thumb",
+                CDN_LIKED_PLAYLIST_COVER,
+              )}
               title={t("sidebar.likedSongs")}
             />
             {ownedPlaylists
@@ -194,7 +199,11 @@ const AddSongToPlaylistSheet: React.FC<AddSongToPlaylistSheetProps> = ({
                 key={playlist._id}
                 checked={localPlaylistsWithSong.has(playlist._id)}
                 onClick={() => handlePlaylistToggle(playlist._id)}
-                imageUrl={playlist.imageUrl}
+                coverSrc={getImageUrlByKey(
+                  playlist,
+                  "thumb",
+                  CDN_DEFAULT_ALBUM_COVER,
+                )}
                 title={playlist.title}
                 subtitle={`${playlist.songs.length} ${t(
                   "sidebar.subtitle.songs",

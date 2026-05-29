@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "./button";
 import { ScrollArea } from "./scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
-import { resolveUserImageUrl } from "@/lib/cdn";
+import { getUserAvatarUrl } from "@/lib/cdn";
 import { Separator } from "./separator";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import {
@@ -185,7 +185,7 @@ function SharePanel({
                   <Avatar
                     className={comfortable ? "size-11" : "size-7 shrink-0"}
                   >
-                    <AvatarImage src={resolveUserImageUrl(friend.imageUrl)} />
+                    <AvatarImage src={getUserAvatarUrl(friend)} />
                     <AvatarFallback>{friend.fullName[0]}</AvatarFallback>
                   </Avatar>
                   <span
