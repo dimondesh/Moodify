@@ -12,6 +12,7 @@ import {
   formatDuration,
   formatPlaylistTotalDuration,
   getArtistNames,
+  getPlaylistDisplayDescription,
   getPlaylistDisplayTitle,
 } from "@/lib/utils";
 import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
@@ -535,10 +536,11 @@ const PlaylistDetailsPage = () => {
     currentPlaylist.owner,
     t("common.unknownArtist"),
   );
-  const playlistDescriptionText =
-    currentPlaylist.type === "LIKED_SONGS" && currentPlaylist.isSystem
-      ? t("pages.likedSongs.systemDescription")
-      : (currentPlaylist.description?.trim() || "");
+  const playlistDescriptionText = getPlaylistDisplayDescription(
+    currentPlaylist,
+    i18n.language,
+    t,
+  );
   const metaDescription = `Listen to "${displayTitle}", a playlist by ${ownerName} on Moodify Music. Features ${
     currentPlaylist.songs?.length || 0
   } songs.${playlistDescriptionText ? ` ${playlistDescriptionText}` : ""}`;

@@ -9,7 +9,10 @@ import mongoose from "mongoose";
 import { Genre } from "../models/genre.model.js";
 import { Mood } from "../models/mood.model.js";
 import { Playlist } from "../models/playlist.model.js";
-import { getSmartPlaylistLabels } from "../lib/generatedPlaylistCopy.js";
+import {
+  getPersonalMixLabels,
+  getSmartPlaylistLabels,
+} from "../lib/generatedPlaylistCopy.js";
 import { pickLocalizedTitle } from "../models/schemas/localizedNames.schema.js";
 
 const backfillMixPlaylistLocalizedNames = async () => {
@@ -51,10 +54,11 @@ const backfillSmartPlaylistLocalizedNames = async () => {
   let updated = 0;
 
   for (const type of types) {
-    const { title, localizedNames } = getSmartPlaylistLabels(type);
+    const { title, localizedNames, description, localizedDescriptions } =
+      getSmartPlaylistLabels(type);
     const result = await Playlist.updateMany(
       { type },
-      { $set: { localizedNames, title } },
+      { $set: { localizedNames, localizedDescriptions, title, description } },
     );
     updated += result.modifiedCount;
   }
@@ -79,6 +83,7 @@ const backfillPersonalMixLocalizedNames = async () => {
     }
   }
 
+  const { description, localizedDescriptions } = getPersonalMixLabels();
   let updated = 0;
   for (const mix of mixes) {
     const localizedNames = bySourceId.get(mix.sourceId.toString());
@@ -88,7 +93,9 @@ const backfillPersonalMixLocalizedNames = async () => {
       {
         $set: {
           localizedNames,
+          localizedDescriptions,
           title: pickLocalizedTitle(localizedNames),
+          description,
         },
       },
     );

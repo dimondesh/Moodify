@@ -176,6 +176,7 @@ export interface Playlist {
   sourceName?: string;
   sourceId?: string;
   localizedNames?: { en?: string; ru?: string; uk?: string };
+  localizedDescriptions?: { en?: string; ru?: string; uk?: string };
   lastGeneratedAt?: string;
   coverAccentHex?: string | null;
 }

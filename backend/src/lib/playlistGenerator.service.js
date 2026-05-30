@@ -18,7 +18,10 @@ import {
 } from "./imageVariants.service.js";
 import { buildMixPlaylistLabels } from "./mixLocalization.js";
 import { ensureGenreAndMoodLocalizedNames } from "./mixLocale.service.js";
-import { getSmartPlaylistLabels } from "./generatedPlaylistCopy.js";
+import {
+  getPersonalMixLabels,
+  getSmartPlaylistLabels,
+} from "./generatedPlaylistCopy.js";
 
 const ON_REPEAT_SONG_COUNT = 30;
 const MIX_SONG_COUNT = 30;
@@ -192,6 +195,7 @@ export const generatePersonalMixesForUser = async (userId) => {
       if (!randomSongs) return;
 
       const { title, localizedNames } = buildMixPlaylistLabels(sourceDoc);
+      const { description, localizedDescriptions } = getPersonalMixLabels();
 
       const personalMix = await upsertSystemPlaylist(
         { madeFor: ownerId, type: "PERSONAL_MIX", sourceId: sourceDoc._id },
@@ -201,7 +205,8 @@ export const generatePersonalMixesForUser = async (userId) => {
           type: "PERSONAL_MIX",
           title,
           localizedNames,
-          description: "A personal mix based on your listening habits.",
+          description,
+          localizedDescriptions,
           sourceName: sourceDoc.name,
           sourceId: sourceDoc._id,
           songs: randomSongs.map((s) => s._id),
@@ -259,7 +264,8 @@ export const generateOnRepeatPlaylistForUser = async (userId) => {
   }
 
   const songIds = listenHistory.map((item) => item._id);
-  const { title, localizedNames, description } = getSmartPlaylistLabels("ON_REPEAT");
+  const { title, localizedNames, description, localizedDescriptions } =
+    getSmartPlaylistLabels("ON_REPEAT");
 
   const onRepeatPlaylist = await upsertSystemPlaylist(
     { madeFor: ownerId, type: "ON_REPEAT" },
@@ -270,6 +276,7 @@ export const generateOnRepeatPlaylistForUser = async (userId) => {
       title,
       localizedNames,
       description,
+      localizedDescriptions,
       songs: songIds,
       images: buildStaticCdnImages(CDN_ON_REPEAT_IMAGE),
       isPublic: false,
@@ -368,7 +375,7 @@ export const generateDiscoverWeeklyForUser = async (userId) => {
       return null;
     }
 
-    const { title, localizedNames, description } =
+    const { title, localizedNames, description, localizedDescriptions } =
       getSmartPlaylistLabels("DISCOVER_WEEKLY");
     const playlist = await upsertSystemPlaylist(
       { madeFor: ownerId, type: "DISCOVER_WEEKLY" },
@@ -379,6 +386,7 @@ export const generateDiscoverWeeklyForUser = async (userId) => {
         title,
         localizedNames,
         description,
+        localizedDescriptions,
         images: buildStaticCdnImages(CDN_DISCOVER_WEEKLY_IMAGE),
         songs: finalTracks.map((song) => song._id),
         isPublic: false,
@@ -454,7 +462,7 @@ export const generateOnRepeatRewindForUser = async (userId) => {
       _id: { $in: rewindSongIds.slice(0, 30) },
     });
 
-    const { title, localizedNames, description } =
+    const { title, localizedNames, description, localizedDescriptions } =
       getSmartPlaylistLabels("ON_REPEAT_REWIND");
     const playlist = await upsertSystemPlaylist(
       { madeFor: ownerId, type: "ON_REPEAT_REWIND" },
@@ -465,6 +473,7 @@ export const generateOnRepeatRewindForUser = async (userId) => {
         title,
         localizedNames,
         description,
+        localizedDescriptions,
         images: buildStaticCdnImages(CDN_ON_REPEAT_REWIND_IMAGE),
         songs: finalTracks.map((song) => song._id),
         isPublic: false,
