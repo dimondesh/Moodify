@@ -15,8 +15,8 @@ interface LibraryStore {
   isLoading: boolean;
   error: string | null;
 
-  fetchLibrary: () => Promise<void>;
-  fetchFollowedArtists: () => Promise<void>;
+  fetchLibrary: (options?: { silent?: boolean }) => Promise<void>;
+  fetchFollowedArtists: (options?: { silent?: boolean }) => Promise<void>;
 
   toggleAlbum: (albumId: string) => Promise<void>;
   togglePlaylist: (playlistId: string) => Promise<void>;
@@ -34,16 +34,19 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
   isLoading: false,
   error: null,
 
-  fetchLibrary: async () => {
+  fetchLibrary: async ({ silent = false } = {}) => {
     const { isOffline } = useOfflineStore.getState();
     const userId = useAuthStore.getState().user?.id;
-    set({ isLoading: true, error: null });
+    if (!silent) {
+      set({ isLoading: true, error: null });
+    }
 
     if (isOffline) {
       console.log("[Offline] Fetching library from IndexedDB.");
       if (!userId) {
         set({
           error: i18n.t("errors.userNotAvailableOffline"),
+          ...(!silent && { isLoading: false }),
         });
         return;
       }
@@ -63,6 +66,10 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
         set({
           error: err.message || i18n.t("errors.fetchLibraryOfflineError"),
         });
+      } finally {
+        if (!silent) {
+          set({ isLoading: false });
+        }
       }
       return;
     }
@@ -81,21 +88,25 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
         error: err.message || i18n.t("errors.fetchLibraryError"),
       });
     } finally {
-      set({ isLoading: false });
+      if (!silent) {
+        set({ isLoading: false });
+      }
     }
   },
 
-  fetchFollowedArtists: async () => {
+  fetchFollowedArtists: async ({ silent = false } = {}) => {
     if (useOfflineStore.getState().isOffline) return;
 
-    set({ isLoading: true, error: null });
+    if (!silent) {
+      set({ isLoading: true, error: null });
+    }
     try {
       const res = await axiosInstance.get("/library/artists");
-      set({ followedArtists: res.data.artists, isLoading: false });
+      set({ followedArtists: res.data.artists, ...(!silent && { isLoading: false }) });
     } catch (err: any) {
       set({
         error: err.message || i18n.t("errors.fetchFollowedArtistsError"),
-        isLoading: false,
+        ...(!silent && { isLoading: false }),
       });
     }
   },
@@ -104,7 +115,7 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
     if (useOfflineStore.getState().isOffline) return;
     try {
       await axiosInstance.post("/library/albums/toggle", { albumId });
-      await get().fetchLibrary();
+      await get().fetchLibrary({ silent: true });
     } catch (err) {
       console.error("Toggle album error", err);
       set({ error: i18n.t("errors.toggleAlbumError") });
@@ -115,7 +126,7 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
     if (useOfflineStore.getState().isOffline) return;
     try {
       await axiosInstance.post("/library/playlists/toggle", { playlistId });
-      await get().fetchLibrary();
+      await get().fetchLibrary({ silent: true });
     } catch (err) {
       console.error("Toggle playlist error", err);
       set({ error: i18n.t("errors.togglePlaylistError") });
@@ -126,7 +137,7 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
     if (useOfflineStore.getState().isOffline) return;
     try {
       await axiosInstance.post("/library/artists/toggle", { artistId });
-      await get().fetchLibrary();
+      await get().fetchLibrary({ silent: true });
     } catch (err) {
       console.error("Toggle artist follow error", err);
       set({ error: i18n.t("errors.toggleArtistFollowError") });

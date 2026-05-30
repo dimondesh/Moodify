@@ -21,7 +21,7 @@ export function useLibraryData() {
     error: libraryError,
   } = useLibraryStore();
   const {
-    data: myPlaylists = [],
+    data: myPlaylists,
     isPending: isLoadingPlaylists,
     error: playlistsError,
   } = useMyPlaylists();
@@ -57,16 +57,18 @@ export function useLibraryData() {
     }
   }, [entityTypeFilter, fetchAllDownloaded, t]);
 
+  const resolvedMyPlaylists = myPlaylists ?? [];
+
   const libraryItems = useMemo(
     () =>
       buildLibraryItems({
         albums,
-        myPlaylists,
+        myPlaylists: resolvedMyPlaylists,
         playlists,
         followedArtists,
         t,
       }),
-    [albums, myPlaylists, playlists, followedArtists, t],
+    [albums, resolvedMyPlaylists, playlists, followedArtists, t],
   );
 
   const unknownArtistLabel = t("common.unknownArtist");
@@ -91,7 +93,10 @@ export function useLibraryData() {
     ],
   );
 
-  const isLoading = (isLoadingLibrary || isLoadingPlaylists) && !isOffline;
+  const isInitialLoad =
+    (isLoadingLibrary && albums.length === 0 && playlists.length === 0) ||
+    (isLoadingPlaylists && myPlaylists === undefined);
+  const isLoading = isInitialLoad && !isOffline;
   const errorMessage =
     (libraryError as string | null) || (playlistsError as string | null);
 
@@ -99,7 +104,7 @@ export function useLibraryData() {
     libraryItems,
     filteredLibraryItems,
     downloadedItems,
-    myPlaylists,
+    myPlaylists: resolvedMyPlaylists,
     artists,
     isDownloaded,
     isLoading,

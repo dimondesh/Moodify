@@ -177,7 +177,10 @@ const SongLibraryPickerPanel = memo(function SongLibraryPickerPanel({
   );
 
   const refreshAfterLibraryChange = useCallback(async () => {
-    await Promise.all([fetchLibrary(), invalidatePlaylistLists()]);
+    await Promise.all([
+      fetchLibrary({ silent: true }),
+      invalidatePlaylistLists(),
+    ]);
   }, [fetchLibrary]);
 
   const togglePlaylistMembership = useCallback(

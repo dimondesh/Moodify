@@ -39,7 +39,6 @@ export const SharedContentMessage: React.FC<SharedContentMessageProps> = ({
     togglePlaylist,
     isAlbumInLibrary,
     isPlaylistInLibrary,
-    fetchLibrary,
   } = useLibraryStore();
   const toggleSongLike = usePlaylistStore((s) => s.toggleSongLike);
   const isSongLiked = useIsSongLiked(
@@ -92,7 +91,6 @@ export const SharedContentMessage: React.FC<SharedContentMessageProps> = ({
         } else if (entityType === "playlist") {
           await togglePlaylist(entity._id);
         }
-        await fetchLibrary();
       }
     } catch (err) {
       console.error("Failed to update library.", err);
