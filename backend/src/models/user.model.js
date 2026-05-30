@@ -42,6 +42,10 @@ const userSchema = new mongoose.Schema(
       },
       updatedAt: { type: Date, default: null },
     },
+    tasteVector: {
+      type: [Number],
+      default: null,
+    },
   },
   { timestamps: true }
 );

@@ -1204,6 +1204,21 @@
       "title": "List"
     }
   },
+  "onboarding": {
+    "title": "Choose your favorite artists",
+    "subtitle": "Pick at least {{count}} artists so we can personalize recommendations for you.",
+    "selectedCount": "Selected: {{selected}} / {{min}}",
+    "suggestedTitle": "Recommended for you",
+    "searchResultsTitle": "Search results",
+    "searchPlaceholder": "Search artists...",
+    "continue": "Continue",
+    "submitting": "Saving...",
+    "searchFailed": "Search failed. Please try again.",
+    "submitFailed": "Could not save your preferences. Please try again.",
+    "maxArtists": "You can select at most {{count}} artists",
+    "noSearchResults": "No artists found",
+    "noArtists": "No artists available"
+  },
   "auth": {
     "loggingIn": "Logging you in",
     "redirecting": "Redirecting...",

@@ -11,6 +11,7 @@ import {
   isSkippableCoverImageUrl,
 } from "../lib/coverAccent.service.js";
 import { isAdminUser } from "../lib/userRoles.js";
+import { needsTasteOnboarding } from "../lib/tasteProfile.service.js";
 import {
   getLargeImageUrl,
   toImageFields,
@@ -60,9 +61,14 @@ async function sendTransactionalEmail({ to, subject, html }) {
   await resendClient.emails.send({ from, to, subject, html });
 }
 
-function buildAuthPayload(user) {
+export async function buildAuthPayload(user, requiresOnboardingOverride) {
   const isAdmin = isAdminUser(user);
   const token = signAccessToken(user._id, user.email);
+  const requires_onboarding =
+    typeof requiresOnboardingOverride === "boolean"
+      ? requiresOnboardingOverride
+      : await needsTasteOnboarding(user._id);
+
   return {
     token,
     user: {
@@ -75,6 +81,7 @@ function buildAuthPayload(user) {
       isAnonymous: user.isAnonymous,
       showRecentlyListenedArtists: user.showRecentlyListenedArtists,
       isAdmin,
+      requires_onboarding,
     },
   };
 }
@@ -214,7 +221,7 @@ export const verifyEmail = async (req, res) => {
     user.emailVerificationCodeExpires = null;
     await user.save();
 
-    res.status(200).json(buildAuthPayload(user));
+    res.status(200).json(await buildAuthPayload(user));
   } catch (error) {
     console.error("verifyEmail error:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -289,7 +296,7 @@ export const login = async (req, res) => {
       });
     }
 
-    res.status(200).json(buildAuthPayload(user));
+    res.status(200).json(await buildAuthPayload(user));
   } catch (error) {
     console.error("login error:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -372,7 +379,7 @@ export const googleAuth = async (req, res) => {
       }
     }
 
-    res.status(200).json(buildAuthPayload(user));
+    res.status(200).json(await buildAuthPayload(user));
   } catch (error) {
     console.error("googleAuth error:", error);
     const code = error?.code;
@@ -515,7 +522,9 @@ export const getMe = async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-    res.status(200).json(buildAuthPayload(user));
+    res.status(200).json(
+      await buildAuthPayload(user, req.requiresOnboarding),
+    );
   } catch (error) {
     console.error("getMe error:", error);
     res.status(500).json({ error: "Internal server error" });

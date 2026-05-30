@@ -24,6 +24,16 @@ import {
 } from "../lib/imageVariants.service.js";
 import { extractCoverAccentHexFromBuffer } from "../lib/coverAccent.service.js";
 import { getPersistedActivity } from "../lib/activityPersistence.service.js";
+import { buildAuthPayload } from "./auth.controller.js";
+import {
+  completeTasteOnboarding as completeTasteOnboardingService,
+  selectDiverseOnboardingArtists,
+} from "../lib/tasteProfile.service.js";
+import {
+  TASTE_ONBOARDING_MIN_ARTISTS,
+  TASTE_ONBOARDING_MAX_ARTISTS,
+  ONBOARDING_ARTISTS_PAGE_SIZE,
+} from "../constants/embedding.js";
 
 const SONG_MINIMAL_SELECT =
   "_id title artist albumId images coverAccentHex duration playCount";
@@ -98,6 +108,13 @@ export const getUserProfile = async (req, res, next) => {
     profileData.followers = followerRows.map((row) =>
       row.follower.toString(),
     );
+
+    if (
+      req.user?.id &&
+      userId.toString() === req.user.id.toString()
+    ) {
+      profileData.requires_onboarding = req.requiresOnboarding ?? false;
+    }
 
     res.status(200).json(profileData);
   } catch (error) {
@@ -917,6 +934,67 @@ export const getTopTracksThisMonth = async (req, res, next) => {
 
     res.status(200).json({ tracks: topTracks });
   } catch (error) {
+    next(error);
+  }
+};
+
+export const getOnboardingArtists = async (req, res, next) => {
+  try {
+    const skip = Math.max(0, parseInt(req.query.skip, 10) || 0);
+    const limit = Math.min(
+      Math.max(1, parseInt(req.query.limit, 10) || ONBOARDING_ARTISTS_PAGE_SIZE),
+      ONBOARDING_ARTISTS_PAGE_SIZE,
+    );
+    const result = await selectDiverseOnboardingArtists({ skip, limit });
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const completeTasteOnboarding = async (req, res, next) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const { artistIds } = req.body;
+    if (!Array.isArray(artistIds)) {
+      return res.status(400).json({ message: "artistIds must be an array" });
+    }
+
+    const uniqueIds = [...new Set(artistIds.map((id) => String(id).trim()))];
+    if (uniqueIds.length !== artistIds.length) {
+      return res.status(400).json({ message: "artistIds must be unique" });
+    }
+
+    if (uniqueIds.length < TASTE_ONBOARDING_MIN_ARTISTS) {
+      return res.status(400).json({
+        message: `Select at least ${TASTE_ONBOARDING_MIN_ARTISTS} artists`,
+      });
+    }
+
+    if (uniqueIds.length > TASTE_ONBOARDING_MAX_ARTISTS) {
+      return res.status(400).json({
+        message: `Select at most ${TASTE_ONBOARDING_MAX_ARTISTS} artists`,
+      });
+    }
+
+    const invalidId = uniqueIds.find(
+      (id) => !mongoose.Types.ObjectId.isValid(id),
+    );
+    if (invalidId) {
+      return res.status(400).json({ message: "Invalid artist id" });
+    }
+
+    const user = await completeTasteOnboardingService(userId, uniqueIds);
+    const payload = await buildAuthPayload(user, false);
+    res.status(200).json(payload);
+  } catch (error) {
+    if (error.statusCode === 400) {
+      return res.status(400).json({ message: error.message });
+    }
     next(error);
   }
 };

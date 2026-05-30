@@ -29,6 +29,8 @@ import LibraryRoute from "./pages/LibraryPage/LibraryRoute";
 import SettingsPage from "./pages/SettingsPage/SettingsPage";
 import SearchPage from "./pages/SearchPage/SearchPage";
 import ChatPage from "./pages/ChatPage/ChatPage";
+import OnboardingPage from "./pages/OnboardingPage/OnboardingPage";
+import OnboardingRedirect from "./components/OnboardingRedirect";
 
 function App() {
   const user = useAuthStore((state) => state.user);
@@ -141,10 +143,12 @@ function App() {
         <link rel="canonical" href={canonicalUrl} />
       </Helmet>
       <ErrorBoundary>
+        <OnboardingRedirect />
         <Routes>
           <Route path="sitemap.xml" element={"sitemap.xml"} />
           <Route path="/login" element={<AuthPage mode="login" />} />
           <Route path="/register" element={<AuthPage mode="register" />} />{" "}
+          <Route path="/onboarding" element={<OnboardingPage />} />
           <Route element={<MainLayout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/all-songs/:category?" element={<AllSongsPage />} />

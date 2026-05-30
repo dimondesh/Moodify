@@ -2,6 +2,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { axiosInstance } from "../lib/axios";
+import { submitTasteOnboarding } from "../api/onboarding";
 import { useChatStore } from "./useChatStore";
 import { usePlayerStore } from "./usePlayerStore";
 
@@ -31,6 +32,7 @@ export interface AuthUser {
   language?: string;
   isAnonymous?: boolean;
   showRecentlyListenedArtists?: boolean;
+  requiresOnboarding?: boolean;
 }
 
 interface UpdateProfileData {
@@ -49,6 +51,7 @@ function mapBackendUser(u: any): AuthUser {
     isAnonymous: u.isAnonymous,
     showRecentlyListenedArtists: u.showRecentlyListenedArtists,
     isAdmin: u.isAdmin,
+    requiresOnboarding: u.requires_onboarding ?? false,
   };
 }
 
@@ -81,6 +84,7 @@ interface AuthStore {
     showRecentlyListenedArtists: boolean,
   ) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  completeTasteOnboarding: (artistIds: string[]) => Promise<void>;
 }
 
 const getAuthHeaders = (get: () => AuthStore) => {
@@ -377,6 +381,21 @@ export const useAuthStore = create<AuthStore>()(
           { currentPassword, newPassword },
           getAuthHeaders(get),
         );
+      },
+
+      completeTasteOnboarding: async (artistIds) => {
+        set({ isLoading: true, error: null });
+        try {
+          const data = await submitTasteOnboarding(artistIds);
+          get().applyAuthResponse(data);
+        } catch (error: any) {
+          set({
+            isLoading: false,
+            error:
+              error.response?.data?.message || "Failed to complete onboarding",
+          });
+          throw error;
+        }
       },
     }),
     {

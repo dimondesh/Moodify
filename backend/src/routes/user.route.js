@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { protectRoute } from "../middleware/auth.middleware.js";
+import { attachRequiresOnboarding } from "../middleware/tasteOnboarding.middleware.js";
 import {
   getAllUsers,
   getMessages,
@@ -25,6 +26,8 @@ import {
   updateRecentlyListenedArtistsPrivacy,
   getTopTracksThisMonth,
   getAllTopTracksThisMonth,
+  getOnboardingArtists,
+  completeTasteOnboarding,
 } from "../controller/user.controller.js";
 
 const router = Router();
@@ -35,6 +38,8 @@ router.get("/unread-counts", protectRoute, getUnreadCounts);
 router.get("/me/recent-searches", protectRoute, getRecentSearches);
 router.post("/me/recent-searches", protectRoute, addRecentSearch);
 router.get("/me/favorite-artists", protectRoute, getFavoriteArtists);
+router.get("/me/onboarding-artists", protectRoute, getOnboardingArtists);
+router.post("/me/taste-onboarding", protectRoute, completeTasteOnboarding);
 router.get("/me/recommendations/new-releases", protectRoute, getNewReleases);
 router.get(
   "/me/recommendations/playlists",
@@ -50,7 +55,7 @@ router.delete(
 );
 
 router.get("/messages/:userId", protectRoute, getMessages);
-router.get("/:userId", protectRoute, getUserProfile);
+router.get("/:userId", protectRoute, attachRequiresOnboarding, getUserProfile);
 router.post("/:userId/follow", protectRoute, followUser);
 router.get("/:userId/followers", protectRoute, getFollowers);
 router.get("/:userId/following", protectRoute, getFollowing);

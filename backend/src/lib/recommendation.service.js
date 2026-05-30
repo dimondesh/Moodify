@@ -107,7 +107,7 @@ export const updateArtistEmbedding = async (artistId) => {
 
 // Вспомогательная функция для расчета разницы (чем меньше, тем лучше)
 
-const cosineSimilarity = (vecA, vecB) => {
+export const cosineSimilarity = (vecA, vecB) => {
   if (!vecA || !vecB || vecA.length !== vecB.length) return 0;
   let dotProduct = 0;
   let normA = 0;

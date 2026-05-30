@@ -13,6 +13,7 @@ import {
   changePassword,
 } from "../controller/auth.controller.js";
 import { protectRoute } from "../middleware/auth.middleware.js";
+import { attachRequiresOnboarding } from "../middleware/tasteOnboarding.middleware.js";
 
 const router = Router();
 
@@ -25,7 +26,7 @@ router.post("/google", googleAuth);
 router.post("/forgot-password", forgotPassword);
 router.post("/verify-reset-code", verifyResetCode);
 router.post("/reset-password", resetPassword);
-router.get("/me", protectRoute, getMe);
+router.get("/me", protectRoute, attachRequiresOnboarding, getMe);
 router.post("/change-password", protectRoute, changePassword);
 
 export default router;
