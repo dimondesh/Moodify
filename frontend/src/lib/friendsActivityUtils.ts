@@ -9,6 +9,20 @@ export function hasRecentOfflineActivity(user: User): boolean {
   return age <= SEVEN_DAYS_MS;
 }
 
+export function isUserListening(
+  activity: UserActivity | "Idle" | null,
+): activity is UserActivity {
+  return typeof activity === "object" && activity !== null;
+}
+
+/** Online user with an active song (socket activity), not offline lastActivity. */
+export function isLiveListening(
+  isOnline: boolean,
+  activity: UserActivity | "Idle" | null,
+): boolean {
+  return isOnline && isUserListening(activity);
+}
+
 export function getEffectiveActivity(
   userId: string,
   user: User,

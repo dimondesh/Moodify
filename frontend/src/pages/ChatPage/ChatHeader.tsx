@@ -7,10 +7,15 @@ import {
 } from "../../components/ui/avatar";
 import { useChatStore } from "../../stores/useChatStore";
 import { Button } from "../../components/ui/button";
-import { ArrowLeft, Music } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { getEffectiveActivity } from "../../lib/friendsActivityUtils";
+import { LiveListeningIndicator } from "@/components/LiveListeningIndicator";
+import {
+  getEffectiveActivity,
+  isLiveListening,
+  isUserListening,
+} from "../../lib/friendsActivityUtils";
 import { getUserAvatarUrl } from "@/lib/cdn";
 
 interface ChatHeaderProps {
@@ -31,7 +36,8 @@ const ChatHeader = ({ showBackButton = false, onBack }: ChatHeaderProps) => {
     onlineUsers,
     userActivities,
   );
-  const isPlaying = typeof activity === "object" && activity !== null;
+  const isPlaying = isUserListening(activity);
+  const isLivePlaying = isLiveListening(isOnline, activity);
 
   return (
     <div className="shrink-0 px-4 sm:px-6 py-3.5 border-b border-zinc-800/80 bg-zinc-900/40 backdrop-blur-sm flex items-center gap-3">
@@ -59,8 +65,8 @@ const ChatHeader = ({ showBackButton = false, onBack }: ChatHeaderProps) => {
         <div className="min-w-0">
           <h2 className="font-medium text-white text-base group-hover:underline flex items-center gap-1.5 min-w-0">
             <span className="truncate">{selectedUser.fullName}</span>
-            {isPlaying && (
-              <Music className="size-3.5 shrink-0 text-violet-500 md:hidden" />
+            {isLivePlaying && (
+              <LiveListeningIndicator className="size-3.5 md:hidden" />
             )}
           </h2>
           {isPlaying ? (

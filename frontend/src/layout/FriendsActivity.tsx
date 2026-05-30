@@ -1,6 +1,7 @@
 // frontend/src/layout/FriendsActivity.tsx
 
-import { HeadphonesIcon, Music, Users } from "lucide-react";
+import { HeadphonesIcon, Users } from "lucide-react";
+import { LiveListeningIndicator } from "@/components/LiveListeningIndicator";
 import { useChatStore, type UserActivity } from "../stores/useChatStore";
 import { useEffect, useMemo } from "react";
 import { ScrollArea } from "../components/ui/scroll-area";
@@ -12,6 +13,8 @@ import { formatShortRelativeTime } from "../lib/formatShortRelativeTime";
 import {
   getEffectiveActivity,
   getFriendsActivitySortTime,
+  isLiveListening,
+  isUserListening,
   shouldShowInFriendsActivity,
 } from "../lib/friendsActivityUtils";
 import type { User } from "../types";
@@ -135,12 +138,13 @@ function FriendActivityCard({
   onArtistClick,
   idleLabel,
 }: FriendActivityCardProps) {
-  const isPlaying = typeof activity === "object" && activity !== null;
-  const isLivePlaying = isOnline && isPlaying;
+  const isPlaying = isUserListening(activity);
+  const isLivePlaying = isLiveListening(isOnline, activity);
   const offlineBadge =
     !isOnline && userObj.lastActivityAt
       ? formatShortRelativeTime(userObj.lastActivityAt)
       : null;
+  const topRightSlot = offlineBadge || isLivePlaying;
 
   return (
     <Link
@@ -152,7 +156,12 @@ function FriendActivityCard({
           {offlineBadge}
         </span>
       )}
-      <div className={`flex items-center gap-2${offlineBadge ? " pr-7" : ""}`}>
+      {isLivePlaying && (
+        <span className="absolute top-1.5 right-2">
+          <LiveListeningIndicator className="size-3" />
+        </span>
+      )}
+      <div className={`flex items-center gap-2${topRightSlot ? " pr-7" : ""}`}>
         <div className="relative flex-shrink-0">
           <Avatar className="size-8 border border-[#2a2a2a]">
             <AvatarImage
@@ -176,9 +185,6 @@ function FriendActivityCard({
             <span className="font-medium text-xs text-white truncate">
               {userObj.fullName}
             </span>
-            {isLivePlaying && (
-              <Music className="size-3 text-[#8b5cf6] shrink-0" />
-            )}
           </div>
 
           {isPlaying ? (

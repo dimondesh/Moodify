@@ -11,10 +11,14 @@ import { useChatStore, UserActivity } from "../../stores/useChatStore";
 import { useAuthStore } from "../../stores/useAuthStore";
 import type { User } from "../../types";
 import { useTranslation } from "react-i18next";
-import { Music } from "lucide-react";
 import { formatShortRelativeTime } from "../../lib/formatShortRelativeTime";
 import { getUserAvatarUrl } from "@/lib/cdn";
-import { getEffectiveActivity } from "../../lib/friendsActivityUtils";
+import { LiveListeningIndicator } from "@/components/LiveListeningIndicator";
+import {
+  getEffectiveActivity,
+  isLiveListening,
+  isUserListening,
+} from "../../lib/friendsActivityUtils";
 
 interface UsersListProps {
   onUserSelect: (user: User) => void;
@@ -72,8 +76,8 @@ const UsersList = ({
               const unreadCount =
                 useChatStore.getState().unreadMessages.get(user._id) || 0;
 
-              const isPlaying =
-                typeof activity === "object" && activity !== null;
+              const isPlaying = isUserListening(activity);
+              const isLivePlaying = isLiveListening(isOnline, activity);
 
               const offlineBadge =
                 !isOnline && user.lastActivityAt
@@ -115,8 +119,8 @@ const UsersList = ({
                   <div className="flex-1 min-w-0 leading-tight">
                     <span className="font-medium text-white text-[15px] flex items-center gap-1.5 min-w-0">
                       <span className="truncate">{user.fullName}</span>
-                      {isPlaying && (
-                        <Music className="size-3.5 text-violet-500 shrink-0 md:hidden" />
+                      {isLivePlaying && (
+                        <LiveListeningIndicator className="size-3.5 md:hidden" />
                       )}
                     </span>
                     {isPlaying ? (
