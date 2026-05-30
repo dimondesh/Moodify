@@ -532,20 +532,11 @@ export const createArtist = async (req, res, next) => {
       req.files.imageFile,
       "artists",
     );
-    let bannerUpload = { url: null, publicId: null };
-    if (req.files.bannerFile) {
-      bannerUpload = await uploadToBunny(
-        req.files.bannerFile,
-        "artists/banners",
-      );
-    }
 
     const newArtist = new Artist({
       name,
       bio,
       ...toImageFields(imageUpload),
-      bannerUrl: bannerUpload.url,
-      bannerPublicId: bannerUpload.publicId,
     });
     await newArtist.save();
     res.status(201).json(newArtist);
@@ -558,26 +549,14 @@ export const updateArtist = async (req, res, next) => {
   try {
 
     const { id } = req.params;
-    const { name, bio, bannerUrl } = req.body;
+    const { name, bio } = req.body;
     const imageFile = req.files?.imageFile;
-    const bannerFile = req.files?.bannerFile;
 
     const artist = await Artist.findById(id);
     if (!artist) return res.status(404).json({ message: "Artist not found." });
 
     if (imageFile) {
       await replaceEntityImageVariants(artist, imageFile, "artists");
-    }
-
-    if (bannerFile) {
-      if (artist.bannerPublicId) await deleteFromBunny(artist.bannerPublicId);
-      const bannerUpload = await uploadToBunny(bannerFile, "artists/banners");
-      artist.bannerUrl = bannerUpload.url;
-      artist.bannerPublicId = bannerUpload.path;
-    } else if (bannerUrl === "") {
-      if (artist.bannerPublicId) await deleteFromBunny(artist.bannerPublicId);
-      artist.bannerUrl = null;
-      artist.bannerPublicId = null;
     }
 
     artist.name = name || artist.name;
@@ -629,7 +608,6 @@ export const deleteArtist = async (req, res, next) => {
     await Song.updateMany({ artist: id }, { $pull: { artist: id } });
 
     await deleteImageVariants(artist);
-    if (artist.bannerPublicId) await deleteFromBunny(artist.bannerPublicId);
 
     await Artist.findByIdAndDelete(id);
     res.status(200).json({

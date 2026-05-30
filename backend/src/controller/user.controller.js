@@ -623,7 +623,7 @@ export const getFavoriteArtists = async (
         populate: {
           path: "artist",
           model: "Artist",
-          select: "name images bio bannerUrl createdAt updatedAt",
+          select: "name images bio createdAt updatedAt",
         },
       })
       .lean();
@@ -651,7 +651,6 @@ export const getFavoriteArtists = async (
           name: artist.name,
           images: artist.images || [],
           bio: artist.bio || "",
-          bannerUrl: artist.bannerUrl || null,
           createdAt: artist.createdAt,
           updatedAt: artist.updatedAt,
           listenCount: 0,
@@ -759,7 +758,7 @@ export const getRecentlyListenedArtists = async (req, res, next) => {
         populate: {
           path: "artist",
           model: "Artist",
-          select: "name images bio bannerUrl createdAt updatedAt",
+          select: "name images bio createdAt updatedAt",
         },
       })
       .lean();
@@ -785,7 +784,6 @@ export const getRecentlyListenedArtists = async (req, res, next) => {
           name: artist.name,
           images: artist.images || [],
           bio: artist.bio || "",
-          bannerUrl: artist.bannerUrl || null,
           createdAt: artist.createdAt,
           updatedAt: artist.updatedAt,
           listenCount: 0,

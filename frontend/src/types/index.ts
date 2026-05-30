@@ -11,7 +11,6 @@ export interface Artist {
   songs: Song[];
   albums: Album[];
   addedAt?: string;
-  bannerUrl?: string;
 
   createdAt: string;
   updatedAt: string;

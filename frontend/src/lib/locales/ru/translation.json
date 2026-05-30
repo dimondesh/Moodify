@@ -336,7 +336,8 @@
       "tableActions": "Действия",
       "share": "Поделиться",
       "goToLibrary": "Перейти в медиатеку",
-      "goToArtist": "Перейти к исполнителю"
+      "goToArtist": "Перейти к исполнителю",
+      "goToAlbum": "Перейти к альбому"
     },
     "artists": {
       "title": "Библиотека исполнителей",
@@ -347,11 +348,7 @@
       "editDialogTitle": "Редактировать исполнителя",
       "editDialogDesc": "Измените данные исполнителя",
       "uploadImageRequired": "Загрузить фото исполнителя (обязательно)",
-      "uploadBannerOptional": "Загрузить баннер (необязательно)",
       "chooseImage": "Выбрать фото",
-      "chooseBanner": "Выбрать баннер",
-      "removeBanner": "Удалить баннер",
-      "bannerWillBeRemoved": "Баннер будет удален",
       "fieldName": "Имя исполнителя",
       "placeholderName": "Введите имя исполнителя",
       "fieldBioOptional": "Биография (Необязательно)",
@@ -370,6 +367,13 @@
       "currentFile": "Текущий:",
       "chooseFile": "Выберите файл",
       "andMore": "и другие"
+    }
+  },
+  "albumPage": {
+    "options": {
+      "goToAlbum": "Перейти к альбому",
+      "goToArtist": "Перейти к исполнителю",
+      "share": "Поделиться"
     }
   },
   "pages": {

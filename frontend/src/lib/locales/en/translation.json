@@ -339,7 +339,8 @@
       "addToLiked": "Add to Liked Songs",
       "removeFromLiked": "Remove from Liked",
       "addToPlaylist": "Add to playlist",
-      "goToArtist": "Go to artist"
+      "goToArtist": "Go to artist",
+      "goToAlbum": "Go to album"
     },
     "artists": {
       "title": "Artists Library",
@@ -350,11 +351,7 @@
       "editDialogTitle": "Edit Artist",
       "editDialogDesc": "Modify the artist's data",
       "uploadImageRequired": "Upload artist image (required)",
-      "uploadBannerOptional": "Upload banner image (optional)",
       "chooseImage": "Choose Image",
-      "chooseBanner": "Choose Banner",
-      "removeBanner": "Remove Banner",
-      "bannerWillBeRemoved": "Banner will be removed",
       "fieldName": "Artist Name",
       "placeholderName": "Enter artist name",
       "fieldBioOptional": "Biography (Optional)",
@@ -373,6 +370,13 @@
       "currentFile": "Current:",
       "chooseFile": "Choose File",
       "andMore": "and more"
+    }
+  },
+  "albumPage": {
+    "options": {
+      "goToAlbum": "Go to album",
+      "goToArtist": "Go to artist",
+      "share": "Share"
     }
   },
   "pages": {

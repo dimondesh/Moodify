@@ -12,7 +12,6 @@ import type { Song, Album } from "../../types";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import { useArtist } from "@/hooks/queries";
-import { CoverImage } from "@/components/CoverImage";
 import { getImageUrlByKey } from "@/lib/imageUrl";
 import { CDN_DEFAULT_ARTIST_IMAGE } from "@/lib/cdn";
 import HorizontalSection from "../HomePage/HorizontalSection";
@@ -242,31 +241,11 @@ const ArtistPage = () => {
           <div
             className="absolute inset-0 bg-cover bg-center"
             style={{
-              backgroundImage: `url(${
-                artist.bannerUrl ||
-                getImageUrlByKey(artist, "large", CDN_DEFAULT_ARTIST_IMAGE)
-              })`,
+              backgroundImage: `url(${getImageUrlByKey(artist, "large", CDN_DEFAULT_ARTIST_IMAGE)})`,
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/30 to-[#0f0f0f] z-0" />
-          {!artist.bannerUrl && artist.images?.length ? (
-            <div className="hidden lg:block absolute bottom-10 left-10 z-10">
-              <div className="w-40 h-40 rounded-full overflow-hidden shadow-2xl border-4 border-white/10">
-                <CoverImage
-                  entity={artist}
-                  size="large"
-                  defaultUrl={CDN_DEFAULT_ARTIST_IMAGE}
-                  alt={artist.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </div>
-          ) : null}
-          <div
-            className={`relative z-10 h-full flex flex-col justify-end px-6 sm:px-10 pb-6 sm:pb-10 ${
-              !artist.bannerUrl && artist.images?.length ? "lg:ml-56" : ""
-            }`}
-          >
+          <div className="relative z-10 h-full flex flex-col justify-end px-6 sm:px-10 pb-6 sm:pb-10">
             <p className="text-white text-sm font-semibold uppercase mb-2">
               {t("pages.artist.type")}
             </p>

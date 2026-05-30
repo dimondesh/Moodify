@@ -16,14 +16,6 @@ const artistSchema = new mongoose.Schema(
       required: false,
       default: "",
     },
-    bannerUrl: {
-      type: String,
-      required: false,
-      default: null,
-    },
-    bannerPublicId: {
-      type: String,
-    },
     embedding: {
       type: [Number],
       default: null,

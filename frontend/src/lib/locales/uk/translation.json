@@ -332,7 +332,8 @@
       "tableSongs": "Треки",
       "tableActions": "Дії",
       "share": "Поділитися",
-      "goToArtist": "Перейти до виконавця"
+      "goToArtist": "Перейти до виконавця",
+      "goToAlbum": "Перейти до альбому"
     },
     "artists": {
       "title": "Бібліотека виконавців",
@@ -343,11 +344,7 @@
       "editDialogTitle": "Редагувати виконавця",
       "editDialogDesc": "Змініть дані виконавця",
       "uploadImageRequired": "Завантажити фото виконавця (обов'язково)",
-      "uploadBannerOptional": "Завантажити банер (необов'язково)",
       "chooseImage": "Вибрати фото",
-      "chooseBanner": "Вибрати банер",
-      "removeBanner": "Видалити банер",
-      "bannerWillBeRemoved": "Банер буде видалено",
       "fieldName": "Ім'я виконавця",
       "placeholderName": "Введіть ім'я виконавця",
       "fieldBioOptional": "Біографія (Необов'язково)",
@@ -366,6 +363,13 @@
       "currentFile": "Поточний:",
       "chooseFile": "Оберіть файл",
       "andMore": "та інші"
+    }
+  },
+  "albumPage": {
+    "options": {
+      "goToAlbum": "Перейти до альбому",
+      "goToArtist": "Перейти до виконавця",
+      "share": "Поділитися"
     }
   },
   "pages": {
