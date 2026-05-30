@@ -12,6 +12,10 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getImageUrlByKey } from "@/lib/imageUrl";
 import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
+import {
+  getArtistNames as formatTrackArtists,
+  getPlaylistDisplayTitle,
+} from "@/lib/utils";
 
 interface SharedContentMessageProps {
   entityType: "song" | "album" | "playlist";
@@ -20,7 +24,7 @@ interface SharedContentMessageProps {
 
 type EntityData = Song | Album | Playlist;
 
-const getArtistNames = (artists: Artist[] = []): string => {
+const joinArtistNames = (artists: Artist[] = []): string => {
   return artists.map((a) => a.name).join(", ");
 };
 
@@ -31,7 +35,7 @@ export const SharedContentMessage: React.FC<SharedContentMessageProps> = ({
   const [entity, setEntity] = useState<EntityData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const { setCurrentSong, playAlbum } = usePlayerStore();
   const {
@@ -71,7 +75,10 @@ export const SharedContentMessage: React.FC<SharedContentMessageProps> = ({
         playAlbum((entity as Album | Playlist).songs, 0, {
           type: entityType,
           entityId: (entity as Album | Playlist)._id,
-          entityTitle: (entity as Album | Playlist).title,
+          entityTitle:
+            entityType === "playlist"
+              ? getPlaylistDisplayTitle(entity as Playlist, i18n.language, t)
+              : (entity as Album).title,
         });
       } else {
         toast.error(t("common.noSongsToPlay"));
@@ -136,9 +143,10 @@ export const SharedContentMessage: React.FC<SharedContentMessageProps> = ({
         : isPlaylistInLibrary(entity._id);
 
   const getSubtitle = () => {
-    if (entityType === "song") return getArtistNames((entity as Song).artist);
+    if (entityType === "song")
+      return formatTrackArtists((entity as Song).artist);
     if (entityType === "album")
-      return getArtistNames((entity as Album).artist);
+      return formatTrackArtists((entity as Album).artist);
     if (entityType === "playlist") {
       const pl = entity as Playlist;
       if (!pl.songs || pl.songs.length === 0) {
@@ -150,7 +158,7 @@ export const SharedContentMessage: React.FC<SharedContentMessageProps> = ({
           index === self.findIndex((a) => a._id === artist._id),
       );
       const firstTwoUniqueArtists = uniqueArtists.slice(0, 2);
-      const artistNames = getArtistNames(firstTwoUniqueArtists);
+      const artistNames = joinArtistNames(firstTwoUniqueArtists);
       if (uniqueArtists.length > 2) {
         return `${artistNames} ${t("common.andMore")}`;
       }
@@ -160,6 +168,9 @@ export const SharedContentMessage: React.FC<SharedContentMessageProps> = ({
   };
 
   const getDisplayTitle = () => {
+    if (entityType === "playlist") {
+      return getPlaylistDisplayTitle(entity as Playlist, i18n.language, t);
+    }
     return (entity as Song | Album | Playlist).title;
   };
 

@@ -29,7 +29,7 @@ const EntitySectionCardComponent: React.FC<EntitySectionCardProps> = ({
   songsOnly,
 }) => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { data: allArtists = [] } = useArtists();
 
   const handleItemClick = useCallback(() => {
@@ -52,7 +52,7 @@ const EntitySectionCardComponent: React.FC<EntitySectionCardProps> = ({
     }
   }, [item, navigate]);
 
-  const title = getDisplayTitle(item);
+  const title = getDisplayTitle(item, i18n.language, t);
   const subtitle = getSubtitle(item, t, allArtists);
   const showPlay =
     item.itemType === "song" ||

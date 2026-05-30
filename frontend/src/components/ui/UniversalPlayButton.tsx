@@ -5,6 +5,8 @@ import { Play, Pause } from "lucide-react";
 import { usePlayerStore } from "@/stores/usePlayerStore";
 import { axiosInstance } from "@/lib/axios";
 import type { Song, Album, Playlist, Artist, LibraryItem } from "@/types";
+import { useTranslation } from "react-i18next";
+import { getPlaylistDisplayTitle } from "@/lib/utils";
 
 type EntityType = "song" | "album" | "playlist" | "artist";
 
@@ -26,6 +28,7 @@ const UniversalPlayButton = ({
   className = "",
   variant = "default",
 }: UniversalPlayButtonProps) => {
+  const { t, i18n } = useTranslation();
   const {
     currentSong,
     isPlaying,
@@ -173,7 +176,11 @@ const UniversalPlayButton = ({
         return {
           type: "playlist" as const,
           entityId: entity._id,
-          entityTitle: (entity as Playlist).title,
+          entityTitle: getPlaylistDisplayTitle(
+            entity as Playlist,
+            i18n.language,
+            t,
+          ),
         };
       case "artist":
         return {

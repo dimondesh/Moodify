@@ -313,7 +313,10 @@ export const searchSongs = async (req, res, next) => {
         $or: [
           { title: regex },
           { description: regex },
-          { searchableNames: regex },
+          { sourceName: regex },
+          { "localizedNames.en": regex },
+          { "localizedNames.ru": regex },
+          { "localizedNames.uk": regex },
         ],
       })
         .populate("owner", "fullName")

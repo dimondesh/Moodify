@@ -12,7 +12,7 @@ import { useUIStore } from "@/stores/useUIStore";
 import type { LibraryItem } from "@/types";
 
 export function useLibraryData() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const {
     albums,
     playlists,
@@ -51,11 +51,11 @@ export function useLibraryData() {
     if (entityTypeFilter === "downloaded") {
       const loadDownloaded = async () => {
         const items = await fetchAllDownloaded();
-        setDownloadedItems(transformDownloadedItems(items, t));
+        setDownloadedItems(transformDownloadedItems(items, t, i18n.language));
       };
       void loadDownloaded();
     }
-  }, [entityTypeFilter, fetchAllDownloaded, t]);
+  }, [entityTypeFilter, fetchAllDownloaded, t, i18n.language]);
 
   const resolvedMyPlaylists = myPlaylists ?? [];
 
@@ -67,8 +67,9 @@ export function useLibraryData() {
         playlists,
         followedArtists,
         t,
+        lang: i18n.language,
       }),
-    [albums, resolvedMyPlaylists, playlists, followedArtists, t],
+    [albums, resolvedMyPlaylists, playlists, followedArtists, t, i18n.language],
   );
 
   const unknownArtistLabel = t("common.unknownArtist");

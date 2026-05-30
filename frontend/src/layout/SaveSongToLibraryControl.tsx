@@ -14,7 +14,7 @@ import {
 import { ScrollArea } from "../components/ui/scroll-area";
 import CheckedIcon from "@/components/ui/checkedIcon";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { cn } from "@/lib/utils";
+import { cn, getPlaylistDisplayTitle } from "@/lib/utils";
 import { CDN_DEFAULT_ALBUM_COVER, CDN_LIKED_PLAYLIST_COVER } from "@/lib/cdn";
 import { buildStaticCdnImages, getImageUrlByKey } from "@/lib/imageUrl";
 import { useLibraryStore } from "../stores/useLibraryStore";
@@ -155,7 +155,7 @@ const SongLibraryPickerPanel = memo(function SongLibraryPickerPanel({
   onRequestClose,
   density = "compact",
 }: SongLibraryPickerPanelProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { fetchLibrary } = useLibraryStore();
   const {
     toggleSongLike,
@@ -166,14 +166,22 @@ const SongLibraryPickerPanel = memo(function SongLibraryPickerPanel({
 
   const [searchTerm, setSearchTerm] = useState("");
 
+  const playlistDisplayTitle = useCallback(
+    (playlist: Playlist) =>
+      getPlaylistDisplayTitle(playlist, i18n.language, t),
+    [i18n.language, t],
+  );
+
   const filteredPlaylists = useMemo(
     () =>
       ownedPlaylists.filter(
         (p) =>
           p.type !== "LIKED_SONGS" &&
-          p.title.toLowerCase().includes(searchTerm.toLowerCase()),
+          playlistDisplayTitle(p)
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()),
       ),
-    [ownedPlaylists, searchTerm],
+    [ownedPlaylists, searchTerm, playlistDisplayTitle],
   );
 
   const refreshAfterLibraryChange = useCallback(async () => {
@@ -292,7 +300,7 @@ const SongLibraryPickerPanel = memo(function SongLibraryPickerPanel({
                   "thumb",
                   CDN_DEFAULT_ALBUM_COVER,
                 )}
-                title={playlist.title}
+                title={playlistDisplayTitle(playlist)}
                 subtitle={`${playlist.songs.length} ${t("sidebar.subtitle.songs")}`}
                 actionLabel={
                   inPl

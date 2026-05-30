@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import UniversalPlayButton from "@/components/ui/UniversalPlayButton";
 import { CDN_DEFAULT_ARTIST_IMAGE } from "@/lib/cdn";
+import { playlistOwnerLabel } from "@/lib/site-meta";
 import { getImageUrlByKey, getUserAvatarUrl } from "@/lib/imageUrl";
 import {
   useClearRecentSearches,
@@ -78,8 +79,8 @@ const RecentSearchesList: React.FC<RecentSearchesListProps> = ({
       item.artist.length > 0
     ) {
       subtitle += ` • ${item.artist.map((a: Artist) => a.name).join(", ")}`;
-    } else if (item.itemType === "Playlist" && item.owner) {
-      subtitle += ` • ${item.owner.fullName}`;
+    } else if (item.itemType === "Playlist") {
+      subtitle += ` • ${playlistOwnerLabel(item.owner, t("common.unknownArtist"))}`;
     }
 
     return { title, subtitle };

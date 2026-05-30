@@ -22,6 +22,7 @@ import { Song, Artist } from "@/types";
 import toast from "react-hot-toast";
 import { Label } from "@/components/ui/label";
 import { useTranslation } from "react-i18next";
+import { getPlaylistDisplayTitle } from "@/lib/utils";
 
 interface AddSongToPlaylistDialogProps {
   isOpen: boolean;
@@ -46,7 +47,7 @@ const getArtistNames = (
 export const AddSongToPlaylistDialog: React.FC<
   AddSongToPlaylistDialogProps
 > = ({ isOpen, onClose, songToAdd }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string>("");
   const { data: myPlaylists = [] } = useMyPlaylists();
   const { addSongToPlaylist, isLoading } = usePlaylistStore();
@@ -124,7 +125,7 @@ export const AddSongToPlaylistDialog: React.FC<
                   <ScrollArea className="h-[200px]">
                     {myPlaylists.map((playlist) => (
                       <SelectItem key={playlist._id} value={playlist._id}>
-                        {playlist.title}
+                        {getPlaylistDisplayTitle(playlist, i18n.language, t)}
                       </SelectItem>
                     ))}
                   </ScrollArea>

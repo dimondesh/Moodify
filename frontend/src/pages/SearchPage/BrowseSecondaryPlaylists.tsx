@@ -3,7 +3,7 @@ import { Loader2 } from "lucide-react";
 import type { Album, Playlist } from "../../types";
 import { useTranslation } from "react-i18next";
 import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
-import { getArtistNames } from "@/lib/utils";
+import { getArtistNames, getPlaylistDisplayTitle } from "@/lib/utils";
 import { CoverImage } from "@/components/CoverImage";
 import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 import { useNavigate } from "react-router-dom";
@@ -16,7 +16,7 @@ const PlaylistCategoryGrid = ({
   playlists: Playlist[];
 }) => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   if (!playlists || playlists.length === 0) {
     return null;
@@ -30,7 +30,9 @@ const PlaylistCategoryGrid = ({
     <div className="mb-10">
       <h2 className="text-2xl font-bold mb-4 text-white">{title}</h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-        {playlists.map((pl) => (
+        {playlists.map((pl) => {
+          const displayTitle = getPlaylistDisplayTitle(pl, i18n.language, t);
+          return (
           <div
             key={pl._id}
             onClick={() => handleOpen(pl._id)}
@@ -42,14 +44,12 @@ const PlaylistCategoryGrid = ({
                   entity={pl}
                   size="card"
                   defaultUrl={CDN_DEFAULT_ALBUM_COVER}
-                  alt={pl.title}
+                  alt={displayTitle}
                   className="absolute inset-0 h-full w-full object-cover rounded-md transition-transform duration-300 group-hover:scale-105"
                 />
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-2 pt-6 z-10">
                   <h3 className="text-white text-sm font-bold drop-shadow-lg break-words">
-                    {pl.sourceName
-                      ? `${t("sidebar.subtitle.dailyMix")}: ${pl.sourceName}`
-                      : pl.title}
+                    {displayTitle}
                   </h3>
                 </div>
               </div>
@@ -61,7 +61,8 @@ const PlaylistCategoryGrid = ({
               />
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

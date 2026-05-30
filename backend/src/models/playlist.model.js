@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { CDN_DEFAULT_ALBUM_COVER } from "../constants/cdn.js";
 import { imagesField } from "./schemas/imageVariants.schema.js";
+import { localizedNamesSchema } from "./schemas/localizedNames.schema.js";
 
 const playlistSchema = new mongoose.Schema(
   {
@@ -39,7 +40,7 @@ const playlistSchema = new mongoose.Schema(
     // Поля для глобальных миксов (раньше были в Mix)
     sourceName: { type: String }, // Например, "Phonk", "Sad"
     sourceId: { type: mongoose.Schema.Types.ObjectId },
-    searchableNames: { type: [String], index: true },
+    localizedNames: localizedNamesSchema,
 
     lastGeneratedAt: { type: Date, default: Date.now },
 

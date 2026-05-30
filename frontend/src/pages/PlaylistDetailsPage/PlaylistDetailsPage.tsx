@@ -12,10 +12,16 @@ import {
   formatDuration,
   formatPlaylistTotalDuration,
   getArtistNames,
+  getPlaylistDisplayTitle,
 } from "@/lib/utils";
 import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 import { getUserAvatarUrl } from "@/lib/imageUrl";
 import { CoverImage } from "@/components/CoverImage";
+import {
+  playlistOwnerLabel,
+  SITE_BRAND_AVATAR,
+  SITE_NAME,
+} from "@/lib/site-meta";
 import { CollectionGradientLayout } from "@/components/CollectionGradientLayout";
 import { useDominantCoverGradient } from "@/hooks/useDominantCoverGradient";
 import { DeletePlaylistDialog } from "./DeletePlaylistDialog";
@@ -86,7 +92,7 @@ function playlistKindLabel(t: (k: string) => string, kind?: PlaylistKind) {
 const PlaylistDetailsPage = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const user = useAuthStore((s) => s.user);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { playlistId } = useParams<{ playlistId: string }>();
   const {
     data: currentPlaylist,
@@ -152,6 +158,14 @@ const PlaylistDetailsPage = () => {
     [currentPlaylist?.songs],
   );
 
+  const displayTitle = useMemo(
+    () =>
+      currentPlaylist
+        ? getPlaylistDisplayTitle(currentPlaylist, i18n.language, t)
+        : "",
+    [currentPlaylist, i18n.language, t],
+  );
+
   const handlePlayPlaylist = () => {
     if (!currentPlaylist || currentPlaylist.songs.length === 0) return;
     const isCurrentPlaylistPlaying =
@@ -166,7 +180,7 @@ const PlaylistDetailsPage = () => {
       playAlbum(currentPlaylist.songs, 0, {
         type: "playlist",
         entityId: currentPlaylist._id,
-        entityTitle: currentPlaylist.title,
+        entityTitle: displayTitle,
       });
     }
   };
@@ -184,14 +198,14 @@ const PlaylistDetailsPage = () => {
         playAlbum(currentPlaylist.songs, index, {
           type: "playlist",
           entityId: currentPlaylist._id,
-          entityTitle: currentPlaylist.title,
+          entityTitle: displayTitle,
         });
       }
     } else {
       playAlbum(currentPlaylist.songs, index, {
         type: "playlist",
         entityId: currentPlaylist._id,
-        entityTitle: currentPlaylist.title,
+        entityTitle: displayTitle,
       });
     }
   };
@@ -498,24 +512,22 @@ const PlaylistDetailsPage = () => {
     currentSong &&
     currentPlaylist.songs.some((song) => song._id === currentSong._id) &&
     queue[0]?._id === currentPlaylist.songs[0]?._id;
-  const ownerName =
-    currentPlaylist.owner?.fullName ||
-    currentPlaylist.sourceName ||
-    t("common.unknownArtist");
+  const ownerName = playlistOwnerLabel(
+    currentPlaylist.owner,
+    t("common.unknownArtist"),
+  );
   const playlistDescriptionText =
     currentPlaylist.type === "LIKED_SONGS" && currentPlaylist.isSystem
       ? t("pages.likedSongs.systemDescription")
       : (currentPlaylist.description?.trim() || "");
-  const metaDescription = `Listen to "${
-    currentPlaylist.title
-  }", a playlist by ${ownerName} on Moodify Music. Features ${
+  const metaDescription = `Listen to "${displayTitle}", a playlist by ${ownerName} on Moodify Music. Features ${
     currentPlaylist.songs?.length || 0
   } songs.${playlistDescriptionText ? ` ${playlistDescriptionText}` : ""}`;
 
   return (
     <>
       <Helmet>
-        <title>{`${currentPlaylist.title} by ${ownerName}`}</title>
+        <title>{`${displayTitle} by ${ownerName}`}</title>
         <meta name="description" content={metaDescription.substring(0, 160)} />
       </Helmet>
       <CollectionGradientLayout
@@ -541,7 +553,7 @@ const PlaylistDetailsPage = () => {
                     entity={currentPlaylist}
                     size="large"
                     defaultUrl={CDN_DEFAULT_ALBUM_COVER}
-                    alt={currentPlaylist.title}
+                    alt={displayTitle}
                     className="h-full w-full object-cover transition-opacity group-hover:opacity-80"
                   />
                 </button>
@@ -550,7 +562,7 @@ const PlaylistDetailsPage = () => {
                   entity={currentPlaylist}
                   size="large"
                   defaultUrl={CDN_DEFAULT_ALBUM_COVER}
-                  alt={currentPlaylist.title}
+                  alt={displayTitle}
                   className="w-64 h-64 sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px] shadow-xl rounded-md object-cover flex-shrink-0 mx-auto sm:mx-0"
                 />
               )}
@@ -559,7 +571,7 @@ const PlaylistDetailsPage = () => {
                   {playlistKindLabel(t, currentPlaylist.type)}
                 </p>
                 <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold mt-2 mb-2 sm:my-4 break-words">
-                  {currentPlaylist.title}
+                  {displayTitle}
                 </h1>
                 {playlistDescriptionText && (
                   <p className="text-gray-400 text-base mt-2 break-words">
@@ -573,7 +585,16 @@ const PlaylistDetailsPage = () => {
                     ) : (
                       <Lock className="size-3.5" />
                     ))}
-                  {currentPlaylist.owner ? (
+                  {currentPlaylist.owner == null ? (
+                    <span className="font-semibold text-white flex items-center">
+                      <img
+                        src={SITE_BRAND_AVATAR}
+                        className="size-4 rounded-full mr-1 object-cover bg-zinc-800"
+                        alt={SITE_NAME}
+                      />
+                      {SITE_NAME}
+                    </span>
+                  ) : (
                     <button
                       type="button"
                       onClick={handleOwnerClick}
@@ -587,10 +608,6 @@ const PlaylistDetailsPage = () => {
                       {currentPlaylist.owner.fullName ||
                         t("common.unknownArtist")}
                     </button>
-                  ) : (
-                    <span className="font-semibold text-white">
-                      {currentPlaylist.sourceName || "Moodify Music"}
-                    </span>
                   )}
                   <span className="hidden lg:inline">
                     • {(currentPlaylist.songs || []).length}{" "}
@@ -653,7 +670,7 @@ const PlaylistDetailsPage = () => {
               <DownloadButton
                 itemId={currentPlaylist._id}
                 itemType="playlists"
-                itemTitle={currentPlaylist.title}
+                itemTitle={displayTitle}
                 disabled={
                   !user || (currentPlaylist.songs?.length ?? 0) === 0
                 }

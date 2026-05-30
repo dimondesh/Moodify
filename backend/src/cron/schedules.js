@@ -1,6 +1,8 @@
 import cron from "node-cron";
 import { ListenHistory } from "../models/listenHistory.model.js";
 import {
+  generateGlobalGenreAndMoodMixes,
+  generatePersonalMixesForUser,
   generateOnRepeatPlaylistForUser,
   generateDiscoverWeeklyForUser,
   generateOnRepeatRewindForUser,
@@ -56,6 +58,44 @@ export function registerCronJobs() {
             'CRON JOB: Error in "Discover Weekly" generation:',
             error,
           );
+        }
+      },
+    ),
+  );
+
+  tasks.push(
+    cron.schedule(
+      "0 1 * * *",
+      async () => {
+        console.log("CRON JOB: Starting global genre and mood mixes generation...");
+        try {
+          await generateGlobalGenreAndMoodMixes();
+        } catch (error) {
+          console.error("CRON JOB: Error in global mixes generation:", error);
+        }
+      },
+    ),
+  );
+
+  tasks.push(
+    cron.schedule(
+      "0 0 * * *",
+      async () => {
+        console.log('CRON JOB: Starting "Personal Mixes" generation...');
+        try {
+          const eligibleUsers = await ListenHistory.aggregate([
+            { $group: { _id: "$user", count: { $sum: 1 } } },
+            { $match: { count: { $gte: 10 } } },
+          ]);
+
+          for (const user of eligibleUsers) {
+            await generatePersonalMixesForUser(user._id);
+          }
+          console.log(
+            `CRON JOB: "Personal Mixes" generation finished for ${eligibleUsers.length} users.`,
+          );
+        } catch (error) {
+          console.error('CRON JOB: Error in "Personal Mixes" generation:', error);
         }
       },
     ),

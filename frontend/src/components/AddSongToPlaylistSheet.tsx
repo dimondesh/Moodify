@@ -16,7 +16,7 @@ import { useIsSongLiked } from "@/hooks/useLikedSongs";
 import { Song } from "@/types";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
-import { cn } from "@/lib/utils";
+import { cn, getPlaylistDisplayTitle } from "@/lib/utils";
 import { CDN_DEFAULT_ALBUM_COVER, CDN_LIKED_PLAYLIST_COVER } from "@/lib/cdn";
 import { buildStaticCdnImages, getImageUrlByKey } from "@/lib/imageUrl";
 
@@ -37,7 +37,7 @@ const AddSongToPlaylistSheet: React.FC<AddSongToPlaylistSheetProps> = ({
   notifyPlaylistMembershipChanges = false,
   notifyLibraryChanges = false,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { data: ownedPlaylists = [] } = useOwnedPlaylists();
   const {
     addSongToPlaylist,
@@ -204,7 +204,7 @@ const AddSongToPlaylistSheet: React.FC<AddSongToPlaylistSheetProps> = ({
                   "thumb",
                   CDN_DEFAULT_ALBUM_COVER,
                 )}
-                title={playlist.title}
+                title={getPlaylistDisplayTitle(playlist, i18n.language, t)}
                 subtitle={`${playlist.songs.length} ${t(
                   "sidebar.subtitle.songs",
                 )}`}

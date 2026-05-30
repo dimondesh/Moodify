@@ -1,85 +1,47 @@
 #!/usr/bin/env node
 /**
- * One-time migration: frontend translation.json → Genre/Mood.localizedNames
+ * Copies Genre/Mood.localizedNames → GENRE_MIX / MOOD_MIX playlists.
  *
  *   cd backend && npm run migrate:locales
  */
 import "dotenv/config";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
 import mongoose from "mongoose";
 import { Genre } from "../models/genre.model.js";
 import { Mood } from "../models/mood.model.js";
-import { nameToMixLocaleKey } from "../lib/mixLocalization.js";
+import { Playlist } from "../models/playlist.model.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const LOCALES_DIR = path.resolve(
-  __dirname,
-  "../../../frontend/src/lib/locales",
-);
-const LANGS = ["en", "ru", "uk"];
-
-const readLocaleMixes = () => {
-  const byLang = {};
-  for (const lang of LANGS) {
-    const filePath = path.join(LOCALES_DIR, lang, "translation.json");
-    if (!fs.existsSync(filePath)) {
-      console.warn(`Skip missing locale file: ${filePath}`);
-      continue;
-    }
-    const json = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-    byLang[lang] = {
-      genre: json.mixes?.genre ?? {},
-      mood: json.mixes?.mood ?? {},
-    };
-  }
-  return byLang;
-};
-
-const resolveMixLabel = (byLang, category, name) => {
-  const key = nameToMixLocaleKey(name);
-  const bucket = byLang.en?.[category] ?? {};
-  const localizedNames = {};
-
-  for (const lang of LANGS) {
-    const label = byLang[lang]?.[category]?.[key];
-    if (typeof label === "string" && label.trim()) {
-      localizedNames[lang] = label.trim();
+const backfillMixPlaylistLocalizedNames = async () => {
+  const sources = await Promise.all([
+    Genre.find().select("localizedNames").lean(),
+    Mood.find().select("localizedNames").lean(),
+  ]);
+  const bySourceId = new Map();
+  for (const doc of [...sources[0], ...sources[1]]) {
+    if (doc.localizedNames) {
+      bySourceId.set(doc._id.toString(), doc.localizedNames);
     }
   }
 
-  if (!localizedNames.en && bucket[key]) {
-    localizedNames.en = bucket[key].trim();
-  }
+  const mixes = await Playlist.find({
+    type: { $in: ["GENRE_MIX", "MOOD_MIX"] },
+    sourceId: { $ne: null },
+  }).select("sourceId");
 
-  return { key, localizedNames };
-};
-
-const migrateCollection = async (Model, category, byLang) => {
-  const docs = await Model.find({}).lean();
   let updated = 0;
-  const missing = [];
-
-  for (const doc of docs) {
-    const { key, localizedNames } = resolveMixLabel(byLang, category, doc.name);
-    const hasAny = LANGS.some((lang) => localizedNames[lang]);
-
-    if (!hasAny) {
-      missing.push({ name: doc.name, key });
-      continue;
-    }
-
-    await Model.updateOne(
-      { _id: doc._id },
-      { $set: { localizedNames } },
+  for (const mix of mixes) {
+    const localizedNames = bySourceId.get(mix.sourceId.toString());
+    if (!localizedNames) continue;
+    await Playlist.updateOne(
+      { _id: mix._id },
+      {
+        $set: { localizedNames },
+        $unset: { searchableNames: "" },
+      },
     );
     updated += 1;
   }
 
-  return { total: docs.length, updated, missing };
+  return { playlists: mixes.length, updated };
 };
 
 async function main() {
@@ -88,35 +50,19 @@ async function main() {
     process.exit(1);
   }
 
-  if (!fs.existsSync(LOCALES_DIR)) {
-    console.error(`Locales directory not found: ${LOCALES_DIR}`);
-    process.exit(1);
-  }
-
-  const byLang = readLocaleMixes();
   await mongoose.connect(process.env.MONGO_URI);
   console.log("Connected to MongoDB\n");
 
-  const genreResult = await migrateCollection(Genre, "genre", byLang);
-  const moodResult = await migrateCollection(Mood, "mood", byLang);
+  const removedSearchable = await Playlist.updateMany(
+    { searchableNames: { $exists: true } },
+    { $unset: { searchableNames: "" } },
+  );
+  console.log(
+    `Removed searchableNames from ${removedSearchable.modifiedCount} playlist(s)`,
+  );
 
-  console.log("Genres:", genreResult);
-  console.log("Moods:", moodResult);
-
-  const allMissing = [
-    ...genreResult.missing.map((m) => ({ ...m, type: "genre" })),
-    ...moodResult.missing.map((m) => ({ ...m, type: "mood" })),
-  ];
-
-  if (allMissing.length > 0) {
-    console.log(`\nNo JSON match for ${allMissing.length} document(s):`);
-    for (const item of allMissing.slice(0, 30)) {
-      console.log(`  [${item.type}] name="${item.name}" key="${item.key}"`);
-    }
-    if (allMissing.length > 30) {
-      console.log(`  ... and ${allMissing.length - 30} more`);
-    }
-  }
+  const playlistResult = await backfillMixPlaylistLocalizedNames();
+  console.log("Mix playlists:", playlistResult);
 
   await mongoose.disconnect();
   console.log("\nDone.");

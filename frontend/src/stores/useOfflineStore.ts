@@ -21,6 +21,7 @@ import { useAuthStore } from "./useAuthStore";
 import { invalidateArtists } from "@/lib/invalidateQueries";
 import i18n from "@/lib/i18n";
 import { getLargeCoverUrl } from "@/lib/imageUrl";
+import { getPlaylistDisplayTitle } from "@/lib/utils";
 
 type ItemType = "albums" | "playlists";
 const HLS_ASSETS_CACHE_NAME = "moodify-hls-assets-cache";
@@ -266,7 +267,10 @@ export const useOfflineStore = create<OfflineState>()(
                 if (new Date(serverDate) > new Date(localDate)) {
                   toast.loading(
                     i18n.t("toasts.updatingItem", {
-                      itemTitle: localPlaylist.title,
+                      itemTitle: getPlaylistDisplayTitle(
+                        localPlaylist,
+                        i18n.language,
+                      ),
                     }),
                     {
                       id: `sync-${localPlaylist._id}`,
@@ -298,7 +302,7 @@ export const useOfflineStore = create<OfflineState>()(
                 if (new Date(serverPl.updatedAt) > localUpdated) {
                   toast.loading(
                     i18n.t("toasts.updatingItem", {
-                      itemTitle: row.title,
+                      itemTitle: getPlaylistDisplayTitle(row, i18n.language),
                     }),
                     {
                       id: `sync-${row._id}`,

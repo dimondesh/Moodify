@@ -16,7 +16,10 @@
     "migrate:liked-songs": "node src/scripts/migrateLikedSongs.js",
     "migrate:library-social": "node src/scripts/migrateLibraryAndSocial.js",
     "migrate:unbounded-arrays": "node src/scripts/migrateUnboundedArrays.js",
-    "generate:entity-embeddings": "node src/scripts/generateEntityEmbeddings.js"
+    "generate:entity-embeddings": "node src/scripts/generateEntityEmbeddings.js",
+    "generate:playlists": "node src/scripts/generatePlaylists.js",
+    "migrate:locales": "node src/scripts/migrateLocales.js",
+    "translate:mix-locales": "node src/scripts/translateMixLocales.js"
   },
   "keywords": [],
   "type": "module",

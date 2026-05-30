@@ -3,6 +3,7 @@
 import axios from "axios";
 import { Genre } from "../models/genre.model.js";
 import { Mood } from "../models/mood.model.js";
+import { localizeNewMixSource } from "./mixLocale.service.js";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
@@ -39,6 +40,7 @@ const findOrCreate = async (model, name) => {
   });
   if (!entity) {
     entity = await new model({ name: cleanedName }).save();
+    entity = await localizeNewMixSource(model, entity);
   }
   return entity;
 };

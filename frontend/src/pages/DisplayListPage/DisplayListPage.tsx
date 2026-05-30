@@ -6,7 +6,9 @@ import { axiosInstance } from "@/lib/axios";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SectionGridSkeleton from "@/components/ui/skeletons/PlaylistSkeleton";
 import { useTranslation } from "react-i18next";
-import { getArtistNames } from "@/lib/utils";
+import { getArtistNames, getPlaylistDisplayTitle } from "@/lib/utils";
+import type { Playlist, PlaylistKind } from "@/types";
+import { playlistOwnerLabel } from "@/lib/site-meta";
 import { CoverImage } from "@/components/CoverImage";
 import { getImageUrlByKey } from "@/lib/imageUrl";
 import {
@@ -24,13 +26,31 @@ interface ListItem {
   images?: { size: number; url: string }[];
   type: "user" | "artist" | "playlist" | "album";
   itemType?: "user" | "artist" | "playlist" | "album";
+  /** Mix/smart kind when `type` is the entity kind `playlist`. */
+  playlistKind?: PlaylistKind;
+  localizedNames?: Playlist["localizedNames"];
   artist?: Artist[];
   owner?: User;
   albumType?: string;
 }
 
+function formatListItem(item: Record<string, unknown> & { _id: string }): ListItem {
+  const itemType = item.itemType as string | undefined;
+  const rawType = item.type as string | undefined;
+  const entityType = (itemType || rawType) as ListItem["type"];
+  const playlistKind =
+    entityType === "playlist" && rawType && rawType !== entityType
+      ? (rawType as PlaylistKind)
+      : undefined;
+  return {
+    ...(item as unknown as ListItem),
+    type: entityType,
+    playlistKind,
+  };
+}
+
 const DisplayListPage = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [items, setItems] = useState<ListItem[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const location = useLocation();
@@ -47,10 +67,7 @@ const DisplayListPage = () => {
 
   useEffect(() => {
     if (initialItems && Array.isArray(initialItems)) {
-      const formattedItems = initialItems.map((item) => ({
-        ...item,
-        type: item.itemType || item.type,
-      }));
+      const formattedItems = initialItems.map(formatListItem);
       setItems(formattedItems);
       setIsLoading(false);
     } else if (apiEndpoint) {
@@ -59,10 +76,7 @@ const DisplayListPage = () => {
           const response = await axiosInstance.get(apiEndpoint);
           const data = response.data.items || response.data;
           if (Array.isArray(data)) {
-            const formattedData = data.map((item) => ({
-              ...item,
-              type: item.itemType || item.type,
-            }));
+            const formattedData = data.map(formatListItem);
             setItems(formattedData);
           }
         } catch (err) {
@@ -107,10 +121,25 @@ const DisplayListPage = () => {
     }
     if (item.type === "playlist") {
       return t("sidebar.subtitle.byUser", {
-        name: item.owner?.fullName || t("common.unknownArtist"),
+        name: playlistOwnerLabel(item.owner, t("common.unknownArtist")),
       });
     }
     return typeName;
+  };
+
+  const resolveItemTitle = (item: ListItem) => {
+    if (item.type === "playlist") {
+      return getPlaylistDisplayTitle(
+        {
+          title: item.title ?? item.name ?? "",
+          type: item.playlistKind,
+          localizedNames: item.localizedNames,
+        },
+        i18n.language,
+        t,
+      );
+    }
+    return item.name || item.title || "";
   };
 
   if (isLoading) return <SectionGridSkeleton />;
@@ -120,7 +149,9 @@ const DisplayListPage = () => {
       <div className="p-4 sm:p-6">
         <h2 className="text-2xl sm:text-3xl font-bold mb-6">{title}</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-          {items?.map((item) => (
+          {items?.map((item) => {
+            const displayTitle = resolveItemTitle(item);
+            return (
             <Link
               to={getLink(item)}
               key={item._id}
@@ -133,7 +164,7 @@ const DisplayListPage = () => {
                       entity={item}
                       size="card"
                       defaultUrl={CDN_DEFAULT_ALBUM_COVER}
-                      alt={item.title || t("common.itemCover")}
+                      alt={displayTitle || t("common.itemCover")}
                       className="absolute inset-0 h-full w-full object-cover rounded-md transition-transform duration-300 group-hover:scale-105"
                     />
                   </div>
@@ -165,14 +196,15 @@ const DisplayListPage = () => {
               </div>
               <div className="px-1">
                 <h3 className="font-semibold text-sm truncate">
-                  {item.name || item.title}
+                  {displayTitle}
                 </h3>
                 <p className="text-xs text-zinc-400 leading-tight truncate">
                   {getSubtitle(item)}
                 </p>
               </div>
             </Link>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

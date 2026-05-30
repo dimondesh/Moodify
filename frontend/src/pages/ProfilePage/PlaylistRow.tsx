@@ -6,6 +6,8 @@ import { Playlist } from "@/types";
 import { Music } from "lucide-react";
 import { CoverImage } from "@/components/CoverImage";
 import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
+import { playlistOwnerLabel } from "@/lib/site-meta";
+import { getPlaylistDisplayTitle } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
 interface PlaylistRowProps {
@@ -13,7 +15,8 @@ interface PlaylistRowProps {
 }
 
 const PlaylistRowComponent = ({ playlist }: PlaylistRowProps) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const displayTitle = getPlaylistDisplayTitle(playlist, i18n.language, t);
   return (
     <Link
       to={`/playlists/${playlist._id}`}
@@ -25,7 +28,7 @@ const PlaylistRowComponent = ({ playlist }: PlaylistRowProps) => {
             entity={playlist}
             size="thumb"
             defaultUrl={CDN_DEFAULT_ALBUM_COVER}
-            alt={playlist.title}
+            alt={displayTitle}
             className="w-full h-full object-cover rounded-md"
           />
         ) : (
@@ -33,10 +36,10 @@ const PlaylistRowComponent = ({ playlist }: PlaylistRowProps) => {
         )}
       </div>
       <div className="flex-grow min-w-0">
-        <p className="font-medium truncate text-white">{playlist.title}</p>
+        <p className="font-medium truncate text-white">{displayTitle}</p>
         <p className="text-sm text-zinc-400 truncate">
           {playlist.likes ?? 0} {t("pages.playlist.saved")} •{" "}
-          {playlist.owner?.fullName || t("common.unknownArtist")}
+          {playlistOwnerLabel(playlist.owner, t("common.unknownArtist"))}
         </p>
       </div>
     </Link>

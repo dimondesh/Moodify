@@ -173,7 +173,7 @@ export interface Playlist {
   isSystem?: boolean;
   sourceName?: string;
   sourceId?: string;
-  searchableNames?: string[];
+  localizedNames?: { en?: string; ru?: string; uk?: string };
   lastGeneratedAt?: string;
   coverAccentHex?: string | null;
 }

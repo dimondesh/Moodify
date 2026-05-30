@@ -7,7 +7,8 @@ import type {
   Song,
   UserSectionItem,
 } from "@/types";
-import { getArtistNames, normalizeAlbumKind } from "@/lib/utils";
+import { getArtistNames, getPlaylistDisplayTitle, normalizeAlbumKind } from "@/lib/utils";
+import { playlistOwnerLabel, SITE_NAME } from "@/lib/site-meta";
 
 export function isPlaylistCoverOverlayItem(item: DisplayItem): boolean {
   if (item.itemType !== "playlist") return false;
@@ -35,7 +36,11 @@ export function isValidDisplayItem(item: DisplayItem): boolean {
   }
 }
 
-export function getDisplayTitle(item: DisplayItem): string {
+export function getDisplayTitle(
+  item: DisplayItem,
+  lang?: string,
+  t?: TFunction,
+): string {
   if (item.itemType === "artist") {
     return (
       (item as Artist).name ||
@@ -48,6 +53,9 @@ export function getDisplayTitle(item: DisplayItem): string {
   }
   if (item.itemType === "playlist") {
     const pl = item as Playlist;
+    if (lang) {
+      return getPlaylistDisplayTitle(pl, lang, t) || "Unknown Title";
+    }
     return pl.title || "Unknown Title";
   }
   return item.title || "Unknown Title";
@@ -99,8 +107,11 @@ export function getSubtitle(
       ) {
         return `${t("sidebar.subtitle.playlist")} • Moodify Music`;
       }
+      if (playlist.owner == null) {
+        return `${t("sidebar.subtitle.playlist")} • ${SITE_NAME}`;
+      }
       return t("sidebar.subtitle.byUser", {
-        name: playlist.owner?.fullName || t("sidebar.subtitle.user"),
+        name: playlistOwnerLabel(playlist.owner, t("sidebar.subtitle.user")),
       });
     }
     case "artist":

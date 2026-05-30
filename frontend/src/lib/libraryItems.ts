@@ -3,7 +3,7 @@ import {
   CDN_LIKED_PLAYLIST_COVER,
 } from "@/lib/cdn";
 import { buildStaticCdnImages } from "@/lib/imageUrl";
-import { getArtistNames } from "@/lib/utils";
+import { getArtistNames, getPlaylistDisplayTitle } from "@/lib/utils";
 import type {
   Album,
   AlbumItem,
@@ -23,6 +23,7 @@ export interface BuildLibraryItemsInput {
   playlists: LibraryPlaylist[];
   followedArtists: Artist[];
   t: TFunction;
+  lang: string;
 }
 
 export function buildLibraryItems({
@@ -31,6 +32,7 @@ export function buildLibraryItems({
   playlists,
   followedArtists,
   t,
+  lang,
 }: BuildLibraryItemsInput): LibraryItem[] {
   const libraryItemsMap = new Map<string, LibraryItem>();
 
@@ -54,7 +56,7 @@ export function buildLibraryItems({
         title:
           playlist.type === "LIKED_SONGS"
             ? t("sidebar.likedSongs")
-            : playlist.title,
+            : getPlaylistDisplayTitle(playlist, lang, t),
         images:
           playlist.images?.length
             ? playlist.images
@@ -91,6 +93,7 @@ export function buildLibraryItems({
 export function transformDownloadedItems(
   items: (Album | Playlist)[],
   t: TFunction,
+  lang: string,
 ): LibraryItem[] {
   const downloadedLibraryItemsMap = new Map<string, LibraryItem>();
 
@@ -113,10 +116,8 @@ export function transformDownloadedItems(
       return;
     }
 
-    const title =
-      (raw.title as string) ||
-      (raw.name as string) ||
-      (raw.nameKey ? t(raw.nameKey as string) : "Playlist");
+    const playlist = item as Playlist;
+    const title = getPlaylistDisplayTitle(playlist, lang, t);
 
     downloadedLibraryItemsMap.set(item._id, {
       _id: item._id,

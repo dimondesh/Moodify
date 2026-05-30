@@ -5,6 +5,7 @@ import {
   CDN_LIKED_PLAYLIST_COVER,
 } from "@/lib/cdn";
 import { getArtistNames, normalizeAlbumKind } from "@/lib/utils";
+import { playlistOwnerLabel } from "@/lib/site-meta";
 import type {
   AlbumItem,
   Artist,
@@ -58,9 +59,10 @@ export function getLibraryItemDisplay(
         }`;
         coverDefault = CDN_LIKED_PLAYLIST_COVER;
       } else {
-        subtitle = `${t("sidebar.subtitle.playlist")} • ${
-          playlistItem.owner?.fullName || unknownArtist
-        }`;
+        subtitle = `${t("sidebar.subtitle.playlist")} • ${playlistOwnerLabel(
+          playlistItem.owner,
+          unknownArtist,
+        )}`;
       }
       break;
     }
