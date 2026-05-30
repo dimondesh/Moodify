@@ -270,6 +270,7 @@ export const useOfflineStore = create<OfflineState>()(
                       itemTitle: getPlaylistDisplayTitle(
                         localPlaylist,
                         i18n.language,
+                        i18n.t,
                       ),
                     }),
                     {
@@ -302,7 +303,11 @@ export const useOfflineStore = create<OfflineState>()(
                 if (new Date(serverPl.updatedAt) > localUpdated) {
                   toast.loading(
                     i18n.t("toasts.updatingItem", {
-                      itemTitle: getPlaylistDisplayTitle(row, i18n.language),
+                      itemTitle: getPlaylistDisplayTitle(
+                        row,
+                        i18n.language,
+                        i18n.t,
+                      ),
                     }),
                     {
                       id: `sync-${row._id}`,

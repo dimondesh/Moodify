@@ -163,6 +163,8 @@ export interface Playlist {
   description?: string;
   isPublic: boolean;
   owner: User | null;
+  /** User this generated playlist was built for (owner stays null). */
+  madeFor?: User | string | null;
   songs: Song[];
   /** Server playlist category (not the library UI discriminator) */
   type?: PlaylistKind;

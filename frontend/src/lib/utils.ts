@@ -1,8 +1,9 @@
 // frontend/src/lib/utils.ts
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import type { Artist, Playlist, PlaylistKind } from "../types";
+import type { Artist, Playlist } from "../types";
 import type { TFunction } from "i18next";
+import { isGeneratedPlaylistType } from "@/lib/playlistKinds";
 
 /** Album `type` from API: Album | Single | EP */
 const ALBUM_KINDS = ["Album", "Single", "EP"] as const;
@@ -45,33 +46,32 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const LOCALIZED_MIX_TYPES: PlaylistKind[] = ["GENRE_MIX", "MOOD_MIX"];
+export function pickPlaylistLocalizedTitle(
+  localizedNames: Playlist["localizedNames"] | undefined,
+  lang: string,
+  fallback = "",
+): string {
+  const code = lang.split("-")[0] as "en" | "ru" | "uk";
+  const localized =
+    localizedNames?.[code]?.trim() || localizedNames?.en?.trim();
+  return localized || fallback;
+}
 
 export function getPlaylistDisplayTitle(
   playlist: Pick<Playlist, "title" | "type" | "localizedNames">,
   lang: string,
   t?: TFunction,
 ): string {
-  if (playlist.type && LOCALIZED_MIX_TYPES.includes(playlist.type)) {
-    const code = lang.split("-")[0] as "en" | "ru" | "uk";
-    const localized =
-      playlist.localizedNames?.[code]?.trim() ||
-      playlist.localizedNames?.en?.trim();
-    if (localized) return localized;
-    return playlist.title;
+  if (playlist.type && isGeneratedPlaylistType(playlist.type)) {
+    return pickPlaylistLocalizedTitle(
+      playlist.localizedNames,
+      lang,
+      playlist.title,
+    );
   }
 
-  if (t && playlist.type) {
-    switch (playlist.type) {
-      case "ON_REPEAT":
-        return t("generatedPlaylists.onRepeat.title");
-      case "DISCOVER_WEEKLY":
-        return t("generatedPlaylists.discoverWeekly.title");
-      case "ON_REPEAT_REWIND":
-        return t("generatedPlaylists.onRepeatRewind.title");
-      default:
-        break;
-    }
+  if (t && playlist.type === "LIKED_SONGS") {
+    return t("sidebar.likedSongs");
   }
 
   return playlist.title;

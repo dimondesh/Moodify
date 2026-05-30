@@ -20,6 +20,8 @@ import {
   CDN_DEFAULT_ALBUM_COVER,
   CDN_LIKED_PLAYLIST_COVER,
 } from "../constants/cdn.js";
+import { USER_CREATED_PLAYLIST_TYPE } from "../constants/playlistTypes.js";
+import { canUserViewPlaylist } from "../lib/playlistAccess.js";
 
 export const LIKED_PLAYLIST_ID = "liked";
 
@@ -144,7 +146,11 @@ export const getMyPlaylists = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
-    const createdPlaylists = await Playlist.find({ owner: userId })
+    // Only user-created playlists; generated mixes/smart lists stay out until saved to library.
+    const createdPlaylists = await Playlist.find({
+      owner: userId,
+      type: USER_CREATED_PLAYLIST_TYPE,
+    })
       .populate("owner", "fullName images")
       .populate(populatePlaylistEmbeddedSongs)
       .lean();
@@ -211,6 +217,7 @@ export const getPlaylistById = async (req, res, next) => {
 
     const playlist = await Playlist.findById(playlistId)
       .populate("owner", "fullName images")
+      .populate("madeFor", "fullName images")
       .populate(populatePlaylistEmbeddedSongs)
       .lean();
 
@@ -218,11 +225,7 @@ export const getPlaylistById = async (req, res, next) => {
       return res.status(404).json({ message: "Playlist not found" });
     }
 
-    const viewerId = req.user?.id?.toString();
-    const ownerId = playlist.owner?._id?.toString();
-    const isOwner = Boolean(ownerId && viewerId && ownerId === viewerId);
-
-    if (!playlist.isPublic && !isOwner) {
+    if (!canUserViewPlaylist(playlist, req.user?.id)) {
       return res
         .status(403)
         .json({ message: "Access denied. This is a private playlist." });

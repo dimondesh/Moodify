@@ -22,6 +22,10 @@ import {
   SITE_BRAND_AVATAR,
   SITE_NAME,
 } from "@/lib/site-meta";
+import {
+  canShowPlaylistLibraryToggle,
+  isPlaylistMadeForUser,
+} from "@/lib/playlistKinds";
 import { CollectionGradientLayout } from "@/components/CollectionGradientLayout";
 import { useDominantCoverGradient } from "@/hooks/useDominantCoverGradient";
 import { DeletePlaylistDialog } from "./DeletePlaylistDialog";
@@ -70,7 +74,14 @@ import { useUIStore } from "@/stores/useUIStore";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { SaveSongToLibraryControl } from "@/layout/SaveSongToLibraryControl";
 
-function playlistKindLabel(t: (k: string) => string, kind?: PlaylistKind) {
+function playlistKindLabel(
+  t: (k: string) => string,
+  kind?: PlaylistKind,
+  isMadeForViewer?: boolean,
+) {
+  if (isMadeForViewer) {
+    return t("homepage.madeForYou");
+  }
   switch (kind) {
     case "GENRE_MIX":
     case "MOOD_MIX":
@@ -146,6 +157,14 @@ const PlaylistDetailsPage = () => {
   );
   const showAddToPlaylistButton = Boolean(
     isUserEditable && currentPlaylist?.type !== "LIKED_SONGS",
+  );
+  const isMadeForViewer = Boolean(
+    currentPlaylist &&
+      isPlaylistMadeForUser(currentPlaylist, authUser?.id),
+  );
+  const showLibraryToggle = Boolean(
+    currentPlaylist &&
+      canShowPlaylistLibraryToggle(currentPlaylist, authUser?.id),
   );
 
   const { backgrounds, isColorLoading } = useDominantCoverGradient(
@@ -568,7 +587,7 @@ const PlaylistDetailsPage = () => {
               )}
               <div className="flex flex-col justify-end text-center sm:text-left min-w-0 w-full">
                 <p className="text-xs sm:text-sm font-medium">
-                  {playlistKindLabel(t, currentPlaylist.type)}
+                  {playlistKindLabel(t, currentPlaylist.type, isMadeForViewer)}
                 </p>
                 <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold mt-2 mb-2 sm:my-4 break-words">
                   {displayTitle}
@@ -594,7 +613,7 @@ const PlaylistDetailsPage = () => {
                       />
                       {SITE_NAME}
                     </span>
-                  ) : (
+                  ) : currentPlaylist.owner ? (
                     <button
                       type="button"
                       onClick={handleOwnerClick}
@@ -608,7 +627,7 @@ const PlaylistDetailsPage = () => {
                       {currentPlaylist.owner.fullName ||
                         t("common.unknownArtist")}
                     </button>
-                  )}
+                  ) : null}
                   <span className="hidden lg:inline">
                     • {(currentPlaylist.songs || []).length}{" "}
                     {(currentPlaylist.songs || []).length !== 1
@@ -643,7 +662,7 @@ const PlaylistDetailsPage = () => {
                   )}
                 </Button>
               )}
-              {!isOwner && (
+              {showLibraryToggle && (
                 <Button
                   onClick={handleTogglePlaylistInLibrary}
                   disabled={isTogglingLibrary || !user}

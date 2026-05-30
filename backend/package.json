@@ -19,6 +19,7 @@
     "generate:entity-embeddings": "node src/scripts/generateEntityEmbeddings.js",
     "generate:playlists": "node src/scripts/generatePlaylists.js",
     "migrate:locales": "node src/scripts/migrateLocales.js",
+    "migrate:made-for": "node src/scripts/migratePlaylistMadeFor.js",
     "translate:mix-locales": "node src/scripts/translateMixLocales.js"
   },
   "keywords": [],

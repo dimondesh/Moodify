@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { usePlaylistStore } from "@/stores/usePlaylistStore";
-import { useMyPlaylists } from "@/hooks/queries";
+import { useOwnedPlaylists } from "@/hooks/queries";
 import { Song, Artist } from "@/types";
 import toast from "react-hot-toast";
 import { Label } from "@/components/ui/label";
@@ -49,8 +49,8 @@ export const AddSongToPlaylistDialog: React.FC<
 > = ({ isOpen, onClose, songToAdd }) => {
   const { t, i18n } = useTranslation();
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string>("");
-  const { data: myPlaylists = [] } = useMyPlaylists();
-  const { addSongToPlaylist, isLoading } = usePlaylistStore();
+  const { data: myPlaylists = [], isPending: isLoading } = useOwnedPlaylists();
+  const { addSongToPlaylist, isLoading: isAdding } = usePlaylistStore();
 
   useEffect(() => {
     if (isOpen) {
@@ -111,7 +111,7 @@ export const AddSongToPlaylistDialog: React.FC<
             <Select
               onValueChange={setSelectedPlaylistId}
               value={selectedPlaylistId}
-              disabled={isLoading || myPlaylists.length === 0}
+              disabled={isLoading || isAdding || myPlaylists.length === 0}
             >
               <SelectTrigger id="playlist-select">
                 <SelectValue placeholder={t("admin.songs.placeholderAlbum")} />
@@ -140,14 +140,14 @@ export const AddSongToPlaylistDialog: React.FC<
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={handleClose} variant="outline" disabled={isLoading}>
+          <Button onClick={handleClose} variant="outline" disabled={isAdding}>
             {t("admin.common.cancel")}
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isLoading || !selectedPlaylistId}
+            disabled={isAdding || !selectedPlaylistId}
           >
-            {isLoading
+            {isAdding
               ? t("admin.common.saving")
               : t("pages.playlist.addSongDialog.add")}
           </Button>

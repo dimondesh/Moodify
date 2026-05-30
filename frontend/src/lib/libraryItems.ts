@@ -4,6 +4,7 @@ import {
 } from "@/lib/cdn";
 import { buildStaticCdnImages } from "@/lib/imageUrl";
 import { getArtistNames, getPlaylistDisplayTitle } from "@/lib/utils";
+import { isLibraryMyPlaylist } from "@/lib/playlistKinds";
 import type {
   Album,
   AlbumItem,
@@ -48,15 +49,14 @@ export function buildLibraryItems({
     } as AlbumItem),
   );
 
-  [...(myPlaylists || []), ...(playlists || [])].forEach((playlist) => {
+  const myPlaylistsForLibrary = (myPlaylists || []).filter(isLibraryMyPlaylist);
+
+  [...myPlaylistsForLibrary, ...(playlists || [])].forEach((playlist) => {
     if (!libraryItemsMap.has(playlist._id)) {
       libraryItemsMap.set(playlist._id, {
         _id: playlist._id,
         type: "playlist",
-        title:
-          playlist.type === "LIKED_SONGS"
-            ? t("sidebar.likedSongs")
-            : getPlaylistDisplayTitle(playlist, lang, t),
+        title: getPlaylistDisplayTitle(playlist, lang, t),
         images:
           playlist.images?.length
             ? playlist.images

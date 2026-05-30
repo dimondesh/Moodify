@@ -3,6 +3,7 @@ import { getUserItem, getAllUserPlaylists } from "@/lib/offline-db";
 import { useOfflineStore } from "@/stores/useOfflineStore";
 import { useAuthStore } from "@/stores/useAuthStore";
 import type { Playlist, Song } from "@/types";
+import { isLibraryMyPlaylist } from "@/lib/playlistKinds";
 import toast from "react-hot-toast";
 
 export async function fetchMyPlaylists(): Promise<Playlist[]> {
@@ -14,7 +15,8 @@ export async function fetchMyPlaylists(): Promise<Playlist[]> {
     console.log("[Offline] Fetching 'My Playlists' from IndexedDB.");
     const allPlaylists = await getAllUserPlaylists(currentUser.id);
     return allPlaylists.filter(
-      (pl: Playlist) => pl.owner?._id === currentUser.id,
+      (pl: Playlist) =>
+        pl.owner?._id === currentUser.id && isLibraryMyPlaylist(pl),
     );
   }
 
@@ -28,7 +30,9 @@ export async function fetchOwnedPlaylists(): Promise<Playlist[]> {
 
   if (useOfflineStore.getState().isOffline) {
     const allPlaylists = await getAllUserPlaylists(currentUser.id);
-    return allPlaylists.filter((p) => p.owner?._id === currentUser.id);
+    return allPlaylists.filter(
+      (p) => p.owner?._id === currentUser.id && p.type === "USER_CREATED",
+    );
   }
 
   const response = await axiosInstance.get("/library/playlists/owned");

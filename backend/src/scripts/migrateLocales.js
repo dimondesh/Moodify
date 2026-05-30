@@ -9,6 +9,8 @@ import mongoose from "mongoose";
 import { Genre } from "../models/genre.model.js";
 import { Mood } from "../models/mood.model.js";
 import { Playlist } from "../models/playlist.model.js";
+import { getSmartPlaylistLabels } from "../lib/generatedPlaylistCopy.js";
+import { pickLocalizedTitle } from "../models/schemas/localizedNames.schema.js";
 
 const backfillMixPlaylistLocalizedNames = async () => {
   const sources = await Promise.all([
@@ -44,6 +46,58 @@ const backfillMixPlaylistLocalizedNames = async () => {
   return { playlists: mixes.length, updated };
 };
 
+const backfillSmartPlaylistLocalizedNames = async () => {
+  const types = ["ON_REPEAT", "DISCOVER_WEEKLY", "ON_REPEAT_REWIND"];
+  let updated = 0;
+
+  for (const type of types) {
+    const { title, localizedNames } = getSmartPlaylistLabels(type);
+    const result = await Playlist.updateMany(
+      { type },
+      { $set: { localizedNames, title } },
+    );
+    updated += result.modifiedCount;
+  }
+
+  return { types: types.length, updated };
+};
+
+const backfillPersonalMixLocalizedNames = async () => {
+  const mixes = await Playlist.find({
+    type: "PERSONAL_MIX",
+    sourceId: { $ne: null },
+  }).select("sourceId");
+
+  const sources = await Promise.all([
+    Genre.find().select("localizedNames").lean(),
+    Mood.find().select("localizedNames").lean(),
+  ]);
+  const bySourceId = new Map();
+  for (const doc of [...sources[0], ...sources[1]]) {
+    if (doc.localizedNames) {
+      bySourceId.set(doc._id.toString(), doc.localizedNames);
+    }
+  }
+
+  let updated = 0;
+  for (const mix of mixes) {
+    const localizedNames = bySourceId.get(mix.sourceId.toString());
+    if (!localizedNames) continue;
+    await Playlist.updateOne(
+      { _id: mix._id },
+      {
+        $set: {
+          localizedNames,
+          title: pickLocalizedTitle(localizedNames),
+        },
+      },
+    );
+    updated += 1;
+  }
+
+  return { playlists: mixes.length, updated };
+};
+
 async function main() {
   if (!process.env.MONGO_URI) {
     console.error("MONGO_URI is required in .env");
@@ -62,7 +116,13 @@ async function main() {
   );
 
   const playlistResult = await backfillMixPlaylistLocalizedNames();
-  console.log("Mix playlists:", playlistResult);
+  console.log("Genre/mood mixes:", playlistResult);
+
+  const smartResult = await backfillSmartPlaylistLocalizedNames();
+  console.log("Smart playlists:", smartResult);
+
+  const personalResult = await backfillPersonalMixLocalizedNames();
+  console.log("Personal mixes:", personalResult);
 
   await mongoose.disconnect();
   console.log("\nDone.");

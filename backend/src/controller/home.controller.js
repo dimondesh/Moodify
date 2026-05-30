@@ -75,7 +75,7 @@ export const getSecondaryHomePageData = async (req, res, next) => {
     if (userId) {
       // Ищем сгенерированные подборки чисто для этого юзера (Discover Weekly, On Repeat, Daily Mix)
       const userPlaylistsPromise = Playlist.find({
-        owner: userId,
+        madeFor: userId,
         type: {
           $in: [
             "PERSONAL_MIX",
@@ -170,7 +170,7 @@ export const getBootstrapData = async (req, res, next) => {
     let userSpecificPromises = [];
     if (userId) {
       const userPlaylistsPromise = Playlist.find({
-        owner: userId,
+        madeFor: userId,
         type: {
           $in: [
             "PERSONAL_MIX",

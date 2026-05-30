@@ -11,8 +11,13 @@ const playlistSchema = new mongoose.Schema(
     images: imagesField,
     coverAccentHex: { type: String, default: null },
 
-    // owner === null означает, что это глобальный системный микс (например, Жанр/Настроение)
+    // owner === null — системные/сгенерированные плейлисты (Moodify Music как автор)
     owner: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    madeFor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
 
     songs: [{ type: mongoose.Schema.Types.ObjectId, ref: "Song" }],
 
@@ -55,6 +60,7 @@ const playlistSchema = new mongoose.Schema(
 
 // Оптимизированные индексы для мгновенной выборки
 playlistSchema.index({ owner: 1, type: 1 });
+playlistSchema.index({ madeFor: 1, type: 1 });
 playlistSchema.index({ type: 1, isPublic: 1 });
 playlistSchema.index({ title: "text" });
 

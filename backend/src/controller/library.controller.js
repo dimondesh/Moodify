@@ -4,6 +4,7 @@ import { FollowedArtist } from "../models/followedArtist.model.js";
 import { Playlist } from "../models/playlist.model.js";
 import { LikedSong } from "../models/likedSong.model.js";
 import { LIKED_PLAYLIST_ID } from "./playlist.controller.js";
+import { USER_CREATED_PLAYLIST_TYPE } from "../constants/playlistTypes.js";
 
 const SONG_MINIMAL_SELECT =
   "_id title artist albumId images coverAccentHex duration playCount";
@@ -31,7 +32,8 @@ const albumPopulate = {
 
 const playlistPopulate = {
   path: "playlist",
-  select: "title images owner isPublic type isSystem updatedAt",
+  select:
+    "title images owner madeFor isPublic type isSystem updatedAt localizedNames",
   populate: { path: "owner", select: "fullName images" },
 };
 
@@ -287,7 +289,7 @@ export const getOwnedPlaylists = async (req, res) => {
     const userId = req.user.id;
     const playlists = await Playlist.find({
       owner: userId,
-      type: "USER_CREATED",
+      type: USER_CREATED_PLAYLIST_TYPE,
     })
       .populate({ path: "songs", select: SONG_MINIMAL_SELECT })
       .sort({ updatedAt: -1 });

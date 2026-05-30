@@ -105,7 +105,7 @@ export function getSubtitle(
         playlist.type === "ON_REPEAT_REWIND" ||
         playlist.type === "NEW_RELEASES"
       ) {
-        return `${t("sidebar.subtitle.playlist")} • Moodify Music`;
+        return `${t("sidebar.subtitle.playlist")} • ${SITE_NAME}`;
       }
       if (playlist.owner == null) {
         return `${t("sidebar.subtitle.playlist")} • ${SITE_NAME}`;
