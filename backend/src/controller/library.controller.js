@@ -33,7 +33,7 @@ const albumPopulate = {
 const playlistPopulate = {
   path: "playlist",
   select:
-    "title images owner madeFor isPublic type isSystem updatedAt localizedNames localizedDescriptions",
+    "title images owner madeFor isPublic type isSystem updatedAt localizedNames",
   populate: { path: "owner", select: "fullName images" },
 };
 

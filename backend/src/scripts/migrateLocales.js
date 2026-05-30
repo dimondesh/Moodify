@@ -10,10 +10,10 @@ import { Genre } from "../models/genre.model.js";
 import { Mood } from "../models/mood.model.js";
 import { Playlist } from "../models/playlist.model.js";
 import {
-  getPersonalMixLabels,
+  buildPersonalMixLabels,
   getSmartPlaylistLabels,
 } from "../lib/generatedPlaylistCopy.js";
-import { pickLocalizedTitle } from "../models/schemas/localizedNames.schema.js";
+import { GENERATED_PLAYLIST_TYPES } from "../constants/playlistTypes.js";
 
 const backfillMixPlaylistLocalizedNames = async () => {
   const sources = await Promise.all([
@@ -54,11 +54,10 @@ const backfillSmartPlaylistLocalizedNames = async () => {
   let updated = 0;
 
   for (const type of types) {
-    const { title, localizedNames, description, localizedDescriptions } =
-      getSmartPlaylistLabels(type);
+    const { title, localizedNames } = getSmartPlaylistLabels(type);
     const result = await Playlist.updateMany(
       { type },
-      { $set: { localizedNames, localizedDescriptions, title, description } },
+      { $set: { localizedNames, title } },
     );
     updated += result.modifiedCount;
   }
@@ -67,42 +66,39 @@ const backfillSmartPlaylistLocalizedNames = async () => {
 };
 
 const backfillPersonalMixLocalizedNames = async () => {
-  const mixes = await Playlist.find({
+  const userIds = await Playlist.distinct("madeFor", {
     type: "PERSONAL_MIX",
-    sourceId: { $ne: null },
-  }).select("sourceId");
+    madeFor: { $ne: null },
+  });
 
-  const sources = await Promise.all([
-    Genre.find().select("localizedNames").lean(),
-    Mood.find().select("localizedNames").lean(),
-  ]);
-  const bySourceId = new Map();
-  for (const doc of [...sources[0], ...sources[1]]) {
-    if (doc.localizedNames) {
-      bySourceId.set(doc._id.toString(), doc.localizedNames);
+  let updated = 0;
+  for (const userId of userIds) {
+    const mixes = await Playlist.find({
+      type: "PERSONAL_MIX",
+      madeFor: userId,
+    })
+      .sort({ lastGeneratedAt: 1, _id: 1 })
+      .select("_id");
+
+    for (let index = 0; index < mixes.length; index += 1) {
+      const { title, localizedNames } = buildPersonalMixLabels(index + 1);
+      await Playlist.updateOne(
+        { _id: mixes[index]._id },
+        { $set: { localizedNames, title } },
+      );
+      updated += 1;
     }
   }
 
-  const { description, localizedDescriptions } = getPersonalMixLabels();
-  let updated = 0;
-  for (const mix of mixes) {
-    const localizedNames = bySourceId.get(mix.sourceId.toString());
-    if (!localizedNames) continue;
-    await Playlist.updateOne(
-      { _id: mix._id },
-      {
-        $set: {
-          localizedNames,
-          localizedDescriptions,
-          title: pickLocalizedTitle(localizedNames),
-          description,
-        },
-      },
-    );
-    updated += 1;
-  }
+  return { users: userIds.length, updated };
+};
 
-  return { playlists: mixes.length, updated };
+const clearGeneratedPlaylistDescriptions = async () => {
+  const result = await Playlist.updateMany(
+    { type: { $in: GENERATED_PLAYLIST_TYPES } },
+    { $set: { description: "" } },
+  );
+  return { modified: result.modifiedCount };
 };
 
 async function main() {
@@ -130,6 +126,9 @@ async function main() {
 
   const personalResult = await backfillPersonalMixLocalizedNames();
   console.log("Personal mixes:", personalResult);
+
+  const clearedDescriptions = await clearGeneratedPlaylistDescriptions();
+  console.log("Cleared descriptions:", clearedDescriptions);
 
   await mongoose.disconnect();
   console.log("\nDone.");

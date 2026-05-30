@@ -538,7 +538,6 @@ const PlaylistDetailsPage = () => {
   );
   const playlistDescriptionText = getPlaylistDisplayDescription(
     currentPlaylist,
-    i18n.language,
     t,
   );
   const metaDescription = `Listen to "${displayTitle}", a playlist by ${ownerName} on Moodify Music. Features ${

@@ -1,8 +1,5 @@
 import { pickLocalizedTitle } from "../models/schemas/localizedNames.schema.js";
-import {
-  getPersonalMixLabels,
-  getSmartPlaylistLabels,
-} from "./generatedPlaylistCopy.js";
+import { getSmartPlaylistLabels } from "./generatedPlaylistCopy.js";
 
 export const buildMixPlaylistLabels = (source) => {
   const localizedNames = source.localizedNames ?? {};
@@ -15,20 +12,10 @@ export const buildMixPlaylistLabels = (source) => {
 
 /** Любой сгенерированный плейлист: title + localizedNames для UI. */
 export function buildGeneratedPlaylistLabels({ type, source, fallbackTitle = "" }) {
-  if (type === "GENRE_MIX" || type === "MOOD_MIX") {
+  if (type === "GENRE_MIX" || type === "MOOD_MIX" || type === "PERSONAL_MIX") {
     if (source?.localizedNames || source?.name) {
       return buildMixPlaylistLabels(source);
     }
-  }
-
-  if (type === "PERSONAL_MIX") {
-    const labels = buildMixPlaylistLabels(source ?? {});
-    const personal = getPersonalMixLabels();
-    return {
-      ...labels,
-      description: personal.description,
-      localizedDescriptions: personal.localizedDescriptions,
-    };
   }
 
   if (

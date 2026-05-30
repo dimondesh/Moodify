@@ -46,44 +46,15 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export type LocalizedText = { en?: string; ru?: string; uk?: string };
-
-export function pickPlaylistLocalizedText(
-  map: LocalizedText | undefined,
-  lang: string,
-  fallback = "",
-): string {
-  const code = lang.split("-")[0] as keyof LocalizedText;
-  const localized = map?.[code]?.trim() || map?.en?.trim();
-  return localized || fallback;
-}
-
 export function pickPlaylistLocalizedTitle(
   localizedNames: Playlist["localizedNames"] | undefined,
   lang: string,
   fallback = "",
 ): string {
-  return pickPlaylistLocalizedText(localizedNames, lang, fallback);
-}
-
-export function getPlaylistDisplayDescription(
-  playlist: Pick<Playlist, "description" | "type" | "localizedDescriptions">,
-  lang: string,
-  t?: TFunction,
-): string {
-  if (playlist.type && isGeneratedPlaylistType(playlist.type)) {
-    return pickPlaylistLocalizedText(
-      playlist.localizedDescriptions,
-      lang,
-      playlist.description?.trim() || "",
-    );
-  }
-
-  if (t && playlist.type === "LIKED_SONGS") {
-    return t("pages.likedSongs.systemDescription");
-  }
-
-  return playlist.description?.trim() || "";
+  const code = lang.split("-")[0] as "en" | "ru" | "uk";
+  const localized =
+    localizedNames?.[code]?.trim() || localizedNames?.en?.trim();
+  return localized || fallback;
 }
 
 export function getPlaylistDisplayTitle(
@@ -104,6 +75,35 @@ export function getPlaylistDisplayTitle(
   }
 
   return playlist.title;
+}
+
+/** Описания сгенерированных плейлистов — только из i18n (в БД `description` пустой). */
+export function getPlaylistDisplayDescription(
+  playlist: Pick<Playlist, "type" | "description">,
+  t: TFunction,
+): string {
+  if (!playlist.type) {
+    return playlist.description?.trim() || "";
+  }
+
+  switch (playlist.type) {
+    case "LIKED_SONGS":
+      return t("pages.likedSongs.systemDescription");
+    case "ON_REPEAT":
+      return t("generatedPlaylists.onRepeat.description");
+    case "DISCOVER_WEEKLY":
+      return t("generatedPlaylists.discoverWeekly.description");
+    case "ON_REPEAT_REWIND":
+      return t("generatedPlaylists.onRepeatRewind.description");
+    case "PERSONAL_MIX":
+      return t("personalMix.desc");
+    case "GENRE_MIX":
+    case "MOOD_MIX":
+    case "NEW_RELEASES":
+      return "";
+    default:
+      return playlist.description?.trim() || "";
+  }
 }
 
 export const formatDuration = (seconds: number): string => {

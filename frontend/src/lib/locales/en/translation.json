@@ -801,6 +801,7 @@
   },
   "personalMix": {
     "title": "Your Mix",
+    "titleNumber": "Your Mix #{{number}}",
     "desc": "A personal mix based on your listening habits."
   }
 }

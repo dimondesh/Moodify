@@ -46,7 +46,6 @@ const playlistSchema = new mongoose.Schema(
     sourceName: { type: String }, // Например, "Phonk", "Sad"
     sourceId: { type: mongoose.Schema.Types.ObjectId },
     localizedNames: localizedNamesSchema,
-    localizedDescriptions: localizedNamesSchema,
 
     lastGeneratedAt: { type: Date, default: Date.now },
 
