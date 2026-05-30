@@ -6,12 +6,9 @@ import { usePlaylist } from "@/hooks/queries";
 import PlaylistDetailsSkeleton from "@/components/ui/skeletons/PlaylistDetailsSkeleton";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import EqualizerTitle from "@/components/ui/equalizer-title";
-import SongOptionsDrawer from "@/components/SongOptionsDrawer";
+import { CollectionSongList } from "@/components/CollectionSongList/CollectionSongList";
 import {
-  formatDuration,
   formatPlaylistTotalDuration,
-  getArtistNames,
   getPlaylistDisplayDescription,
   getPlaylistDisplayTitle,
 } from "@/lib/utils";
@@ -40,11 +37,9 @@ import {
   Edit,
   Trash2,
   MoreHorizontal,
-  X,
   Lock,
   Unlock,
   Share,
-  Clock,
 } from "lucide-react";
 import CheckedIcon from "@/components/ui/checkedIcon";
 import { usePlayerStore } from "@/stores/usePlayerStore";
@@ -66,14 +61,12 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { useLibraryStore } from "@/stores/useLibraryStore";
-import Equalizer from "@/components/ui/equalizer";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import { DownloadButton } from "@/components/ui/DownloadButton";
 import { ShareDialog } from "@/components/ui/ShareDialog";
 import { useUIStore } from "@/stores/useUIStore";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { SaveSongToLibraryControl } from "@/layout/SaveSongToLibraryControl";
 
 function playlistKindLabel(
   t: (k: string) => string,
@@ -123,7 +116,6 @@ const PlaylistDetailsPage = () => {
     playlistToDelete,
     openDeletePlaylistDialog,
     songToRemoveFromPlaylist,
-    openRemoveSongFromPlaylistDialog,
     shareEntity,
     openShareDialog,
     closeAllDialogs,
@@ -135,9 +127,6 @@ const PlaylistDetailsPage = () => {
     togglePlaylist,
   } = useLibraryStore();
   const [isTogglingLibrary, setIsTogglingLibrary] = useState(false);
-  const [selectedSongForMenu, setSelectedSongForMenu] = useState<Song | null>(
-    null,
-  );
   const {
     playAlbum,
     setCurrentSong,
@@ -301,179 +290,6 @@ const PlaylistDetailsPage = () => {
     }
   };
 
-  const renderMobileSongList = () => {
-    if (!currentPlaylist?.songs) return null;
-    return currentPlaylist.songs.map((song) => {
-      const isCurrentSong = currentSong?._id === song._id;
-      return (
-        <div
-          key={song._id}
-          onClick={() =>
-            handlePlaySong(
-              song,
-              currentPlaylist.songs.findIndex((s) => s._id === song._id),
-            )
-          }
-          className="flex items-center justify-between gap-4 p-2 rounded-md group cursor-pointer hover:bg-white/5"
-        >
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <CoverImage
-              entity={song}
-              size="thumb"
-              defaultUrl={CDN_DEFAULT_ALBUM_COVER}
-              alt={song.title}
-              className="size-12 object-cover rounded-md flex-shrink-0"
-            />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                {isCurrentSong && isPlaying && (
-                  <div className="block sm:hidden flex-shrink-0">
-                    <EqualizerTitle />
-                  </div>
-                )}
-                <p
-                  className={`font-medium truncate w-45 sm:w-120 ${
-                    isCurrentSong ? "text-violet-400" : "text-white"
-                  }`}
-                >
-                  {song.title}
-                </p>
-              </div>
-              <p className="text-sm text-zinc-400 truncate w-45 sm:w-120">
-                {getArtistNames(song.artist)}
-              </p>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedSongForMenu(song);
-            }}
-          >
-            <MoreHorizontal className="h-5 w-5 text-zinc-400 group-hover:text-white" />
-          </Button>
-        </div>
-      );
-    });
-  };
-
-  const renderDesktopSongList = () => {
-    if (!currentPlaylist?.songs) return null;
-    return currentPlaylist.songs.map((song, index) => {
-      const isCurrentlyPlaying = currentSong?._id === song._id;
-      return (
-        <div
-          key={song._id}
-          onClick={(e) => {
-            if ((e.target as HTMLElement).closest("button")) return;
-            handlePlaySong(song, index);
-          }}
-          className="grid grid-cols-[16px_4fr_2fr_1fr_min-content] gap-4 px-4 py-2 text-sm text-zinc-400 hover:bg-white/5 rounded-md group cursor-pointer"
-        >
-          <div className="flex items-center justify-center">
-            {isCurrentlyPlaying && isPlaying ? (
-              <div className="z-10">
-                <Equalizer />
-              </div>
-            ) : (
-              <span className="group-hover:hidden text-xs sm:text-sm">
-                {index + 1}
-              </span>
-            )}
-           
-              <Play className="h-3 w-3 sm:h-4 sm:w-4 hidden group-hover:block fill-current text-zinc-400" />
-            
-          </div>
-          <div className="flex items-center gap-3 overflow-hidden">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSongTitleClick(song.albumId);
-              }}
-              className="flex-shrink-0"
-            >
-              <CoverImage
-                entity={song}
-                size="thumb"
-                defaultUrl={CDN_DEFAULT_ALBUM_COVER}
-                alt={song.title}
-                className="size-10 object-cover rounded-md"
-              />
-            </button>
-            <div className="flex flex-col min-w-0">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleSongTitleClick(song.albumId);
-                }}
-                className={`font-medium w-full text-left hover:text-[#8b5cf6] focus:outline-none focus:text-[#8b5cf6] truncate ${
-                  isCurrentlyPlaying ? "text-[#8b5cf6]" : "text-white"
-                }`}
-              >
-                {song.title}
-              </button>
-              <div className="text-xs sm:text-sm truncate text-zinc-400">
-                {song.artist.map((artist, artistIndex) => (
-                  <span key={artist._id}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleArtistNameClick(artist._id);
-                      }}
-                      className="hover:text-[#8b5cf6] focus:outline-none focus:text-[#8b5cf6]"
-                    >
-                      {artist.name}
-                    </button>
-                    {artistIndex < song.artist.length - 1 && ", "}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="items-center hidden md:flex text-xs">
-            {currentPlaylist.type === "LIKED_SONGS"
-              ? song.likedAt
-                ? format(new Date(song.likedAt), "MMM dd, yyyy")
-                : "N/A"
-              : song.createdAt
-                ? format(new Date(song.createdAt), "MMM dd, yyyy")
-                : "N/A"}
-          </div>
-          <div className="flex items-center text-xs sm:text-sm flex-shrink-0 justify-end md:mr-10">
-            {formatDuration(song.duration)}
-          </div>
-          <div className="flex items-center justify-end gap-1 sm:gap-2 flex-shrink-0">
-            <SaveSongToLibraryControl
-              song={song}
-              disabled={!user}
-              className={`rounded-full size-6 sm:size-7 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity ${!user ? "md:opacity-50" : ""}`}
-              iconClassName="h-4 w-4 sm:h-5 sm:w-5"
-            />
-            {isUserEditable && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full size-6 sm:size-7 hover:bg-zinc-800/50 text-zinc-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openRemoveSongFromPlaylistDialog({
-                    songId: song._id,
-                    playlistId: currentPlaylist._id,
-                  });
-                }}
-                title={t("common.removeFromPlaylist")}
-              >
-                <X className="h-4 w-4 sm:h-5 sm:w-5" />
-              </Button>
-            )}
-          </div>
-        </div>
-      );
-    });
-  };
-
   if (isPlaylistLoading || isColorLoading) {
     return (
       <>
@@ -543,6 +359,26 @@ const PlaylistDetailsPage = () => {
   const metaDescription = `Listen to "${displayTitle}", a playlist by ${ownerName} on Moodify Music. Features ${
     currentPlaylist.songs?.length || 0
   } songs.${playlistDescriptionText ? ` ${playlistDescriptionText}` : ""}`;
+  const showPlaylistHeaderMenu = Boolean(
+    user && (currentPlaylist.isPublic || isUserEditable),
+  );
+  const playlistDateHeaderKey = isLikedSongsPlaylist
+    ? "pages.likedSongs.headers.dateAdded"
+    : "pages.playlist.headers.dateAdded";
+  const getPlaylistSongDateLabel = (song: Song) => {
+    if (isLikedSongsPlaylist) {
+      return song.likedAt
+        ? format(new Date(song.likedAt), "MMM dd, yyyy")
+        : "N/A";
+    }
+    return song.createdAt
+      ? format(new Date(song.createdAt), "MMM dd, yyyy")
+      : "N/A";
+  };
+  const handlePlaylistSongPlay = (index: number) => {
+    const song = currentPlaylist.songs[index];
+    if (song) handlePlaySong(song, index);
+  };
 
   return (
     <>
@@ -700,7 +536,8 @@ const PlaylistDetailsPage = () => {
                     : undefined
                 }
               />
-              {isMobile ? (
+              {showPlaylistHeaderMenu &&
+                (isMobile ? (
                 <Drawer>
                   <DrawerTrigger asChild>
                     <Button
@@ -785,7 +622,7 @@ const PlaylistDetailsPage = () => {
                       <MoreHorizontal className="size-8 text-white/80 group-hover:text-white transition-colors" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-48 bg-zinc-800 text-white border-zinc-700">
+                  <DropdownMenuContent className="w-48">
                     {currentPlaylist.isPublic && (
                       <DropdownMenuItem
                         className={`cursor-pointer hover:bg-zinc-800/50 `}
@@ -829,29 +666,25 @@ const PlaylistDetailsPage = () => {
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
-              )}
+              ))}
             </div>
 
-            <div className="bg-black/20">
-              <div className="hidden md:grid md:grid-cols-[16px_4fr_2fr_1fr_0.6fr] gap-4 px-4 sm:px-6 md:px-10 py-2 text-sm text-zinc-400 border-b border-white/5">
-                <div>#</div>
-                <div>{t("pages.playlist.headers.title")}</div>
-                <div className="hidden md:block">
-                  {isLikedSongsPlaylist
-                    ? t("pages.likedSongs.headers.dateAdded")
-                    : t("pages.playlist.headers.dateAdded")}
-                </div>
-                <div className="flex items-center justify-end md:mr-10">
-                  <Clock className="h-4 w-4" />
-                </div>
-                <div className="w-8"></div>
-              </div>
-              <div className="px-2 sm:px-6">
-                <div className="space-y-1 py-4">
-                  {isMobile ? renderMobileSongList() : renderDesktopSongList()}
-                </div>
-              </div>
-            </div>
+            <CollectionSongList
+              songs={currentPlaylist.songs ?? []}
+              context="playlist"
+              isMobile={isMobile}
+              currentSongId={currentSong?._id}
+              isPlaying={isPlaying}
+              onPlay={handlePlaylistSongPlay}
+              onArtistClick={handleArtistNameClick}
+              onAlbumClick={handleSongTitleClick}
+              dateHeaderKey={playlistDateHeaderKey}
+              getDateLabel={getPlaylistSongDateLabel}
+              playlistId={currentPlaylist._id}
+              isOwner={isUserEditable}
+              mobileVariant="playlist"
+              isLoggedIn={Boolean(user)}
+            />
             {showAddToPlaylistButton && playlistId && (
               <PlaylistDiscoverSection
                 playlistId={playlistId}
@@ -897,14 +730,6 @@ const PlaylistDetailsPage = () => {
             entityId={shareEntity.id}
           />
         )}
-      <SongOptionsDrawer
-        context="playlist"
-        song={selectedSongForMenu}
-        playlistId={currentPlaylist?._id || ""}
-        isOwner={isUserEditable}
-        isOpen={!!selectedSongForMenu}
-        onOpenChange={(open) => !open && setSelectedSongForMenu(null)}
-      />
     </>
   );
 };

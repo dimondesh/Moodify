@@ -2,10 +2,9 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAlbum } from "@/hooks/queries";
 import { Button } from "@/components/ui/button";
-import { Clock, Pause, Play, PlusCircle, MoreHorizontal } from "lucide-react";
+import { Pause, Play, PlusCircle } from "lucide-react";
 import CheckedIcon from "@/components/ui/checkedIcon";
 import { usePlayerStore } from "@/stores/usePlayerStore";
-import Equalizer from "@/components/ui/equalizer";
 import { useLibraryStore } from "@/stores/useLibraryStore";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
@@ -17,24 +16,13 @@ import { Share } from "lucide-react";
 import { ShareDialog } from "@/components/ui/ShareDialog";
 import { useUIStore } from "@/stores/useUIStore";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import SongOptionsDrawer from "@/components/SongOptionsDrawer";
-import { Song } from "@/types";
-import EqualizerTitle from "@/components/ui/equalizer-title";
 import { CollectionGradientLayout } from "@/components/CollectionGradientLayout";
+import { CollectionSongList } from "@/components/CollectionSongList/CollectionSongList";
 import { CoverImage } from "@/components/CoverImage";
 import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 import { getLargeCoverUrl } from "@/lib/imageUrl";
 import { useDominantCoverGradient } from "@/hooks/useDominantCoverGradient";
 import { AlbumCoverDialog } from "./AlbumCoverDialog";
-import { SaveSongToLibraryControl } from "@/layout/SaveSongToLibraryControl";
-
-const formatDuration = (seconds: number) => {
-  if (isNaN(seconds) || seconds < 0) return "0:00";
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = Math.floor(seconds % 60);
-  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
-};
-
 const AlbumPage = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const { t } = useTranslation();
@@ -53,9 +41,6 @@ const AlbumPage = () => {
   const { albums, toggleAlbum } = useLibraryStore();
   const [inLibrary, setInLibrary] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
-  const [selectedSongForMenu, setSelectedSongForMenu] = useState<Song | null>(
-    null,
-  );
   const [isCoverModalOpen, setIsCoverModalOpen] = useState(false);
 
   const { backgrounds, isColorLoading } = useDominantCoverGradient(
@@ -172,131 +157,9 @@ const AlbumPage = () => {
     }
   };
 
-  const renderDesktopSongList = () =>
-    currentAlbum.songs.map((song, index) => {
-      const isCurrentSong = currentSong?._id === song._id;
-      return (
-        <div
-          key={song._id}
-          onClick={() => handlePlaySong(index)}
-          className={`grid grid-cols-[16px_4fr_2fr_auto] items-center gap-4 px-4 py-2 text-sm text-gray-400 hover:bg-zinc-800/50 rounded-md group cursor-pointer `}
-        >
-          <div className="flex items-center justify-center">
-            {isCurrentSong && isPlaying ? (
-              <div className="z-10">
-                <Equalizer />
-              </div>
-            ) : (
-              <span className="group-hover:hidden">{index + 1}</span>
-            )}
-            
-              <Play className="h-4 w-4 hidden group-hover:block fill-current text-zinc-400" />
-            
-          </div>
-          <div className="flex items-center gap-3 min-w-0">
-            <CoverImage
-              entity={song}
-              size="thumb"
-              defaultUrl={CDN_DEFAULT_ALBUM_COVER}
-              alt={song.title}
-              className="size-10 object-cover rounded-md flex-shrink-0"
-            />
-            <div className="min-w-0">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleAlbumTitleClick(song.albumId);
-                }}
-                className={`font-medium text-left hover:text-[#8b5cf6] focus:outline-none focus:text-[#8b5cf6] truncate w-70 lg:w-60 xl:w-80 2xl:w-100 ${
-                  isCurrentSong ? "text-[#8b5cf6]" : "text-white"
-                }`}
-              >
-                {song.title}
-              </button>
-              <div className="text-gray-400 truncate">
-                {song.artist.map((artist, artistIndex) => (
-                  <span key={artist._id}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleArtistClick(artist._id);
-                      }}
-                      className="hover:text-[#8b5cf6] focus:outline-none focus:text-[#8b5cf6]"
-                    >
-                      {artist.name}
-                    </button>
-                    {artistIndex < song.artist.length - 1 && ", "}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="items-center hidden md:flex justify-baseline text-xs">
-            {song.createdAt
-              ? format(new Date(song.createdAt), "MMM dd, yyyy")
-              : "N/A"}
-          </div>
-          <div className="flex items-center justify-end gap-2">
-            <SaveSongToLibraryControl
-              song={song}
-              disabled={!user}
-              className="rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-              iconClassName="h-5 w-5"
-            />
-            <span className="w-10 text-right">
-              {formatDuration(song.duration)}
-            </span>
-          </div>
-        </div>
-      );
-    });
-
-  const renderMobileSongList = () =>
-    currentAlbum.songs.map((song) => {
-      const isCurrentSong = currentSong?._id === song._id;
-      return (
-        <div
-          key={song._id}
-          onClick={() =>
-            handlePlaySong(
-              currentAlbum.songs.findIndex((s) => s._id === song._id),
-            )
-          }
-          className="flex items-center justify-between gap-4 p-2 rounded-md group cursor-pointer hover:bg-white/5"
-        >
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                {isCurrentSong && isPlaying && (
-                  <div className="block sm:hidden flex-shrink-0">
-                    <EqualizerTitle />
-                  </div>
-                )}
-                <p
-                  className={`font-medium truncate w-50 sm:w-120 ${
-                    isCurrentSong ? "text-violet-400" : "text-white"
-                  }`}
-                >
-                  {song.title}
-                </p>
-              </div>
-              <p className="text-sm text-zinc-400 truncate">{artistNames}</p>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedSongForMenu(song);
-            }}
-          >
-            <MoreHorizontal className="h-5 w-5 text-zinc-400 group-hover:text-white" />
-          </Button>
-        </div>
-      );
-    });
   const type = currentAlbum.type;
+  const getAlbumSongDateLabel = (song: (typeof currentAlbum.songs)[number]) =>
+    song.createdAt ? format(new Date(song.createdAt), "MMM dd, yyyy") : "N/A";
   return (
     <>
       <Helmet>
@@ -432,25 +295,21 @@ const AlbumPage = () => {
             </ShareDialog>
           </div>
 
-          <div className="bg-black/20">
-            {!isMobile && (
-              <div className="grid grid-cols-[16px_4fr_2.5fr_auto] gap-4 px-4 sm:px-6 md:px-10 py-2 text-sm text-gray-400 border-b border-[#2a2a2a]">
-                <div>#</div>
-                <div>{t("pages.album.headers.title")}</div>
-                <div className="hidden md:block">
-                  {t("pages.album.headers.releaseDate")}
-                </div>
-                <div className="text-right">
-                  <Clock className="h-4 w-4 inline-block" />
-                </div>
-              </div>
-            )}
-            <div className="px-2 sm:px-6">
-              <div className="space-y-1 sm:space-y-2 py-4">
-                {isMobile ? renderMobileSongList() : renderDesktopSongList()}
-              </div>
-            </div>
-          </div>
+          <CollectionSongList
+            songs={currentAlbum.songs}
+            context="album"
+            isMobile={isMobile}
+            currentSongId={currentSong?._id}
+            isPlaying={isPlaying}
+            onPlay={handlePlaySong}
+            onArtistClick={handleArtistClick}
+            onAlbumClick={handleAlbumTitleClick}
+            dateHeaderKey="pages.album.headers.releaseDate"
+            getDateLabel={getAlbumSongDateLabel}
+            mobileVariant="album"
+            mobileArtistNames={artistNames}
+            isLoggedIn={Boolean(user)}
+          />
         </div>
       </CollectionGradientLayout>
       {shareEntity?.type === "song" && (
@@ -461,16 +320,6 @@ const AlbumPage = () => {
           entityId={shareEntity.id}
         />
       )}
-      <SongOptionsDrawer
-        context="album"
-        song={selectedSongForMenu}
-        isOpen={!!selectedSongForMenu}
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelectedSongForMenu(null);
-          }
-        }}
-      />
       {!isMobile && currentAlbum && (
         <AlbumCoverDialog
           open={isCoverModalOpen}

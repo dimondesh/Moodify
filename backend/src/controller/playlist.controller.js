@@ -335,7 +335,7 @@ export const addSongToPlaylist = async (req, res, next) => {
     const rejected = rejectVirtualLikedPlaylistMutation(playlistId, res);
     if (rejected) return rejected;
 
-    const { songId } = req.body;
+    const { songId, allowDuplicate } = req.body;
 
     const playlist = await Playlist.findById(playlistId);
     const song = await Song.findById(songId);
@@ -353,11 +353,13 @@ export const addSongToPlaylist = async (req, res, next) => {
       });
     }
 
-    if (playlist.songs.includes(songId)) {
-      return res.status(400).json({ message: "Song already in playlist" });
+    if (playlist.songs.includes(songId) && !allowDuplicate) {
+      return res.status(409).json({ message: "Song already in playlist" });
     }
 
-    playlist.songs.push(songId);
+    if (!playlist.songs.includes(songId) || allowDuplicate) {
+      playlist.songs.push(songId);
+    }
     await playlist.save();
 
     const updatedPlaylist = await Playlist.findById(playlistId)

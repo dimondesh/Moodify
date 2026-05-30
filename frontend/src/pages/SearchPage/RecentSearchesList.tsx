@@ -17,6 +17,9 @@ import {
   useRemoveRecentSearch,
 } from "@/hooks/useSearch";
 
+const RECENT_ROW =
+  "flex items-center gap-3 px-3 py-2 rounded-none hover:bg-zinc-800/50 group";
+
 interface RecentSearchesListProps {
   onItemClick?: () => void;
   enabled?: boolean;
@@ -88,7 +91,7 @@ const RecentSearchesList: React.FC<RecentSearchesListProps> = ({
 
   if (isRecentLoading) {
     return (
-      <div className="flex justify-center items-center p-4 h-24">
+      <div className="flex h-24 items-center justify-center">
         <Loader2 className="animate-spin text-zinc-400" />
       </div>
     );
@@ -96,35 +99,31 @@ const RecentSearchesList: React.FC<RecentSearchesListProps> = ({
 
   if (recentSearches.length === 0) {
     return (
-      <div className="p-4 text-center text-sm text-zinc-500">
+      <div className="px-3 py-2 text-center text-sm text-zinc-500">
         <p>{t("searchpage.noRecentSearches")}</p>
       </div>
     );
   }
 
   return (
-    <div className="p-2 sm:p-0">
-      <div className="flex justify-between items-center mb-2 mt-2 px-2">
-        <h2 className="font-bold text-white text-lg">
+    <div className="flex flex-col overflow-hidden">
+      <div className="flex items-center justify-between border-b border-zinc-800 px-3 py-2">
+        <h2 className="text-sm font-semibold text-zinc-100">
           {t("searchpage.recentSearches")}
         </h2>
         <Button
           variant="link"
           onClick={() => clearRecentSearches()}
-          className="text-sm text-zinc-400 hover:text-white px-2 h-auto"
+          className="h-auto px-0 text-sm text-zinc-400 hover:text-white"
         >
           {t("searchpage.clear")}
         </Button>
       </div>
-      <div className="flex flex-col gap-1 pr-1">
-        <ScrollArea className="max-h-80 overflow-auto hide-scrollbar">
-          {recentSearches.map((item) => {
-            const { title, subtitle } = getDisplayData(item);
-            return (
-              <div
-                key={item.searchId}
-                className="flex items-center gap-3 p-2 rounded-md hover:bg-zinc-800 group"
-              >
+      <ScrollArea className="max-h-80 hide-scrollbar">
+        {recentSearches.map((item) => {
+          const { title, subtitle } = getDisplayData(item);
+          return (
+            <div key={item.searchId} className={RECENT_ROW}>
                 <div
                   className="flex items-center gap-3 flex-grow cursor-pointer"
                   onClick={() => handleItemClick(item)}
@@ -183,8 +182,7 @@ const RecentSearchesList: React.FC<RecentSearchesListProps> = ({
               </div>
             );
           })}
-        </ScrollArea>
-      </div>
+      </ScrollArea>
     </div>
   );
 };

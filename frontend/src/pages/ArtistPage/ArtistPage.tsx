@@ -8,24 +8,22 @@ import StandardLoader from "../../components/ui/StandardLoader";
 import { usePlayerStore } from "../../stores/usePlayerStore";
 import toast from "react-hot-toast";
 import { useLibraryStore } from "../../stores/useLibraryStore";
-import Equalizer from "../../components/ui/equalizer";
 import type { Song, Album } from "../../types";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import { useArtist } from "@/hooks/queries";
 import { CoverImage } from "@/components/CoverImage";
 import { getImageUrlByKey } from "@/lib/imageUrl";
-import {
-  CDN_DEFAULT_ALBUM_COVER,
-  CDN_DEFAULT_ARTIST_IMAGE,
-} from "@/lib/cdn";
+import { CDN_DEFAULT_ARTIST_IMAGE } from "@/lib/cdn";
 import HorizontalSection from "../HomePage/HorizontalSection";
-import { SaveSongToLibraryControl } from "@/layout/SaveSongToLibraryControl";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { CollectionSongList } from "@/components/CollectionSongList/CollectionSongList";
 
 const ArtistPage = () => {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
+  const isMobile = useMediaQuery("(max-width: 768px)");
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentSong, isPlaying, playAlbum, setCurrentSong, togglePlay } =
@@ -132,8 +130,10 @@ const ArtistPage = () => {
       });
   }, [popularSongs, isAnyPopularSongPlaying, togglePlay, playAlbum, artist]);
 
-  const handlePlaySpecificSong = useCallback(
-    (song: Song, index: number) => {
+  const handlePlaySong = useCallback(
+    (index: number) => {
+      const song = popularSongs[index];
+      if (!song) return;
       if (currentSong?._id === song._id) togglePlay();
       else {
         setCurrentSong(song);
@@ -145,6 +145,29 @@ const ArtistPage = () => {
       }
     },
     [currentSong, togglePlay, setCurrentSong, playAlbum, popularSongs, artist],
+  );
+
+  const handleArtistClick = useCallback(
+    (artistId: string) => navigate(`/artists/${artistId}`),
+    [navigate],
+  );
+
+  const handleAlbumClick = useCallback(
+    (albumId: string | null | undefined) => {
+      if (albumId) navigate(`/albums/${albumId}`);
+    },
+    [navigate],
+  );
+
+  const getPopularSongPlaysLabel = useCallback(
+    (song: Song) =>
+      `${song.playCount?.toLocaleString() ?? 0} ${t("pages.artist.plays")}`,
+    [t],
+  );
+
+  const getPopularSongMobileSubtitle = useCallback(
+    (song: Song) => song.albumTitle ?? "",
+    [],
   );
 
   const handleToggleFollow = useCallback(async () => {
@@ -263,7 +286,7 @@ const ArtistPage = () => {
                 {isAnyPopularSongPlaying ? (
                   <Pause className="h-7 w-7 fill-current" />
                 ) : (
-                  <Play className="h-7 w-7 fill-current" />
+                  <Play className="h-7 w-7 fill-current!" />
                 )}
               </Button>
               <Button
@@ -290,65 +313,26 @@ const ArtistPage = () => {
         <div className="p-4 sm:p-6 space-y-8">
           {popularSongs.length > 0 && (
             <div>
-              <h2 className="text-2xl font-bold text-white mb-4">
+              <h2 className="mb-4 px-4 text-2xl font-bold text-white sm:px-6">
                 {t("pages.artist.popular")}
               </h2>
-              <div className="flex flex-col gap-2">
-                {popularSongs.map((song, index) => {
-                  const isCurrentSong = currentSong?._id === song._id;
-                  return (
-                    <div
-                      key={song._id}
-                      className="flex items-center gap-4 p-2 rounded-md hover:bg-zinc-800/50 cursor-pointer group"
-                      onClick={() => handlePlaySpecificSong(song, index)}
-                    >
-                      <div className="flex items-center justify-center w-4 text-zinc-400">
-                        {isCurrentSong && isPlaying ? (
-                          <Equalizer />
-                        ) : (
-                          <span className="group-hover:hidden">
-                            {index + 1}
-                          </span>
-                        )}
-                        {!isCurrentSong && (
-                          <Play className="h-4 w-4 hidden group-hover:block" />
-                        )}
-                      </div>
-                      <div className="w-12 h-12 flex-shrink-0">
-                        <CoverImage
-                          entity={song}
-                          size="thumb"
-                          defaultUrl={CDN_DEFAULT_ALBUM_COVER}
-                          alt={song.title}
-                          className="w-full h-full object-cover rounded-md"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p
-                          className={`font-medium ${
-                            isCurrentSong ? "text-violet-400" : "text-white"
-                          } truncate`}
-                        >
-                          {song.title}
-                        </p>
-                      </div>
-                      <span className="text-zinc-400 text-sm ml-2 hidden sm:block">
-                        {song.playCount?.toLocaleString() || 0}{" "}
-                        {t("pages.artist.plays")}
-                      </span>
-                      <SaveSongToLibraryControl
-                        song={song}
-                        disabled={!user}
-                        className={`w-8 h-8 hover:text-white opacity-100 lg:opacity-0 group-hover:opacity-100 ${!user ? "opacity-50" : ""}`}
-                        iconClassName="h-4 w-4"
-                      />
-                      <span className="text-zinc-400 text-sm ml-2">
-                        {formatTime(song.duration)}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+              <CollectionSongList
+                songs={popularSongs}
+                context="album"
+                isMobile={isMobile}
+                currentSongId={currentSong?._id}
+                isPlaying={isPlaying}
+                onPlay={handlePlaySong}
+                onArtistClick={handleArtistClick}
+                onAlbumClick={handleAlbumClick}
+                dateHeaderKey="pages.artist.headers.plays"
+                getDateLabel={getPopularSongPlaysLabel}
+                getMobileSubtitle={getPopularSongMobileSubtitle}
+                mobileVariant="artist"
+                isLoggedIn={Boolean(user)}
+                showDesktopHeader={false}
+                dimBackground={false}
+              />
             </div>
           )}
           <HorizontalSection
@@ -387,13 +371,6 @@ const ArtistPage = () => {
       </div>
     </>
   );
-};
-
-const formatTime = (seconds: number) => {
-  if (isNaN(seconds) || seconds < 0) return "0:00";
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = Math.floor(seconds % 60);
-  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
 };
 
 export default ArtistPage;

@@ -11,7 +11,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "../components/ui/popover";
-import { ScrollArea } from "../components/ui/scroll-area";
 import CheckedIcon from "@/components/ui/checkedIcon";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { cn, getPlaylistDisplayTitle } from "@/lib/utils";
@@ -23,11 +22,11 @@ import { useOwnedPlaylists } from "@/hooks/queries";
 import { invalidatePlaylistLists } from "@/lib/invalidateQueries";
 import { useIsSongLiked } from "@/hooks/useLikedSongs";
 import type { Playlist, Song } from "../types";
+import { DROPDOWN_SURFACE } from "@/components/song-options/menuStyles";
 import toast from "react-hot-toast";
 
 /** Inner panel (popover wrapper is transparent so theme tokens do not leak). */
-const PANEL_CLASS =
-  "flex w-[min(16rem,calc(100vw-1.5rem))] flex-col gap-2 rounded-md bg-zinc-900 p-2.5 text-zinc-100 shadow-lg";
+const PANEL_CLASS = `flex w-[min(16rem,calc(100vw-1.5rem))] flex-col gap-0 overflow-hidden ${DROPDOWN_SURFACE}`;
 
 const ROW_ICON = "size-5 text-[#8b5cf6]";
 const ROW_ICON_OUTLINE = "size-5 text-zinc-400 group-hover:text-white";
@@ -58,8 +57,8 @@ const LibraryPickerRow = memo(function LibraryPickerRow({
   return (
     <div
       className={cn(
-        "flex w-full items-center rounded-md hover:bg-zinc-800/50",
-        comfortable ? "gap-3 p-2.5" : "gap-1.5 p-1",
+        "flex w-full items-center rounded-none hover:bg-zinc-800/50",
+        comfortable ? "gap-3 px-3 py-2.5" : "gap-1.5 px-3 py-2",
       )}
     >
       <div
@@ -141,6 +140,8 @@ type SongLibraryPickerPanelProps = {
   ownedPlaylists: Playlist[];
   onRequestClose: () => void;
   density?: LibraryPickerDensity;
+  /** When false, hide the Liked Songs row (e.g. add-to-playlist submenu). */
+  includeLikedSongs?: boolean;
 };
 
 /**
@@ -154,6 +155,7 @@ const SongLibraryPickerPanel = memo(function SongLibraryPickerPanel({
   ownedPlaylists,
   onRequestClose,
   density = "compact",
+  includeLikedSongs = true,
 }: SongLibraryPickerPanelProps) {
   const { t, i18n } = useTranslation();
   const { fetchLibrary } = useLibraryStore();
@@ -232,8 +234,8 @@ const SongLibraryPickerPanel = memo(function SongLibraryPickerPanel({
         type="button"
         variant="secondary"
         className={cn(
-          "mx-auto w-full shrink-0 rounded-3xl bg-white md:bg-zinc-800/50 font-medium max-w-50 text-[#1f1f1f] md:text-white hover:bg-zinc-200 md:hover:bg-zinc-800 md:rounded-lg",
-          comfortable ? "h-10 text-sm" : "h-8 text-xs",
+          "w-full shrink-0 rounded-none border-b border-zinc-800 bg-transparent font-medium text-zinc-100 hover:bg-zinc-800/50",
+          comfortable ? "h-11 justify-start gap-2 px-3 text-sm" : "h-9 justify-start gap-2 px-3 text-xs",
         )}
         data-vaul-no-drag
         onClick={createPlaylist}
@@ -244,10 +246,10 @@ const SongLibraryPickerPanel = memo(function SongLibraryPickerPanel({
         {t("player.newPlaylist")}
       </Button>
 
-      <div className="relative shrink-0">
+      <div className={cn("relative shrink-0 border-b border-zinc-800", comfortable ? "h-11" : "h-9")}>
         <Search
           className={cn(
-            "pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-zinc-500",
+            "pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500",
             comfortable ? "size-4" : "size-3.5",
           )}
         />
@@ -256,38 +258,38 @@ const SongLibraryPickerPanel = memo(function SongLibraryPickerPanel({
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className={cn(
-            "border-0 rounded-3xl bg-zinc-800/50 text-zinc-100 placeholder:text-zinc-500",
-            comfortable ? "h-10 pl-9 text-sm" : "h-8 pl-8 text-xs",
+            "h-full rounded-none border-0 bg-transparent text-zinc-100 placeholder:text-zinc-500",
+            comfortable ? "pl-9 pr-3 text-sm" : "pl-9 pr-3 text-xs",
           )}
           data-vaul-no-drag
           onClick={(e) => e.stopPropagation()}
         />
       </div>
 
-      <ScrollArea
+      <div
         className={cn(
-          "pr-1",
-          comfortable ? "min-h-0 flex-1" : "max-h-[min(20rem,48vh)]",
+          "overscroll-contain hide-scrollbar",
+          comfortable
+            ? "min-h-0 flex-1 overflow-y-auto"
+            : "max-h-[min(20rem,48vh)] overflow-y-auto",
         )}
+        onWheel={(e) => e.stopPropagation()}
       >
-        <div
-          className={cn(
-            "flex flex-col pb-1",
-            comfortable ? "gap-1" : "gap-0.5",
+        <div className="flex flex-col">
+          {includeLikedSongs && (
+            <LibraryPickerRow
+              checked={isLiked}
+              density={density}
+              coverSrc={getImageUrlByKey(
+                { images: buildStaticCdnImages(CDN_LIKED_PLAYLIST_COVER) },
+                "thumb",
+                CDN_LIKED_PLAYLIST_COVER,
+              )}
+              title={t("sidebar.likedSongs")}
+              actionLabel={likedActionLabel}
+              onToggle={toggleLiked}
+            />
           )}
-        >
-          <LibraryPickerRow
-            checked={isLiked}
-            density={density}
-            coverSrc={getImageUrlByKey(
-              { images: buildStaticCdnImages(CDN_LIKED_PLAYLIST_COVER) },
-              "thumb",
-              CDN_LIKED_PLAYLIST_COVER,
-            )}
-            title={t("sidebar.likedSongs")}
-            actionLabel={likedActionLabel}
-            onToggle={toggleLiked}
-          />
           {filteredPlaylists.map((playlist) => {
             const inPl = playlistIdsContainingSong.includes(playlist._id);
             return (
@@ -314,15 +316,17 @@ const SongLibraryPickerPanel = memo(function SongLibraryPickerPanel({
             );
           })}
         </div>
-      </ScrollArea>
+      </div>
     </>
   );
 
   if (comfortable) {
-    return <div className="flex min-h-0 flex-1 flex-col gap-3">{body}</div>;
+    return (
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{body}</div>
+    );
   }
 
-  return body;
+  return <div className="flex min-h-0 flex-col overflow-hidden">{body}</div>;
 });
 
 interface SaveSongToLibraryControlProps {
@@ -483,7 +487,7 @@ function SaveSongToLibraryControlInner({
         side="top"
         align="end"
         sideOffset={6}
-        className="w-auto border-0 bg-transparent p-0 shadow-none"
+        className="w-auto overscroll-contain border-0 bg-transparent p-0 shadow-none"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <div className={PANEL_CLASS}>{picker}</div>
@@ -496,3 +500,5 @@ export const SaveSongToLibraryControl = memo(
   SaveSongToLibraryControlInner,
   propsAreEqual,
 );
+
+export { SongLibraryPickerPanel };

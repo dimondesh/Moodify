@@ -20,30 +20,29 @@ export function getQueueDisplaySongs(params: {
     getNextSongsInShuffle,
   } = params;
 
-  if (queue.length === 0) return [];
+  if (queue.length === 0 || currentIndex < 0) return [];
+
+  const current = queue[currentIndex];
+  if (!current) return [];
 
   if (repeatMode === "one") {
-    return [queue[currentIndex]].filter(Boolean);
+    return [current];
   }
 
   if (isShuffle) {
     if (shuffleHistory.length === 0) {
-      const nextSongs = getNextSongsInShuffle(20);
-      return [queue[currentIndex], ...nextSongs].filter(Boolean);
+      const upcoming = getNextSongsInShuffle(queue.length);
+      return [current, ...upcoming.filter((song) => song._id !== current._id)];
     }
 
-    const displaySongs: Song[] = [];
-    const usedIds = new Set<string>();
+    const displaySongs: Song[] = [current];
+    const usedIds = new Set<string>([current._id]);
 
-    displaySongs.push(queue[currentIndex]);
-    usedIds.add(queue[currentIndex]._id);
-
-    let currentPointer = shufflePointer;
+    let pointer = shufflePointer;
     for (let i = 0; i < shuffleHistory.length - 1; i++) {
-      currentPointer = (currentPointer + 1) % shuffleHistory.length;
-      const songIndex = shuffleHistory[currentPointer];
-
-      if (songIndex < queue.length) {
+      pointer = (pointer + 1) % shuffleHistory.length;
+      const songIndex = shuffleHistory[pointer];
+      if (songIndex >= 0 && songIndex < queue.length) {
         const song = queue[songIndex];
         if (!usedIds.has(song._id)) {
           displaySongs.push(song);
@@ -55,13 +54,11 @@ export function getQueueDisplaySongs(params: {
     return displaySongs;
   }
 
-  const nextSongs = getNextSongsInShuffle(20);
-  const allSongs = [queue[currentIndex], ...nextSongs].filter(Boolean);
+  if (repeatMode === "all") {
+    return [...queue.slice(currentIndex), ...queue.slice(0, currentIndex)];
+  }
 
-  return allSongs.filter(
-    (song, index, self) =>
-      index === self.findIndex((s) => s._id === song._id),
-  );
+  return queue.slice(currentIndex);
 }
 
 export function applyQueueDragReorder(params: {

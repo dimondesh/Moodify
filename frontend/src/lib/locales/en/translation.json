@@ -418,6 +418,9 @@
       },
       "popular": "Popular",
       "plays": "plays",
+      "headers": {
+        "plays": "Plays"
+      },
       "about": "About",
       "albums": "Albums",
       "singlesAndEps": "Singles and EPs",

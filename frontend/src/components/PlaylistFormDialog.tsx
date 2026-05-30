@@ -199,7 +199,7 @@ export const PlaylistFormDialog: React.FC<PlaylistFormDialogProps> = ({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
                       align="end"
-                      className="min-w-[10rem] rounded-none border border-[#3d3d3d] bg-[#1f1f1f] p-0 text-white"
+                      className="min-w-[10rem] rounded-none p-0"
                     >
                       <DropdownMenuItem
                         className="rounded-none focus:bg-zinc-800/50 focus:text-white"

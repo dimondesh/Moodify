@@ -46,6 +46,7 @@ import { getUserAvatarUrl } from "@/lib/cdn";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import { useChatStore } from "../../stores/useChatStore";
 import RecentSearchesList from "@/pages/SearchPage/RecentSearchesList";
+import { DROPDOWN_SURFACE } from "@/components/song-options/menuStyles";
 import { useAudioSettingsStore } from "../../lib/webAudio";
 import { usePlayerStore } from "@/stores/usePlayerStore";
 
@@ -304,7 +305,10 @@ const Topbar = () => {
             </div>
           </PopoverTrigger>
           <PopoverContent
-            className="w-[var(--radix-popover-trigger-width)] mt-2 p-0 bg-[#1a1a1a] border-[#2a2a2a]"
+            className={cn(
+              "mt-2 w-[var(--radix-popover-trigger-width)] overflow-hidden p-0",
+              DROPDOWN_SURFACE,
+            )}
             align="start"
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
@@ -464,10 +468,7 @@ const Topbar = () => {
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  className="w-48 bg-[#1a1a1a] border-[#2a2a2a] text-white p-1"
-                  align="end"
-                >
+                <DropdownMenuContent className="w-48 p-1" align="end">
                   {authUser.fullName && (
                     <DropdownMenuItem className="text-sm font-semibold cursor-default text-white p-2 opacity-100 hover:bg-zinc-800/50">
                       {authUser.fullName}

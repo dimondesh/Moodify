@@ -40,7 +40,11 @@ interface PlaylistStore {
     removeImage?: boolean,
   ) => Promise<Playlist | undefined>;
   deletePlaylist: (id: string) => Promise<void>;
-  addSongToPlaylist: (playlistId: string, songId: string) => Promise<void>;
+  addSongToPlaylist: (
+    playlistId: string,
+    songId: string,
+    options?: { allowDuplicate?: boolean },
+  ) => Promise<void>;
   removeSongFromPlaylist: (playlistId: string, songId: string) => Promise<void>;
   togglePlaylistInUserLibrary: (playlistId: string) => Promise<void>;
   addPlaylistLike: (playlistId: string) => Promise<void>;
@@ -159,12 +163,16 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
     }
   },
 
-  addSongToPlaylist: async (playlistId: string, songId: string) => {
+  addSongToPlaylist: async (
+    playlistId: string,
+    songId: string,
+    options?: { allowDuplicate?: boolean },
+  ) => {
     set({ isLoading: true, error: null });
     try {
       const response = await axiosInstance.post(
         `/playlists/${playlistId}/songs`,
-        { songId },
+        { songId, allowDuplicate: options?.allowDuplicate ?? false },
       );
 
       const { isDownloaded, downloadItem } = useOfflineStore.getState().actions;

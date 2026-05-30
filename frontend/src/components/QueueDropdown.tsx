@@ -5,7 +5,6 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { ScrollArea } from "./ui/scroll-area";
 import { QueueList } from "@/components/queue/QueueList";
 import { useQueueList } from "@/hooks/useQueueList";
 
@@ -27,34 +26,31 @@ export const QueueDropdown: React.FC<QueueDropdownProps> = ({ children }) => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
-      <DropdownMenuContent
-        side="top"
-        align="end"
-        className="w-80 bg-[#1a1a1a] border-[#2a2a2a] p-0 rounded-md shadow-lg"
-      >
+      <DropdownMenuContent side="top" align="end" className="w-80 overflow-hidden p-0">
         {queue.length === 0 ? (
-          <div className="p-4 text-center text-gray-400">
+          <div className="px-3 py-4 text-center text-zinc-400">
             {t("player.queue.empty")}
           </div>
         ) : (
           <>
-            <div className="p-4 border-b border-[#2a2a2a]">
-              <h3 className="text-white font-semibold text-sm">
-                {t("player.queue.title")} ({queue.length})
+            <div className="border-b border-zinc-800 px-3 py-2">
+              <h3 className="text-sm font-semibold text-zinc-100">
+                {t("player.queue.title")} ({displaySongs.length})
               </h3>
             </div>
-            <ScrollArea className="h-64">
-              <div className="p-2">
-                <QueueList
-                  displaySongs={displaySongs}
-                  sensors={sensors}
-                  onDragEnd={onDragEnd}
-                  onRemoveSong={onRemoveSong}
-                  onPlaySong={onPlaySong}
-                  density="compact"
-                />
-              </div>
-            </ScrollArea>
+            <div
+              className="max-h-64 overflow-y-auto overscroll-contain hide-scrollbar"
+              onWheel={(e) => e.stopPropagation()}
+            >
+              <QueueList
+                displaySongs={displaySongs}
+                sensors={sensors}
+                onDragEnd={onDragEnd}
+                onRemoveSong={onRemoveSong}
+                onPlaySong={onPlaySong}
+                density="compact"
+              />
+            </div>
           </>
         )}
       </DropdownMenuContent>

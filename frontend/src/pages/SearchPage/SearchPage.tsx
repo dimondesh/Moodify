@@ -20,6 +20,8 @@ import {
 } from "../../components/ui/popover";
 import { useAuthStore } from "../../stores/useAuthStore";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
+import { DROPDOWN_SURFACE } from "@/components/song-options/menuStyles";
+import { cn } from "@/lib/utils";
 import RecentSearchesList from "./RecentSearchesList";
 import { useSearchQuery } from "@/hooks/useSearch";
 
@@ -125,7 +127,10 @@ const SearchPage = () => {
                   </div>
                 </PopoverTrigger>
                 <PopoverContent
-                  className="w-[var(--radix-popover-trigger-width)] mt-2 p-0 bg-[#1a1a1a] border-[#2a2a2a]"
+                  className={cn(
+                    "mt-2 w-[var(--radix-popover-trigger-width)] overflow-hidden p-0",
+                    DROPDOWN_SURFACE,
+                  )}
                   align="start"
                   onOpenAutoFocus={(e) => e.preventDefault()}
                 >

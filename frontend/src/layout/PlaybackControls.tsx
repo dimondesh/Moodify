@@ -411,6 +411,16 @@ const PlaybackControls = () => {
     setIsFullScreenPlayerOpen(false);
   }, [setIsMobileLyricsFullScreen, setIsFullScreenPlayerOpen]);
 
+  const handleQueueDrawerOpenChange = useCallback(
+    (open: boolean) => {
+      setIsQueueDrawerOpen(open);
+      if (open) {
+        setIsFullScreenPlayerOpen(false);
+      }
+    },
+    [setIsFullScreenPlayerOpen],
+  );
+
   useEffect(() => {
     const socket = useChatStore.getState().socket;
     if (socket) {
@@ -745,7 +755,7 @@ const PlaybackControls = () => {
                               <DropdownMenuContent
                                 side="top"
                                 align="center"
-                                className="w-48 bg-zinc-800 border-zinc-700 p-3 rounded-md shadow-lg z-70"
+                                className="z-70 w-48 p-3"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <DropdownMenuItem className="focus:bg-transparent">
@@ -794,7 +804,7 @@ const PlaybackControls = () => {
                             size="icon"
                             variant="ghost"
                             className="text-zinc-400 hover:text-white h-8 w-8"
-                            onClick={() => setIsQueueDrawerOpen(true)}
+                            onClick={() => handleQueueDrawerOpenChange(true)}
                             title={t("player.queue.title")}
                           >
                             <List className="size-5" />
@@ -848,7 +858,7 @@ const PlaybackControls = () => {
                           handleAlbumClick(currentSong.albumId);
                         }
                       }}
-                      className="font-medium truncate text-left hover:text-[#8b5cf6] cursor-pointer focus:outline-none focus:text-[#8b5cf6] text-sm"
+                      className="self-start max-w-full font-medium truncate text-left hover:text-[#8b5cf6] cursor-pointer focus:outline-none focus:text-[#8b5cf6] text-sm"
                     >
                       {currentSong.title}
                     </button>
@@ -981,7 +991,7 @@ const PlaybackControls = () => {
                   <DropdownMenuContent
                     side="top"
                     align="end"
-                    className="w-48 bg-[#1a1a1a] border-[#2a2a2a] p-3 rounded-md shadow-lg"
+                    className="w-48 p-3"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <DropdownMenuItem className="focus:bg-transparent">
@@ -1004,19 +1014,6 @@ const PlaybackControls = () => {
                 </DropdownMenu>
               )}
 
-              <ShareDialog entityType="song" entityId={currentSong._id}>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className={`hover:text-white hover:bg-transparent! text-gray-400 h-5 w-5 ${
-                    !user ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
-                  disabled={!user}
-                  title={!user ? t("auth.loginRequired") : t("player.share")}
-                >
-                  <Share className="size-4.5" />
-                </Button>
-              </ShareDialog>
               <div className="flex items-center gap-3">
                 {!isIosDevice && (
                   <>
@@ -1059,7 +1056,7 @@ const PlaybackControls = () => {
 
       <QueueDrawer
         isOpen={isQueueDrawerOpen}
-        onOpenChange={setIsQueueDrawerOpen}
+        onOpenChange={handleQueueDrawerOpenChange}
       />
     </>
   );

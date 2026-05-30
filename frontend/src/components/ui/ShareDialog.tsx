@@ -36,7 +36,7 @@ type SharePanelProps = {
   showHeading?: boolean;
 };
 
-function SharePanel({
+export function SharePanel({
   entityType,
   entityId,
   onRequestClose,
@@ -48,6 +48,8 @@ function SharePanel({
   const { user } = useAuthStore();
   const [isCopied, setIsCopied] = useState(false);
   const comfortable = density === "comfortable";
+
+  const friends = users.filter((friend) => friend._id !== user?.id);
 
   const handleCopyLink = () => {
     const baseUrl = window.location.origin;
@@ -167,8 +169,8 @@ function SharePanel({
             comfortable ? "gap-1 pb-1" : "gap-0.5",
           )}
         >
-          {users.length > 0 ? (
-            users.map((friend) => (
+          {friends.length > 0 ? (
+            friends.map((friend) => (
               <div
                 key={friend._id}
                 className={cn(
