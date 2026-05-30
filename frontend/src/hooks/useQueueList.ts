@@ -8,35 +8,57 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { useTranslation } from "react-i18next";
 import { usePlayerStore } from "@/stores/usePlayerStore";
 import type { Song } from "@/types";
-import { applyQueueDragReorder, getQueueDisplaySongs } from "@/lib/queueDisplay";
+import {
+  applyQueueDragReorder,
+  getQueueDisplaySongs,
+  getQueueSections,
+} from "@/lib/queueDisplay";
 
 export function useQueueList() {
+  const { t } = useTranslation();
   const queue = usePlayerStore((s) => s.queue);
+  const userQueue = usePlayerStore((s) => s.userQueue);
+  const currentSong = usePlayerStore((s) => s.currentSong);
   const currentIndex = usePlayerStore((s) => s.currentIndex);
-  const isShuffle = usePlayerStore((s) => s.isShuffle);
+  const shuffleMode = usePlayerStore((s) => s.shuffleMode);
   const repeatMode = usePlayerStore((s) => s.repeatMode);
   const shuffleHistory = usePlayerStore((s) => s.shuffleHistory);
   const shufflePointer = usePlayerStore((s) => s.shufflePointer);
+  const currentPlaybackContext = usePlayerStore((s) => s.currentPlaybackContext);
   const removeFromQueue = usePlayerStore((s) => s.removeFromQueue);
   const moveSongInQueue = usePlayerStore((s) => s.moveSongInQueue);
+  const moveSongInUserQueue = usePlayerStore((s) => s.moveSongInUserQueue);
+  const promoteUpcomingToUserQueue = usePlayerStore(
+    (s) => s.promoteUpcomingToUserQueue,
+  );
+  const demoteUserQueueToUpcoming = usePlayerStore(
+    (s) => s.demoteUserQueueToUpcoming,
+  );
+  const clearUserQueue = usePlayerStore((s) => s.clearUserQueue);
   const setCurrentSong = usePlayerStore((s) => s.setCurrentSong);
   const getNextSongsInShuffle = usePlayerStore((s) => s.getNextSongsInShuffle);
 
-  const displaySongs = useMemo(
-    () =>
-      getQueueDisplaySongs({
-        queue,
-        currentIndex,
-        repeatMode,
-        isShuffle,
-        shuffleHistory,
-        shufflePointer,
-        getNextSongsInShuffle,
-      }),
+  const isShuffle = shuffleMode !== "off";
+
+  const sectionParams = useMemo(
+    () => ({
+      queue,
+      userQueue,
+      currentSong,
+      currentIndex,
+      repeatMode,
+      isShuffle,
+      shuffleHistory,
+      shufflePointer,
+      getNextSongsInShuffle,
+    }),
     [
       queue,
+      userQueue,
+      currentSong,
       currentIndex,
       repeatMode,
       isShuffle,
@@ -45,6 +67,24 @@ export function useQueueList() {
       getNextSongsInShuffle,
     ],
   );
+
+  const queueSections = useMemo(
+    () => getQueueSections(sectionParams),
+    [sectionParams],
+  );
+
+  const displaySongs = useMemo(
+    () => getQueueDisplaySongs(sectionParams),
+    [sectionParams],
+  );
+
+  const upcomingLabel = useMemo(() => {
+    const title = currentPlaybackContext?.entityTitle;
+    if (title) {
+      return t("player.queue.nextFrom", { title });
+    }
+    return t("player.queue.upNext");
+  }, [currentPlaybackContext?.entityTitle, t]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -63,13 +103,24 @@ export function useQueueList() {
       applyQueueDragReorder({
         activeId: String(event.active.id),
         overId: event.over ? String(event.over.id) : undefined,
-        displaySongs,
+        sections: queueSections,
         queue,
         isShuffle,
         moveSongInQueue,
+        moveSongInUserQueue,
+        promoteUpcomingToUserQueue,
+        demoteUserQueueToUpcoming,
       });
     },
-    [displaySongs, queue, isShuffle, moveSongInQueue],
+    [
+      queueSections,
+      queue,
+      isShuffle,
+      moveSongInQueue,
+      moveSongInUserQueue,
+      promoteUpcomingToUserQueue,
+      demoteUserQueueToUpcoming,
+    ],
   );
 
   const onRemoveSong = useCallback(
@@ -88,12 +139,19 @@ export function useQueueList() {
     [setCurrentSong],
   );
 
+  const onClearUserQueue = useCallback(() => {
+    clearUserQueue();
+  }, [clearUserQueue]);
+
   return {
     queue,
+    queueSections,
     displaySongs,
+    upcomingLabel,
     sensors,
     onDragEnd,
     onRemoveSong,
     onPlaySong,
+    onClearUserQueue,
   };
 }

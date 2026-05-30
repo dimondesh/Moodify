@@ -16,11 +16,14 @@ export const QueueDropdown: React.FC<QueueDropdownProps> = ({ children }) => {
   const { t } = useTranslation();
   const {
     queue,
+    queueSections,
     displaySongs,
+    upcomingLabel,
     sensors,
     onDragEnd,
     onRemoveSong,
     onPlaySong,
+    onClearUserQueue,
   } = useQueueList();
 
   return (
@@ -43,11 +46,14 @@ export const QueueDropdown: React.FC<QueueDropdownProps> = ({ children }) => {
               onWheel={(e) => e.stopPropagation()}
             >
               <QueueList
-                displaySongs={displaySongs}
+                sections={queueSections}
+                upcomingLabel={upcomingLabel}
+                variant="dropdown"
                 sensors={sensors}
                 onDragEnd={onDragEnd}
                 onRemoveSong={onRemoveSong}
                 onPlaySong={onPlaySong}
+                onClearUserQueue={onClearUserQueue}
                 density="compact"
               />
             </div>

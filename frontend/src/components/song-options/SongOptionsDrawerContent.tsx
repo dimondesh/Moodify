@@ -4,6 +4,7 @@ import {
   ChevronLeft,
   Disc3,
   Heart,
+  ListEnd,
   ListPlus,
   Share,
   Trash2,
@@ -38,6 +39,7 @@ export function SongOptionsDrawerContent({ actions }: SongOptionsDrawerContentPr
     openAddToPlaylistSheet,
     openShare,
     handleRemoveFromPlaylist,
+    handleAddToQueue,
   } = actions;
 
   if (artistPickerOpen) {
@@ -72,6 +74,15 @@ export function SongOptionsDrawerContent({ actions }: SongOptionsDrawerContentPr
 
   return (
     <div className="flex flex-col gap-1 px-2 pb-4">
+      <Button
+        variant="ghost"
+        className={DRAWER_ITEM}
+        onClick={handleAddToQueue}
+      >
+        <ListEnd className="size-5 shrink-0 text-zinc-400" />
+        <span>{t("player.addToQueue")}</span>
+      </Button>
+
       {sessionUser && (
         <>
           <Button

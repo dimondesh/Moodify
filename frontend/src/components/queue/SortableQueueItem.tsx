@@ -48,37 +48,32 @@ const densityClass: Record<
   },
 };
 
-interface SortableQueueItemProps {
+interface QueueItemContentProps {
   song: Song;
   isCurrent: boolean;
   density: QueueItemDensity;
   onRemove: (songId: string, e: React.MouseEvent) => void;
   onPlay: (song: Song, e: React.MouseEvent) => void;
+  isDraggable?: boolean;
+  dragHandleProps?: React.HTMLAttributes<HTMLElement>;
+  setNodeRef?: (node: HTMLElement | null) => void;
+  style?: React.CSSProperties;
+  isDragging?: boolean;
 }
 
-export const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
+function QueueItemContent({
   song,
   isCurrent,
   density,
   onRemove,
   onPlay,
-}) => {
+  isDraggable = false,
+  dragHandleProps,
+  setNodeRef,
+  style,
+  isDragging = false,
+}: QueueItemContentProps) {
   const styles = densityClass[density];
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: song._id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
   const dragStartedRef = useRef(false);
 
   useEffect(() => {
@@ -106,13 +101,22 @@ export const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
       }}
     >
       <div
-        className="flex-shrink-0 cursor-grab touch-none active:cursor-grabbing"
+        className={cn(
+          "flex-shrink-0",
+          isDraggable
+            ? "cursor-grab touch-none active:cursor-grabbing"
+            : "pointer-events-none",
+        )}
         data-vaul-no-drag
-        {...attributes}
-        {...listeners}
+        {...(isDraggable ? dragHandleProps : undefined)}
       >
         <GripVertical
-          className={cn(styles.grip, "text-gray-400 group-hover:text-white")}
+          className={cn(
+            styles.grip,
+            isDraggable
+              ? "text-gray-400 group-hover:text-white"
+              : "invisible",
+          )}
         />
       </div>
 
@@ -156,4 +160,70 @@ export const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
       </div>
     </div>
   );
+}
+
+interface SortableQueueItemProps {
+  song: Song;
+  density: QueueItemDensity;
+  onRemove: (songId: string, e: React.MouseEvent) => void;
+  onPlay: (song: Song, e: React.MouseEvent) => void;
+}
+
+export const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
+  song,
+  density,
+  onRemove,
+  onPlay,
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: song._id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <QueueItemContent
+      song={song}
+      isCurrent={false}
+      density={density}
+      onRemove={onRemove}
+      onPlay={onPlay}
+      isDraggable
+      isDragging={isDragging}
+      setNodeRef={setNodeRef}
+      style={style}
+      dragHandleProps={{ ...attributes, ...listeners }}
+    />
+  );
 };
+
+interface QueueCurrentItemProps {
+  song: Song;
+  density: QueueItemDensity;
+  onRemove: (songId: string, e: React.MouseEvent) => void;
+  onPlay: (song: Song, e: React.MouseEvent) => void;
+}
+
+export const QueueCurrentItem: React.FC<QueueCurrentItemProps> = ({
+  song,
+  density,
+  onRemove,
+  onPlay,
+}) => (
+  <QueueItemContent
+    song={song}
+    isCurrent
+    density={density}
+    onRemove={onRemove}
+    onPlay={onPlay}
+  />
+);

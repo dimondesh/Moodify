@@ -7,13 +7,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Disc3,
-  Heart,
+  ListEnd,
   ListPlus,
+  PlusCircle,
   Share,
   Trash2,
   User,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import CheckedIcon from "@/components/ui/checkedIcon";
 import { Song } from "@/types";
 import { SongAddToPlaylistSubmenu } from "./SongAddToPlaylistSubmenu";
 import { SongShareSubmenu } from "./SongShareSubmenu";
@@ -27,6 +28,7 @@ export interface SongOptionsDropdownContentProps {
   playlistId?: string;
   isOwner?: boolean;
   onClose: () => void;
+  onRemoveFromQueue?: () => void;
 }
 
 export function SongOptionsDropdownContent({
@@ -35,6 +37,7 @@ export function SongOptionsDropdownContent({
   playlistId = "",
   isOwner = false,
   onClose,
+  onRemoveFromQueue,
 }: SongOptionsDropdownContentProps) {
   const {
     t,
@@ -50,6 +53,7 @@ export function SongOptionsDropdownContent({
     goToAlbum,
     toggleLiked,
     handleRemoveFromPlaylist,
+    handleAddToQueue,
   } = useSongOptionsActions(song, context, playlistId, isOwner, onClose);
 
   return (
@@ -58,6 +62,17 @@ export function SongOptionsDropdownContent({
       align="end"
       onClick={(e) => e.stopPropagation()}
     >
+      <DropdownMenuItem
+        className={SONG_MENU_ITEM}
+        onSelect={(e) => {
+          e.preventDefault();
+          handleAddToQueue();
+        }}
+      >
+        <ListEnd />
+        <span>{t("player.addToQueue")}</span>
+      </DropdownMenuItem>
+
       {sessionUser && (
         <>
           <DropdownMenuSub>
@@ -85,9 +100,15 @@ export function SongOptionsDropdownContent({
               void toggleLiked();
             }}
           >
-            <Heart className={cn(isLiked && "fill-current !text-[#8b5cf6]")} />
+            {isLiked ? (
+              <CheckedIcon className="size-4 shrink-0 text-[#8b5cf6]" />
+            ) : (
+              <PlusCircle className="size-4 shrink-0 text-zinc-400" />
+            )}
             <span>
-              {isLiked ? t("player.unlike") : t("player.saveToLibrary")}
+              {isLiked
+                ? t("player.removeFromLikedSongs")
+                : t("player.addToLikedSongs")}
             </span>
           </DropdownMenuItem>
         </>
@@ -166,6 +187,20 @@ export function SongOptionsDropdownContent({
         >
           <Trash2 />
           <span>{t("pages.playlist.actions.removeSong")}</span>
+        </DropdownMenuItem>
+      )}
+
+      {onRemoveFromQueue && (
+        <DropdownMenuItem
+          className={SONG_MENU_ITEM}
+          onSelect={(e) => {
+            e.preventDefault();
+            onRemoveFromQueue();
+            onClose();
+          }}
+        >
+          <Trash2 />
+          <span>{t("player.queue.removeFromQueue")}</span>
         </DropdownMenuItem>
       )}
     </DropdownMenuContent>

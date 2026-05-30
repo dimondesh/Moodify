@@ -46,6 +46,8 @@ interface PlayerStore {
   currentSong: Song | null;
   isPlaying: boolean;
   queue: Song[];
+  /** Tracks manually added by the user; played before the regular queue. */
+  userQueue: Song[];
   currentIndex: number;
   repeatMode: "off" | "all" | "one";
   isShuffle: boolean;
@@ -97,6 +99,14 @@ interface PlayerStore {
   clearQueue: () => void;
   addToQueue: (song: Song) => void;
   addSongsToQueue: (songs: Song[]) => void;
+  /** Inserts a track into the user queue (next after current, before regular upcoming). */
+  addToQueueNext: (
+    song: Song,
+  ) => "added" | "already-playing" | "already-in-queue" | "started";
+  moveSongInUserQueue: (fromIndex: number, toIndex: number) => void;
+  clearUserQueue: () => void;
+  promoteUpcomingToUserQueue: (songId: string, userIndex: number) => void;
+  demoteUserQueueToUpcoming: (songId: string, beforeSongId: string) => void;
   getNextSongsInShuffle: (count?: number) => Song[];
 }
 
@@ -215,6 +225,9 @@ export const usePlayerStore = create<PlayerStore>()(
             queue: state.queue.map((s) =>
               s._id === song._id ? completeSong : s,
             ),
+            userQueue: state.userQueue.map((s) =>
+              s._id === song._id ? completeSong : s,
+            ),
             isFetchingLyrics: false,
           }));
 
@@ -234,6 +247,7 @@ export const usePlayerStore = create<PlayerStore>()(
         isPlaying: false,
         isFetchingLyrics: false,
         queue: [],
+        userQueue: [],
         currentIndex: -1,
         repeatMode: "off",
         isShuffle: false,
@@ -319,6 +333,9 @@ export const usePlayerStore = create<PlayerStore>()(
             queue: state.queue.map((s) =>
               s._id === fullSong._id ? fullSong : s,
             ),
+            userQueue: state.userQueue.map((s) =>
+              s._id === fullSong._id ? fullSong : s,
+            ),
           }));
         },
 
@@ -329,6 +346,7 @@ export const usePlayerStore = create<PlayerStore>()(
               currentSong: null,
               isPlaying: false,
               queue: [],
+              userQueue: [],
               currentIndex: -1,
               shuffleHistory: [],
               shufflePointer: -1,
@@ -381,6 +399,7 @@ export const usePlayerStore = create<PlayerStore>()(
 
           set({
             queue: updatedQueue,
+            userQueue: [],
             isPlaying: true,
             currentSong: fullSong,
             currentIndex: targetIndexInQueue,
@@ -431,6 +450,18 @@ export const usePlayerStore = create<PlayerStore>()(
           silentAudioService.play();
 
           set((state) => {
+            const userQueueIndex = state.userQueue.findIndex(
+              (s) => s._id === fullSong._id,
+            );
+            if (userQueueIndex !== -1) {
+              return {
+                currentSong: fullSong,
+                isPlaying: true,
+                userQueue: state.userQueue.slice(userQueueIndex + 1),
+                currentTime: 0,
+              };
+            }
+
             const songIndex = state.queue.findIndex(
               (s) => s._id === fullSong._id,
             );
@@ -585,6 +616,7 @@ export const usePlayerStore = create<PlayerStore>()(
           const state = get();
           const {
             queue,
+            userQueue,
             shuffleHistory,
             shufflePointer,
             currentIndex,
@@ -594,6 +626,27 @@ export const usePlayerStore = create<PlayerStore>()(
           const isShuffle = shuffleMode !== "off";
           const { isOffline } = useOfflineStore.getState();
           const { isSongDownloaded } = useOfflineStore.getState().actions;
+
+          if (userQueue.length > 0) {
+            const [nextSong, ...remainingUserQueue] = userQueue;
+            const fullNextSong = await ensureSongData(nextSong);
+
+            if (!fullNextSong || !fullNextSong.hlsUrl) {
+              toast.error("Cannot load audio for next song");
+              set({ userQueue: remainingUserQueue });
+              return;
+            }
+
+            silentAudioService.play();
+            set({
+              currentSong: fullNextSong,
+              isPlaying: true,
+              userQueue: remainingUserQueue,
+              currentTime: 0,
+            });
+            enrichSongWithAlbumTitleIfNeeded(fullNextSong);
+            return;
+          }
 
           if (queue.length === 0) {
             silentAudioService.pause();
@@ -823,10 +876,31 @@ export const usePlayerStore = create<PlayerStore>()(
         },
         removeFromQueue: (songId: string) => {
           set((state) => {
+            const userQueueIndex = state.userQueue.findIndex(
+              (song) => song._id === songId,
+            );
+            if (userQueueIndex !== -1) {
+              const newUserQueue = state.userQueue.filter(
+                (song) => song._id !== songId,
+              );
+              if (
+                state.currentSong?._id === songId &&
+                state.queue[state.currentIndex]?._id !== songId
+              ) {
+                queueMicrotask(() => void get().playNext());
+              }
+              return { userQueue: newUserQueue };
+            }
+
             const songIndex = state.queue.findIndex(
               (song) => song._id === songId,
             );
-            if (songIndex === -1) return state;
+            if (songIndex === -1) {
+              if (state.currentSong?._id === songId) {
+                queueMicrotask(() => void get().playNext());
+              }
+              return state;
+            }
             const newQueue = state.queue.filter((song) => song._id !== songId);
             let newCurrentIndex = state.currentIndex;
             let newShuffleHistory = [...state.shuffleHistory];
@@ -934,6 +1008,7 @@ export const usePlayerStore = create<PlayerStore>()(
           silentAudioService.pause();
           set({
             queue: [],
+            userQueue: [],
             currentSong: null,
             currentIndex: -1,
             isPlaying: false,
@@ -945,6 +1020,142 @@ export const usePlayerStore = create<PlayerStore>()(
           set((state) => ({ queue: [...state.queue, song] })),
         addSongsToQueue: (songs: Song[]) =>
           set((state) => ({ queue: [...state.queue, ...songs] })),
+        addToQueueNext: (song: Song) => {
+          const state = get();
+
+          if (state.currentSong?._id === song._id) {
+            return "already-playing";
+          }
+
+          if (state.userQueue.some((s) => s._id === song._id)) {
+            return "already-in-queue";
+          }
+
+          if (state.queue.length === 0 && state.currentIndex === -1) {
+            void get().playAlbum([song]);
+            return "started";
+          }
+
+          set((s) => ({ userQueue: [...s.userQueue, song] }));
+          return "added";
+        },
+        moveSongInUserQueue: (fromIndex: number, toIndex: number) => {
+          set((state) => {
+            if (
+              fromIndex < 0 ||
+              fromIndex >= state.userQueue.length ||
+              toIndex < 0 ||
+              toIndex >= state.userQueue.length
+            )
+              return state;
+            const newUserQueue = [...state.userQueue];
+            const [movedSong] = newUserQueue.splice(fromIndex, 1);
+            newUserQueue.splice(toIndex, 0, movedSong);
+            return { userQueue: newUserQueue };
+          });
+        },
+        clearUserQueue: () => set({ userQueue: [] }),
+        promoteUpcomingToUserQueue: (songId: string, userIndex: number) => {
+          set((state) => {
+            const song =
+              state.queue.find((s) => s._id === songId) ??
+              state.userQueue.find((s) => s._id === songId);
+            if (!song) return state;
+
+            const without = state.userQueue.filter((s) => s._id !== songId);
+            const clampedIndex = Math.max(
+              0,
+              Math.min(userIndex, without.length),
+            );
+            const newUserQueue = [...without];
+            newUserQueue.splice(clampedIndex, 0, song);
+            return { userQueue: newUserQueue };
+          });
+        },
+        demoteUserQueueToUpcoming: (songId: string, beforeSongId: string) => {
+          set((state) => {
+            const song = state.userQueue.find((s) => s._id === songId);
+            if (!song) return state;
+
+            const newUserQueue = state.userQueue.filter(
+              (s) => s._id !== songId,
+            );
+            let newQueue = [...state.queue];
+            let newCurrentIndex = state.currentIndex;
+            let newShuffleHistory = [...state.shuffleHistory];
+
+            const beforeIndex = newQueue.findIndex(
+              (s) => s._id === beforeSongId,
+            );
+            if (beforeIndex === -1) {
+              return { userQueue: newUserQueue };
+            }
+
+            let fromIndex = newQueue.findIndex((s) => s._id === songId);
+
+            if (fromIndex === -1) {
+              newQueue.splice(beforeIndex, 0, song);
+              const insertedIndex = beforeIndex;
+              if (insertedIndex <= state.currentIndex) {
+                newCurrentIndex = state.currentIndex + 1;
+              }
+              if (state.shuffleMode !== "off") {
+                newShuffleHistory = newShuffleHistory.map((idx) =>
+                  idx >= insertedIndex ? idx + 1 : idx,
+                );
+                const beforeShufflePos = newShuffleHistory.indexOf(
+                  beforeIndex + 1,
+                );
+                if (beforeShufflePos !== -1) {
+                  newShuffleHistory.splice(beforeShufflePos, 0, insertedIndex);
+                } else {
+                  newShuffleHistory.push(insertedIndex);
+                }
+              }
+            } else if (state.shuffleMode !== "off") {
+              const fromShuffleIndex = newShuffleHistory.indexOf(fromIndex);
+              const beforeShuffleIndex =
+                newShuffleHistory.indexOf(beforeIndex);
+              if (fromShuffleIndex !== -1 && beforeShuffleIndex !== -1) {
+                const [movedQueueIndex] = newShuffleHistory.splice(
+                  fromShuffleIndex,
+                  1,
+                );
+                const insertAt =
+                  fromShuffleIndex < beforeShuffleIndex
+                    ? beforeShuffleIndex - 1
+                    : beforeShuffleIndex;
+                newShuffleHistory.splice(insertAt, 0, movedQueueIndex);
+              }
+            } else {
+              const [moved] = newQueue.splice(fromIndex, 1);
+              let targetIndex = beforeIndex;
+              if (fromIndex < beforeIndex) targetIndex = beforeIndex - 1;
+              newQueue.splice(targetIndex, 0, moved);
+
+              if (state.currentIndex === fromIndex) {
+                newCurrentIndex = targetIndex;
+              } else if (
+                fromIndex < state.currentIndex &&
+                targetIndex >= state.currentIndex
+              ) {
+                newCurrentIndex = state.currentIndex - 1;
+              } else if (
+                fromIndex > state.currentIndex &&
+                targetIndex <= state.currentIndex
+              ) {
+                newCurrentIndex = state.currentIndex + 1;
+              }
+            }
+
+            return {
+              userQueue: newUserQueue,
+              queue: newQueue,
+              currentIndex: newCurrentIndex,
+              shuffleHistory: newShuffleHistory,
+            };
+          });
+        },
         getNextSongsInShuffle: (count = 10) => {
           const state = get();
           if (state.queue.length === 0) return [];
@@ -1026,6 +1237,7 @@ export const usePlayerStore = create<PlayerStore>()(
           : null,
         isPlaying: state.isPlaying,
         queue: state.queue.map(stripLyricsForPersistence),
+        userQueue: state.userQueue.map(stripLyricsForPersistence),
         currentIndex: state.currentIndex,
         repeatMode: state.repeatMode,
         shuffleMode: state.shuffleMode,

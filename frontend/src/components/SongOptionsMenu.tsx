@@ -31,6 +31,10 @@ export interface SongOptionsMenuProps {
   playlistId?: string;
   isOwner?: boolean;
   className?: string;
+  /** When set, shows "Remove from queue" in the dropdown menu (e.g. queue panel). */
+  onRemoveFromQueue?: () => void;
+  /** Use inside another dropdown so nested menus don't steal focus. */
+  nested?: boolean;
 }
 
 const SongOptionsMenu: React.FC<SongOptionsMenuProps> = ({
@@ -40,6 +44,8 @@ const SongOptionsMenu: React.FC<SongOptionsMenuProps> = ({
   playlistId = "",
   isOwner = false,
   className,
+  onRemoveFromQueue,
+  nested = false,
 }) => {
   const { t } = useTranslation();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -77,7 +83,7 @@ const SongOptionsMenu: React.FC<SongOptionsMenuProps> = ({
 
   if (variant === "dropdown") {
     return (
-      <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+      <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen} modal={!nested}>
         <DropdownMenuTrigger asChild>{triggerButton}</DropdownMenuTrigger>
         <SongOptionsDropdownContent
           song={song}
@@ -85,6 +91,7 @@ const SongOptionsMenu: React.FC<SongOptionsMenuProps> = ({
           playlistId={playlistId}
           isOwner={isOwner}
           onClose={onClose}
+          onRemoveFromQueue={onRemoveFromQueue}
         />
       </DropdownMenu>
     );

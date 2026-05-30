@@ -18,11 +18,14 @@ export const QueueDrawer: React.FC<QueueDrawerProps> = ({
   const { t } = useTranslation();
   const {
     queue,
+    queueSections,
     displaySongs,
+    upcomingLabel,
     sensors,
     onDragEnd,
     onRemoveSong,
     onPlaySong,
+    onClearUserQueue,
   } = useQueueList();
 
   return (
@@ -72,11 +75,14 @@ export const QueueDrawer: React.FC<QueueDrawerProps> = ({
               </div>
             ) : (
               <QueueList
-                displaySongs={displaySongs}
+                sections={queueSections}
+                upcomingLabel={upcomingLabel}
+                variant="drawer"
                 sensors={sensors}
                 onDragEnd={onDragEnd}
                 onRemoveSong={onRemoveSong}
                 onPlaySong={onPlaySong}
+                onClearUserQueue={onClearUserQueue}
                 density="comfortable"
               />
             )}

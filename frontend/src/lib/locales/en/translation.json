@@ -63,12 +63,24 @@
     "findPlaylist": "Find a playlist",
     "newPlaylist": "New playlist",
     "addToPlaylist": "Add to playlist",
+    "addToQueue": "Add to queue",
+    "addedToQueue": "Added to queue",
+    "alreadyPlaying": "Already playing",
+    "alreadyInQueue": "Already in queue",
     "saveToLibrary": "Save to Your Library",
+    "addToLikedSongs": "Add to Your Liked Songs",
+    "removeFromLikedSongs": "Remove from Your Liked Songs",
     "share": "Share",
     "queue": {
       "title": "Queue",
       "empty": "Queue is empty",
-      "clear": "Clear"
+      "clear": "Clear",
+      "nowPlaying": "Now playing",
+      "nextInQueue": "Next in queue",
+      "nextInQueueEmpty": "Drag tracks here to play them next",
+      "nextFrom": "Next from: {{title}}",
+      "upNext": "Up next",
+      "removeFromQueue": "Remove from queue"
     },
     "done": "Done"
   },
@@ -337,7 +349,7 @@
       "tableActions": "Actions",
       "share": "Share",
       "addToLiked": "Add to Liked Songs",
-      "removeFromLiked": "Remove from Liked",
+      "removeFromLiked": "Remove from Liked Songs",
       "addToPlaylist": "Add to playlist",
       "goToArtist": "Go to artist",
       "goToAlbum": "Go to album"

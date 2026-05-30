@@ -7,6 +7,7 @@ import { useChatStore } from "@/stores/useChatStore";
 import { useOwnedPlaylists } from "@/hooks/queries";
 import { useIsSongLiked } from "@/hooks/useLikedSongs";
 import { usePlaylistStore } from "@/stores/usePlaylistStore";
+import { usePlayerStore } from "@/stores/usePlayerStore";
 import type { Song } from "@/types";
 import type { SongOptionsContext } from "@/components/SongOptionsMenu";
 import toast from "react-hot-toast";
@@ -25,6 +26,7 @@ export function useSongOptionsActions(
   const fetchUsers = useChatStore((s) => s.fetchUsers);
   const { data: ownedPlaylists = [] } = useOwnedPlaylists();
   const { toggleSongLike } = usePlaylistStore();
+  const addToQueueNext = usePlayerStore((s) => s.addToQueueNext);
   const isLiked = useIsSongLiked(song._id);
   const [isAddToPlaylistOpen, setIsAddToPlaylistOpen] = useState(false);
 
@@ -92,6 +94,25 @@ export function useSongOptionsActions(
     onClose();
   }, [openRemoveSongFromPlaylistDialog, playlistId, song._id, onClose]);
 
+  const handleAddToQueue = useCallback(() => {
+    const result = addToQueueNext(song);
+    switch (result) {
+      case "added":
+        toast.success(t("player.addedToQueue"));
+        break;
+      case "started":
+        toast.success(t("player.addedToQueue"));
+        break;
+      case "already-playing":
+        toast(t("player.alreadyPlaying"));
+        break;
+      case "already-in-queue":
+        toast(t("player.alreadyInQueue"));
+        break;
+    }
+    onClose();
+  }, [addToQueueNext, song, t, onClose]);
+
   return {
     t,
     sessionUser,
@@ -108,6 +129,7 @@ export function useSongOptionsActions(
     openAddToPlaylistSheet,
     openShare,
     handleRemoveFromPlaylist,
+    handleAddToQueue,
     isAddToPlaylistOpen,
     setIsAddToPlaylistOpen,
   };
