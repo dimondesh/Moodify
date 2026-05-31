@@ -76,14 +76,15 @@ const buildBatchPrompt = (category, items) => {
     .map((item) => `${item.id}: "${item.name}"`)
     .join("\n");
 
-  return `You are a music streaming localization expert. Translate these music ${category} names into mix playlist titles.
+  return `You are a music streaming localization expert. Translate these music ${category} names into natural display names.
 
 RULES:
-1. English (en): natural streaming title, usually "{Name} Mix".
-2. Russian (ru): must include the word "Микс"; transliterate genre names (e.g. Deathcore → "Дэткор Микс", Deep House → "Дип-хаус Микс").
-3. Ukrainian (uk): must include the word "Мікс"; same approach as Russian.
-4. Return ONLY a raw JSON object. Keys are the ids from the list. Values: { "en": "...", "ru": "...", "uk": "..." }.
-5. No markdown, no explanations.
+1. English (en): standard genre/mood name (e.g. "Rock", "Deep House", "Melancholic").
+2. Russian (ru): natural translation or transliteration of the name only — do NOT add "Микс".
+3. Ukrainian (uk): natural translation or transliteration — do NOT add "Мікс".
+4. These are category labels (for hubs and tags), NOT playlist titles — never append "Mix", "Микс", or "Мікс".
+5. Return ONLY a raw JSON object. Keys are the ids from the list. Values: { "en": "...", "ru": "...", "uk": "..." }.
+6. No markdown, no explanations.
 
 LIST:
 ${list}`;
@@ -177,11 +178,56 @@ const fillMissingForModel = async (Model, category) => {
   return { total: docs.length, translated };
 };
 
+const retranslateAllForModel = async (Model, category) => {
+  const docs = await Model.find({}).select("_id name").lean();
+  if (!docs.length) {
+    return { total: 0, translated: 0 };
+  }
+
+  console.log(
+    `[MixLocale] ${category}: re-translating all ${docs.length} via Gemini...`,
+  );
+
+  let translated = 0;
+
+  for (let i = 0; i < docs.length; i += BATCH_SIZE) {
+    const chunk = docs.slice(i, i + BATCH_SIZE);
+    const payload = chunk.map((doc) => ({
+      id: doc._id.toString(),
+      name: doc.name,
+    }));
+
+    const batchResult = await translateMixSourcesBatch(category, payload);
+
+    for (const doc of chunk) {
+      const localizedNames = batchResult[doc._id.toString()];
+      if (!localizedNames) continue;
+
+      await Model.updateOne(
+        { _id: doc._id },
+        { $set: { localizedNames } },
+      );
+      translated += 1;
+    }
+  }
+
+  return { total: docs.length, translated };
+};
+
 /** Заполняет localizedNames у всех Genre/Mood, где переводов нет или они неполные. */
 export const ensureGenreAndMoodLocalizedNames = async () => {
   const [genres, moods] = await Promise.all([
     fillMissingForModel(Genre, "genre"),
     fillMissingForModel(Mood, "mood"),
+  ]);
+  return { genres, moods };
+};
+
+/** Переводит заново все Genre/Mood (без суффикса Mix в названии категории). */
+export const retranslateAllGenreAndMoodLocalizedNames = async () => {
+  const [genres, moods] = await Promise.all([
+    retranslateAllForModel(Genre, "genre"),
+    retranslateAllForModel(Mood, "mood"),
   ]);
   return { genres, moods };
 };

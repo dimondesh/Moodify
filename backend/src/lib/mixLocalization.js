@@ -1,11 +1,23 @@
 import { pickLocalizedTitle } from "../models/schemas/localizedNames.schema.js";
 import { getSmartPlaylistLabels } from "./generatedPlaylistCopy.js";
+import {
+  buildMixTitleLocalizedNames,
+  formatGenreMoodMixTitle,
+} from "./localeCopy.js";
+
+export { stripGenreMoodMixSuffix, buildMixTitleLocalizedNames } from "./localeCopy.js";
 
 export const buildMixPlaylistLabels = (source) => {
-  const localizedNames = source.localizedNames ?? {};
+  const localizedNames = buildMixTitleLocalizedNames(
+    source.localizedNames ?? {},
+    source.name ?? "",
+  );
   const fallbackName = source.name ?? "";
   return {
-    title: pickLocalizedTitle(localizedNames, fallbackName),
+    title: pickLocalizedTitle(
+      localizedNames,
+      formatGenreMoodMixTitle(fallbackName, "en"),
+    ),
     localizedNames,
   };
 };

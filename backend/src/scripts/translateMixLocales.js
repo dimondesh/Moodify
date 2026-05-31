@@ -1,12 +1,16 @@
 #!/usr/bin/env node
 /**
- * Batch-перевод Genre/Mood без localizedNames через Gemini.
+ * Batch-перевод Genre/Mood localizedNames через Gemini.
  *
  *   cd backend && npm run translate:mix-locales
+ *   npm run translate:mix-locales -- --force   # перевести все заново (без Mix в категориях)
  */
 import "dotenv/config";
 import mongoose from "mongoose";
-import { ensureGenreAndMoodLocalizedNames } from "../lib/mixLocale.service.js";
+import {
+  ensureGenreAndMoodLocalizedNames,
+  retranslateAllGenreAndMoodLocalizedNames,
+} from "../lib/mixLocale.service.js";
 
 async function main() {
   if (!process.env.MONGO_URI) {
@@ -18,8 +22,12 @@ async function main() {
     process.exit(1);
   }
 
+  const force = process.argv.includes("--force");
+
   await mongoose.connect(process.env.MONGO_URI);
-  const result = await ensureGenreAndMoodLocalizedNames();
+  const result = force
+    ? await retranslateAllGenreAndMoodLocalizedNames()
+    : await ensureGenreAndMoodLocalizedNames();
   console.log(result);
   await mongoose.disconnect();
 }

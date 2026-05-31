@@ -26,7 +26,9 @@
     "migrate:locales": "node src/scripts/migrateLocales.js",
     "migrate:made-for": "node src/scripts/migratePlaylistMadeFor.js",
     "migrate:artist-banners": "node src/scripts/migrateArtistBanners.js",
-    "translate:mix-locales": "node src/scripts/translateMixLocales.js"
+    "translate:mix-locales": "node src/scripts/translateMixLocales.js",
+    "strip:category-mix-suffixes": "node src/scripts/stripCategoryMixSuffixes.js",
+    "strip:playlist-searchable-names": "node src/scripts/removePlaylistSearchableNames.js"
   },
   "keywords": [],
   "type": "module",

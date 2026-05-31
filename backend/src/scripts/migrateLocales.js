@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Copies Genre/Mood.localizedNames → GENRE_MIX / MOOD_MIX playlists.
+ * Rebuilds GENRE_MIX / MOOD_MIX playlist titles from Genre/Mood category names (+ Mix suffix).
  *
  *   cd backend && npm run migrate:locales
  */
@@ -13,18 +13,18 @@ import {
   buildPersonalMixLabels,
   getSmartPlaylistLabels,
 } from "../lib/generatedPlaylistCopy.js";
+import { buildMixPlaylistLabels } from "../lib/mixLocalization.js";
+import { removePlaylistSearchableNames } from "../lib/playlistLocaleCleanup.service.js";
 import { GENERATED_PLAYLIST_TYPES } from "../constants/playlistTypes.js";
 
 const backfillMixPlaylistLocalizedNames = async () => {
-  const sources = await Promise.all([
-    Genre.find().select("localizedNames").lean(),
-    Mood.find().select("localizedNames").lean(),
+  const [genres, moods] = await Promise.all([
+    Genre.find().select("name localizedNames").lean(),
+    Mood.find().select("name localizedNames").lean(),
   ]);
   const bySourceId = new Map();
-  for (const doc of [...sources[0], ...sources[1]]) {
-    if (doc.localizedNames) {
-      bySourceId.set(doc._id.toString(), doc.localizedNames);
-    }
+  for (const doc of [...genres, ...moods]) {
+    bySourceId.set(doc._id.toString(), doc);
   }
 
   const mixes = await Playlist.find({
@@ -34,13 +34,14 @@ const backfillMixPlaylistLocalizedNames = async () => {
 
   let updated = 0;
   for (const mix of mixes) {
-    const localizedNames = bySourceId.get(mix.sourceId.toString());
-    if (!localizedNames) continue;
+    const source = bySourceId.get(mix.sourceId.toString());
+    if (!source) continue;
+
+    const { title, localizedNames } = buildMixPlaylistLabels(source);
     await Playlist.updateOne(
       { _id: mix._id },
       {
-        $set: { localizedNames },
-        $unset: { searchableNames: "" },
+        $set: { localizedNames, title },
       },
     );
     updated += 1;
@@ -110,12 +111,9 @@ async function main() {
   await mongoose.connect(process.env.MONGO_URI);
   console.log("Connected to MongoDB\n");
 
-  const removedSearchable = await Playlist.updateMany(
-    { searchableNames: { $exists: true } },
-    { $unset: { searchableNames: "" } },
-  );
+  const removedSearchable = await removePlaylistSearchableNames();
   console.log(
-    `Removed searchableNames from ${removedSearchable.modifiedCount} playlist(s)`,
+    `Removed searchableNames from ${removedSearchable.modified}/${removedSearchable.matched} playlist(s)`,
   );
 
   const playlistResult = await backfillMixPlaylistLocalizedNames();
