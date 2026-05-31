@@ -7,98 +7,126 @@ import {
   generateDiscoverWeeklyForUser,
   generateOnRepeatRewindForUser,
 } from "../lib/playlistGenerator.service.js";
+import { generateHomeFeedForUser } from "../lib/home/homeFeedGenerator.service.js";
+import { warmTrendingCache } from "../lib/home/trending.service.js";
 import { User } from "../models/user.model.js";
 import { cleanAllTempDirectories } from "../lib/tempCleanup.service.js";
+
+const PERSONAL_MIX_MIN_LISTENS = 10;
+const HOME_FEED_BATCH_SIZE = 20;
+
+async function getUserIdsWithMinListens(minListens) {
+  const rows = await ListenHistory.aggregate([
+    { $group: { _id: "$user", count: { $sum: 1 } } },
+    { $match: { count: { $gte: minListens } } },
+  ]);
+  return rows.map((row) => row._id);
+}
+
+async function getActiveUserIds() {
+  return ListenHistory.distinct("user");
+}
+
+async function runSmartPlaylistsForUser(userId) {
+  await generateOnRepeatPlaylistForUser(userId);
+  await generateDiscoverWeeklyForUser(userId);
+  await generateOnRepeatRewindForUser(userId);
+}
+
+async function generateHomeFeedForActiveUsers() {
+  const userIds = await getActiveUserIds();
+
+  for (let i = 0; i < userIds.length; i += HOME_FEED_BATCH_SIZE) {
+    const batch = userIds.slice(i, i + HOME_FEED_BATCH_SIZE);
+
+    for (const userId of batch) {
+      try {
+        await generateHomeFeedForUser(userId);
+      } catch (error) {
+        console.error(
+          `CRON JOB: Home feed generation failed for user ${userId}:`,
+          error,
+        );
+      }
+    }
+  }
+
+  return userIds.length;
+}
 
 export function registerCronJobs() {
   const tasks = [];
 
+  // 00:00 — PERSONAL_MIX (≥10 listens) + ON_REPEAT, DISCOVER_WEEKLY, ON_REPEAT_REWIND
   tasks.push(
-    cron.schedule(
-      "0 5 1 * *",
-      async () => {
-        console.log(
-          'CRON JOB: Starting "On Repeat Rewind" playlist generation...',
+    cron.schedule("0 0 * * *", async () => {
+      console.log(
+        'CRON JOB: Starting nightly user playlist generation (PERSONAL_MIX + smart playlists)...',
+      );
+      try {
+        const personalMixUserIds = await getUserIdsWithMinListens(
+          PERSONAL_MIX_MIN_LISTENS,
         );
-        try {
-          const allUsers = await User.find({}).select("_id");
-          for (const user of allUsers) {
-            await generateOnRepeatRewindForUser(user._id);
-          }
-          console.log(
-            `CRON JOB: "On Repeat Rewind" generation finished for ${allUsers.length} users.`,
-          );
-        } catch (error) {
-          console.error(
-            'CRON JOB: Error in "On Repeat Rewind" generation:',
-            error,
-          );
-        }
-      },
-    ),
-  );
 
-  tasks.push(
-    cron.schedule(
-      "0 3 * * 1",
-      async () => {
+        for (const userId of personalMixUserIds) {
+          await generatePersonalMixesForUser(userId);
+        }
         console.log(
-          'CRON JOB: Starting "Discover Weekly" playlist generation...',
+          `CRON JOB: PERSONAL_MIX finished for ${personalMixUserIds.length} users.`,
         );
-        try {
-          const allUsers = await User.find({}).select("_id");
-          for (const user of allUsers) {
-            await generateDiscoverWeeklyForUser(user._id);
-          }
-          console.log(
-            `CRON JOB: "Discover Weekly" generation finished for ${allUsers.length} users.`,
-          );
-        } catch (error) {
-          console.error(
-            'CRON JOB: Error in "Discover Weekly" generation:',
-            error,
-          );
+
+        const allUsers = await User.find({}).select("_id").lean();
+        for (const user of allUsers) {
+          await runSmartPlaylistsForUser(user._id);
         }
-      },
-    ),
+        console.log(
+          `CRON JOB: Smart playlists finished for ${allUsers.length} users.`,
+        );
+      } catch (error) {
+        console.error(
+          "CRON JOB: Error in nightly user playlist generation:",
+          error,
+        );
+      }
+    }),
   );
 
+  // 01:00 — global GENRE_MIX / MOOD_MIX (after user playlists)
   tasks.push(
-    cron.schedule(
-      "0 1 * * *",
-      async () => {
-        console.log("CRON JOB: Starting global genre and mood mixes generation...");
-        try {
-          await generateGlobalGenreAndMoodMixes();
-        } catch (error) {
-          console.error("CRON JOB: Error in global mixes generation:", error);
-        }
-      },
-    ),
+    cron.schedule("0 1 * * *", async () => {
+      console.log("CRON JOB: Starting global genre and mood mixes generation...");
+      try {
+        await generateGlobalGenreAndMoodMixes();
+      } catch (error) {
+        console.error("CRON JOB: Error in global mixes generation:", error);
+      }
+    }),
   );
 
+  // 02:00, 08:00, 14:00, 20:00 — home feed for active users (after nightly playlist jobs)
   tasks.push(
-    cron.schedule(
-      "0 0 * * *",
-      async () => {
-        console.log('CRON JOB: Starting "Personal Mixes" generation...');
-        try {
-          const eligibleUsers = await ListenHistory.aggregate([
-            { $group: { _id: "$user", count: { $sum: 1 } } },
-            { $match: { count: { $gte: 10 } } },
-          ]);
+    cron.schedule("0 2,8,14,20 * * *", async () => {
+      console.log("CRON JOB: Starting home feed generation for active users...");
+      try {
+        const count = await generateHomeFeedForActiveUsers();
+        console.log(`CRON JOB: Home feed generation finished for ${count} users.`);
+      } catch (error) {
+        console.error("CRON JOB: Error in home feed generation:", error);
+      }
+    }),
+  );
 
-          for (const user of eligibleUsers) {
-            await generatePersonalMixesForUser(user._id);
-          }
-          console.log(
-            `CRON JOB: "Personal Mixes" generation finished for ${eligibleUsers.length} users.`,
-          );
-        } catch (error) {
-          console.error('CRON JOB: Error in "Personal Mixes" generation:', error);
-        }
-      },
-    ),
+  // Every 6 hours — warm trending cache in Redis
+  tasks.push(
+    cron.schedule("0 */6 * * *", async () => {
+      console.log("CRON JOB: Warming trending cache...");
+      try {
+        await warmTrendingCache();
+        console.log("CRON JOB: Trending cache warmed.");
+      } catch (error) {
+        console.error("CRON JOB: Error warming trending cache:", error);
+      }
+    }),
   );
 
   tasks.push(
@@ -106,31 +134,6 @@ export function registerCronJobs() {
       console.log("[CronJob] Запуск очистки временных директорий...");
       cleanAllTempDirectories();
     }),
-  );
-
-  // Раз в 3 дня в 04:00; пользователи с ≥30 прослушиваниями
-  tasks.push(
-    cron.schedule(
-      "0 4 */3 * *",
-      async () => {
-        console.log('CRON JOB: Starting "On Repeat" playlist generation...');
-        try {
-          const eligibleUsers = await ListenHistory.aggregate([
-            { $group: { _id: "$user", count: { $sum: 1 } } },
-            { $match: { count: { $gte: 30 } } },
-          ]);
-
-          for (const user of eligibleUsers) {
-            await generateOnRepeatPlaylistForUser(user._id);
-          }
-          console.log(
-            `CRON JOB: "On Repeat" generation finished for ${eligibleUsers.length} users.`,
-          );
-        } catch (error) {
-          console.error('CRON JOB: Error in "On Repeat" generation:', error);
-        }
-      },
-    ),
   );
 
   return tasks;
