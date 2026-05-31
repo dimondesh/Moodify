@@ -1,4 +1,4 @@
-import { useHomeBootstrap, useSecondaryHome } from "@/hooks/queries";
+import { useSecondaryHome } from "@/hooks/queries";
 import { Loader2 } from "lucide-react";
 import type { Album, Playlist } from "../../types";
 import { useTranslation } from "react-i18next";
@@ -123,15 +123,10 @@ const AlbumsBrowseGrid = ({
 
 const BrowseSecondaryPlaylists = () => {
   const { t } = useTranslation();
-  const { data: bootstrap } = useHomeBootstrap();
   const { data: secondary, isPending } = useSecondaryHome();
 
-  const genreMixes =
-    (bootstrap?.genreMixes?.length ? bootstrap.genreMixes : secondary?.genreMixes) ??
-    [];
-  const moodMixes =
-    (bootstrap?.moodMixes?.length ? bootstrap.moodMixes : secondary?.moodMixes) ??
-    [];
+  const genreMixes = secondary?.genreMixes ?? [];
+  const moodMixes = secondary?.moodMixes ?? [];
   const browseRandomAlbums = secondary?.browseRandomAlbums ?? [];
 
   const isFetching =

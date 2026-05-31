@@ -9,17 +9,27 @@ import React, {
 } from "react";
 import FeaturedSection from "./FeaturedSection";
 import { usePlayerStore } from "../../stores/usePlayerStore";
-import { useAuthStore } from "../../stores/useAuthStore";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import { SITE_SLOGAN } from "@/lib/site-meta";
 import { useDominantColor } from "@/hooks/useDominantColor";
-import { Song, type DisplayItem } from "@/types";
+import { Album, Song, type DisplayItem } from "@/types";
 import HorizontalSection from "./HorizontalSection";
 import { useNavigate } from "react-router-dom";
 import HomePageSkeleton from "./HomePageSkeleton";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { useHomeBootstrap, useListenHistory } from "@/hooks/queries";
+import { useHomeBootstrap } from "@/hooks/queries";
+import type { HomeSection, HomeSectionId } from "@/lib/api/home";
+
+const FEATURED_SECTION_IDS = new Set<HomeSectionId>([
+  "quickPicks",
+  "trendingSongs",
+]);
+
+const ALBUM_SECTION_IDS = new Set<HomeSectionId>([
+  "trendingAlbums",
+  "albumsYouMightLike",
+]);
 
 const HomePageComponent = () => {
   const { t } = useTranslation();
@@ -27,14 +37,23 @@ const HomePageComponent = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
 
   const { data: homeData, isPending: isHomePageLoading } = useHomeBootstrap();
-  const { data: listenHistory, isPending: isRecentlyListenedLoading } =
-    useListenHistory();
-  const { user } = useAuthStore();
+  const sections = homeData?.sections ?? [];
 
-  const featuredSongs = homeData?.featuredSongs ?? [];
-  const trendingAlbums = homeData?.trendingAlbums ?? [];
-  const recentlyListenedSongs = listenHistory?.songs ?? [];
-  const recentlyListenedEntities = listenHistory?.entities ?? [];
+  const featuredSection = useMemo(
+    () => sections.find((section) => FEATURED_SECTION_IDS.has(section.id)),
+    [sections],
+  );
+  const featuredSongs = useMemo(
+    () =>
+      (featuredSection?.items ?? []).filter(
+        (item): item is Song & { itemType: "song" } => item.itemType === "song",
+      ),
+    [featuredSection],
+  );
+  const albumSections = useMemo(
+    () => sections.filter((section) => ALBUM_SECTION_IDS.has(section.id)),
+    [sections],
+  );
 
   const { initializeQueue, currentSong } = usePlayerStore();
   const { resolveAccentColor } = useDominantColor();
@@ -75,25 +94,23 @@ const HomePageComponent = () => {
   ]);
 
   useEffect(() => {
-    if (
-      currentSong === null &&
-      !isHomePageLoading &&
-      (featuredSongs.length > 0 || trendingAlbums.length > 0)
-    ) {
-      const allSongs = [...featuredSongs];
-      const trendingSongsFromAlbums = trendingAlbums.flatMap(
+    if (currentSong !== null || isHomePageLoading) return;
+
+    const allSongs: Song[] = [...featuredSongs];
+    for (const section of albumSections) {
+      const albumSongs = (section.items as Album[]).flatMap(
         (album) => album.songs || [],
       );
-      allSongs.push(...trendingSongsFromAlbums);
+      allSongs.push(...albumSongs);
+    }
 
-      if (allSongs.length > 0) {
-        initializeQueue(allSongs);
-      }
+    if (allSongs.length > 0) {
+      initializeQueue(allSongs);
     }
   }, [
     initializeQueue,
     featuredSongs,
-    trendingAlbums,
+    albumSections,
     currentSong,
     isHomePageLoading,
   ]);
@@ -158,36 +175,72 @@ const HomePageComponent = () => {
     return t("greetings.evening");
   };
 
-  const trendingAlbumsItems = useMemo(
-    () =>
-      trendingAlbums.map((album) => ({ ...album, itemType: "album" as const })),
-    [trendingAlbums],
+  const getShowAllHandler = useCallback(
+    (section: HomeSection) => {
+      switch (section.id) {
+        case "recentlyListened": {
+          const songs = section.items.flatMap((item) =>
+            "songs" in item && item.songs ? item.songs : [],
+          );
+          return () =>
+            navigate("/all-songs/recently-listened", {
+              state: {
+                songs,
+                title: t("homepage.recentlyListened"),
+              },
+            });
+        }
+        case "trendingAlbums":
+        case "albumsYouMightLike": {
+          const albums = section.items.filter(
+            (item): item is Album & { itemType: "album" } =>
+              item.itemType === "album",
+          );
+          return () =>
+            navigate("/all-albums/trending", {
+              state: {
+                albums,
+                title: t(`homepage.${section.id}`),
+              },
+            });
+        }
+        default:
+          return undefined;
+      }
+    },
+    [navigate, t],
   );
 
-  const recentlyListenedItems = useMemo(
-    () =>
-      recentlyListenedEntities as DisplayItem[],
-    [recentlyListenedEntities],
-  );
+  const renderSection = (section: HomeSection) => {
+    if (section.items.length === 0) {
+      return null;
+    }
 
-  const handleShowAllRecentlyListened = useCallback(
-    () =>
-      navigate("/all-songs/recently-listened", {
-        state: {
-          songs: recentlyListenedSongs,
-          title: t("homepage.recentlyListened"),
-        },
-      }),
-    [navigate, recentlyListenedSongs, t],
-  );
+    if (FEATURED_SECTION_IDS.has(section.id)) {
+      return (
+        <FeaturedSection
+          key={section.id}
+          featuredSongs={featuredSongs}
+          onSongHover={handleSongHover}
+          onSongLeave={handleSongLeave}
+        />
+      );
+    }
 
-  const handleShowAllTrending = useCallback(
-    () =>
-      navigate("/all-albums/trending", {
-        state: { albums: trendingAlbums, title: t("homepage.trending") },
-      }),
-    [navigate, trendingAlbums, t],
-  );
+    return (
+      <HorizontalSection
+        key={section.id}
+        title={t(`homepage.${section.id}`)}
+        items={section.items as DisplayItem[]}
+        isLoading={false}
+        t={t}
+        limit={12}
+        onShowAll={getShowAllHandler(section)}
+      />
+    );
+  };
+
+  const visibleSections = sections.filter((section) => section.items.length > 0);
 
   return (
     <>
@@ -223,32 +276,8 @@ const HomePageComponent = () => {
                   {getGreeting()}
                 </h1>
 
-                <FeaturedSection
-                  featuredSongs={featuredSongs}
-                  onSongHover={handleSongHover}
-                  onSongLeave={handleSongLeave}
-                />
-
                 <div className="space-y-6">
-                  {user && recentlyListenedItems.length > 0 && (
-                    <HorizontalSection
-                      title={t("homepage.recentlyListened")}
-                      items={recentlyListenedItems}
-                      isLoading={isRecentlyListenedLoading}
-                      t={t}
-                      limit={12}
-                      onShowAll={handleShowAllRecentlyListened}
-                    />
-                  )}
-
-                  <HorizontalSection
-                    title={t("homepage.trending")}
-                    items={trendingAlbumsItems}
-                    isLoading={false}
-                    t={t}
-                    limit={12}
-                    onShowAll={handleShowAllTrending}
-                  />
+                  {visibleSections.map(renderSection)}
                 </div>
               </div>
             )}

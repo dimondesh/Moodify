@@ -12,7 +12,7 @@ import { warmTrendingCache } from "../lib/home/trending.service.js";
 import { User } from "../models/user.model.js";
 import { cleanAllTempDirectories } from "../lib/tempCleanup.service.js";
 
-const PERSONAL_MIX_MIN_LISTENS = 10;
+export const PERSONAL_MIX_MIN_LISTENS = 10;
 const HOME_FEED_BATCH_SIZE = 20;
 
 async function getUserIdsWithMinListens(minListens) {
@@ -27,13 +27,13 @@ async function getActiveUserIds() {
   return ListenHistory.distinct("user");
 }
 
-async function runSmartPlaylistsForUser(userId) {
+export async function runSmartPlaylistsForUser(userId) {
   await generateOnRepeatPlaylistForUser(userId);
   await generateDiscoverWeeklyForUser(userId);
   await generateOnRepeatRewindForUser(userId);
 }
 
-async function generateHomeFeedForActiveUsers() {
+export async function runHomeFeedForActiveUsers() {
   const userIds = await getActiveUserIds();
 
   for (let i = 0; i < userIds.length; i += HOME_FEED_BATCH_SIZE) {
@@ -44,7 +44,7 @@ async function generateHomeFeedForActiveUsers() {
         await generateHomeFeedForUser(userId);
       } catch (error) {
         console.error(
-          `CRON JOB: Home feed generation failed for user ${userId}:`,
+          `Home feed generation failed for user ${userId}:`,
           error,
         );
       }
@@ -54,6 +54,54 @@ async function generateHomeFeedForActiveUsers() {
   return userIds.length;
 }
 
+export async function runUserPlaylistGeneration({ userId } = {}) {
+  if (userId) {
+    const listenCount = await ListenHistory.countDocuments({ user: userId });
+    if (listenCount >= PERSONAL_MIX_MIN_LISTENS) {
+      await generatePersonalMixesForUser(userId);
+    }
+    await runSmartPlaylistsForUser(userId);
+    return {
+      personalMixUsers: listenCount >= PERSONAL_MIX_MIN_LISTENS ? 1 : 0,
+      smartUsers: 1,
+    };
+  }
+
+  const personalMixUserIds = await getUserIdsWithMinListens(
+    PERSONAL_MIX_MIN_LISTENS,
+  );
+
+  for (const id of personalMixUserIds) {
+    await generatePersonalMixesForUser(id);
+  }
+
+  const allUsers = await User.find({}).select("_id").lean();
+  for (const user of allUsers) {
+    await runSmartPlaylistsForUser(user._id);
+  }
+
+  return {
+    personalMixUsers: personalMixUserIds.length,
+    smartUsers: allUsers.length,
+  };
+}
+
+export async function runGlobalMixesGeneration() {
+  return generateGlobalGenreAndMoodMixes();
+}
+
+export async function runHomeFeedGeneration({ userId } = {}) {
+  if (userId) {
+    await generateHomeFeedForUser(userId);
+    return 1;
+  }
+  return runHomeFeedForActiveUsers();
+}
+
+export async function runTrendingCacheWarmup() {
+  return warmTrendingCache();
+}
+
 export function registerCronJobs() {
   const tasks = [];
 
@@ -61,26 +109,16 @@ export function registerCronJobs() {
   tasks.push(
     cron.schedule("0 0 * * *", async () => {
       console.log(
-        'CRON JOB: Starting nightly user playlist generation (PERSONAL_MIX + smart playlists)...',
+        "CRON JOB: Starting nightly user playlist generation (PERSONAL_MIX + smart playlists)...",
       );
       try {
-        const personalMixUserIds = await getUserIdsWithMinListens(
-          PERSONAL_MIX_MIN_LISTENS,
-        );
-
-        for (const userId of personalMixUserIds) {
-          await generatePersonalMixesForUser(userId);
-        }
+        const { personalMixUsers, smartUsers } =
+          await runUserPlaylistGeneration();
         console.log(
-          `CRON JOB: PERSONAL_MIX finished for ${personalMixUserIds.length} users.`,
+          `CRON JOB: PERSONAL_MIX finished for ${personalMixUsers} users.`,
         );
-
-        const allUsers = await User.find({}).select("_id").lean();
-        for (const user of allUsers) {
-          await runSmartPlaylistsForUser(user._id);
-        }
         console.log(
-          `CRON JOB: Smart playlists finished for ${allUsers.length} users.`,
+          `CRON JOB: Smart playlists finished for ${smartUsers} users.`,
         );
       } catch (error) {
         console.error(
@@ -94,9 +132,11 @@ export function registerCronJobs() {
   // 01:00 — global GENRE_MIX / MOOD_MIX (after user playlists)
   tasks.push(
     cron.schedule("0 1 * * *", async () => {
-      console.log("CRON JOB: Starting global genre and mood mixes generation...");
+      console.log(
+        "CRON JOB: Starting global genre and mood mixes generation...",
+      );
       try {
-        await generateGlobalGenreAndMoodMixes();
+        await runGlobalMixesGeneration();
       } catch (error) {
         console.error("CRON JOB: Error in global mixes generation:", error);
       }
@@ -106,9 +146,11 @@ export function registerCronJobs() {
   // 02:00, 08:00, 14:00, 20:00 — home feed for active users (after nightly playlist jobs)
   tasks.push(
     cron.schedule("0 2,8,14,20 * * *", async () => {
-      console.log("CRON JOB: Starting home feed generation for active users...");
+      console.log(
+        "CRON JOB: Starting home feed generation for active users...",
+      );
       try {
-        const count = await generateHomeFeedForActiveUsers();
+        const count = await runHomeFeedGeneration();
         console.log(`CRON JOB: Home feed generation finished for ${count} users.`);
       } catch (error) {
         console.error("CRON JOB: Error in home feed generation:", error);
@@ -121,7 +163,7 @@ export function registerCronJobs() {
     cron.schedule("0 */6 * * *", async () => {
       console.log("CRON JOB: Warming trending cache...");
       try {
-        await warmTrendingCache();
+        await runTrendingCacheWarmup();
         console.log("CRON JOB: Trending cache warmed.");
       } catch (error) {
         console.error("CRON JOB: Error warming trending cache:", error);

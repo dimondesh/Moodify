@@ -1,32 +1,57 @@
 import { axiosInstance } from "@/lib/axios";
 import { useLibraryStore } from "@/stores/useLibraryStore";
 import { useAuthStore } from "@/stores/useAuthStore";
-import type { Song, Album, Artist, Playlist } from "@/types";
+import type { DisplayItem, Song } from "@/types";
 
-export interface HomeBootstrapData {
-  featuredSongs: Song[];
-  trendingSongs: Song[];
-  trendingAlbums: Album[];
-  madeForYouSongs: Song[];
-  recentlyListenedSongs: Song[];
-  favoriteArtists: Artist[];
-  newReleases: Album[];
-  homePersonalPlaylists: Playlist[];
-  homeSmartPlaylists: Playlist[];
-  genreMixes: Playlist[];
-  moodMixes: Playlist[];
-  publicPlaylists: Playlist[];
-  recommendedPlaylists: Playlist[];
+export type HomeSectionId =
+  | "quickPicks"
+  | "madeForYou"
+  | "recentlyListened"
+  | "yourTopMixes"
+  | "albumsYouMightLike"
+  | "yourPlaylists"
+  | "trendingSongs"
+  | "trendingArtists"
+  | "trendingAlbums";
+
+export interface HomeSection {
+  id: HomeSectionId;
+  items: DisplayItem[];
 }
 
-export async function fetchHomeBootstrap(): Promise<HomeBootstrapData> {
+export interface HomeBootstrapResponse {
+  mode: "personalized" | "guest";
+  sections: HomeSection[];
+}
+
+const SONG_SECTION_IDS: HomeSectionId[] = ["quickPicks", "trendingSongs"];
+
+function normalizeSection(section: {
+  id: string;
+  items?: unknown[];
+}): HomeSection {
+  const id = section.id as HomeSectionId;
+  const rawItems = section.items ?? [];
+
+  if (SONG_SECTION_IDS.includes(id)) {
+    return {
+      id,
+      items: rawItems.map((item) => ({
+        ...(item as Song),
+        itemType: "song" as const,
+      })),
+    };
+  }
+
+  return { id, items: rawItems as DisplayItem[] };
+}
+
+export async function fetchHomeBootstrap(): Promise<HomeBootstrapResponse> {
   const isLoggedIn = Boolean(useAuthStore.getState().accessToken);
 
   const [bootstrapResponse] = await Promise.all([
     axiosInstance.get("/home/bootstrap"),
-    isLoggedIn
-      ? useLibraryStore.getState().fetchLibrary()
-      : Promise.resolve(),
+    isLoggedIn ? useLibraryStore.getState().fetchLibrary() : Promise.resolve(),
   ]);
 
   const { data } = bootstrapResponse;
@@ -40,18 +65,7 @@ export async function fetchHomeBootstrap(): Promise<HomeBootstrapData> {
   }
 
   return {
-    featuredSongs: data.featuredSongs || [],
-    trendingSongs: data.trendingSongs || [],
-    trendingAlbums: data.trendingAlbums || [],
-    madeForYouSongs: data.madeForYouSongs || [],
-    recentlyListenedSongs: data.recentlyListenedSongs || [],
-    favoriteArtists: data.favoriteArtists || [],
-    newReleases: data.newReleases || [],
-    homePersonalPlaylists: data.personalMixes || [],
-    homeSmartPlaylists: data.allGeneratedPlaylists || [],
-    genreMixes: data.genreMixes || [],
-    moodMixes: data.moodMixes || [],
-    publicPlaylists: data.publicPlaylists || [],
-    recommendedPlaylists: data.recommendedPlaylists || [],
+    mode: data.mode === "personalized" ? "personalized" : "guest",
+    sections: (data.sections ?? []).map(normalizeSection),
   };
 }

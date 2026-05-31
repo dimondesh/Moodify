@@ -4,7 +4,7 @@ import SectionGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton"
 import type { Playlist } from "../../types";
 import { useTranslation } from "react-i18next";
 import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
-import { useHomeBootstrap, useSecondaryHome } from "@/hooks/queries";
+import { useSecondaryHome } from "@/hooks/queries";
 import { getImageUrlByKey } from "@/lib/imageUrl";
 import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 import { getPlaylistDisplayTitle } from "@/lib/utils";
@@ -18,16 +18,11 @@ const PlaylistBrowsePage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
-  const { data: bootstrap } = useHomeBootstrap();
   const { data: secondary, isFetching: isSecondaryFetching } =
     useSecondaryHome();
 
-  const genreMixes =
-    (bootstrap?.genreMixes?.length ? bootstrap.genreMixes : secondary?.genreMixes) ??
-    [];
-  const moodMixes =
-    (bootstrap?.moodMixes?.length ? bootstrap.moodMixes : secondary?.moodMixes) ??
-    [];
+  const genreMixes = secondary?.genreMixes ?? [];
+  const moodMixes = secondary?.moodMixes ?? [];
 
   const { playlists: initialFromState, title: stateTitle } =
     (location.state as BrowseLocationState) || {};

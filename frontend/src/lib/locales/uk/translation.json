@@ -102,8 +102,15 @@
     "evening": "Доброго вечора"
   },
   "homepage": {
+    "quickPicks": "Швидкий вибір",
     "madeForYou": "Створено для вас",
     "recentlyListened": "Ви нещодавно слухали",
+    "yourTopMixes": "Ваші топ-мікси",
+    "albumsYouMightLike": "Альбоми, які можуть сподобатися",
+    "yourPlaylists": "Ваші плейлисти",
+    "trendingSongs": "Трендові треки",
+    "trendingArtists": "Трендові виконавці",
+    "trendingAlbums": "Трендові альбоми",
     "genreMixes": "Мікси за жанрами",
     "moodMixes": "Мікси за настроєм",
     "trending": "У тренді",

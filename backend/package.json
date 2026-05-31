@@ -18,6 +18,7 @@
     "migrate:unbounded-arrays": "node src/scripts/migrateUnboundedArrays.js",
     "generate:entity-embeddings": "node src/scripts/generateEntityEmbeddings.js",
     "generate:playlists": "node src/scripts/generatePlaylists.js",
+    "generate:all": "node src/scripts/generateAll.js",
     "migrate:locales": "node src/scripts/migrateLocales.js",
     "migrate:made-for": "node src/scripts/migratePlaylistMadeFor.js",
     "migrate:artist-banners": "node src/scripts/migrateArtistBanners.js",

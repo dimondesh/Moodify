@@ -103,8 +103,15 @@
     "evening": "Good Evening"
   },
   "homepage": {
+    "quickPicks": "Quick Picks",
     "madeForYou": "Made For You",
     "recentlyListened": "You Recently Listened",
+    "yourTopMixes": "Your Top Mixes",
+    "albumsYouMightLike": "Albums You Might Like",
+    "yourPlaylists": "Your Playlists",
+    "trendingSongs": "Trending Songs",
+    "trendingArtists": "Trending Artists",
+    "trendingAlbums": "Trending Albums",
     "genreMixes": "Genre Mixes",
     "moodMixes": "Mood Mixes",
     "trending": "Trending",
