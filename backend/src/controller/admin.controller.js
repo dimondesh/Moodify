@@ -7,47 +7,47 @@ import {
   deleteFromBunny,
   getPathFromUrl,
   uploadDirectoryToBunny,
-} from "../lib/bunny.service.js";
+} from "../lib/media/bunny.service.js";
 import * as mm from "music-metadata";
 
 import {
   getAlbumDataFromSpotify,
   getArtistDataFromSpotify,
-} from "../lib/spotifyService.js";
-import { getLrcLyricsFromLrclib } from "../lib/lyricsService.js";
+} from "../lib/integrations/spotifyService.js";
+import { getLrcLyricsFromLrclib } from "../lib/integrations/lyricsService.js";
 import {
   extractZip,
   parseTrackFileName,
   cleanUpTempDir,
-} from "../lib/zipHandler.js";
+} from "../lib/media/zipHandler.js";
 
 import path from "path";
 import fs from "fs/promises";
 import fsSync from "fs";
-import { getBatchTagsFromAI } from "../lib/ai.service.js";
+import { getBatchTagsFromAI } from "../lib/integrations/ai.service.js";
 import { Genre } from "../models/genre.model.js";
 import { Mood } from "../models/mood.model.js";
 import { v4 as uuidv4 } from "uuid";
-import { transcodeToHls } from "../lib/ffmpeg.service.js";
+import { transcodeToHls } from "../lib/media/ffmpeg.service.js";
 import axios from "axios";
 import { createWriteStream } from "fs";
-import { analyzeAudioFeatures } from "../lib/audioAnalysis.service.js";
+import { analyzeAudioFeatures } from "../lib/integrations/audioAnalysis.service.js";
 import {
   enqueueAdminFileJob,
   getAdminFileQueueSnapshot,
-} from "../lib/adminUploadQueue.service.js";
+} from "../lib/media/adminUploadQueue.service.js";
 import {
   touchChunkAssemblyLease,
   releaseChunkAssemblyLease,
   getChunkAssemblyLeaseStats,
   getGlobalLeaseStats,
   sanitizeChunkUploadId,
-} from "../lib/adminUploadLease.service.js";
+} from "../lib/media/adminUploadLease.service.js";
 import os from "os";
 import {
   extractCoverAccentHexFromBuffer,
   isSkippableCoverImageUrl,
-} from "../lib/coverAccent.service.js";
+} from "../lib/media/coverAccent.service.js";
 import {
   CDN_DEFAULT_ALBUM_COVER,
   CDN_DEFAULT_ARTIST_IMAGE,
@@ -57,7 +57,7 @@ import {
   replaceEntityImageVariants,
   toImageFields,
   uploadImageVariantsFromSource,
-} from "../lib/imageVariants.service.js";
+} from "../lib/media/imageVariants.service.js";
 
 const DOWNLOAD_OPTS = {
   responseType: "arraybuffer",

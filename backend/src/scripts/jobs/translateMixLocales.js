@@ -10,7 +10,7 @@ import mongoose from "mongoose";
 import {
   ensureGenreAndMoodLocalizedNames,
   retranslateAllGenreAndMoodLocalizedNames,
-} from "../lib/mixLocale.service.js";
+} from "../../lib/playlists/mixLocale.service.js";
 
 async function main() {
   if (!process.env.MONGO_URI) {

@@ -1,6 +1,6 @@
 import { User } from "../models/user.model.js";
-import { verifyAccessToken } from "../lib/jwt.js";
-import { buildReqUser } from "../lib/userRoles.js";
+import { verifyAccessToken } from "../lib/core/jwt.js";
+import { buildReqUser } from "../lib/core/userRoles.js";
 import dotenv from "dotenv";
 dotenv.config();
 

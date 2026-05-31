@@ -1,9 +1,9 @@
 import mongoose from "mongoose";
-import { RecentActivity } from "../models/recentActivity.model.js";
-import { Album } from "../models/album.model.js";
-import { Playlist } from "../models/playlist.model.js";
-import { Artist } from "../models/artist.model.js";
-import { Song } from "../models/song.model.js";
+import { RecentActivity } from "../../models/recentActivity.model.js";
+import { Album } from "../../models/album.model.js";
+import { Playlist } from "../../models/playlist.model.js";
+import { Artist } from "../../models/artist.model.js";
+import { Song } from "../../models/song.model.js";
 
 const SONG_MINIMAL_SELECT =
   "_id title artist albumId images coverAccentHex duration playCount";

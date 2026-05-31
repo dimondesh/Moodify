@@ -1,4 +1,4 @@
-import redisClient from "../lib/redis.js";
+import redisClient from "../lib/core/redis.js";
 
 export const cacheRoute = (
   durationInSeconds = 3600,

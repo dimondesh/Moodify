@@ -1,28 +1,28 @@
 // backend/src/lib/playlistGenerator.service.js
 import mongoose from "mongoose";
-import { ListenHistory } from "../models/listenHistory.model.js";
-import { Song } from "../models/song.model.js";
-import { LikedSong } from "../models/likedSong.model.js";
-import { Playlist } from "../models/playlist.model.js";
-import { Genre } from "../models/genre.model.js";
-import { Mood } from "../models/mood.model.js";
+import { ListenHistory } from "../../models/listenHistory.model.js";
+import { Song } from "../../models/song.model.js";
+import { LikedSong } from "../../models/likedSong.model.js";
+import { Playlist } from "../../models/playlist.model.js";
+import { Genre } from "../../models/genre.model.js";
+import { Mood } from "../../models/mood.model.js";
 import {
   CDN_ON_REPEAT_IMAGE,
   CDN_DISCOVER_WEEKLY_IMAGE,
   CDN_ON_REPEAT_REWIND_IMAGE,
   CDN_DEFAULT_ALBUM_COVER,
-} from "../constants/cdn.js";
+} from "../../constants/cdn.js";
 import {
   buildStaticCdnImages,
   getLargeImageUrl,
-} from "./imageVariants.service.js";
-import { buildMixPlaylistLabels } from "./mixLocalization.js";
-import { ensureGenreAndMoodLocalizedNames } from "./mixLocale.service.js";
+} from "../media/imageVariants.service.js";
 import {
+  buildMixPlaylistLabels,
   buildPersonalMixLabels,
   getSmartPlaylistLabels,
-} from "./generatedPlaylistCopy.js";
-import { updatePlaylistEmbedding } from "./recommendation.service.js";
+} from "./labels.js";
+import { ensureGenreAndMoodLocalizedNames } from "./mixLocale.service.js";
+import { updatePlaylistEmbedding } from "../recommendations/recommendation.service.js";
 
 const ON_REPEAT_SONG_COUNT = 30;
 const MIX_SONG_COUNT = 30;

@@ -5,18 +5,18 @@ import {
   signAccessToken,
   signPasswordResetToken,
   verifyPasswordResetToken,
-} from "../lib/jwt.js";
+} from "../lib/core/jwt.js";
 import {
   extractCoverAccentHexFromUrl,
   isSkippableCoverImageUrl,
-} from "../lib/coverAccent.service.js";
-import { isAdminUser } from "../lib/userRoles.js";
-import { needsTasteOnboarding } from "../lib/tasteProfile.service.js";
+} from "../lib/media/coverAccent.service.js";
+import { isAdminUser } from "../lib/core/userRoles.js";
+import { needsTasteOnboarding } from "../lib/recommendations/tasteProfile.service.js";
 import {
   getLargeImageUrl,
   toImageFields,
   uploadImageVariantsFromSource,
-} from "../lib/imageVariants.service.js";
+} from "../lib/media/imageVariants.service.js";
 
 const BCRYPT_ROUNDS = 12;
 const CODE_EXPIRY_MS = 15 * 60 * 1000;

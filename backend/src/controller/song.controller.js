@@ -4,11 +4,11 @@ import mongoose from "mongoose";
 import { Song } from "../models/song.model.js";
 import { ListenHistory } from "../models/listenHistory.model.js";
 import { User } from "../models/user.model.js";
-import { getVibeMatchTracks } from "../lib/recommendation.service.js";
+import { getVibeMatchTracks } from "../lib/recommendations/recommendation.service.js";
 import {
   getRecentActivityEntities,
   recordRecentActivity,
-} from "../lib/recentActivity.service.js";
+} from "../lib/activity/recentActivity.service.js";
 
 const SONG_MINIMAL_SELECT =
   "_id title artist albumId images coverAccentHex duration playCount";

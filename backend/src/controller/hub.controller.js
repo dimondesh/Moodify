@@ -5,7 +5,7 @@ import { Playlist } from "../models/playlist.model.js";
 import { Song } from "../models/song.model.js";
 import { populatePlaylistEmbeddedSongs } from "./playlist.controller.js";
 import { orderByIds } from "../lib/home/homeFeedGenerator.service.js";
-import { attachPreviewCoversToHubs } from "../lib/hubGenerator.service.js";
+import { attachPreviewCoversToHubs } from "../lib/recommendations/hubGenerator.service.js";
 import { HUB_SECTION_LIMIT } from "../constants/hub.js";
 
 const HUB_LIST_SELECT =

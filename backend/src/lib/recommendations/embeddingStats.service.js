@@ -1,15 +1,15 @@
-import { Song } from "../models/song.model.js";
-import { Album } from "../models/album.model.js";
-import { Artist } from "../models/artist.model.js";
-import { Playlist } from "../models/playlist.model.js";
-import { Genre } from "../models/genre.model.js";
-import { Mood } from "../models/mood.model.js";
-import { Hub } from "../models/hub.model.js";
+import { Song } from "../../models/song.model.js";
+import { Album } from "../../models/album.model.js";
+import { Artist } from "../../models/artist.model.js";
+import { Playlist } from "../../models/playlist.model.js";
+import { Genre } from "../../models/genre.model.js";
+import { Mood } from "../../models/mood.model.js";
+import { Hub } from "../../models/hub.model.js";
 import {
   VALID_SONG_EMBEDDING,
   VALID_ENTITY_EMBEDDING,
-} from "../constants/embedding.js";
-import { HUB_MIN_TRACKS } from "../constants/hub.js";
+} from "../../constants/embedding.js";
+import { HUB_MIN_TRACKS } from "../../constants/hub.js";
 
 const countEligibleCategories = async (Model, tagField) => {
   const categories = await Model.find({ ...VALID_ENTITY_EMBEDDING })

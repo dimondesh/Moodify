@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { connectDB } from "../lib/db.js";
+import { connectDB } from "../lib/core/db.js";
 import { registerCronJobs } from "./schedules.js";
 
 const tasks = registerCronJobs();

@@ -1,15 +1,15 @@
 import mongoose from "mongoose";
-import { Artist } from "../models/artist.model.js";
-import { User } from "../models/user.model.js";
-import { FollowedArtist } from "../models/followedArtist.model.js";
-import { Song } from "../models/song.model.js";
+import { Artist } from "../../models/artist.model.js";
+import { User } from "../../models/user.model.js";
+import { FollowedArtist } from "../../models/followedArtist.model.js";
+import { Song } from "../../models/song.model.js";
 import {
   EMBEDDING_DIM,
   TASTE_ONBOARDING_MIN_ARTISTS,
   ONBOARDING_ARTISTS_LIMIT,
   ONBOARDING_ARTISTS_POOL_SIZE,
   ONBOARDING_ARTISTS_PAGE_SIZE,
-} from "../constants/embedding.js";
+} from "../../constants/embedding.js";
 import {
   meanPoolEmbeddings,
   cosineSimilarity,

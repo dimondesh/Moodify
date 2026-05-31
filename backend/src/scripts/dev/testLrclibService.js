@@ -1,5 +1,5 @@
 // backend/testLrclibService.js
-import { getLrcLyricsFromLrclib } from "./lyricsService.js";
+import { getLrcLyricsFromLrclib } from "../../lib/integrations/lyricsService.js";
 
 const TEST_SONG_DATA = {
   artistName: "Queen",

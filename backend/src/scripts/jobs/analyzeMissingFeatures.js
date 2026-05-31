@@ -8,7 +8,7 @@ import util from "util";
 import axios from "axios";
 import FormData from "form-data";
 
-import { Song } from "../models/song.model.js";
+import { Song } from "../../models/song.model.js";
 
 const execPromise = util.promisify(exec);
 
@@ -17,7 +17,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Указываем явный путь к .env файлу
-dotenv.config({ path: path.resolve(__dirname, "../../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 
 const MONGO_URL = process.env.MONGODB_URI || process.env.MONGO_URI;
 const ANALYSIS_SERVICE_URL =

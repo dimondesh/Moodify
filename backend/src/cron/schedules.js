@@ -6,12 +6,12 @@ import {
   generateOnRepeatPlaylistForUser,
   generateDiscoverWeeklyForUser,
   generateOnRepeatRewindForUser,
-} from "../lib/playlistGenerator.service.js";
+} from "../lib/playlists/playlistGenerator.service.js";
 import { generateHomeFeedForUser } from "../lib/home/homeFeedGenerator.service.js";
 import { warmTrendingCache } from "../lib/home/trending.service.js";
 import { User } from "../models/user.model.js";
-import { cleanAllTempDirectories } from "../lib/tempCleanup.service.js";
-import { runCategoryEmbeddingsAndHubs } from "../lib/hubGenerator.service.js";
+import { cleanAllTempDirectories } from "../lib/media/tempCleanup.service.js";
+import { runCategoryEmbeddingsAndHubs } from "../lib/recommendations/hubGenerator.service.js";
 
 export const PERSONAL_MIX_MIN_LISTENS = 10;
 const HOME_FEED_BATCH_SIZE = 20;

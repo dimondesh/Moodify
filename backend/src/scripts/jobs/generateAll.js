@@ -8,14 +8,14 @@
  */
 import "dotenv/config";
 import mongoose from "mongoose";
-import { connectRedis } from "../lib/redis.js";
+import { connectRedis } from "../../lib/core/redis.js";
 import {
   runUserPlaylistGeneration,
   runGlobalMixesGeneration,
   runHomeFeedGeneration,
   runTrendingCacheWarmup,
   runHubGeneration,
-} from "../cron/schedules.js";
+} from "../../cron/schedules.js";
 
 const args = process.argv.slice(2);
 const hasFlag = (name) => args.includes(name);

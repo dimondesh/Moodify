@@ -6,14 +6,14 @@
  */
 import "dotenv/config";
 import mongoose from "mongoose";
-import { Album } from "../src/models/album.model.js";
-import { Song } from "../src/models/song.model.js";
-import { Playlist } from "../src/models/playlist.model.js";
-import { User } from "../src/models/user.model.js";
+import { Album } from "../../models/album.model.js";
+import { Song } from "../../models/song.model.js";
+import { Playlist } from "../../models/playlist.model.js";
+import { User } from "../../models/user.model.js";
 import {
   extractCoverAccentHexFromUrl,
   isSkippableCoverImageUrl,
-} from "../src/lib/coverAccent.service.js";
+} from "../../lib/media/coverAccent.service.js";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const force = process.argv.includes("--force");

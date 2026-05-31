@@ -7,15 +7,15 @@
  */
 import "dotenv/config";
 import mongoose from "mongoose";
-import { Genre } from "../models/genre.model.js";
-import { Mood } from "../models/mood.model.js";
-import { Hub } from "../models/hub.model.js";
-import { MIX_LOCALE_LANGS } from "../lib/mixLocale.service.js";
+import { Genre } from "../../models/genre.model.js";
+import { Mood } from "../../models/mood.model.js";
+import { Hub } from "../../models/hub.model.js";
+import { MIX_LOCALE_LANGS } from "../../lib/playlists/mixLocale.service.js";
 import {
   stripCategoryLocalizedNames,
   stripGenreMoodMixSuffix,
-} from "../lib/localeCopy.js";
-import { invalidateHubsCache } from "../lib/hubGenerator.service.js";
+} from "../../lib/playlists/labels.js";
+import { invalidateHubsCache } from "../../lib/recommendations/hubGenerator.service.js";
 
 const dryRun = process.argv.includes("--dry-run");
 const includeHubs = process.argv.includes("--hubs");

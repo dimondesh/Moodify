@@ -10,15 +10,15 @@
  */
 import "dotenv/config";
 import mongoose from "mongoose";
-import { ListenHistory } from "../models/listenHistory.model.js";
-import { User } from "../models/user.model.js";
+import { ListenHistory } from "../../models/listenHistory.model.js";
+import { User } from "../../models/user.model.js";
 import {
   generateGlobalGenreAndMoodMixes,
   generatePersonalMixesForUser,
   generateOnRepeatPlaylistForUser,
   generateDiscoverWeeklyForUser,
   generateOnRepeatRewindForUser,
-} from "../lib/playlistGenerator.service.js";
+} from "../../lib/playlists/playlistGenerator.service.js";
 
 const args = process.argv.slice(2);
 const hasFlag = (name) => args.includes(name);

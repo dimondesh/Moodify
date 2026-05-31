@@ -5,7 +5,7 @@
  */
 import "dotenv/config";
 import mongoose from "mongoose";
-import { LikedSong } from "../models/likedSong.model.js";
+import { LikedSong } from "../../models/likedSong.model.js";
 
 async function main() {
   if (!process.env.MONGO_URI) {

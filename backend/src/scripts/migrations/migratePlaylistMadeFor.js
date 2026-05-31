@@ -4,8 +4,8 @@
  */
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-import { Playlist } from "../models/playlist.model.js";
-import { GENERATED_PLAYLIST_TYPES } from "../constants/playlistTypes.js";
+import { Playlist } from "../../models/playlist.model.js";
+import { GENERATED_PLAYLIST_TYPES } from "../../constants/playlistTypes.js";
 
 dotenv.config();
 

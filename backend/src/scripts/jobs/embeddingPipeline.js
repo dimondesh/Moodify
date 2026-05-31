@@ -9,9 +9,9 @@
  */
 import "dotenv/config";
 import mongoose from "mongoose";
-import { connectRedis } from "../lib/redis.js";
-import { printEmbeddingStats } from "../lib/embeddingStats.service.js";
-import { runCategoryEmbeddingsAndHubs } from "../lib/hubGenerator.service.js";
+import { connectRedis } from "../../lib/core/redis.js";
+import { printEmbeddingStats } from "../../lib/recommendations/embeddingStats.service.js";
+import { runCategoryEmbeddingsAndHubs } from "../../lib/recommendations/hubGenerator.service.js";
 import { spawn } from "child_process";
 import path from "path";
 import { fileURLToPath } from "url";

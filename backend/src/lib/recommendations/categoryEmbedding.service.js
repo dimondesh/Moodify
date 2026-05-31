@@ -1,9 +1,9 @@
-import { Genre } from "../models/genre.model.js";
-import { Mood } from "../models/mood.model.js";
-import { Song } from "../models/song.model.js";
+import { Genre } from "../../models/genre.model.js";
+import { Mood } from "../../models/mood.model.js";
+import { Song } from "../../models/song.model.js";
+import { VALID_SONG_EMBEDDING } from "../../constants/embedding.js";
 import { meanPoolEmbeddings } from "./recommendation.service.js";
-import { VALID_SONG_EMBEDDING } from "../constants/embedding.js";
-import { mapWithConcurrency } from "./asyncUtils.js";
+import { mapWithConcurrency } from "../core/asyncUtils.js";
 
 const CATEGORY_TOP_TRACKS_LIMIT = 100;
 const CENTROID_CONCURRENCY = 8;

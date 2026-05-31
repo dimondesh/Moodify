@@ -3,25 +3,25 @@ import { LikedSong } from "../models/likedSong.model.js";
 import { User } from "../models/user.model.js";
 import { Song } from "../models/song.model.js";
 import { SavedPlaylist } from "../models/savedPlaylist.model.js";
-import { getPlaylistEmbeddingRecommendations } from "../lib/recommendation.service.js";
-import { deletePlaylistCoverFromCdn } from "../lib/playlistCover.service.js";
+import { getPlaylistEmbeddingRecommendations } from "../lib/recommendations/recommendation.service.js";
+import { deletePlaylistCoverFromCdn } from "../lib/playlists/playlistCover.service.js";
 import {
   buildStaticCdnImages,
   toImageFields,
   replaceEntityImageVariants,
-} from "../lib/imageVariants.service.js";
+} from "../lib/media/imageVariants.service.js";
 import fs from "fs/promises";
 import {
   extractCoverAccentHexFromBuffer,
   extractCoverAccentHexFromUrl,
   isSkippableCoverImageUrl,
-} from "../lib/coverAccent.service.js";
+} from "../lib/media/coverAccent.service.js";
 import {
   CDN_DEFAULT_ALBUM_COVER,
   CDN_LIKED_PLAYLIST_COVER,
 } from "../constants/cdn.js";
 import { USER_CREATED_PLAYLIST_TYPE } from "../constants/playlistTypes.js";
-import { canUserViewPlaylist } from "../lib/playlistAccess.js";
+import { canUserViewPlaylist } from "../lib/playlists/playlistAccess.js";
 
 export const LIKED_PLAYLIST_ID = "liked";
 

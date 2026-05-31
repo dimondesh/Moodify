@@ -2,17 +2,17 @@ import dotenv from "dotenv";
 import mongoose from "mongoose";
 import path from "path";
 import { fileURLToPath } from "url";
-import { Album } from "../models/album.model.js";
-import { Artist } from "../models/artist.model.js";
-import { Playlist } from "../models/playlist.model.js";
+import { Album } from "../../models/album.model.js";
+import { Artist } from "../../models/artist.model.js";
+import { Playlist } from "../../models/playlist.model.js";
 import {
   computeAlbumEmbedding,
   computeArtistEmbedding,
   computePlaylistEmbedding,
-} from "../lib/recommendation.service.js";
+} from "../../lib/recommendations/recommendation.service.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.resolve(__dirname, "../../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 
 const MONGO_URL = process.env.MONGODB_URI || process.env.MONGO_URI;
 const BATCH_SIZE = 100;

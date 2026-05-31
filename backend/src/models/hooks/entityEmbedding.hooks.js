@@ -12,7 +12,7 @@ const fireAndForget = (promise) => {
 };
 
 const loadRecommendationService = () =>
-  import("../../lib/recommendation.service.js");
+  import("../../lib/recommendations/recommendation.service.js");
 
 const refreshAlbumEmbedding = (albumId) => {
   if (!albumId || !hooksEnabled()) return;
@@ -55,7 +55,7 @@ const updateTouchesSongs = (update) => {
 const refreshSongRelatedEmbeddings = async (songDoc, previousArtistIds = []) => {
   const { Playlist } = await import("../playlist.model.js");
   const { updateAlbumEmbedding, updateArtistEmbedding, updatePlaylistEmbedding } =
-    await import("../../lib/recommendation.service.js");
+    await import("../../lib/recommendations/recommendation.service.js");
 
   const tasks = [];
 

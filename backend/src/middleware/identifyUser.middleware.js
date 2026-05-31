@@ -1,5 +1,5 @@
 import { User } from "../models/user.model.js";
-import { verifyAccessToken } from "../lib/jwt.js";
+import { verifyAccessToken } from "../lib/core/jwt.js";
 
 export const identifyUser = async (req, res, next) => {
   try {

@@ -1,7 +1,7 @@
 import { Song } from "../models/song.model.js";
 import { Album } from "../models/album.model.js";
 import { Playlist } from "../models/playlist.model.js";
-import { getLargeImageUrl } from "../lib/imageVariants.service.js";
+import { getLargeImageUrl } from "../lib/media/imageVariants.service.js";
 
 export const generateOGMeta = async (req, res, next) => {
   try {

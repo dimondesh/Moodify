@@ -6,10 +6,10 @@
  */
 import "dotenv/config";
 import mongoose from "mongoose";
-import { SavedAlbum } from "../models/savedAlbum.model.js";
-import { SavedPlaylist } from "../models/savedPlaylist.model.js";
-import { FollowedArtist } from "../models/followedArtist.model.js";
-import { FollowedUser } from "../models/followedUser.model.js";
+import { SavedAlbum } from "../../models/savedAlbum.model.js";
+import { SavedPlaylist } from "../../models/savedPlaylist.model.js";
+import { FollowedArtist } from "../../models/followedArtist.model.js";
+import { FollowedUser } from "../../models/followedUser.model.js";
 
 const dropLegacy = process.argv.includes("--drop-legacy");
 

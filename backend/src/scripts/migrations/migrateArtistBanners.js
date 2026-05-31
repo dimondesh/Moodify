@@ -8,7 +8,7 @@
  */
 import "dotenv/config";
 import mongoose from "mongoose";
-import { deleteFromBunny, getPathFromUrl } from "../lib/bunny.service.js";
+import { deleteFromBunny, getPathFromUrl } from "../../lib/media/bunny.service.js";
 
 const dryRun = process.argv.includes("--dry-run");
 

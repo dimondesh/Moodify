@@ -4,14 +4,14 @@ import dotenv from "dotenv";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import axios from "axios";
-import { Song } from "../models/song.model.js";
-import { Artist } from "../models/artist.model.js";
-import { uploadToBunny } from "../lib/bunny.service.js";
+import { Song } from "../../models/song.model.js";
+import { Artist } from "../../models/artist.model.js";
+import { uploadToBunny } from "../../lib/media/bunny.service.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config({ path: path.resolve(__dirname, "../../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 
 const MONGO_URL = process.env.MONGODB_URI || process.env.MONGO_URI;
 const CANVAS_SERVICE_URL =

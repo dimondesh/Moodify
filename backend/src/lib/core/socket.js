@@ -1,11 +1,11 @@
 // backend/src/lib/socket.js
 import { Server } from "socket.io";
-import { Message } from "../models/message.model.js";
-import { User } from "../models/user.model.js";
-import { FollowedUser } from "../models/followedUser.model.js";
-import { Playlist } from "../models/playlist.model.js";
-import { Song } from "../models/song.model.js";
-import { Artist } from "../models/artist.model.js";
+import { Message } from "../../models/message.model.js";
+import { User } from "../../models/user.model.js";
+import { FollowedUser } from "../../models/followedUser.model.js";
+import { Playlist } from "../../models/playlist.model.js";
+import { Song } from "../../models/song.model.js";
+import { Artist } from "../../models/artist.model.js";
 import { verifyAccessToken } from "./jwt.js";
 import {
   isTrackActivity,
@@ -13,7 +13,7 @@ import {
   rememberTrackActivity,
   setSessionActivity,
   touchLastKnownAt,
-} from "./activityPersistence.service.js";
+} from "../activity/activityPersistence.service.js";
 export let io;
 
 export const initializeSocket = (server) => {

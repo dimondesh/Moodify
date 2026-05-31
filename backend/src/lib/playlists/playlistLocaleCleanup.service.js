@@ -1,4 +1,4 @@
-import { Playlist } from "../models/playlist.model.js";
+import { Playlist } from "../../models/playlist.model.js";
 
 /** Legacy duplicate of localizedNames — remove from all playlists. */
 export const removePlaylistSearchableNames = async () => {

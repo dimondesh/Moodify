@@ -1,5 +1,5 @@
 // backend/testSpotifyService.js
-import { getAlbumDataFromSpotify } from "./spotifyService.js";
+import { getAlbumDataFromSpotify } from "../../lib/integrations/spotifyService.js";
 
 const TEST_ALBUM_URL = "https://open.spotify.com/album/47rlABSBChwZC7qxAKzOWw"; 
 

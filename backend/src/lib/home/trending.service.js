@@ -1,4 +1,4 @@
-import redisClient from "../redis.js";
+import redisClient from "../core/redis.js";
 import { TRENDING_CACHE_TTL } from "../../constants/cache.js";
 import { ListenHistory } from "../../models/listenHistory.model.js";
 import { Song } from "../../models/song.model.js";

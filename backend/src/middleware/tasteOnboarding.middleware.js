@@ -1,4 +1,4 @@
-import { needsTasteOnboarding } from "../lib/tasteProfile.service.js";
+import { needsTasteOnboarding } from "../lib/recommendations/tasteProfile.service.js";
 
 export const attachRequiresOnboarding = async (req, res, next) => {
   try {

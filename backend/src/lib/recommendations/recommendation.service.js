@@ -1,15 +1,15 @@
 // backend/src/lib/recommendation.service.js
 import mongoose from "mongoose";
-import { Album } from "../models/album.model.js";
-import { Artist } from "../models/artist.model.js";
-import { User } from "../models/user.model.js";
-import { Playlist } from "../models/playlist.model.js";
-import { Song } from "../models/song.model.js";
-import { ListenHistory } from "../models/listenHistory.model.js";
+import { Album } from "../../models/album.model.js";
+import { Artist } from "../../models/artist.model.js";
+import { User } from "../../models/user.model.js";
+import { Playlist } from "../../models/playlist.model.js";
+import { Song } from "../../models/song.model.js";
+import { ListenHistory } from "../../models/listenHistory.model.js";
 import {
   EMBEDDING_DIM,
   ARTIST_TOP_TRACKS_LIMIT,
-} from "../constants/embedding.js";
+} from "../../constants/embedding.js";
 
 const extractValidEmbeddings = (songs) =>
   songs

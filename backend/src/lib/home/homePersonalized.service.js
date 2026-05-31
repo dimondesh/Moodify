@@ -4,7 +4,7 @@ import { Playlist } from "../../models/playlist.model.js";
 import { HomeFeed } from "../../models/homeFeed.model.js";
 import { populatePlaylistEmbeddedSongs } from "../../controller/playlist.controller.js";
 import { USER_CREATED_PLAYLIST_TYPE } from "../../constants/playlistTypes.js";
-import { getRecentEntities } from "../recentActivity.service.js";
+import { getRecentEntities } from "../activity/recentActivity.service.js";
 import {
   orderByIds,
   enqueueHomeFeedGeneration,

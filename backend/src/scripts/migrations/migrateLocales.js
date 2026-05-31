@@ -6,16 +6,16 @@
  */
 import "dotenv/config";
 import mongoose from "mongoose";
-import { Genre } from "../models/genre.model.js";
-import { Mood } from "../models/mood.model.js";
-import { Playlist } from "../models/playlist.model.js";
+import { Genre } from "../../models/genre.model.js";
+import { Mood } from "../../models/mood.model.js";
+import { Playlist } from "../../models/playlist.model.js";
 import {
   buildPersonalMixLabels,
   getSmartPlaylistLabels,
-} from "../lib/generatedPlaylistCopy.js";
-import { buildMixPlaylistLabels } from "../lib/mixLocalization.js";
-import { removePlaylistSearchableNames } from "../lib/playlistLocaleCleanup.service.js";
-import { GENERATED_PLAYLIST_TYPES } from "../constants/playlistTypes.js";
+  buildMixPlaylistLabels,
+} from "../../lib/playlists/labels.js";
+import { removePlaylistSearchableNames } from "../../lib/playlists/playlistLocaleCleanup.service.js";
+import { GENERATED_PLAYLIST_TYPES } from "../../constants/playlistTypes.js";
 
 const backfillMixPlaylistLocalizedNames = async () => {
   const [genres, moods] = await Promise.all([

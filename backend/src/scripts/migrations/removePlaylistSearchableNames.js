@@ -6,7 +6,7 @@
  */
 import "dotenv/config";
 import mongoose from "mongoose";
-import { removePlaylistSearchableNames } from "../lib/playlistLocaleCleanup.service.js";
+import { removePlaylistSearchableNames } from "../../lib/playlists/playlistLocaleCleanup.service.js";
 
 async function main() {
   if (!process.env.MONGO_URI) {

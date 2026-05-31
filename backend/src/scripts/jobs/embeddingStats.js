@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import "dotenv/config";
 import mongoose from "mongoose";
-import { printEmbeddingStats } from "../lib/embeddingStats.service.js";
+import { printEmbeddingStats } from "../../lib/recommendations/embeddingStats.service.js";
 
 async function main() {
   if (!process.env.MONGO_URI) {

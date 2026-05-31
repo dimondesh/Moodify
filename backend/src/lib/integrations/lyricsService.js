@@ -79,8 +79,6 @@ const getLyricsBySignature = async (
   }
 };
 
-export { getLyricsBySignature };
-
 const getLyricsByQuery = async (artistName, songName, albumName) => {
   try {
     const encodedArtistName = encodeURIComponent(artistName);
@@ -117,4 +115,4 @@ const getLyricsByQuery = async (artistName, songName, albumName) => {
   }
 };
 
-export { getLyricsByQuery };
+export { getLyricsBySignature, getLyricsByQuery };

@@ -11,8 +11,8 @@ import { EMBEDDING_DIM } from "../../constants/embedding.js";
 import {
   meanPoolEmbeddings,
   cosineSimilarity,
-} from "../recommendation.service.js";
-import { hasValidTasteVector } from "../tasteProfile.service.js";
+} from "../recommendations/recommendation.service.js";
+import { hasValidTasteVector } from "../recommendations/tasteProfile.service.js";
 
 const QUICK_PICKS_LIMIT = 12;
 const QUICK_PICKS_LOOKBACK_HOURS = 6;

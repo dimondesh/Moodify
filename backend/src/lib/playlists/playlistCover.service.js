@@ -1,5 +1,5 @@
 // backend/src/lib/playlistCover.service.js
-import { deleteFromBunny, getPathFromUrl } from "./bunny.service.js";
+import { deleteFromBunny, getPathFromUrl } from "../media/bunny.service.js";
 
 const PLAYLIST_COVER_PREFIX = "playlist_covers/";
 

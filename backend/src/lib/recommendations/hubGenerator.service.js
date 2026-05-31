@@ -1,16 +1,16 @@
 import crypto from "crypto";
-import { Genre } from "../models/genre.model.js";
-import { Mood } from "../models/mood.model.js";
-import { Song } from "../models/song.model.js";
-import { Album } from "../models/album.model.js";
-import { Artist } from "../models/artist.model.js";
-import { Playlist } from "../models/playlist.model.js";
-import { Hub } from "../models/hub.model.js";
+import { Genre } from "../../models/genre.model.js";
+import { Mood } from "../../models/mood.model.js";
+import { Song } from "../../models/song.model.js";
+import { Album } from "../../models/album.model.js";
+import { Artist } from "../../models/artist.model.js";
+import { Playlist } from "../../models/playlist.model.js";
+import { Hub } from "../../models/hub.model.js";
 import {
   EMBEDDING_DIM,
   VALID_SONG_EMBEDDING,
   VALID_ENTITY_EMBEDDING,
-} from "../constants/embedding.js";
+} from "../../constants/embedding.js";
 import { cosineSimilarity } from "./recommendation.service.js";
 import {
   calculateCentroids,
@@ -23,9 +23,9 @@ import {
   HUB_STORE_LIMIT,
   HUB_CANDIDATE_POOL,
   HUB_PREVIEW_COUNT,
-} from "../constants/hub.js";
-import { mapWithConcurrency } from "./asyncUtils.js";
-import redisClient from "./redis.js";
+} from "../../constants/hub.js";
+import { mapWithConcurrency } from "../core/asyncUtils.js";
+import redisClient from "../core/redis.js";
 
 const HUB_UPSERT_CONCURRENCY = 5;
 

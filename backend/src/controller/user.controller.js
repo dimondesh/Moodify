@@ -11,7 +11,7 @@ import {
   getPathFromUrl,
   deleteFromBunny,
   uploadToBunny,
-} from "../lib/bunny.service.js";
+} from "../lib/media/bunny.service.js";
 import path from "path";
 import fs from "fs/promises";
 import { ListenHistory } from "../models/listenHistory.model.js";
@@ -21,14 +21,14 @@ import { populatePlaylistEmbeddedSongs } from "./playlist.controller.js";
 import {
   toImageFields,
   replaceEntityImageVariants,
-} from "../lib/imageVariants.service.js";
-import { extractCoverAccentHexFromBuffer } from "../lib/coverAccent.service.js";
-import { getPersistedActivity } from "../lib/activityPersistence.service.js";
+} from "../lib/media/imageVariants.service.js";
+import { extractCoverAccentHexFromBuffer } from "../lib/media/coverAccent.service.js";
+import { getPersistedActivity } from "../lib/activity/activityPersistence.service.js";
 import { buildAuthPayload } from "./auth.controller.js";
 import {
   completeTasteOnboarding as completeTasteOnboardingService,
   selectDiverseOnboardingArtists,
-} from "../lib/tasteProfile.service.js";
+} from "../lib/recommendations/tasteProfile.service.js";
 import {
   TASTE_ONBOARDING_MIN_ARTISTS,
   TASTE_ONBOARDING_MAX_ARTISTS,

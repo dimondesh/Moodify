@@ -1,7 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
-import { connectDB } from "./lib/db.js";
+import { connectDB } from "./lib/core/db.js";
 import userRoutes from "./routes/user.route.js";
 import adminRoutes from "./routes/admin.route.js";
 import authRoutes from "./routes/auth.route.js";
@@ -13,7 +13,7 @@ import playlistRoutes from "./routes/playlist.route.js";
 import fileUpload from "express-fileupload";
 import path from "path";
 import cors from "cors";
-import { initializeSocket, io } from "./lib/socket.js";
+import { initializeSocket, io } from "./lib/core/socket.js";
 import libraryRoutes from "./routes/library.route.js";
 import artistRoutes from "./routes/artist.route.js";
 import cronRoutes from "./routes/cron.route.js";
@@ -22,8 +22,8 @@ import homeRoutes from "./routes/home.route.js";
 import hubRoutes from "./routes/hub.route.js";
 import { getSitemap } from "./controller/sitemap.controller.js";
 import ogRoutes from "./routes/og.route.js";
-import redisClient, { connectRedis } from "./lib/redis.js";
-import { flushAllActivities } from "./lib/activityPersistence.service.js";
+import redisClient, { connectRedis } from "./lib/core/redis.js";
+import { flushAllActivities } from "./lib/activity/activityPersistence.service.js";
 
 const PORT = process.env.PORT || 5000;
 

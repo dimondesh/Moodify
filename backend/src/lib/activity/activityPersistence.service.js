@@ -1,5 +1,5 @@
-import redisClient from "./redis.js";
-import { User } from "../models/user.model.js";
+import redisClient from "../core/redis.js";
+import { User } from "../../models/user.model.js";
 
 const REDIS_KEY_PREFIX = "listening:activity:";
 const REDIS_TTL_SECONDS = 7 * 24 * 60 * 60;
