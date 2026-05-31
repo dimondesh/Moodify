@@ -11,6 +11,7 @@
     "dev:cron": "nodemon src/cron/index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "backfill:cover-accent": "node src/scripts/migrations/backfill-cover-accent.js",
+    "backfill:song-duration": "node src/scripts/migrations/backfill-song-duration.js",
     "migrate:liked-songs": "node src/scripts/migrations/migrateLikedSongs.js",
     "migrate:library-social": "node src/scripts/migrations/migrateLibraryAndSocial.js",
     "migrate:unbounded-arrays": "node src/scripts/migrations/migrateUnboundedArrays.js",

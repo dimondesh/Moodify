@@ -28,7 +28,11 @@ import { getBatchTagsFromAI } from "../lib/integrations/ai.service.js";
 import { Genre } from "../models/genre.model.js";
 import { Mood } from "../models/mood.model.js";
 import { v4 as uuidv4 } from "uuid";
-import { transcodeToHls } from "../lib/media/ffmpeg.service.js";
+import {
+  transcodeToHls,
+  getDurationFromHlsManifest,
+  roundTrackDuration,
+} from "../lib/media/ffmpeg.service.js";
 import axios from "axios";
 import { createWriteStream } from "fs";
 import { analyzeAudioFeatures } from "../lib/integrations/audioAnalysis.service.js";
@@ -86,15 +90,18 @@ const processAndUploadSong = async (audioFilePath) => {
   const tempHlsDir = path.join(process.cwd(), "temp_hls", uuidv4());
 
   try {
-    await transcodeToHls(audioFilePath, tempHlsDir);
+    const manifestPath = await transcodeToHls(audioFilePath, tempHlsDir);
 
     const hlsRemotePath = `songs/hls/${uuidv4()}`;
     await uploadDirectoryToBunny(tempHlsDir, hlsRemotePath);
 
     const hlsUrl = `https://${process.env.BUNNY_PULL_ZONE_HOSTNAME}/${hlsRemotePath}/master.m3u8`;
 
-    const metadata = await mm.parseFile(audioFilePath);
-    const duration = Math.floor(metadata.format.duration || 0);
+    let duration = await getDurationFromHlsManifest(manifestPath);
+    if (!duration) {
+      const metadata = await mm.parseFile(audioFilePath);
+      duration = roundTrackDuration(metadata.format.duration || 0);
+    }
 
     return {
       hlsUrl,
