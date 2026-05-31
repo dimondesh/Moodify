@@ -22,6 +22,7 @@ import {
   buildPersonalMixLabels,
   getSmartPlaylistLabels,
 } from "./generatedPlaylistCopy.js";
+import { updatePlaylistEmbedding } from "./recommendation.service.js";
 
 const ON_REPEAT_SONG_COUNT = 30;
 const MIX_SONG_COUNT = 30;
@@ -48,8 +49,8 @@ const pickMixCoverImages = (songWithArtists) => {
   return buildStaticCdnImages(CDN_DEFAULT_ALBUM_COVER);
 };
 
-const upsertSystemPlaylist = (filter, data) =>
-  Playlist.findOneAndUpdate(
+const upsertSystemPlaylist = async (filter, data) => {
+  const playlist = await Playlist.findOneAndUpdate(
     filter,
     {
       $set: {
@@ -62,6 +63,13 @@ const upsertSystemPlaylist = (filter, data) =>
     },
     { upsert: true, new: true },
   );
+
+  if (playlist && data.songs?.length) {
+    await updatePlaylistEmbedding(playlist._id);
+  }
+
+  return playlist;
+};
 
 const sampleSongsForSource = async (queryField, sourceId) => {
   const songCount = await Song.countDocuments({ [queryField]: sourceId });

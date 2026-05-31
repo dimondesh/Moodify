@@ -134,9 +134,18 @@ export function registerCronJobs() {
     }),
   );
 
-  // 01:00 — category embeddings + hubs, then global GENRE_MIX / MOOD_MIX
+  // 01:00 — global GENRE_MIX / MOOD_MIX, then category embeddings + hubs
   tasks.push(
     cron.schedule("0 1 * * *", async () => {
+      console.log(
+        "CRON JOB: Starting global genre and mood mixes generation...",
+      );
+      try {
+        await runGlobalMixesGeneration();
+      } catch (error) {
+        console.error("CRON JOB: Error in global mixes generation:", error);
+      }
+
       console.log(
         "CRON JOB: Starting category embeddings and hub generation...",
       );
@@ -145,15 +154,6 @@ export function registerCronJobs() {
         console.log(`CRON JOB: Hub generation finished (${hubCount} hubs).`);
       } catch (error) {
         console.error("CRON JOB: Error in hub generation:", error);
-      }
-
-      console.log(
-        "CRON JOB: Starting global genre and mood mixes generation...",
-      );
-      try {
-        await runGlobalMixesGeneration();
-      } catch (error) {
-        console.error("CRON JOB: Error in global mixes generation:", error);
       }
     }),
   );

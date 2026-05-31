@@ -53,16 +53,16 @@ async function main() {
     console.log(`Smart playlists: ${smartUsers} user(s)`);
   }
 
-  if (runHubs) {
-    console.log("\n=== Category embeddings + hubs ===");
-    const count = await runHubGeneration();
-    console.log(`Done: ${count} hub(s)`);
-  }
-
   if (runGlobal) {
     console.log("\n=== Global GENRE_MIX / MOOD_MIX ===");
     const count = await runGlobalMixesGeneration();
     console.log(`Done: ${count} mixes updated`);
+  }
+
+  if (runHubs) {
+    console.log("\n=== Category embeddings + hubs ===");
+    const count = await runHubGeneration();
+    console.log(`Done: ${count} hub(s)`);
   }
 
   if (runHome) {

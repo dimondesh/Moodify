@@ -51,7 +51,7 @@ const updateTouchesSongs = (update) => {
 };
 
 const refreshSongRelatedEmbeddings = async (songDoc, previousArtistIds = []) => {
-  const { Playlist } = await import("./playlist.model.js");
+  const { Playlist } = await import("../playlist.model.js");
   const { updateAlbumEmbedding, updateArtistEmbedding, updatePlaylistEmbedding } =
     await import("../../lib/recommendation.service.js");
 
