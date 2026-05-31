@@ -146,6 +146,7 @@ export const getUserPlaylists = async (userId) => {
   })
     .sort({ updatedAt: -1 })
     .limit(HOME_SECTION_LIMIT)
+    .populate("owner", "fullName images")
     .populate(populatePlaylistEmbeddedSongs)
     .lean();
 };
