@@ -23,7 +23,11 @@ import { useUIStore } from "../../stores/useUIStore";
 import RecentlyListenedArtists from "../../components/RecentlyListenedArtists";
 import TopTracksThisMonth from "../../components/TopTracksThisMonth";
 import FixedRowEntitySection from "../HomePage/FixedRowEntitySection";
-import { getUserAvatarUrl } from "@/lib/cdn";
+import { CDN_DEFAULT_USER_IMAGE } from "@/lib/cdn";
+import {
+  buildImageSrcSet,
+  getImageUrlByKey,
+} from "@/lib/imageUrl";
 import { useProfileData, useToggleFollow } from "@/hooks/useProfile";
 
 function relationToDisplayItem(item: ProfileListItem): DisplayItem {
@@ -148,7 +152,13 @@ const ProfilePage = () => {
           <div className="flex flex-col items-center sm:flex-row sm:items-end gap-4">
             <Avatar className="w-24 h-24 sm:w-48 sm:h-48 shadow-2xl ring-0 ring-black/20 flex-shrink-0">
               <AvatarImage
-                src={getUserAvatarUrl(profileData)}
+                src={getImageUrlByKey(
+                  profileData,
+                  "card",
+                  CDN_DEFAULT_USER_IMAGE,
+                )}
+                srcSet={buildImageSrcSet(profileData)}
+                sizes="(min-width: 640px) 192px, 96px"
                 className="object-cover"
               />
               <AvatarFallback>{profileData.fullName[0]}</AvatarFallback>
