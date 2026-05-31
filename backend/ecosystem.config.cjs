@@ -4,6 +4,7 @@ module.exports = {
       name: "moodify-api",
       script: "src/index.js",
       cwd: __dirname,
+      exec_mode: "fork",
       instances: 1,
       autorestart: true,
       env: { NODE_ENV: "production" },
