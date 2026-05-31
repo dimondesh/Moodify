@@ -417,6 +417,24 @@ export const generateAlbumsYouMightLike = async (userId, tasteVector) => {
     .map((item) => item._id);
 };
 
+export const orderByIds = (documents, orderedIds) => {
+  if (!orderedIds?.length) return [];
+  const docMap = new Map(
+    (documents || []).map((doc) => [doc._id.toString(), doc]),
+  );
+  return orderedIds
+    .map((id) => docMap.get(id.toString()))
+    .filter(Boolean);
+};
+
+export const enqueueHomeFeedGeneration = (userId) => {
+  setImmediate(() => {
+    generateHomeFeedForUser(userId).catch((error) => {
+      console.error(`[homeFeed] Async generation failed for ${userId}:`, error);
+    });
+  });
+};
+
 export const generateHomeFeedForUser = async (userId) => {
   const tasteVector = await computeUserTasteVector(userId);
   const now = new Date();

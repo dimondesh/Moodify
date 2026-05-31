@@ -188,3 +188,11 @@ export const getRecentActivityEntities = async (userId, limit = 12) => {
 
   return Promise.all(activities.map((activity) => hydrateActivityEntity(activity)));
 };
+
+/** Raw recent rows for home batch-hydrate (no per-row DB lookups). */
+export const getRecentEntities = async (userId, limit = 12) =>
+  RecentActivity.find({ userId })
+    .sort({ timestamp: -1 })
+    .limit(limit)
+    .select("entityType entityId snapshot")
+    .lean();
