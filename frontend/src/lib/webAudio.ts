@@ -195,6 +195,31 @@ export const reverbIRPaths: Record<ReverbRoomSize, string> = {
   large: "/ir/large-hall.wav",
 };
 
+export type PlaybackRatePreset = "slowed" | "normal" | "spedUp" | "custom";
+
+export const PLAYBACK_RATE_PRESETS = {
+  slowed: 0.85,
+  normal: 1.0,
+  spedUp: 1.15,
+} as const;
+
+export function inferPlaybackRatePreset(rate: number): PlaybackRatePreset {
+  if (Math.abs(rate - PLAYBACK_RATE_PRESETS.slowed) < 0.001) return "slowed";
+  if (Math.abs(rate - PLAYBACK_RATE_PRESETS.normal) < 0.001) return "normal";
+  if (Math.abs(rate - PLAYBACK_RATE_PRESETS.spedUp) < 0.001) return "spedUp";
+  return "custom";
+}
+
+export function resolvePlaybackRate(
+  enabled: boolean,
+  preset: PlaybackRatePreset,
+  customRate: number,
+): number {
+  if (!enabled) return 1.0;
+  if (preset === "custom") return customRate;
+  return PLAYBACK_RATE_PRESETS[preset];
+}
+
 interface AudioSettings {
   equalizerEnabled: boolean;
   equalizerGains: { [key: string]: number };
@@ -205,6 +230,7 @@ interface AudioSettings {
   reverbMix: number;
   reverbRoomSize: ReverbRoomSize;
   playbackRateEnabled: boolean;
+  playbackRatePreset: PlaybackRatePreset;
   playbackRate: number;
   isReduceMotionEnabled: boolean;
 }
@@ -221,6 +247,7 @@ interface AudioStore extends AudioSettings {
   setReverbMix: (mix: number) => void;
   setReverbRoomSize: (size: ReverbRoomSize) => Promise<void>;
   setPlaybackRateEnabled: (enabled: boolean) => void;
+  setPlaybackRatePreset: (preset: PlaybackRatePreset) => void;
   setPlaybackRate: (rate: number) => void;
   setIsReduceMotionEnabled: (isLoading: boolean) => void;
 }
@@ -237,7 +264,8 @@ export const useAudioSettingsStore = create<AudioStore>()(
       reverbMix: 0,
       reverbRoomSize: "medium",
       playbackRateEnabled: false,
-      playbackRate: 0.85,
+      playbackRatePreset: "normal",
+      playbackRate: 1.0,
       isReduceMotionEnabled: false,
 
       setIsReduceMotionEnabled: (enabled) =>
@@ -280,6 +308,9 @@ export const useAudioSettingsStore = create<AudioStore>()(
           reverbEnabled: false,
           reverbMix: 0.5,
           reverbRoomSize: "medium",
+          playbackRateEnabled: false,
+          playbackRatePreset: "normal",
+          playbackRate: 1.0,
         });
         webAudioService.applySettingsToGraph();
       },
@@ -301,13 +332,22 @@ export const useAudioSettingsStore = create<AudioStore>()(
       setPlaybackRateEnabled: (enabled) => {
         set({ playbackRateEnabled: enabled });
       },
+      setPlaybackRatePreset: (preset) => {
+        set((state) => ({
+          playbackRatePreset: preset,
+          playbackRate:
+            preset === "custom"
+              ? state.playbackRate
+              : PLAYBACK_RATE_PRESETS[preset],
+        }));
+      },
       setPlaybackRate: (rate) => {
-        set({ playbackRate: rate });
+        set({ playbackRate: rate, playbackRatePreset: "custom" });
       },
     }),
     {
       name: "audio-settings-storage",
-      version: 5,
+      version: 6,
       migrate: (persistedState: any, version) => {
         if (version < 2 && persistedState) {
           persistedState.reverbEnabled = false;
@@ -323,6 +363,10 @@ export const useAudioSettingsStore = create<AudioStore>()(
         }
         if (version < 5 && persistedState) {
           delete persistedState.analyzerSmoothness;
+        }
+        if (version < 6 && persistedState) {
+          const rate = persistedState.playbackRate ?? 1.0;
+          persistedState.playbackRatePreset = inferPlaybackRatePreset(rate);
         }
         return persistedState as AudioStore;
       },

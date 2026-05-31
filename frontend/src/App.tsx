@@ -28,6 +28,7 @@ import TopTracksPage from "./pages/TopTracksPage/TopTracksPage";
 import OfflinePage from "./pages/OfflinePage/OfflinePage";
 import LibraryRoute from "./pages/LibraryPage/LibraryRoute";
 import SettingsPage from "./pages/SettingsPage/SettingsPage";
+import ChangePasswordPage from "./pages/ChangePasswordPage/ChangePasswordPage";
 import SearchPage from "./pages/SearchPage/SearchPage";
 import HubDetailsPage from "./pages/HubDetailsPage/HubDetailsPage";
 import ChatPage from "./pages/ChatPage/ChatPage";
@@ -126,7 +127,7 @@ function App() {
 
   // Редирект на offline страницу
   useEffect(() => {
-    const exactSafePaths = ["/library", "/settings", "/offline"];
+    const exactSafePaths = ["/library", "/settings", "/settings/change-password", "/offline"];
     const prefixSafePaths = ["/albums/", "/playlists/"];
 
     const isExactSafe =
@@ -155,6 +156,10 @@ function App() {
           <Route path="sitemap.xml" element={"sitemap.xml"} />
           <Route path="/login" element={<AuthPage mode="login" />} />
           <Route path="/register" element={<AuthPage mode="register" />} />{" "}
+          <Route
+            path="/settings/change-password"
+            element={<ChangePasswordPage />}
+          />
           <Route path="/onboarding" element={<OnboardingPage />} />
           <Route element={<MainLayout />}>
             <Route path="/" element={<HomePage />} />

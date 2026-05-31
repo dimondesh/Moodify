@@ -6,7 +6,7 @@ import { useDominantColor } from "@/hooks/useDominantColor";
 import { usePlayerStore } from "../stores/usePlayerStore";
 import { useMyPlaylists } from "@/hooks/queries";
 import { Button } from "../components/ui/button";
-import { useAudioSettingsStore } from "../lib/webAudio";
+import { useAudioSettingsStore, resolvePlaybackRate } from "../lib/webAudio";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Maximize, Share, Shuffle } from "lucide-react";
@@ -180,9 +180,13 @@ const DrawerLyricsPreviewBlock = memo(function DrawerLyricsPreviewBlock({
 
         <div className="w-full text-left relative">
           {(() => {
-            const { playbackRateEnabled, playbackRate } =
+            const { playbackRateEnabled, playbackRatePreset, playbackRate } =
               useAudioSettingsStore.getState();
-            const currentRate = playbackRateEnabled ? playbackRate : 1.0;
+            const currentRate = resolvePlaybackRate(
+              playbackRateEnabled,
+              playbackRatePreset,
+              playbackRate,
+            );
             const realCurrentTime = currentTime / currentRate;
             const preview = lyrics.slice(0, 5);
 

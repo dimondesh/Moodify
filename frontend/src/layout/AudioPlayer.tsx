@@ -3,7 +3,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import Hls from "hls.js";
 import { usePlayerStore } from "../stores/usePlayerStore";
-import { webAudioService, useAudioSettingsStore } from "../lib/webAudio";
+import { webAudioService, useAudioSettingsStore, resolvePlaybackRate } from "../lib/webAudio";
 import { isIosDevice } from "@/lib/platform";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { axiosInstance } from "@/lib/axios";
@@ -43,7 +43,8 @@ const AudioPlayer = () => {
     currentPlaybackContext,
   } = usePlayerStore();
 
-  const { playbackRateEnabled, playbackRate } = useAudioSettingsStore();
+  const { playbackRateEnabled, playbackRatePreset, playbackRate } =
+    useAudioSettingsStore();
   const { isOffline } = useOfflineStore();
   const { user } = useAuthStore();
 
@@ -174,7 +175,11 @@ const AudioPlayer = () => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    const currentRate = playbackRateEnabled ? playbackRate : 1.0;
+    const currentRate = resolvePlaybackRate(
+      playbackRateEnabled,
+      playbackRatePreset,
+      playbackRate,
+    );
     audio.preservesPitch = false;
     audio.playbackRate = currentRate;
 
@@ -186,7 +191,7 @@ const AudioPlayer = () => {
     if (masterGainNodeRef.current) {
       masterGainNodeRef.current.gain.value = masterVolume / 100;
     }
-  }, [masterVolume, playbackRate, playbackRateEnabled, currentSong]);
+  }, [masterVolume, playbackRate, playbackRatePreset, playbackRateEnabled, currentSong]);
 
   // Запись прослушивания
   useEffect(() => {

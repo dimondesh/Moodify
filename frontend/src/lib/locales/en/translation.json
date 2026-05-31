@@ -198,8 +198,17 @@
     "clearAppCacheDesc": "Clears cache (including Service Worker) and applies updates without a hard reload.",
     "playbackSpeed": "Playback Speed",
     "playbackSpeedDesc": "Control the playback speed of your music.",
+    "playbackPreset": "Preset",
+    "playbackPresetSlowed": "Slowed",
+    "playbackPresetNormal": "Normal",
+    "playbackPresetSpedUp": "Sped up",
+    "playbackPresetCustom": "Custom",
+    "preset": "Preset",
     "reduceMotion": "Reduce Motion",
     "changePassword": "Change password",
+    "changePasswordDesc": "Update your account password",
+    "changePasswordUnavailable": "Password login is not enabled for this account.",
+    "passwordChangedRelogin": "Password changed. Please sign in again.",
     "oldPassword": "Current password",
     "newPassword": "New password",
     "confirmPassword": "Confirm password",
@@ -665,6 +674,11 @@
     "generatingStep2": "Picking tracks for you",
     "generatingStep3": "Finding artists you might like",
     "generatingFailed": "Could not prepare your feed. Please try again in a moment."
+  },
+  "changePassword": {
+    "title": "Change password",
+    "hint": "Enter your current password and choose a new one. You will be signed out on all devices.",
+    "backToSettings": "Back to settings"
   },
   "auth": {
     "loggingIn": "Logging you in",

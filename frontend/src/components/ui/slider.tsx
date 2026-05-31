@@ -37,7 +37,9 @@ function Slider({
       <SliderPrimitive.Track
         data-slot="slider-track"
         className={cn(
-          "bg-zinc-500/20 relative grow overflow-hidden rounded-full data-[orientation=horizontal]:h-1 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1",
+          "bg-zinc-500/20 relative grow overflow-visible rounded-full data-[orientation=horizontal]:h-1 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1",
+          "data-[orientation=horizontal]:after:absolute data-[orientation=horizontal]:after:-top-3 data-[orientation=horizontal]:after:-bottom-3 data-[orientation=horizontal]:after:left-0 data-[orientation=horizontal]:after:right-0 data-[orientation=horizontal]:after:content-['']",
+          "data-[orientation=vertical]:after:absolute data-[orientation=vertical]:after:-left-3 data-[orientation=vertical]:after:-right-3 data-[orientation=vertical]:after:top-0 data-[orientation=vertical]:after:bottom-0 data-[orientation=vertical]:after:content-['']",
         )}
       >
         <SliderPrimitive.Range
@@ -51,7 +53,7 @@ function Slider({
         <SliderPrimitive.Thumb
           data-slot="slider-thumb"
           key={index}
-          className="lg:hidden group-hover:block bg-white ring-ring/50 block size-2.5 shrink-0 rounded-full shadow-sm transition-[color,box-shadow] focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
+          className="relative lg:hidden group-hover:block bg-white ring-ring/50 block size-2.5 shrink-0 rounded-full shadow-sm transition-[color,box-shadow] focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50 after:absolute after:-inset-3 after:content-['']"
         />
       ))}
     </SliderPrimitive.Root>

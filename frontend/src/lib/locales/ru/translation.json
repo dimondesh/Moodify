@@ -197,8 +197,17 @@
     "clearAppCacheDesc": "Удаляет кэш (включая Service Worker) и применяет обновления без hard reload.",
     "playbackSpeed": "Скорость воспроизведения",
     "playbackSpeedDesc": "Управляйте скоростью воспроизведения вашей музыки.",
+    "playbackPreset": "Пресет",
+    "playbackPresetSlowed": "Замедлено",
+    "playbackPresetNormal": "Нормально",
+    "playbackPresetSpedUp": "Ускорено",
+    "playbackPresetCustom": "Свой",
+    "preset": "Пресет",
     "reduceMotion": "Уменьшение Движения",
     "changePassword": "Смена пароля",
+    "changePasswordDesc": "Изменить пароль аккаунта",
+    "changePasswordUnavailable": "Вход по паролю не настроен для этого аккаунта.",
+    "passwordChangedRelogin": "Пароль изменён. Войдите снова.",
     "oldPassword": "Текущий пароль",
     "newPassword": "Новый пароль",
     "confirmPassword": "Подтверждение пароля",
@@ -662,6 +671,11 @@
     "generatingStep2": "Подбираем треки",
     "generatingStep3": "Ищем исполнителей",
     "generatingFailed": "Не удалось подготовить ленту. Попробуйте через минуту."
+  },
+  "changePassword": {
+    "title": "Смена пароля",
+    "hint": "Введите текущий пароль и выберите новый. Вы будете выведены из аккаунта на всех устройствах.",
+    "backToSettings": "Назад к настройкам"
   },
   "auth": {
     "loggingIn": "Входим в аккаунт",

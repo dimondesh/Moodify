@@ -60,22 +60,7 @@ const RecentlyListenedArtists: React.FC<RecentlyListenedArtistsProps> = ({
   }
 
   if (artists.length === 0) {
-    return (
-      <div className="mt-12">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl sm:text-2xl font-bold text-white">
-            {t("pages.profile.recentlyListenedArtists")}
-          </h2>
-        </div>
-        <div className="text-center py-8">
-          <p className="text-gray-400">
-            {isMyProfile
-              ? t("pages.profile.noRecentlyListenedArtists")
-              : t("pages.profile.noRecentlyListenedArtistsPublic")}
-          </p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   const noticeSlot =

@@ -56,36 +56,8 @@ const TopTracksThisMonth: React.FC<TopTracksThisMonthProps> = ({
     return null;
   }
 
-  if (errorMessage) {
-    return (
-      <div className="mt-12">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl sm:text-2xl font-bold">
-            {t("pages.profile.topTracksThisMonth")}
-          </h2>
-        </div>
-        <div className="text-center py-8">
-          <p className="text-gray-400">{t("pages.profile.topTracksError")}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (tracks.length === 0) {
-    return (
-      <div className="mt-12">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl sm:text-2xl font-bold">
-            {t("pages.profile.topTracksThisMonth")}
-          </h2>
-        </div>
-        <div className="text-center py-8">
-          <p className="text-gray-400">
-            {t("pages.profile.noTopTracksThisMonth")}
-          </p>
-        </div>
-      </div>
-    );
+  if (errorMessage || tracks.length === 0) {
+    return null;
   }
 
   return (
