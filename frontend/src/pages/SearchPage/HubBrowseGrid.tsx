@@ -102,7 +102,7 @@ const HubBrowseGrid = () => {
     return (
       <div>
         <div className="h-8 w-48 bg-zinc-800 rounded mb-4 animate-pulse" />
-        <CardGridSkeleton count={6} className="gap-3 sm:gap-4" />
+        <CardGridSkeleton count={24} className="gap-3 sm:gap-4" />
       </div>
     );
   }

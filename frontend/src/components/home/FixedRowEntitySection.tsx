@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { Song } from "@/types";
 import EntitySectionCard from "./EntitySectionCard";
+import EntitySectionCardSkeleton from "@/components/ui/skeletons/EntitySectionCardSkeleton";
 import type { DisplayItem } from "@/types";
 import { isValidDisplayItem } from "@/lib/entitySection";
 
@@ -113,22 +114,15 @@ const FixedRowEntitySection: React.FC<FixedRowEntitySectionProps> = ({
     return (
       <div className={`mb-12 mt-12 ${className}`.trim()}>
         <div className="flex justify-between items-center mb-4">
-          <div className="h-8 w-56 max-w-[70%] bg-zinc-800/50 rounded animate-pulse" />
-          <div className="h-4 w-16 bg-zinc-800/50 rounded animate-pulse" />
+          <div className="h-8 w-56 max-w-[70%] bg-zinc-800 rounded animate-pulse" />
+          <div className="h-4 w-16 bg-zinc-800/80 rounded animate-pulse" />
         </div>
         <div
           ref={rowRef}
           className="flex flex-nowrap gap-1 sm:gap-2 overflow-x-hidden"
         >
           {Array.from({ length: skeletonSlots }).map((_, i) => (
-            <div
-              key={i}
-              className="w-36 sm:w-44 flex-shrink-0 p-2 space-y-3 animate-pulse"
-            >
-              <div className="aspect-square bg-zinc-800/50 rounded-md" />
-              <div className="h-4 bg-zinc-800/50 rounded w-3/4" />
-              <div className="h-3 bg-zinc-800/50 rounded w-1/2" />
-            </div>
+            <EntitySectionCardSkeleton key={i} />
           ))}
         </div>
       </div>

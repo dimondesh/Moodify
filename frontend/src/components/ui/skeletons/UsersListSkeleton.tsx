@@ -10,7 +10,7 @@ const UsersListSkeleton = () => {
             >
               <div className="relative shrink-0">
                 <div className="size-12 rounded-full bg-zinc-800" />
-                <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-zinc-700" />
+                <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-zinc-800/80" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="h-4 w-28 bg-zinc-800 rounded mb-2" />

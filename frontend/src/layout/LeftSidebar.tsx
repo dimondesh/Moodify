@@ -60,7 +60,7 @@ const LeftSidebar = () => {
           <div className="w-full h-20 bg-zinc-800 rounded-md animate-pulse" />
           <div className="w-full flex flex-col items-center space-y-1.5">
             <div className="h-3 w-3/4 bg-zinc-800 rounded-full animate-pulse" />
-            <div className="h-2 w-1/2 bg-zinc-800 rounded-full animate-pulse" />
+            <div className="h-2 w-1/2 bg-zinc-800/80 rounded-full animate-pulse" />
           </div>
         </div>
       ))}
