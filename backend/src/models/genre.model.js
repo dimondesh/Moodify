@@ -11,6 +11,11 @@ const genreSchema = new mongoose.Schema({
     trim: true,
   },
   localizedNames: localizedNamesSchema,
+  // Усреднённый вектор (центроид) на основе треков этой категории
+  embedding: {
+    type: [Number],
+    default: null,
+  },
 });
 
 export const Genre = mongoose.model("Genre", genreSchema);

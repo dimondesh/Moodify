@@ -11,6 +11,11 @@ const moodSchema = new mongoose.Schema({
     trim: true,
   },
   localizedNames: localizedNamesSchema,
+  // Усреднённый вектор (центроид) на основе треков этой категории
+  embedding: {
+    type: [Number],
+    default: null,
+  },
 });
 
 export const Mood = mongoose.model("Mood", moodSchema);
