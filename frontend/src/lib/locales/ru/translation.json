@@ -134,10 +134,20 @@
     "showLess": "Скрыть",
     "clear": "Очистить",
     "browseAllMixes": "Просмотреть все миксы",
+    "browseAll": "Обзор",
+    "noHubs": "Хабы пока недоступны.",
     "recentSearches": "Недавние поиски",
     "noRecentSearches": "Недавние поиски не найдены.",
     "clearRecentSearches": "Очистить недавние поиски",
     "clearRecentSearchesDesc": "Это удалит все недавние поисковые запросы из вашей истории."
+  },
+  "hubpage": {
+    "albums": "Альбомы",
+    "artists": "Исполнители",
+    "playlists": "Плейлисты",
+    "genreHub": "Жанр",
+    "moodHub": "Настроение",
+    "notFound": "Хаб не найден."
   },
   "settings": {
     "title": "Настройки",

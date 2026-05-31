@@ -8,3 +8,4 @@ export { usePlaylistRecommendations } from "./usePlaylistRecommendations";
 export { useHomeBootstrap, useHomeBootstrapAuthKey } from "./useHomeBootstrap";
 export { useListenHistory } from "./useListenHistory";
 export { useSecondaryHome } from "./useSecondaryHome";
+export { useHubs, useHub } from "./useHubs";

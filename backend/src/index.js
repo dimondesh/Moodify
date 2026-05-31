@@ -19,6 +19,7 @@ import artistRoutes from "./routes/artist.route.js";
 import cronRoutes from "./routes/cron.route.js";
 import shareRoutes from "./routes/share.route.js";
 import homeRoutes from "./routes/home.route.js";
+import hubRoutes from "./routes/hub.route.js";
 import { getSitemap } from "./controller/sitemap.controller.js";
 import ogRoutes from "./routes/og.route.js";
 import redisClient, { connectRedis } from "./lib/redis.js";
@@ -88,6 +89,7 @@ app.use("/api/library", libraryRoutes);
 app.use("/api/playlists", playlistRoutes);
 app.use("/api/artists", artistRoutes);
 app.use("/api/home", homeRoutes);
+app.use("/api/hubs", hubRoutes);
 
 app.use("/api/cron", cronRoutes);
 app.use("/api/share", shareRoutes);

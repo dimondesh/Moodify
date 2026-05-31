@@ -16,6 +16,10 @@ export const queryKeys = {
     bootstrap: (authKey: string) => ["home", "bootstrap", authKey] as const,
     secondary: ["home", "secondary"] as const,
   },
+  hubs: {
+    list: ["hubs", "list"] as const,
+    detail: (id: string) => ["hubs", id] as const,
+  },
   listenHistory: ["songs", "history"] as const,
   search: {
     results: (q: string) => ["search", "results", q] as const,

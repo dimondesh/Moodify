@@ -2,6 +2,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import type { Artist, Playlist } from "../types";
+import type { Hub } from "../types";
 import type { TFunction } from "i18next";
 import { isGeneratedPlaylistType } from "@/lib/playlistKinds";
 
@@ -75,6 +76,13 @@ export function getPlaylistDisplayTitle(
   }
 
   return playlist.title;
+}
+
+export function getHubDisplayName(
+  hub: Pick<Hub, "name" | "localizedNames">,
+  lang: string,
+): string {
+  return pickPlaylistLocalizedTitle(hub.localizedNames, lang, hub.name);
 }
 
 /** Описания сгенерированных плейлистов — только из i18n (в БД `description` пустой). */

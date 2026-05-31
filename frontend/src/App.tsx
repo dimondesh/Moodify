@@ -28,6 +28,7 @@ import OfflinePage from "./pages/OfflinePage/OfflinePage";
 import LibraryRoute from "./pages/LibraryPage/LibraryRoute";
 import SettingsPage from "./pages/SettingsPage/SettingsPage";
 import SearchPage from "./pages/SearchPage/SearchPage";
+import HubDetailsPage from "./pages/HubDetailsPage/HubDetailsPage";
 import ChatPage from "./pages/ChatPage/ChatPage";
 import OnboardingPage from "./pages/OnboardingPage/OnboardingPage";
 import OnboardingRedirect from "./components/OnboardingRedirect";
@@ -156,6 +157,7 @@ function App() {
             <Route path="/albums/:albumId" element={<AlbumPage />} />
             <Route path="*" element={<NotFoundPage />} />
             <Route path="/search" element={<SearchPage />} />
+            <Route path="/hubs/:hubId" element={<HubDetailsPage />} />
             <Route path="/library" element={<LibraryRoute />} />
             <Route
               path="/playlists/browse/:category"

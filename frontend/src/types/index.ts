@@ -179,6 +179,29 @@ export interface Playlist {
   coverAccentHex?: string | null;
 }
 
+export interface HubPreviewCover {
+  entityType: "album" | "artist";
+  images?: ImageVariant[];
+  imagePublicId?: string | null;
+  coverAccentHex?: string | null;
+}
+
+export interface Hub {
+  _id: string;
+  name: string;
+  localizedNames?: { en?: string; ru?: string; uk?: string };
+  categoryType: "Genre" | "Mood";
+  accentColor: string;
+  previewCovers?: HubPreviewCover[];
+}
+
+export interface HubDetailResponse {
+  hub: Hub;
+  albums: Album[];
+  artists: Artist[];
+  playlists: Playlist[];
+}
+
 export interface BaseLibraryItem {
   _id: string;
   title: string;

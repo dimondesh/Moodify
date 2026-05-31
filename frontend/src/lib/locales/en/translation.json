@@ -134,11 +134,21 @@
     "showAll": "Show all",
     "showLess": "Show less",
     "browseAllMixes": "Browse all mixes",
+    "browseAll": "Browse all",
+    "noHubs": "No hubs available yet.",
     "recentSearches": "Recent Searches",
     "noRecentSearches": "No recent searches found.",
     "clearRecentSearches": "Clear Recent Searches",
     "clearRecentSearchesDesc": "This will remove all recent searches from your history.",
     "clear": "Clear"
+  },
+  "hubpage": {
+    "albums": "Albums",
+    "artists": "Artists",
+    "playlists": "Playlists",
+    "genreHub": "Genre",
+    "moodHub": "Mood",
+    "notFound": "Hub not found."
   },
   "settings": {
     "title": "Settings",

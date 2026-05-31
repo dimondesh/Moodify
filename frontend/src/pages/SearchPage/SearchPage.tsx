@@ -10,7 +10,7 @@ import useDebounce from "../../hooks/useDebounce";
 import UserGrid from "./UserGrid";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
-import BrowseSecondaryPlaylists from "./BrowseSecondaryPlaylists";
+import HubBrowseGrid from "./HubBrowseGrid";
 import StandardLoader from "../../components/ui/StandardLoader";
 import { Search } from "lucide-react";
 import {
@@ -151,7 +151,7 @@ const SearchPage = () => {
               <h1 className="hidden md:block text-2xl sm:text-3xl font-bold mb-6 text-left text-white">
                 {t("searchpage.findYourFavorites")}
               </h1>
-              <BrowseSecondaryPlaylists />
+              <HubBrowseGrid />
             </>
           )}
 

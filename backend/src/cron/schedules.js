@@ -11,6 +11,7 @@ import { generateHomeFeedForUser } from "../lib/home/homeFeedGenerator.service.j
 import { warmTrendingCache } from "../lib/home/trending.service.js";
 import { User } from "../models/user.model.js";
 import { cleanAllTempDirectories } from "../lib/tempCleanup.service.js";
+import { runCategoryEmbeddingsAndHubs } from "../lib/hubGenerator.service.js";
 
 export const PERSONAL_MIX_MIN_LISTENS = 10;
 const HOME_FEED_BATCH_SIZE = 20;
@@ -90,6 +91,10 @@ export async function runGlobalMixesGeneration() {
   return generateGlobalGenreAndMoodMixes();
 }
 
+export async function runHubGeneration() {
+  return runCategoryEmbeddingsAndHubs();
+}
+
 export async function runHomeFeedGeneration({ userId } = {}) {
   if (userId) {
     await generateHomeFeedForUser(userId);
@@ -129,9 +134,19 @@ export function registerCronJobs() {
     }),
   );
 
-  // 01:00 — global GENRE_MIX / MOOD_MIX (after user playlists)
+  // 01:00 — category embeddings + hubs, then global GENRE_MIX / MOOD_MIX
   tasks.push(
     cron.schedule("0 1 * * *", async () => {
+      console.log(
+        "CRON JOB: Starting category embeddings and hub generation...",
+      );
+      try {
+        const hubCount = await runHubGeneration();
+        console.log(`CRON JOB: Hub generation finished (${hubCount} hubs).`);
+      } catch (error) {
+        console.error("CRON JOB: Error in hub generation:", error);
+      }
+
       console.log(
         "CRON JOB: Starting global genre and mood mixes generation...",
       );

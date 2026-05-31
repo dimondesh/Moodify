@@ -14,6 +14,7 @@ import {
   runGlobalMixesGeneration,
   runHomeFeedGeneration,
   runTrendingCacheWarmup,
+  runHubGeneration,
 } from "../cron/schedules.js";
 
 const args = process.argv.slice(2);
@@ -30,6 +31,7 @@ const runPlaylists = runAll || hasFlag("--playlists");
 const runGlobal = runAll || hasFlag("--global");
 const runHome = runAll || hasFlag("--home");
 const runTrending = runAll || hasFlag("--trending");
+const runHubs = runAll || hasFlag("--hubs");
 
 async function main() {
   if (!process.env.MONGO_URI) {
@@ -51,6 +53,12 @@ async function main() {
     console.log(`Smart playlists: ${smartUsers} user(s)`);
   }
 
+  if (runHubs) {
+    console.log("\n=== Category embeddings + hubs ===");
+    const count = await runHubGeneration();
+    console.log(`Done: ${count} hub(s)`);
+  }
+
   if (runGlobal) {
     console.log("\n=== Global GENRE_MIX / MOOD_MIX ===");
     const count = await runGlobalMixesGeneration();
@@ -69,9 +77,9 @@ async function main() {
     console.log("Trending cache warmed");
   }
 
-  if (!runPlaylists && !runGlobal && !runHome && !runTrending) {
+  if (!runPlaylists && !runGlobal && !runHome && !runTrending && !runHubs) {
     console.log(
-      "Usage: npm run generate:all [-- --playlists] [-- --global] [-- --home] [-- --trending] [-- --user <id>]",
+      "Usage: npm run generate:all [-- --playlists] [-- --global] [-- --home] [-- --trending] [-- --hubs] [-- --user <id>]",
     );
     process.exit(1);
   }

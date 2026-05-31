@@ -134,10 +134,20 @@
     "showLess": "Приховати",
     "clear": "Очистити",
     "browseAllMixes": "Переглянути всі мікси",
+    "browseAll": "Огляд",
+    "noHubs": "Хаби поки недоступні.",
     "recentSearches": "Нещодавні пошуки",
     "noRecentSearches": "Немає нещодавніх пошуків",
     "clearRecentSearches": "Очистити нещодавні пошуки",
     "clearRecentSearchesDesc": "Це видалить всі нещодавні пошукові запити з вашого облікового запису."
+  },
+  "hubpage": {
+    "albums": "Альбоми",
+    "artists": "Виконавці",
+    "playlists": "Плейлисти",
+    "genreHub": "Жанр",
+    "moodHub": "Настроення",
+    "notFound": "Хаб не знайдено."
   },
   "settings": {
     "title": "Налаштування",
