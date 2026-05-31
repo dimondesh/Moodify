@@ -22,8 +22,10 @@ import {
 } from "@/lib/site-meta";
 import {
   canShowPlaylistLibraryToggle,
+  isGeneratedPlaylistType,
   isPlaylistMadeForUser,
 } from "@/lib/playlistKinds";
+import { EntityShuffleButton } from "@/components/EntityShuffleButton";
 import { CollectionGradientLayout } from "@/components/CollectionGradientLayout";
 import { useDominantCoverGradient } from "@/hooks/useDominantCoverGradient";
 import { DeletePlaylistDialog } from "./DeletePlaylistDialog";
@@ -176,6 +178,23 @@ const PlaylistDetailsPage = () => {
     [currentPlaylist, i18n.language, t],
   );
 
+  const supportsSmartShuffle = Boolean(
+    currentPlaylist && !isGeneratedPlaylistType(currentPlaylist.type),
+  );
+
+  const playlistPlaybackContext = useMemo(
+    () =>
+      currentPlaylist
+        ? {
+            type: "playlist" as const,
+            entityId: currentPlaylist._id,
+            entityTitle: displayTitle,
+            supportsSmartShuffle,
+          }
+        : null,
+    [currentPlaylist, displayTitle, supportsSmartShuffle],
+  );
+
   const handlePlayPlaylist = () => {
     if (!currentPlaylist || currentPlaylist.songs.length === 0) return;
     const isCurrentPlaylistPlaying =
@@ -187,11 +206,7 @@ const PlaylistDetailsPage = () => {
     if (isCurrentPlaylistPlaying) {
       togglePlay();
     } else {
-      playAlbum(currentPlaylist.songs, 0, {
-        type: "playlist",
-        entityId: currentPlaylist._id,
-        entityTitle: displayTitle,
-      });
+      playAlbum(currentPlaylist.songs, 0, playlistPlaybackContext!);
     }
   };
 
@@ -205,18 +220,10 @@ const PlaylistDetailsPage = () => {
         togglePlay();
       } else {
         setCurrentSong(song);
-        playAlbum(currentPlaylist.songs, index, {
-          type: "playlist",
-          entityId: currentPlaylist._id,
-          entityTitle: displayTitle,
-        });
+        playAlbum(currentPlaylist.songs, index, playlistPlaybackContext!);
       }
     } else {
-      playAlbum(currentPlaylist.songs, index, {
-        type: "playlist",
-        entityId: currentPlaylist._id,
-        entityTitle: displayTitle,
-      });
+      playAlbum(currentPlaylist.songs, index, playlistPlaybackContext!);
     }
   };
 
@@ -394,151 +401,158 @@ const PlaylistDetailsPage = () => {
         innerClassName="relative min-h-screen max-w-screen pb-30 lg:pb-0"
       >
         <div className="relative z-10 w-full">
-            <div className="flex flex-col sm:flex-row p-4 sm:p-6 gap-4 sm:gap-6 pb-8 sm:pb-8 items-center sm:items-end w-full">
-              {isUserEditable ? (
-                <button
-                  type="button"
-                  onClick={() =>
-                    openEditPlaylistDialog(currentPlaylist, () =>
-                      void refetchPlaylist(),
-                    )
-                  }
-                  className="group w-64 h-64 sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px] shadow-xl rounded-md object-cover flex-shrink-0 mx-auto sm:mx-0 overflow-hidden border-0 p-0 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5cf6] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f0f0f]"
-                  title={t("pages.playlist.actions.edit")}
-                >
-                  <CoverImage
-                    entity={currentPlaylist}
-                    size="large"
-                    defaultUrl={CDN_DEFAULT_ALBUM_COVER}
-                    alt={displayTitle}
-                    className="h-full w-full object-cover transition-opacity group-hover:opacity-80"
-                  />
-                </button>
-              ) : (
+          <div className="flex flex-col sm:flex-row p-4 sm:p-6 gap-4 sm:gap-6 pb-8 sm:pb-8 items-center sm:items-end w-full">
+            {isUserEditable ? (
+              <button
+                type="button"
+                onClick={() =>
+                  openEditPlaylistDialog(
+                    currentPlaylist,
+                    () => void refetchPlaylist(),
+                  )
+                }
+                className="group w-64 h-64 sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px] shadow-xl rounded-md object-cover flex-shrink-0 mx-auto sm:mx-0 overflow-hidden border-0 p-0 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5cf6] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f0f0f]"
+                title={t("pages.playlist.actions.edit")}
+              >
                 <CoverImage
                   entity={currentPlaylist}
                   size="large"
                   defaultUrl={CDN_DEFAULT_ALBUM_COVER}
                   alt={displayTitle}
-                  className="w-64 h-64 sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px] shadow-xl rounded-md object-cover flex-shrink-0 mx-auto sm:mx-0"
+                  className="h-full w-full object-cover transition-opacity group-hover:opacity-80"
                 />
-              )}
-              <div className="flex flex-col justify-end text-center sm:text-left min-w-0 w-full">
-                <p className="text-xs sm:text-sm font-medium">
-                  {playlistKindLabel(t, currentPlaylist.type, isMadeForViewer)}
+              </button>
+            ) : (
+              <CoverImage
+                entity={currentPlaylist}
+                size="large"
+                defaultUrl={CDN_DEFAULT_ALBUM_COVER}
+                alt={displayTitle}
+                className="w-64 h-64 sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px] shadow-xl rounded-md object-cover flex-shrink-0 mx-auto sm:mx-0"
+              />
+            )}
+            <div className="flex flex-col justify-end text-center sm:text-left min-w-0 w-full">
+              <p className="text-xs sm:text-sm font-medium">
+                {playlistKindLabel(t, currentPlaylist.type, isMadeForViewer)}
+              </p>
+              <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold mt-2 mb-2 sm:my-4 break-words">
+                {displayTitle}
+              </h1>
+              {playlistDescriptionText && (
+                <p className="text-gray-400 text-base mt-2 break-words">
+                  {playlistDescriptionText}
                 </p>
-                <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold mt-2 mb-2 sm:my-4 break-words">
-                  {displayTitle}
-                </h1>
-                {playlistDescriptionText && (
-                  <p className="text-gray-400 text-base mt-2 break-words">
-                    {playlistDescriptionText}
-                  </p>
-                )}
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 text-xs sm:text-sm text-gray-100 mt-2">
-                  {isOwner &&
-                    (currentPlaylist.isPublic ? (
-                      <Unlock className="size-3.5" />
-                    ) : (
-                      <Lock className="size-3.5" />
-                    ))}
-                  {currentPlaylist.owner == null ? (
-                    <span className="font-semibold text-white flex items-center">
-                      <img
-                        src={SITE_BRAND_AVATAR}
-                        className="size-4 rounded-full mr-1 object-cover bg-zinc-800"
-                        alt={SITE_NAME}
-                      />
-                      {SITE_NAME}
-                    </span>
-                  ) : currentPlaylist.owner ? (
-                    <button
-                      type="button"
-                      onClick={handleOwnerClick}
-                      className="font-semibold text-white flex items-center hover:underline focus:outline-none focus:underline"
-                    >
-                      <img
-                        src={getUserAvatarUrl(currentPlaylist.owner)}
-                        className="size-4 rounded-full mr-1"
-                        alt={currentPlaylist.owner.fullName}
-                      />
-                      {currentPlaylist.owner.fullName ||
-                        t("common.unknownArtist")}
-                    </button>
-                  ) : null}
-                  <span className="hidden lg:inline">
-                    • {(currentPlaylist.songs || []).length}{" "}
-                    {(currentPlaylist.songs || []).length !== 1
-                      ? t("pages.playlist.songs")
-                      : t("pages.playlist.song")}
+              )}
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 text-xs sm:text-sm text-gray-100 mt-2">
+                {isOwner &&
+                  (currentPlaylist.isPublic ? (
+                    <Unlock className="size-3.5" />
+                  ) : (
+                    <Lock className="size-3.5" />
+                  ))}
+                {currentPlaylist.owner == null ? (
+                  <span className="font-semibold text-white flex items-center">
+                    <img
+                      src={SITE_BRAND_AVATAR}
+                      className="size-4 rounded-full mr-1 object-cover bg-zinc-800"
+                      alt={SITE_NAME}
+                    />
+                    {SITE_NAME}
                   </span>
-                  {(currentPlaylist.songs || []).length > 0 && (
-                    <span className="hidden lg:inline">
-                      • {formattedDuration}
-                    </span>
-                  )}
-                  {(currentPlaylist.likes ?? 0) > 0 && (
-                    <span className="hidden lg:inline">
-                      • {currentPlaylist.likes} {t("pages.playlist.saved")}
-                    </span>
-                  )}
-                </div>
+                ) : currentPlaylist.owner ? (
+                  <button
+                    type="button"
+                    onClick={handleOwnerClick}
+                    className="font-semibold text-white flex items-center hover:underline focus:outline-none focus:underline"
+                  >
+                    <img
+                      src={getUserAvatarUrl(currentPlaylist.owner)}
+                      className="size-4 rounded-full mr-1"
+                      alt={currentPlaylist.owner.fullName}
+                    />
+                    {currentPlaylist.owner.fullName ||
+                      t("common.unknownArtist")}
+                  </button>
+                ) : null}
+                <span className="hidden lg:inline">
+                  • {(currentPlaylist.songs || []).length}{" "}
+                  {(currentPlaylist.songs || []).length !== 1
+                    ? t("pages.playlist.songs")
+                    : t("pages.playlist.song")}
+                </span>
+                {(currentPlaylist.songs || []).length > 0 && (
+                  <span className="hidden lg:inline">
+                    • {formattedDuration}
+                  </span>
+                )}
+                {(currentPlaylist.likes ?? 0) > 0 && (
+                  <span className="hidden lg:inline">
+                    • {currentPlaylist.likes} {t("pages.playlist.saved")}
+                  </span>
+                )}
               </div>
             </div>
+          </div>
 
-            <div className="px-4 sm:px-6 pb-4 flex flex-wrap sm:justify-start items-center gap-1">
-              {currentPlaylist.songs.length > 0 && (
-                <Button
-                  size="icon"
-                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white hover:bg-white/90 transition-all duration-100 shadow-lg flex-shrink-0 hover:scale-105"
-                  onClick={handlePlayPlaylist}
-                >
-                  {isCurrentPlaylistPlaying ? (
-                    <Pause className="w-6 h-6 sm:w-8 sm:h-8 text-black fill-current" />
-                  ) : (
-                    <Play className="w-6 h-6 sm:w-8 sm:h-8 text-black fill-current" />
-                  )}
-                </Button>
-              )}
-              {showLibraryToggle && (
-                <Button
-                  onClick={handleTogglePlaylistInLibrary}
-                  disabled={isTogglingLibrary || !user}
-                  variant="ghost2"
-                  size="icon"
-                  className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full p-2 transition-colors group ${
-                    !user ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
-                  title={
-                    !user
-                      ? t("auth.loginRequired")
-                      : isInLibrary
-                        ? t("pages.playlist.actions.removeFromLibrary")
-                        : t("pages.playlist.actions.addToLibrary")
-                  }
-                >
-                  {isInLibrary ? (
-                    <CheckedIcon className="size-8 text-[#8b5cf6]" />
-                  ) : (
-                    <PlusCircle className="size-8 text-white/80 group-hover:text-white transition-colors" />
-                  )}
-                </Button>
-              )}
-              <DownloadButton
-                itemId={currentPlaylist._id}
-                itemType="playlists"
-                itemTitle={displayTitle}
-                disabled={
-                  !user || (currentPlaylist.songs?.length ?? 0) === 0
-                }
-                disabledHint={
-                  user && (currentPlaylist.songs?.length ?? 0) === 0
-                    ? t("pages.playlist.downloadEmptyHint")
-                    : undefined
-                }
+          <div className="px-4 sm:px-6 pb-4 flex flex-wrap sm:justify-start items-center gap-1">
+            {currentPlaylist.songs.length > 0 && (
+              <Button
+                size="icon"
+                className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white hover:bg-white/90 transition-all duration-100 shadow-lg flex-shrink-0 hover:scale-105"
+                onClick={handlePlayPlaylist}
+              >
+                {isCurrentPlaylistPlaying ? (
+                  <Pause className="w-6 h-6 sm:w-8 sm:h-8 text-black fill-current" />
+                ) : (
+                  <Play className="w-6 h-6 sm:w-8 sm:h-8 text-black fill-current" />
+                )}
+              </Button>
+            )}
+            {currentPlaylist && currentPlaylist.songs.length > 0 && (
+              <EntityShuffleButton
+                entityType="playlist"
+                entityId={currentPlaylist._id}
+                supportsSmartShuffle={supportsSmartShuffle}
+                variant="page"
               />
-              {showPlaylistHeaderMenu &&
-                (isMobile ? (
+            )}
+            {showLibraryToggle && (
+              <Button
+                onClick={handleTogglePlaylistInLibrary}
+                disabled={isTogglingLibrary || !user}
+                variant="ghost2"
+                size="icon"
+                className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full p-2 transition-colors group ${
+                  !user ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+                title={
+                  !user
+                    ? t("auth.loginRequired")
+                    : isInLibrary
+                      ? t("pages.playlist.actions.removeFromLibrary")
+                      : t("pages.playlist.actions.addToLibrary")
+                }
+              >
+                {isInLibrary ? (
+                  <CheckedIcon className="size-8 text-[#8b5cf6]" />
+                ) : (
+                  <PlusCircle className="size-8 text-white/80 group-hover:text-white transition-colors" />
+                )}
+              </Button>
+            )}
+            <DownloadButton
+              itemId={currentPlaylist._id}
+              itemType="playlists"
+              itemTitle={displayTitle}
+              disabled={!user || (currentPlaylist.songs?.length ?? 0) === 0}
+              disabledHint={
+                user && (currentPlaylist.songs?.length ?? 0) === 0
+                  ? t("pages.playlist.downloadEmptyHint")
+                  : undefined
+              }
+            />
+            {showPlaylistHeaderMenu &&
+              (isMobile ? (
                 <Drawer>
                   <DrawerTrigger asChild>
                     <Button
@@ -585,8 +599,9 @@ const PlaylistDetailsPage = () => {
                             variant="ghost"
                             className="justify-start p-3 h-auto text-base"
                             onClick={() =>
-                              openEditPlaylistDialog(currentPlaylist, () =>
-                                void refetchPlaylist(),
+                              openEditPlaylistDialog(
+                                currentPlaylist,
+                                () => void refetchPlaylist(),
                               )
                             }
                           >
@@ -645,8 +660,9 @@ const PlaylistDetailsPage = () => {
                         <DropdownMenuItem
                           className="cursor-pointer hover:bg-zinc-800/50"
                           onSelect={() =>
-                            openEditPlaylistDialog(currentPlaylist, () =>
-                              void refetchPlaylist(),
+                            openEditPlaylistDialog(
+                              currentPlaylist,
+                              () => void refetchPlaylist(),
                             )
                           }
                         >
@@ -668,69 +684,69 @@ const PlaylistDetailsPage = () => {
                   </DropdownMenuContent>
                 </DropdownMenu>
               ))}
-            </div>
-
-            <CollectionSongList
-              songs={currentPlaylist.songs ?? []}
-              context="playlist"
-              isMobile={isMobile}
-              currentSongId={currentSong?._id}
-              isPlaying={isPlaying}
-              onPlay={handlePlaylistSongPlay}
-              onArtistClick={handleArtistNameClick}
-              onAlbumClick={handleSongTitleClick}
-              dateHeaderKey={playlistDateHeaderKey}
-              getDateLabel={getPlaylistSongDateLabel}
-              playlistId={currentPlaylist._id}
-              isOwner={isUserEditable}
-              mobileVariant="playlist"
-              isLoggedIn={Boolean(user)}
-            />
-            {showAddToPlaylistButton && playlistId && (
-              <PlaylistDiscoverSection
-                playlistId={playlistId}
-                playlistSongCount={currentPlaylist.songs?.length ?? 0}
-                playlistSongIds={playlistSongIds}
-                onAddSong={handleAddSongToPlaylist}
-              />
-            )}
           </div>
+
+          <CollectionSongList
+            songs={currentPlaylist.songs ?? []}
+            context="playlist"
+            isMobile={isMobile}
+            currentSongId={currentSong?._id}
+            isPlaying={isPlaying}
+            onPlay={handlePlaylistSongPlay}
+            onArtistClick={handleArtistNameClick}
+            onAlbumClick={handleSongTitleClick}
+            dateHeaderKey={playlistDateHeaderKey}
+            getDateLabel={getPlaylistSongDateLabel}
+            playlistId={currentPlaylist._id}
+            isOwner={isUserEditable}
+            mobileVariant="playlist"
+            isLoggedIn={Boolean(user)}
+          />
+          {showAddToPlaylistButton && playlistId && (
+            <PlaylistDiscoverSection
+              playlistId={playlistId}
+              playlistSongCount={currentPlaylist.songs?.length ?? 0}
+              playlistSongIds={playlistSongIds}
+              onAddSong={handleAddSongToPlaylist}
+            />
+          )}
+        </div>
       </CollectionGradientLayout>
-        <DeletePlaylistDialog
-          open={!!playlistToDelete}
-          onOpenChange={(isOpen) => !isOpen && closeAllDialogs()}
-          onConfirm={handleDeletePlaylistConfirm}
-          onCancel={closeAllDialogs}
-          t={t}
-        />
+      <DeletePlaylistDialog
+        open={!!playlistToDelete}
+        onOpenChange={(isOpen) => !isOpen && closeAllDialogs()}
+        onConfirm={handleDeletePlaylistConfirm}
+        onCancel={closeAllDialogs}
+        t={t}
+      />
 
-        <RemoveSongFromPlaylistDialog
-          open={!!songToRemoveFromPlaylist}
-          onOpenChange={(isOpen) => !isOpen && closeAllDialogs()}
-          onConfirm={handleDeleteSongConfirm}
-          onCancel={closeAllDialogs}
-          t={t}
-        />
+      <RemoveSongFromPlaylistDialog
+        open={!!songToRemoveFromPlaylist}
+        onOpenChange={(isOpen) => !isOpen && closeAllDialogs()}
+        onConfirm={handleDeleteSongConfirm}
+        onCancel={closeAllDialogs}
+        t={t}
+      />
 
-        {currentPlaylist && currentPlaylist.isPublic && (
-          <ShareDialog
-            isOpen={
-              shareEntity?.type === "playlist" &&
-              shareEntity.id === currentPlaylist._id
-            }
-            onClose={closeAllDialogs}
-            entityType="playlist"
-            entityId={currentPlaylist._id}
-          />
-        )}
-        {shareEntity?.type === "song" && (
-          <ShareDialog
-            isOpen={true}
-            onClose={closeAllDialogs}
-            entityType="song"
-            entityId={shareEntity.id}
-          />
-        )}
+      {currentPlaylist && currentPlaylist.isPublic && (
+        <ShareDialog
+          isOpen={
+            shareEntity?.type === "playlist" &&
+            shareEntity.id === currentPlaylist._id
+          }
+          onClose={closeAllDialogs}
+          entityType="playlist"
+          entityId={currentPlaylist._id}
+        />
+      )}
+      {shareEntity?.type === "song" && (
+        <ShareDialog
+          isOpen={true}
+          onClose={closeAllDialogs}
+          entityType="song"
+          entityId={shareEntity.id}
+        />
+      )}
     </>
   );
 };

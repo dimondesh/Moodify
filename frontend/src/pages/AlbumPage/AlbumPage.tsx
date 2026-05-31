@@ -24,6 +24,16 @@ import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 import { getLargeCoverUrl } from "@/lib/imageUrl";
 import { useDominantCoverGradient } from "@/hooks/useDominantCoverGradient";
 import { AlbumCoverDialog } from "./AlbumCoverDialog";
+import type { Album } from "@/types";
+import { EntityShuffleButton } from "@/components/EntityShuffleButton";
+
+const albumPlaybackContext = (album: Album) => ({
+  type: "album" as const,
+  entityId: album._id,
+  entityTitle: album.title,
+  supportsSmartShuffle: false,
+});
+
 const AlbumPage = () => {
   const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY);
   const { t } = useTranslation();
@@ -70,11 +80,7 @@ const AlbumPage = () => {
 
       // Если трек найден и он сейчас не играет
       if (songIndex !== -1 && currentSong?._id !== playSongId) {
-        playAlbum(currentAlbum.songs, songIndex, {
-          type: "album",
-          entityId: currentAlbum._id,
-          entityTitle: currentAlbum.title,
-        });
+        playAlbum(currentAlbum.songs, songIndex, albumPlaybackContext(currentAlbum));
 
         // Очищаем URL, чтобы трек не запускался заново при ререндерах
         searchParams.delete("play");
@@ -133,19 +139,11 @@ const AlbumPage = () => {
     );
     if (isCurrentAlbumPlaying) togglePlay();
     else
-      playAlbum(currentAlbum.songs, 0, {
-        type: "album",
-        entityId: currentAlbum._id,
-        entityTitle: currentAlbum.title,
-      });
+      playAlbum(currentAlbum.songs, 0, albumPlaybackContext(currentAlbum));
   };
 
   const handlePlaySong = (index: number) => {
-    playAlbum(currentAlbum.songs, index, {
-      type: "album",
-      entityId: currentAlbum._id,
-      entityTitle: currentAlbum.title,
-    });
+    playAlbum(currentAlbum.songs, index, albumPlaybackContext(currentAlbum));
   };
 
   const handleArtistClick = (artistId: string) => {
@@ -248,6 +246,12 @@ const AlbumPage = () => {
                 <Play className="w-6 h-6 sm:w-8 sm:h-8 text-black fill-current" />
               )}
             </Button>
+            <EntityShuffleButton
+              entityType="album"
+              entityId={currentAlbum._id}
+              supportsSmartShuffle={false}
+              variant="page"
+            />
             {currentAlbum && (
               <Button
                 onClick={handleToggleAlbum}

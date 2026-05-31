@@ -77,6 +77,8 @@ export function getQueueSections(params: {
   shuffleHistory: number[];
   shufflePointer: number;
   getNextSongsInShuffle: (count?: number) => Song[];
+  playbackOrderIds?: string[] | null;
+  playbackPointer?: number;
 }): QueueSections {
   const {
     queue,
@@ -88,7 +90,39 @@ export function getQueueSections(params: {
     shuffleHistory,
     shufflePointer,
     getNextSongsInShuffle,
+    playbackOrderIds,
+    playbackPointer = -1,
   } = params;
+
+  if (
+    playbackOrderIds &&
+    playbackOrderIds.length > 0 &&
+    playbackPointer >= 0
+  ) {
+    const current = currentSong;
+    if (!current) {
+      return { current: null, userAdded: [], upcoming: [] };
+    }
+    if (repeatMode === "one") {
+      return { current, userAdded: [...userQueue], upcoming: [] };
+    }
+    const resolve = (id: string) => queue.find((s) => s._id === id);
+    let upcomingIds = playbackOrderIds.slice(playbackPointer + 1);
+    if (repeatMode === "all" && upcomingIds.length === 0) {
+      upcomingIds = playbackOrderIds.filter((id) => id !== current._id);
+    }
+    const upcoming = upcomingIds
+      .map((id) => resolve(id))
+      .filter((s): s is Song => Boolean(s));
+    const userQueueIds = new Set(userQueue.map((s) => s._id));
+    return {
+      current,
+      userAdded: [...userQueue],
+      upcoming: upcoming.filter(
+        (s) => !userQueueIds.has(s._id) && s._id !== current._id,
+      ),
+    };
+  }
 
   if (queue.length === 0 || currentIndex < 0) {
     return { current: null, userAdded: [], upcoming: [] };

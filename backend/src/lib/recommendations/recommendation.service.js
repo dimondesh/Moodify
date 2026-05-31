@@ -6,6 +6,8 @@ import { User } from "../../models/user.model.js";
 import { Playlist } from "../../models/playlist.model.js";
 import { Song } from "../../models/song.model.js";
 import { ListenHistory } from "../../models/listenHistory.model.js";
+import { LikedSong } from "../../models/likedSong.model.js";
+import { LIKED_PLAYLIST_ID } from "../../constants/playlistTypes.js";
 import {
   EMBEDDING_DIM,
   ARTIST_TOP_TRACKS_LIMIT,
@@ -740,5 +742,274 @@ export const getPlaylistEmbeddingRecommendations = async (
   } catch (error) {
     console.error("getPlaylistEmbeddingRecommendations:", error);
     return null;
+  }
+};
+
+const applySmartShuffleRepeatPenalties = (score, candidate, repeatContext) => {
+  let nextScore = score;
+  const candidateArtistIds = getCandidateArtistIds(candidate);
+
+  for (const artistId of candidateArtistIds) {
+    if (repeatContext.currentArtistIds.includes(artistId)) {
+      nextScore += 0.3;
+      break;
+    }
+  }
+
+  let sessionArtistPenalty = 0;
+  for (const artistId of candidateArtistIds) {
+    if (
+      repeatContext.sessionArtistIds.includes(artistId) &&
+      !repeatContext.currentArtistIds.includes(artistId)
+    ) {
+      sessionArtistPenalty += 0.15;
+    }
+  }
+  nextScore += Math.min(sessionArtistPenalty, 0.45);
+
+  const candidateId = candidate._id.toString();
+  if (repeatContext.recentSongPenalties.has(candidateId)) {
+    nextScore += repeatContext.recentSongPenalties.get(candidateId);
+  }
+
+  for (const artistId of candidateArtistIds) {
+    if (repeatContext.recentArtistPenalties.has(artistId)) {
+      nextScore += repeatContext.recentArtistPenalties.get(artistId);
+    }
+  }
+
+  if (candidate.albumId) {
+    const albumId = (candidate.albumId._id || candidate.albumId).toString();
+    if (repeatContext.recentAlbumPenalties.has(albumId)) {
+      nextScore += repeatContext.recentAlbumPenalties.get(albumId);
+    }
+  }
+
+  return nextScore;
+};
+
+const SMART_SHUFFLE_PROFILE_SAMPLE = 150;
+
+async function resolveSmartShuffleSource(playlistId, userId) {
+  if (playlistId === LIKED_PLAYLIST_ID) {
+    if (!userId) return null;
+    const songIds = await LikedSong.find({ user: userId }).distinct("song");
+    if (!songIds.length) return null;
+    return {
+      songIds: songIds.map((id) => id.toString()),
+      storedEmbedding: null,
+    };
+  }
+
+  const playlist = await Playlist.findById(playlistId)
+    .select("songs embedding")
+    .lean();
+  if (!playlist?.songs?.length) return null;
+
+  return {
+    songIds: playlist.songs.map((id) => id.toString()),
+    storedEmbedding:
+      Array.isArray(playlist.embedding) &&
+      playlist.embedding.length === EMBEDDING_DIM
+        ? playlist.embedding
+        : null,
+  };
+}
+
+async function loadSmartShuffleProfileSongs(songIds) {
+  const objectIds = songIds
+    .filter((id) => mongoose.Types.ObjectId.isValid(id))
+    .map((id) => new mongoose.Types.ObjectId(id));
+
+  if (objectIds.length === 0) return [];
+
+  if (objectIds.length <= SMART_SHUFFLE_PROFILE_SAMPLE) {
+    return Song.find({ _id: { $in: objectIds } })
+      .select("genres moods audioFeatures artist")
+      .lean();
+  }
+
+  const sampled = await Song.aggregate([
+    { $match: { _id: { $in: objectIds } } },
+    { $sample: { size: SMART_SHUFFLE_PROFILE_SAMPLE } },
+  ]);
+
+  return Song.find({ _id: { $in: sampled.map((s) => s._id) } })
+    .select("genres moods audioFeatures artist")
+    .lean();
+}
+
+/** One-shot smart shuffle mix for a playlist (not infinite radio). */
+export const getSmartShuffleTracks = async (
+  playlistId,
+  { limit = 10, excludeIds = [], repeatMode = "default", userId = null } = {},
+) => {
+  try {
+    const source = await resolveSmartShuffleSource(playlistId, userId);
+    if (!source?.songIds?.length) return [];
+
+    const playlistSongs = await loadSmartShuffleProfileSongs(source.songIds);
+    if (!playlistSongs.length) return [];
+
+    const playlistSongIdSet = new Set(source.songIds);
+    const extraExclude = (excludeIds || [])
+      .map((id) => id.toString())
+      .filter((id) => !playlistSongIdSet.has(id));
+
+    const allExclude = [
+      ...new Set([...source.songIds, ...extraExclude]),
+    ];
+    const validExcludeIds = allExclude
+      .filter((id) => mongoose.Types.ObjectId.isValid(id))
+      .map((id) => new mongoose.Types.ObjectId(id));
+
+    const storedEmbedding = source.storedEmbedding;
+
+    const centroidEmbedding =
+      storedEmbedding ??
+      meanPoolEmbeddings(extractValidEmbeddings(playlistSongs));
+
+    if (!centroidEmbedding) return [];
+
+    const genreIds = [
+      ...new Map(
+        playlistSongs
+          .flatMap((s) => s.genres || [])
+          .map((g) => [g.toString(), g]),
+      ).values(),
+    ];
+    const moodIds = [
+      ...new Map(
+        playlistSongs
+          .flatMap((s) => s.moods || [])
+          .map((m) => [m.toString(), m]),
+      ).values(),
+    ];
+
+    const bpms = playlistSongs
+      .map((s) => s.audioFeatures?.bpm)
+      .filter((b) => b != null);
+    const targetBpm =
+      bpms.length > 0
+        ? bpms.reduce((acc, b) => acc + b, 0) / bpms.length
+        : null;
+
+    const avgAudioFeatures = {
+      bpm: targetBpm,
+      camelot: null,
+      embedding: centroidEmbedding,
+    };
+
+    const bpmTolerance = 20;
+    const excludeObjectIds = validExcludeIds;
+
+    let matchQuery = {
+      _id: { $nin: excludeObjectIds },
+      "audioFeatures.embedding": { $exists: true, $ne: null },
+    };
+
+    if (genreIds.length > 0 && targetBpm != null) {
+      matchQuery = {
+        _id: { $nin: excludeObjectIds },
+        "audioFeatures.embedding": { $exists: true, $ne: null },
+        $and: [
+          { genres: { $in: genreIds } },
+          {
+            $or: [
+              {
+                "audioFeatures.bpm": {
+                  $gte: targetBpm - bpmTolerance,
+                  $lte: targetBpm + bpmTolerance,
+                },
+              },
+              {
+                "audioFeatures.bpm": {
+                  $gte: targetBpm * 2 - bpmTolerance,
+                  $lte: targetBpm * 2 + bpmTolerance,
+                },
+              },
+              {
+                "audioFeatures.bpm": {
+                  $gte: targetBpm / 2 - bpmTolerance,
+                  $lte: targetBpm / 2 + bpmTolerance,
+                },
+              },
+            ],
+          },
+        ],
+      };
+    } else if (genreIds.length > 0) {
+      matchQuery = {
+        _id: { $nin: excludeObjectIds },
+        "audioFeatures.embedding": { $exists: true, $ne: null },
+        genres: { $in: genreIds },
+      };
+    }
+
+    let candidatesAgg = await Song.aggregate([
+      { $match: matchQuery },
+      { $sample: { size: Math.min(150, limit * 15) } },
+    ]);
+
+    if (candidatesAgg.length < limit) {
+      const fallbackMatch = {
+        _id: { $nin: excludeObjectIds },
+        "audioFeatures.embedding": { $exists: true, $ne: null },
+      };
+      if (genreIds.length > 0 || moodIds.length > 0) {
+        fallbackMatch.$or = [];
+        if (genreIds.length > 0) {
+          fallbackMatch.$or.push({ genres: { $in: genreIds } });
+        }
+        if (moodIds.length > 0) {
+          fallbackMatch.$or.push({ moods: { $in: moodIds } });
+        }
+      }
+      candidatesAgg = await Song.aggregate([
+        { $match: fallbackMatch },
+        { $sample: { size: Math.min(150, limit * 15) } },
+      ]);
+    }
+
+    if (candidatesAgg.length === 0) return [];
+
+    const candidates = await Song.populate(candidatesAgg, [
+      { path: "artist", select: "name images" },
+      { path: "albumId", select: "title images" },
+    ]);
+
+    const anchorSong = playlistSongs[0];
+    const repeatContext = await buildRepeatContext({
+      userId,
+      excludeIds: allExclude,
+      repeatMode,
+      currentSong: anchorSong,
+    });
+
+    const scoredCandidates = candidates.map((candidate) => {
+      let score = scoreCandidateAgainstPlaylist(
+        centroidEmbedding,
+        avgAudioFeatures,
+        genreIds,
+        moodIds,
+        candidate,
+      );
+      score = applySmartShuffleRepeatPenalties(
+        score,
+        candidate,
+        repeatContext,
+      );
+      return { ...candidate, score };
+    });
+
+    scoredCandidates.sort((a, b) => a.score - b.score);
+    const picked = pickVibeMatchTracks(scoredCandidates, limit, repeatMode);
+
+    return picked.map(({ score: _score, ...song }) =>
+      formatPlaylistRecommendationSong(song),
+    );
+  } catch (error) {
+    console.error("getSmartShuffleTracks:", error);
+    return [];
   }
 };

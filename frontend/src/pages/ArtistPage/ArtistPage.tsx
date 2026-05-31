@@ -19,6 +19,7 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { MOBILE_MEDIA_QUERY } from "@/constants/breakpoints";
 import { CollectionSongList } from "@/components/CollectionSongList/CollectionSongList";
+import { EntityShuffleButton } from "@/components/EntityShuffleButton";
 
 const ArtistPage = () => {
   const { t } = useTranslation();
@@ -116,6 +117,16 @@ const ArtistPage = () => {
     [isPlaying, popularSongs, currentSong],
   );
 
+  const artistPlaybackContext = useCallback(
+    () => ({
+      type: "artist" as const,
+      entityId: artist?._id,
+      entityTitle: artist?.name,
+      supportsSmartShuffle: false,
+    }),
+    [artist?._id, artist?.name],
+  );
+
   const handlePlayArtistSongs = useCallback(() => {
     if (popularSongs.length === 0) {
       toast.error("No popular songs available to play.");
@@ -123,12 +134,8 @@ const ArtistPage = () => {
     }
     if (isAnyPopularSongPlaying) togglePlay();
     else
-      playAlbum(popularSongs, 0, {
-        type: "artist",
-        entityId: artist?._id,
-        entityTitle: artist?.name,
-      });
-  }, [popularSongs, isAnyPopularSongPlaying, togglePlay, playAlbum, artist]);
+      playAlbum(popularSongs, 0, artistPlaybackContext());
+  }, [popularSongs, isAnyPopularSongPlaying, togglePlay, playAlbum, artistPlaybackContext]);
 
   const handlePlaySong = useCallback(
     (index: number) => {
@@ -137,14 +144,10 @@ const ArtistPage = () => {
       if (currentSong?._id === song._id) togglePlay();
       else {
         setCurrentSong(song);
-        playAlbum(popularSongs, index, {
-          type: "artist",
-          entityId: artist?._id,
-          entityTitle: artist?.name,
-        });
+        playAlbum(popularSongs, index, artistPlaybackContext());
       }
     },
-    [currentSong, togglePlay, setCurrentSong, playAlbum, popularSongs, artist],
+    [currentSong, togglePlay, setCurrentSong, playAlbum, popularSongs, artistPlaybackContext],
   );
 
   const handleArtistClick = useCallback(
@@ -269,6 +272,14 @@ const ArtistPage = () => {
                   <Play className="h-7 w-7 fill-current!" />
                 )}
               </Button>
+              {artist._id && (
+                <EntityShuffleButton
+                  entityType="artist"
+                  entityId={artist._id}
+                  supportsSmartShuffle={false}
+                  variant="page"
+                />
+              )}
               <Button
                 variant="outline"
                 className="rounded-full px-4 py-2 text-white border-[#2a2a2a] hover:border-[#8b5cf6] hover:text-[#8b5cf6] flex items-center gap-2"

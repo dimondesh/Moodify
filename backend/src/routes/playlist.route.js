@@ -15,6 +15,7 @@ import {
   getPublicPlaylists,
   createPlaylistFromSong,
   getPlaylistRecommendations,
+  getSmartShuffle,
 } from "../controller/playlist.controller.js";
 
 const router = express.Router();
@@ -23,6 +24,7 @@ router.get("/public", getPublicPlaylists);
 
 router.get("/my", protectRoute, getMyPlaylists);
 router.get("/:id/recommendations", protectRoute, getPlaylistRecommendations);
+router.get("/:id/smart-shuffle", attachUserIfPresent, getSmartShuffle);
 router.get("/:id", attachUserIfPresent, getPlaylistById);
 
 router.use(protectRoute);

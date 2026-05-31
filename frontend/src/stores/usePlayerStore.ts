@@ -7,15 +7,25 @@ import { useOfflineStore } from "./useOfflineStore";
 import { silentAudioService } from "@/lib/silentAudioService";
 import {
   fetchSongById,
-  fetchSongRadio,
   fetchAlbumTitle,
 } from "@/lib/api/music";
+import { fetchPlaylistSmartShuffle } from "@/lib/api/playlists";
 import { getUserItem } from "@/lib/offline-db";
 import { useAuthStore } from "./useAuthStore";
 import {
-  collectSmartShuffleExcludeIds,
+  computeSmartShuffleLimit,
+  LARGE_PLAYLIST_THRESHOLD,
+  pinIdAtFront,
+  shuffleIds,
   type SmartShuffleRepeatMode,
 } from "@/lib/smartShuffleContext";
+import {
+  readEntityShufflePref,
+  writeEntityShufflePref,
+  cycleEntityShufflePrefValue,
+  type EntityShuffleMode,
+  type EntityType,
+} from "@/lib/entityShufflePrefs";
 
 const migrateLocalStorageKey = (fromKey: string, toKey: string) => {
   try {
@@ -74,21 +84,51 @@ interface PlayerStore {
     type: "song" | "album" | "playlist" | "artist";
     entityId?: string;
     entityTitle?: string;
+    supportsSmartShuffle?: boolean;
   } | null;
   shuffleMode: "off" | "regular" | "smart";
   smartShuffleRepeatMode: SmartShuffleRepeatMode;
+  /** Song IDs from the entity queue at play start (for smart shuffle sparkles). */
+  contextSourceSongIds: string[];
+  /** IDs of one-shot smart shuffle recommendations mixed into the current queue. */
+  smartShuffleTrackIds: string[];
+  /** ID playback order for large shuffled playlists (avoids full in-memory queue). */
+  playbackOrderIds: string[] | null;
+  playbackPointer: number;
+  /** Bumped when entity shuffle prefs change in localStorage (for UI reactivity). */
+  entityShufflePrefsRevision: number;
+  currentSongFromUserQueue: boolean;
 
   setRepeatMode: (mode: "off" | "all" | "one") => void;
   setSmartShuffleRepeatMode: (mode: SmartShuffleRepeatMode) => void;
   toggleShuffle: () => void;
+  getEntityShufflePref: (
+    entityType: EntityType,
+    entityId: string,
+    supportsSmartShuffle: boolean,
+  ) => EntityShuffleMode;
+  cycleEntityShufflePref: (
+    entityType: EntityType,
+    entityId: string,
+    supportsSmartShuffle: boolean,
+  ) => void;
+  applyShuffleMode: (mode: EntityShuffleMode) => void;
+  isActiveEntityContext: (type: EntityType, entityId: string) => boolean;
+  isCurrentSongFromSmartShuffle: () => boolean;
   initializeQueue: (songs: Song[]) => void;
   /** Fetches missing hlsUrl/lyrics for the persisted or queue-seeded current track. */
   hydrateCurrentSong: () => Promise<void>;
-  generateSmartTracks: () => Promise<void>;
+  mixSmartShuffleTracksIntoQueue: () => Promise<void>;
+  stripSmartShuffleTracksFromQueue: () => void;
   playAlbum: (
     songs: Song[],
     startIndex?: number,
-    context?: { type: string; entityId?: string; entityTitle?: string },
+    context?: {
+      type: string;
+      entityId?: string;
+      entityTitle?: string;
+      supportsSmartShuffle?: boolean;
+    },
   ) => Promise<void>;
   setCurrentSong: (song: Song | null) => Promise<void>;
   togglePlay: () => void;
@@ -102,7 +142,12 @@ interface PlayerStore {
   setIsMobileLyricsFullScreen: (isOpen: boolean) => void;
   seekToTime: (time: number) => void;
   setPlaybackContext: (
-    context: { type: string; entityId?: string; entityTitle?: string } | null,
+    context: {
+      type: string;
+      entityId?: string;
+      entityTitle?: string;
+      supportsSmartShuffle?: boolean;
+    } | null,
   ) => void;
   removeFromQueue: (songId: string) => void;
   moveSongInQueue: (fromIndex: number, toIndex: number) => void;
@@ -154,6 +199,59 @@ const shuffleQueue = (length: number) => {
   }
   return arr;
 };
+
+const buildShuffleHistoryForIndex = (
+  queueLength: number,
+  currentIndex: number,
+): { shuffleHistory: number[]; shufflePointer: number } => {
+  if (queueLength === 0) {
+    return { shuffleHistory: [], shufflePointer: -1 };
+  }
+  const shuffleHistory = shuffleQueue(queueLength);
+  if (currentIndex === -1) {
+    return { shuffleHistory, shufflePointer: -1 };
+  }
+  const currentPosInShuffle = shuffleHistory.indexOf(currentIndex);
+  if (currentPosInShuffle !== -1) {
+    [shuffleHistory[0], shuffleHistory[currentPosInShuffle]] = [
+      shuffleHistory[currentPosInShuffle],
+      shuffleHistory[0],
+    ];
+  } else {
+    shuffleHistory.unshift(currentIndex);
+    shuffleHistory.pop();
+  }
+  return { shuffleHistory, shufflePointer: 0 };
+};
+
+const isEntityPlaybackType = (
+  type: StoredPlaybackType | undefined,
+): type is EntityType =>
+  type === "album" || type === "playlist" || type === "artist";
+
+async function fetchSmartTracksForPlaylist(
+  playlistId: string,
+  sourceCount: number,
+  repeatMode: SmartShuffleRepeatMode,
+): Promise<Song[]> {
+  if (useOfflineStore.getState().isOffline) return [];
+  const limit = computeSmartShuffleLimit(sourceCount);
+  if (limit <= 0) return [];
+  try {
+    return await fetchPlaylistSmartShuffle(playlistId, {
+      repeatMode,
+      limit,
+    });
+  } catch (error) {
+    console.error("Smart shuffle fetch error:", error);
+    return [];
+  }
+}
+
+function mergeSongIntoQueueCache(queue: Song[], song: Song): Song[] {
+  if (queue.some((s) => s._id === song._id)) return queue;
+  return [...queue, song];
+}
 
 export const usePlayerStore = create<PlayerStore>()(
   persist(
@@ -250,6 +348,89 @@ export const usePlayerStore = create<PlayerStore>()(
         }
       };
 
+      const resolveSongForPlayback = async (
+        songId: string,
+        localPool: Song[],
+        queue: Song[],
+      ): Promise<Song | null> => {
+        const cached =
+          queue.find((s) => s._id === songId) ??
+          localPool.find((s) => s._id === songId);
+        if (cached) {
+          return ensureSongData(cached);
+        }
+        try {
+          const fetched = await fetchSongById(songId);
+          return ensureSongData(fetched);
+        } catch {
+          return null;
+        }
+      };
+
+      const pauseAtEntityFirstTrack = async () => {
+        const state = get();
+        silentAudioService.pause();
+
+        const firstEntityId =
+          state.contextSourceSongIds[0] ?? state.queue[0]?._id ?? null;
+
+        if (!firstEntityId) {
+          set({
+            isPlaying: false,
+            currentSong: null,
+            currentIndex: -1,
+            currentTime: 0,
+          });
+          return;
+        }
+
+        const fullSong = await resolveSongForPlayback(
+          firstEntityId,
+          state.queue,
+          state.queue,
+        );
+
+        if (!fullSong) {
+          set({
+            isPlaying: false,
+            currentSong: null,
+            currentIndex: -1,
+            currentTime: 0,
+          });
+          return;
+        }
+
+        const newQueue = mergeSongIntoQueueCache(state.queue, fullSong);
+        const currentIndex = newQueue.findIndex((s) => s._id === fullSong._id);
+
+        let playbackPointer = state.playbackPointer;
+        if (state.playbackOrderIds) {
+          const ptr = state.playbackOrderIds.indexOf(firstEntityId);
+          playbackPointer = ptr >= 0 ? ptr : 0;
+        }
+
+        let shufflePointer = state.shufflePointer;
+        if (
+          state.shuffleMode !== "off" &&
+          state.shuffleHistory.length > 0 &&
+          currentIndex >= 0
+        ) {
+          const pos = state.shuffleHistory.indexOf(currentIndex);
+          if (pos >= 0) shufflePointer = pos;
+        }
+
+        set({
+          isPlaying: false,
+          currentSong: fullSong,
+          queue: newQueue,
+          currentIndex: currentIndex >= 0 ? currentIndex : 0,
+          playbackPointer: state.playbackOrderIds ? playbackPointer : state.playbackPointer,
+          shufflePointer,
+          currentTime: 0,
+          currentSongFromUserQueue: false,
+        });
+      };
+
       return {
         currentSong: null,
         isPlaying: false,
@@ -270,6 +451,12 @@ export const usePlayerStore = create<PlayerStore>()(
         seekVersion: 0,
         shuffleMode: "off",
         smartShuffleRepeatMode: "default",
+        contextSourceSongIds: [],
+        smartShuffleTrackIds: [],
+        playbackOrderIds: null,
+        playbackPointer: -1,
+        entityShufflePrefsRevision: 0,
+        currentSongFromUserQueue: false,
 
         isDesktopLyricsOpen: false,
         isMobileLyricsFullScreen: false,
@@ -291,7 +478,7 @@ export const usePlayerStore = create<PlayerStore>()(
             let newShuffleHistory = state.shuffleHistory;
             let newShufflePointer = state.shufflePointer;
 
-            if (state.isShuffle && newQueue.length > 0) {
+            if (state.shuffleMode !== "off" && newQueue.length > 0) {
               newShuffleHistory = shuffleQueue(newQueue.length);
               if (currentSong && currentIndex !== -1) {
                 const currentPosInShuffle =
@@ -359,16 +546,126 @@ export const usePlayerStore = create<PlayerStore>()(
               currentIndex: -1,
               shuffleHistory: [],
               shufflePointer: -1,
+              contextSourceSongIds: [],
+              smartShuffleTrackIds: [],
+              playbackOrderIds: null,
+              playbackPointer: -1,
+              currentSongFromUserQueue: false,
             });
             return;
           }
 
+          const normalizedType = context
+            ? normalizePlaybackContextType(context.type)
+            : undefined;
+          const contextSourceSongIds = songs.map((s) => s._id);
+          let shuffleMode = get().shuffleMode;
+          let smartShuffleTrackIds: string[] = [];
+          let smartTracks: Song[] = [];
+
+          if (
+            context?.entityId &&
+            normalizedType &&
+            isEntityPlaybackType(normalizedType)
+          ) {
+            const supportsSmartShuffle = context.supportsSmartShuffle ?? false;
+            shuffleMode = readEntityShufflePref(
+              normalizedType,
+              context.entityId,
+              supportsSmartShuffle,
+            );
+          }
+
+          const shouldFetchSmartMix =
+            shuffleMode === "smart" &&
+            (context?.supportsSmartShuffle ?? false) &&
+            normalizedType === "playlist" &&
+            context?.entityId;
+
+          if (shouldFetchSmartMix) {
+            smartTracks = await fetchSmartTracksForPlaylist(
+              context.entityId!,
+              contextSourceSongIds.length,
+              get().smartShuffleRepeatMode,
+            );
+            const existingIds = new Set(contextSourceSongIds);
+            const unique = smartTracks.filter((t) => !existingIds.has(t._id));
+            smartShuffleTrackIds = unique.map((t) => t._id);
+            smartTracks = unique;
+          }
+
+          const useIdBasedPlayback =
+            shuffleMode !== "off" &&
+            contextSourceSongIds.length > LARGE_PLAYLIST_THRESHOLD;
+
+          const normalizedTypeForContext = context
+            ? normalizePlaybackContextType(context.type)
+            : undefined;
+
+          const playbackContext =
+            context && normalizedTypeForContext
+              ? {
+                  type: normalizedTypeForContext,
+                  entityId: context.entityId,
+                  entityTitle: context.entityTitle,
+                  supportsSmartShuffle: context.supportsSmartShuffle,
+                }
+              : null;
+
+          if (useIdBasedPlayback) {
+            const sourceIds = contextSourceSongIds;
+            const smartIds = smartShuffleTrackIds;
+            let playbackOrderIds = shuffleIds([...sourceIds, ...smartIds]);
+            const startId = sourceIds[startIndex] ?? sourceIds[0];
+            playbackOrderIds = pinIdAtFront(playbackOrderIds, startId);
+
+            const fullSong = await resolveSongForPlayback(
+              startId,
+              songs,
+              smartTracks,
+            );
+
+            if (!fullSong || !fullSong.hlsUrl) {
+              toast.error("Cannot start playback: missing audio file");
+              return;
+            }
+
+            silentAudioService.play();
+
+            let queueCache = mergeSongIntoQueueCache([], fullSong);
+            for (const track of smartTracks) {
+              queueCache = mergeSongIntoQueueCache(queueCache, track);
+            }
+
+            set({
+              queue: queueCache,
+              userQueue: [],
+              isPlaying: true,
+              currentSong: fullSong,
+              currentIndex: queueCache.findIndex((s) => s._id === fullSong._id),
+              shuffleHistory: [],
+              shufflePointer: -1,
+              playbackOrderIds,
+              playbackPointer: 0,
+              shuffleMode,
+              contextSourceSongIds,
+              smartShuffleTrackIds,
+              currentSongFromUserQueue: false,
+              currentTime: 0,
+              currentPlaybackContext: playbackContext,
+            });
+
+            enrichSongWithAlbumTitleIfNeeded(fullSong);
+            return;
+          }
+
+          let queueSongs = [...songs, ...smartTracks];
           let targetIndexInQueue = startIndex;
           let newShuffleHistory: number[] = [];
           let newShufflePointer: number = -1;
 
-          if (get().shuffleMode !== "off") {
-            newShuffleHistory = shuffleQueue(songs.length);
+          if (shuffleMode !== "off") {
+            newShuffleHistory = shuffleQueue(queueSongs.length);
             const currentPosInShuffle = newShuffleHistory.indexOf(startIndex);
             if (currentPosInShuffle !== -1) {
               [newShuffleHistory[0], newShuffleHistory[currentPosInShuffle]] = [
@@ -383,8 +680,7 @@ export const usePlayerStore = create<PlayerStore>()(
             targetIndexInQueue = newShuffleHistory[newShufflePointer];
           }
 
-          // eslint-disable-next-line prefer-const
-          let songToPlay = songs[targetIndexInQueue];
+          const songToPlay = queueSongs[targetIndexInQueue];
           const fullSong = await ensureSongData(songToPlay);
 
           if (!fullSong || !fullSong.hlsUrl) {
@@ -398,13 +694,8 @@ export const usePlayerStore = create<PlayerStore>()(
 
           silentAudioService.play();
 
-          // Подменяем минимальную песню на полную в очереди перед записью в стейт
-          const updatedQueue = [...songs];
+          const updatedQueue = [...queueSongs];
           updatedQueue[targetIndexInQueue] = fullSong;
-
-          const normalizedType = context
-            ? normalizePlaybackContextType(context.type)
-            : undefined;
 
           set({
             queue: updatedQueue,
@@ -414,22 +705,17 @@ export const usePlayerStore = create<PlayerStore>()(
             currentIndex: targetIndexInQueue,
             shuffleHistory: newShuffleHistory,
             shufflePointer: newShufflePointer,
+            playbackOrderIds: null,
+            playbackPointer: -1,
+            shuffleMode,
+            contextSourceSongIds,
+            smartShuffleTrackIds,
+            currentSongFromUserQueue: false,
             currentTime: 0,
-            currentPlaybackContext:
-              context && normalizedType
-                ? {
-                    type: normalizedType,
-                    entityId: context.entityId,
-                    entityTitle: context.entityTitle,
-                  }
-                : null,
+            currentPlaybackContext: playbackContext,
           });
 
           enrichSongWithAlbumTitleIfNeeded(fullSong);
-
-          if (get().shuffleMode === "smart") {
-            get().generateSmartTracks();
-          }
         },
 
         setCurrentSong: async (song: Song | null) => {
@@ -468,6 +754,7 @@ export const usePlayerStore = create<PlayerStore>()(
                 isPlaying: true,
                 userQueue: state.userQueue.slice(userQueueIndex + 1),
                 currentTime: 0,
+                currentSongFromUserQueue: true,
               };
             }
 
@@ -504,14 +791,11 @@ export const usePlayerStore = create<PlayerStore>()(
               shuffleHistory: newShuffleHistory,
               shufflePointer: newShufflePointer,
               currentTime: 0,
+              currentSongFromUserQueue: false,
             };
           });
 
           enrichSongWithAlbumTitleIfNeeded(fullSong);
-
-          if (get().shuffleMode === "smart") {
-            get().generateSmartTracks();
-          }
         },
 
         togglePlay: () => {
@@ -545,85 +829,238 @@ export const usePlayerStore = create<PlayerStore>()(
         },
 
         toggleShuffle: () => {
+          const state = get();
+          const ctx = state.currentPlaybackContext;
+
+          if (ctx?.entityId && isEntityPlaybackType(ctx.type)) {
+            const supportsSmart = ctx.supportsSmartShuffle ?? false;
+            const currentPref = readEntityShufflePref(
+              ctx.type,
+              ctx.entityId,
+              supportsSmart,
+            );
+            const newPref = cycleEntityShufflePrefValue(
+              currentPref,
+              supportsSmart,
+            );
+            writeEntityShufflePref(ctx.type, ctx.entityId, newPref);
+            set((s) => ({
+              entityShufflePrefsRevision: s.entityShufflePrefsRevision + 1,
+            }));
+            get().applyShuffleMode(newPref);
+            return;
+          }
+
+          if (state.shuffleMode === "off") {
+            get().applyShuffleMode("regular");
+          } else {
+            get().applyShuffleMode("off");
+          }
+        },
+
+        getEntityShufflePref: (entityType, entityId, supportsSmartShuffle) =>
+          readEntityShufflePref(entityType, entityId, supportsSmartShuffle),
+
+        cycleEntityShufflePref: (
+          entityType,
+          entityId,
+          supportsSmartShuffle,
+        ) => {
+          const currentPref = readEntityShufflePref(
+            entityType,
+            entityId,
+            supportsSmartShuffle,
+          );
+          const newPref = cycleEntityShufflePrefValue(
+            currentPref,
+            supportsSmartShuffle,
+          );
+          writeEntityShufflePref(entityType, entityId, newPref);
+          set((s) => ({
+            entityShufflePrefsRevision: s.entityShufflePrefsRevision + 1,
+          }));
+
+          const ctx = get().currentPlaybackContext;
+          if (ctx?.entityId === entityId && ctx.type === entityType) {
+            get().applyShuffleMode(newPref);
+          }
+        },
+
+        applyShuffleMode: (mode: EntityShuffleMode) => {
+          const prevMode = get().shuffleMode;
+
+          if (prevMode === "smart" && mode !== "smart") {
+            get().stripSmartShuffleTracksFromQueue();
+          }
+
           set((state) => {
-            if (state.shuffleMode === "off") {
-              const queueLength = state.queue.length;
-              if (queueLength === 0)
-                return {
-                  shuffleMode: "regular",
-                  shuffleHistory: [],
-                  shufflePointer: -1,
-                };
-              const newShuffleHistory = shuffleQueue(queueLength);
-              const currentIndex = state.currentIndex;
-              if (currentIndex !== -1) {
-                const currentPosInShuffle =
-                  newShuffleHistory.indexOf(currentIndex);
-                if (currentPosInShuffle !== -1) {
-                  [
-                    newShuffleHistory[0],
-                    newShuffleHistory[currentPosInShuffle],
-                  ] = [
-                    newShuffleHistory[currentPosInShuffle],
-                    newShuffleHistory[0],
-                  ];
-                } else {
-                  newShuffleHistory.unshift(currentIndex);
-                  newShuffleHistory.pop();
-                }
-              }
-              return {
-                shuffleMode: "regular",
-                shuffleHistory: newShuffleHistory,
-                shufflePointer: currentIndex !== -1 ? 0 : -1,
-              };
-            } else if (state.shuffleMode === "regular") {
-              get().generateSmartTracks();
-              return { shuffleMode: "smart" };
-            } else {
+            if (mode === "off") {
               return {
                 shuffleMode: "off",
                 shuffleHistory: [],
                 shufflePointer: -1,
+                smartShuffleTrackIds: [],
               };
             }
+            if (state.queue.length === 0) {
+              return {
+                shuffleMode: mode,
+                shuffleHistory: [],
+                shufflePointer: -1,
+                smartShuffleTrackIds: [],
+              };
+            }
+            const { shuffleHistory, shufflePointer } =
+              buildShuffleHistoryForIndex(state.queue.length, state.currentIndex);
+            return { shuffleMode: mode, shuffleHistory, shufflePointer };
+          });
+
+          if (mode === "smart" && prevMode !== "smart") {
+            void get().mixSmartShuffleTracksIntoQueue();
+          }
+        },
+
+        isActiveEntityContext: (type, entityId) => {
+          const ctx = get().currentPlaybackContext;
+          return ctx?.type === type && ctx?.entityId === entityId;
+        },
+
+        isCurrentSongFromSmartShuffle: () => {
+          const state = get();
+          if (state.shuffleMode !== "smart" || !state.currentSong?._id) {
+            return false;
+          }
+          if (state.currentSongFromUserQueue) return false;
+          return state.smartShuffleTrackIds.includes(state.currentSong._id);
+        },
+
+        stripSmartShuffleTracksFromQueue: () => {
+          set((state) => {
+            const sourceIds = new Set(state.contextSourceSongIds);
+            if (sourceIds.size === 0) {
+              return { smartShuffleTrackIds: [], playbackOrderIds: null, playbackPointer: -1 };
+            }
+
+            if (state.playbackOrderIds) {
+              const currentId = state.playbackOrderIds[state.playbackPointer];
+              const newOrder = state.playbackOrderIds.filter((id) =>
+                sourceIds.has(id),
+              );
+              let newPointer = currentId
+                ? newOrder.indexOf(currentId)
+                : state.playbackPointer;
+              if (newPointer < 0) newPointer = 0;
+              const newQueue = state.queue.filter((s) => sourceIds.has(s._id));
+              return {
+                playbackOrderIds: newOrder.length > 0 ? newOrder : null,
+                playbackPointer: newOrder.length > 0 ? newPointer : -1,
+                smartShuffleTrackIds: [],
+                queue: newQueue,
+                currentSong:
+                  newQueue.find((s) => s._id === currentId) ?? state.currentSong,
+                currentIndex: newQueue.findIndex(
+                  (s) => s._id === state.currentSong?._id,
+                ),
+              };
+            }
+
+            const newQueue = state.queue.filter((s) => sourceIds.has(s._id));
+            if (newQueue.length === state.queue.length) {
+              return { smartShuffleTrackIds: [] };
+            }
+            const currentId = state.currentSong?._id;
+            let newCurrentIndex = currentId
+              ? newQueue.findIndex((s) => s._id === currentId)
+              : state.currentIndex;
+            if (newCurrentIndex < 0) newCurrentIndex = 0;
+            return {
+              queue: newQueue,
+              currentIndex: newCurrentIndex,
+              currentSong: newQueue[newCurrentIndex] ?? state.currentSong,
+              smartShuffleTrackIds: [],
+            };
           });
         },
 
-        generateSmartTracks: async () => {
+        mixSmartShuffleTracksIntoQueue: async () => {
           const state = get();
-          if (!state.currentSong) return;
-          try {
-            const excludeIds = collectSmartShuffleExcludeIds(state);
-            const vibeTracks = await fetchSongRadio(state.currentSong._id, {
-              excludeIds,
-              repeatMode: state.smartShuffleRepeatMode,
-            });
-            if (vibeTracks && vibeTracks.length > 0) {
-              const queueIds = new Set(state.queue.map((s) => s._id));
-              const uniqueTracks = vibeTracks.filter(
-                (track) => !queueIds.has(track._id),
-              );
-              if (uniqueTracks.length === 0) return;
-
-              set((currentState) => {
-                const newQueue = [...currentState.queue, ...uniqueTracks];
-                const startIndex = currentState.queue.length;
-                const newIndices = Array.from(
-                  { length: uniqueTracks.length },
-                  (_, i) => startIndex + i,
-                );
-                const playedHistory = currentState.shuffleHistory.slice(
-                  0,
-                  currentState.shufflePointer + 1,
-                );
-                const newShuffleHistory = [...playedHistory, ...newIndices];
-                return { queue: newQueue, shuffleHistory: newShuffleHistory };
-              });
-            }
-          } catch (error) {
-            console.error("Smart shuffle error:", error);
+          const ctx = state.currentPlaybackContext;
+          if (
+            state.shuffleMode !== "smart" ||
+            !ctx?.entityId ||
+            ctx.type !== "playlist" ||
+            !ctx.supportsSmartShuffle ||
+            state.smartShuffleTrackIds.length > 0
+          ) {
+            return;
           }
+
+          const sourceCount =
+            state.contextSourceSongIds.length > 0
+              ? state.contextSourceSongIds.length
+              : state.queue.length;
+
+          const smartTracks = await fetchSmartTracksForPlaylist(
+            ctx.entityId,
+            sourceCount,
+            state.smartShuffleRepeatMode,
+          );
+
+          const knownIds = new Set([
+            ...state.contextSourceSongIds,
+            ...state.queue.map((s) => s._id),
+          ]);
+          const uniqueTracks = smartTracks.filter((t) => !knownIds.has(t._id));
+          if (uniqueTracks.length === 0) return;
+
+          const smartShuffleTrackIds = uniqueTracks.map((t) => t._id);
+
+          if (state.playbackOrderIds) {
+            const currentId =
+              state.playbackOrderIds[state.playbackPointer] ??
+              state.currentSong?._id;
+            const remaining = state.playbackOrderIds.slice(
+              state.playbackPointer + 1,
+            );
+            const shuffledTail = shuffleIds([
+              ...remaining,
+              ...smartShuffleTrackIds,
+            ]);
+            const newOrder = currentId
+              ? [currentId, ...shuffledTail]
+              : shuffledTail;
+
+            set((currentState) => {
+              let queueCache = currentState.queue;
+              for (const track of uniqueTracks) {
+                queueCache = mergeSongIntoQueueCache(queueCache, track);
+              }
+              return {
+                queue: queueCache,
+                playbackOrderIds: newOrder,
+                playbackPointer: 0,
+                smartShuffleTrackIds,
+                shuffleHistory: [],
+                shufflePointer: -1,
+              };
+            });
+            return;
+          }
+
+          set((currentState) => {
+            const newQueue = [...currentState.queue, ...uniqueTracks];
+            const { shuffleHistory, shufflePointer } =
+              buildShuffleHistoryForIndex(
+                newQueue.length,
+                currentState.currentIndex,
+              );
+            return {
+              queue: newQueue,
+              smartShuffleTrackIds,
+              shuffleHistory,
+              shufflePointer,
+            };
+          });
         },
 
         playNext: async () => {
@@ -659,6 +1096,72 @@ export const usePlayerStore = create<PlayerStore>()(
               isPlaying: true,
               userQueue: remainingUserQueue,
               currentTime: 0,
+              currentSongFromUserQueue: true,
+            });
+            enrichSongWithAlbumTitleIfNeeded(fullNextSong);
+            return;
+          }
+
+          if (state.playbackOrderIds && state.playbackPointer >= 0) {
+            const order = state.playbackOrderIds;
+            let nextPtr = state.playbackPointer + 1;
+            if (nextPtr >= order.length) {
+              if (repeatMode === "all") nextPtr = 0;
+              else {
+                await pauseAtEntityFirstTrack();
+                return;
+              }
+            }
+
+            let checked = 0;
+            let resolvedPtr = -1;
+            let fullNextSong: Song | null = null;
+            let ptr = nextPtr;
+
+            while (checked < order.length) {
+              const nextId = order[ptr];
+              if (!isOffline || useOfflineStore.getState().actions.isSongDownloaded(nextId)) {
+                fullNextSong = await resolveSongForPlayback(
+                  nextId,
+                  state.queue,
+                  state.queue,
+                );
+                if (fullNextSong?.hlsUrl) {
+                  resolvedPtr = ptr;
+                  break;
+                }
+              }
+              ptr++;
+              if (ptr >= order.length) {
+                if (repeatMode === "all") ptr = 0;
+                else break;
+              }
+              checked++;
+            }
+
+            if (resolvedPtr === -1 || !fullNextSong) {
+              if (repeatMode === "all") {
+                toast(
+                  isOffline ? "No other downloaded songs." : "End of queue.",
+                );
+                silentAudioService.pause();
+                set({ isPlaying: false, currentTime: 0 });
+              } else {
+                await pauseAtEntityFirstTrack();
+              }
+              return;
+            }
+
+            const newQueue = mergeSongIntoQueueCache(state.queue, fullNextSong);
+            silentAudioService.play();
+            set({
+              currentSong: fullNextSong,
+              isPlaying: true,
+              playbackPointer: resolvedPtr,
+              queue: newQueue,
+              currentIndex: newQueue.findIndex((s) => s._id === fullNextSong._id),
+              currentTime: 0,
+              currentSongFromUserQueue: false,
             });
             enrichSongWithAlbumTitleIfNeeded(fullNextSong);
             return;
@@ -717,14 +1220,18 @@ export const usePlayerStore = create<PlayerStore>()(
           }
 
           if (nextIndex === -1) {
-            toast(isOffline ? "No other downloaded songs." : "End of queue.");
-            silentAudioService.pause();
-            set({
-              isPlaying: false,
-              currentSong: null,
-              currentIndex: -1,
-              currentTime: 0,
-            });
+            if (repeatMode === "all") {
+              toast(isOffline ? "No other downloaded songs." : "End of queue.");
+              silentAudioService.pause();
+              set({
+                isPlaying: false,
+                currentSong: null,
+                currentIndex: -1,
+                currentTime: 0,
+              });
+            } else {
+              await pauseAtEntityFirstTrack();
+            }
             return;
           }
 
@@ -744,16 +1251,10 @@ export const usePlayerStore = create<PlayerStore>()(
             shuffleHistory: tempShuffleHistory,
             shufflePointer: tempShufflePointer,
             currentTime: 0,
+            currentSongFromUserQueue: false,
           });
 
           enrichSongWithAlbumTitleIfNeeded(fullNextSong);
-
-          if (
-            shuffleMode === "smart" &&
-            tempShufflePointer >= tempShuffleHistory.length - 3
-          ) {
-            get().generateSmartTracks();
-          }
         },
 
         playPrevious: async () => {
@@ -772,10 +1273,68 @@ export const usePlayerStore = create<PlayerStore>()(
             shufflePointer,
             shuffleMode,
             repeatMode,
+            playbackOrderIds,
+            playbackPointer,
           } = state;
           const isShuffle = shuffleMode !== "off";
           const { isOffline } = useOfflineStore.getState();
           const { isSongDownloaded } = useOfflineStore.getState().actions;
+
+          if (playbackOrderIds && playbackPointer >= 0) {
+            let prevPtr = playbackPointer - 1;
+            if (prevPtr < 0) {
+              if (repeatMode === "all") prevPtr = playbackOrderIds.length - 1;
+              else {
+                get().seekToTime(0);
+                return;
+              }
+            }
+
+            let checked = 0;
+            let resolvedPtr = -1;
+            let fullPrevSong: Song | null = null;
+            let ptr = prevPtr;
+
+            while (checked < playbackOrderIds.length) {
+              const prevId = playbackOrderIds[ptr];
+              if (!isOffline || isSongDownloaded(prevId)) {
+                fullPrevSong = await resolveSongForPlayback(
+                  prevId,
+                  queue,
+                  queue,
+                );
+                if (fullPrevSong?.hlsUrl) {
+                  resolvedPtr = ptr;
+                  break;
+                }
+              }
+              ptr--;
+              if (ptr < 0) {
+                if (repeatMode === "all") ptr = playbackOrderIds.length - 1;
+                else break;
+              }
+              checked++;
+            }
+
+            if (resolvedPtr === -1 || !fullPrevSong) {
+              get().seekToTime(0);
+              return;
+            }
+
+            const newQueue = mergeSongIntoQueueCache(queue, fullPrevSong);
+            silentAudioService.play();
+            set({
+              currentSong: fullPrevSong,
+              isPlaying: true,
+              playbackPointer: resolvedPtr,
+              queue: newQueue,
+              currentIndex: newQueue.findIndex((s) => s._id === fullPrevSong._id),
+              currentTime: 0,
+              currentSongFromUserQueue: false,
+            });
+            enrichSongWithAlbumTitleIfNeeded(fullPrevSong);
+            return;
+          }
 
           if (queue.length === 0) {
             silentAudioService.pause();
@@ -842,6 +1401,7 @@ export const usePlayerStore = create<PlayerStore>()(
             isPlaying: true,
             shufflePointer: tempShufflePointer,
             currentTime: 0,
+            currentSongFromUserQueue: false,
           });
 
           enrichSongWithAlbumTitleIfNeeded(fullPrevSong);
@@ -888,6 +1448,7 @@ export const usePlayerStore = create<PlayerStore>()(
                     type: t,
                     entityId: context.entityId,
                     entityTitle: context.entityTitle,
+                    supportsSmartShuffle: context.supportsSmartShuffle,
                   }
                 : null,
           });
@@ -936,7 +1497,7 @@ export const usePlayerStore = create<PlayerStore>()(
                   shufflePointer: -1,
                 };
               } else {
-                if (state.isShuffle) {
+                if (state.shuffleMode !== "off") {
                   if (newShufflePointer < newShuffleHistory.length - 1)
                     newShufflePointer++;
                   else newShufflePointer = 0;
@@ -952,7 +1513,7 @@ export const usePlayerStore = create<PlayerStore>()(
               newCurrentIndex = state.currentIndex - 1;
             }
 
-            if (state.isShuffle) {
+            if (state.shuffleMode !== "off") {
               const removedIndex = newShuffleHistory.indexOf(songIndex);
               if (removedIndex !== -1) {
                 newShuffleHistory.splice(removedIndex, 1);
@@ -1000,7 +1561,7 @@ export const usePlayerStore = create<PlayerStore>()(
             )
               newCurrentIndex = state.currentIndex + 1;
 
-            if (state.isShuffle) {
+            if (state.shuffleMode !== "off") {
               const fromShuffleIndex = newShuffleHistory.indexOf(fromIndex);
               if (fromShuffleIndex !== -1) {
                 newShuffleHistory[fromShuffleIndex] = toIndex;
@@ -1032,6 +1593,11 @@ export const usePlayerStore = create<PlayerStore>()(
             isPlaying: false,
             shuffleHistory: [],
             shufflePointer: -1,
+            contextSourceSongIds: [],
+            smartShuffleTrackIds: [],
+            playbackOrderIds: null,
+            playbackPointer: -1,
+            currentSongFromUserQueue: false,
           });
         },
         addToQueue: (song: Song) =>

@@ -4,6 +4,7 @@ import { useOfflineStore } from "@/stores/useOfflineStore";
 import { useAuthStore } from "@/stores/useAuthStore";
 import type { Playlist, Song } from "@/types";
 import { isLibraryMyPlaylist } from "@/lib/playlistKinds";
+import type { SmartShuffleRepeatMode } from "@/lib/smartShuffleContext";
 import toast from "react-hot-toast";
 
 export async function fetchMyPlaylists(): Promise<Playlist[]> {
@@ -71,6 +72,33 @@ export async function fetchPlaylistRecommendations(
   );
   const data = response.data;
   return Array.isArray(data) ? data : null;
+}
+
+export interface FetchPlaylistSmartShuffleOptions {
+  repeatMode?: SmartShuffleRepeatMode;
+  limit?: number;
+}
+
+export async function fetchPlaylistSmartShuffle(
+  playlistId: string,
+  options?: FetchPlaylistSmartShuffleOptions,
+): Promise<Song[]> {
+  if (useOfflineStore.getState().isOffline) {
+    return [];
+  }
+  const params = new URLSearchParams();
+  if (options?.limit != null) {
+    params.set("limit", String(options.limit));
+  }
+  if (options?.repeatMode && options.repeatMode !== "default") {
+    params.set("repeatMode", options.repeatMode);
+  }
+  const query = params.toString();
+  const url = query
+    ? `/playlists/${playlistId}/smart-shuffle?${query}`
+    : `/playlists/${playlistId}/smart-shuffle`;
+  const response = await axiosInstance.get(url);
+  return Array.isArray(response.data) ? response.data : [];
 }
 
 export async function fetchPublicPlaylists(): Promise<Playlist[]> {

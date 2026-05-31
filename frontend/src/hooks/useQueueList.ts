@@ -27,6 +27,8 @@ export function useQueueList() {
   const repeatMode = usePlayerStore((s) => s.repeatMode);
   const shuffleHistory = usePlayerStore((s) => s.shuffleHistory);
   const shufflePointer = usePlayerStore((s) => s.shufflePointer);
+  const playbackOrderIds = usePlayerStore((s) => s.playbackOrderIds);
+  const playbackPointer = usePlayerStore((s) => s.playbackPointer);
   const currentPlaybackContext = usePlayerStore((s) => s.currentPlaybackContext);
   const removeFromQueue = usePlayerStore((s) => s.removeFromQueue);
   const moveSongInQueue = usePlayerStore((s) => s.moveSongInQueue);
@@ -54,6 +56,8 @@ export function useQueueList() {
       shuffleHistory,
       shufflePointer,
       getNextSongsInShuffle,
+      playbackOrderIds,
+      playbackPointer,
     }),
     [
       queue,
@@ -65,6 +69,8 @@ export function useQueueList() {
       shuffleHistory,
       shufflePointer,
       getNextSongsInShuffle,
+      playbackOrderIds,
+      playbackPointer,
     ],
   );
 

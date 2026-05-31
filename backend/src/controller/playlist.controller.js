@@ -3,7 +3,7 @@ import { LikedSong } from "../models/likedSong.model.js";
 import { User } from "../models/user.model.js";
 import { Song } from "../models/song.model.js";
 import { SavedPlaylist } from "../models/savedPlaylist.model.js";
-import { getPlaylistEmbeddingRecommendations } from "../lib/recommendations/recommendation.service.js";
+import { getPlaylistEmbeddingRecommendations, getSmartShuffleTracks } from "../lib/recommendations/recommendation.service.js";
 import { deletePlaylistCoverFromCdn } from "../lib/playlists/playlistCover.service.js";
 import {
   buildStaticCdnImages,
@@ -20,10 +20,10 @@ import {
   CDN_DEFAULT_ALBUM_COVER,
   CDN_LIKED_PLAYLIST_COVER,
 } from "../constants/cdn.js";
-import { USER_CREATED_PLAYLIST_TYPE } from "../constants/playlistTypes.js";
+import { USER_CREATED_PLAYLIST_TYPE, LIKED_PLAYLIST_ID } from "../constants/playlistTypes.js";
 import { canUserViewPlaylist } from "../lib/playlists/playlistAccess.js";
 
-export const LIKED_PLAYLIST_ID = "liked";
+export { LIKED_PLAYLIST_ID };
 
 const SONG_MINIMAL_SELECT =
   "_id title images coverAccentHex duration playCount albumId createdAt";
@@ -564,5 +564,55 @@ export const getPlaylistRecommendations = async (req, res) => {
   } catch (error) {
     console.error("Error getting playlist recommendations:", error);
     res.status(200).json(null);
+  }
+};
+
+export const getSmartShuffle = async (req, res) => {
+  try {
+    const { id: playlistId } = req.params;
+    const { limit: limitQuery, exclude, repeatMode: repeatModeQuery } =
+      req.query;
+
+    if (playlistId === LIKED_PLAYLIST_ID && !req.user?.id) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    if (playlistId !== LIKED_PLAYLIST_ID) {
+      const playlist = await Playlist.findById(playlistId).select("_id").lean();
+      if (!playlist) {
+        return res.status(404).json({ message: "Playlist not found" });
+      }
+    }
+
+    const excludeIds =
+      typeof exclude === "string" && exclude.length > 0
+        ? exclude
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : [];
+
+    const repeatMode =
+      repeatModeQuery === "fewerRepeats" && req.user?.id
+        ? "fewerRepeats"
+        : "default";
+
+    const parsedLimit = Number.parseInt(String(limitQuery ?? "10"), 10);
+    const limit =
+      Number.isFinite(parsedLimit) && parsedLimit > 0
+        ? Math.min(parsedLimit, 50)
+        : 10;
+
+    const tracks = await getSmartShuffleTracks(playlistId, {
+      limit,
+      excludeIds,
+      repeatMode,
+      userId: req.user?.id ?? null,
+    });
+
+    res.status(200).json(tracks);
+  } catch (error) {
+    console.error("Error getting smart shuffle tracks:", error);
+    res.status(200).json([]);
   }
 };

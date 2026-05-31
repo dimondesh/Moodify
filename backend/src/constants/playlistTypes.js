@@ -11,6 +11,9 @@ export const GENERATED_PLAYLIST_TYPES = [
 
 export const USER_CREATED_PLAYLIST_TYPE = "USER_CREATED";
 
+/** Virtual playlist id for Liked Songs (not a MongoDB ObjectId). */
+export const LIKED_PLAYLIST_ID = "liked";
+
 export function isGeneratedPlaylistType(type) {
   return GENERATED_PLAYLIST_TYPES.includes(type);
 }

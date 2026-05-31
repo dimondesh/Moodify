@@ -9,7 +9,7 @@ import { Button } from "../components/ui/button";
 import { useAudioSettingsStore, resolvePlaybackRate } from "../lib/webAudio";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Maximize, Share, Shuffle } from "lucide-react";
+import { Maximize, Share, Shuffle, Sparkles } from "lucide-react";
 import { ShareDialog } from "@/layout/ShareDialog";
 import { SaveSongToLibraryControl } from "./SaveSongToLibraryControl";
 import Repeat from "@/components/ui/repeat-icon";
@@ -372,6 +372,17 @@ const PlaybackControls = () => {
   const setRepeatMode = usePlayerStore((s) => s.setRepeatMode);
   const shuffleMode = usePlayerStore((s) => s.shuffleMode);
   const toggleShuffle = usePlayerStore((s) => s.toggleShuffle);
+  const isCurrentSongFromSmartShuffle = usePlayerStore((s) => {
+    if (s.shuffleMode !== "smart" || !s.currentSong?._id) return false;
+    if (s.currentSongFromUserQueue) return false;
+    return s.smartShuffleTrackIds.includes(s.currentSong._id);
+  });
+  const shuffleTitle =
+    shuffleMode === "smart"
+      ? t("player.smartShuffle")
+      : shuffleMode === "regular"
+        ? t("player.shuffleOn")
+        : t("player.shuffleOff");
   const isFullScreenPlayerOpen = usePlayerStore((s) => s.isFullScreenPlayerOpen);
   const setIsFullScreenPlayerOpen = usePlayerStore(
     (s) => s.setIsFullScreenPlayerOpen,
@@ -627,15 +638,23 @@ const PlaybackControls = () => {
                     <div className="truncate text-sm font-medium text-white">
                       {currentSong.title}
                     </div>
-                    <div className="truncate text-xs text-zinc-400">
-                      {Array.isArray(currentSong.artist)
-                        ? currentSong.artist.map((artist, index) => (
-                            <span key={artist._id}>
-                              {artist.name}
-                              {index < currentSong.artist.length - 1 && ", "}
-                            </span>
-                          ))
-                        : "Unknown Artist"}
+                    <div className="flex min-w-0 items-center gap-1 truncate text-xs text-zinc-400">
+                      {isCurrentSongFromSmartShuffle && (
+                        <Sparkles
+                          className="size-3.5 shrink-0 text-[#8b5cf6]"
+                          aria-hidden
+                        />
+                      )}
+                      <span className="truncate">
+                        {Array.isArray(currentSong.artist)
+                          ? currentSong.artist.map((artist, index) => (
+                              <span key={artist._id}>
+                                {artist.name}
+                                {index < currentSong.artist.length - 1 && ", "}
+                              </span>
+                            ))
+                          : "Unknown Artist"}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -741,24 +760,32 @@ const PlaybackControls = () => {
                           >
                             {currentSong?.title || t("player.noSong")}
                           </button>
-                          <p className="text-zinc-400 text-base truncate mb-1">
-                            {Array.isArray(currentSong.artist)
-                              ? currentSong.artist.map((artist, index) => (
-                                  <span key={artist._id}>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleArtistClick(artist._id);
-                                      }}
-                                      className="hover:underline focus:outline-none focus:underline"
-                                    >
-                                      {artist.name}
-                                    </button>
-                                    {index < currentSong.artist.length - 1 &&
-                                      ", "}
-                                  </span>
-                                ))
-                              : "Unknown Artist"}
+                          <p className="text-zinc-400 text-base truncate mb-1 flex items-center gap-1 min-w-0">
+                            {isCurrentSongFromSmartShuffle && (
+                              <Sparkles
+                                className="size-3.5 shrink-0 text-[#8b5cf6]"
+                                aria-hidden
+                              />
+                            )}
+                            <span className="truncate">
+                              {Array.isArray(currentSong.artist)
+                                ? currentSong.artist.map((artist, index) => (
+                                    <span key={artist._id}>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleArtistClick(artist._id);
+                                        }}
+                                        className="hover:underline focus:outline-none focus:underline"
+                                      >
+                                        {artist.name}
+                                      </button>
+                                      {index < currentSong.artist.length - 1 &&
+                                        ", "}
+                                    </span>
+                                  ))
+                                : "Unknown Artist"}
+                            </span>
                           </p>
                         </div>
                         {currentSong && (
@@ -784,7 +811,7 @@ const PlaybackControls = () => {
                               : "text-zinc-400"
                           }`}
                           onClick={toggleShuffle}
-                          title={t("player.toggleShuffle")}
+                          title={shuffleTitle}
                         >
                           <div className="relative flex flex-col items-center justify-center">
                             <Shuffle className="size-5.5" />
@@ -979,20 +1006,28 @@ const PlaybackControls = () => {
                     >
                       {currentSong.title}
                     </button>
-                    <div className="text-xs text-gray-400 truncate">
-                      {currentSong.artist && currentSong.artist.length > 0
-                        ? currentSong.artist.map((artist, index) => (
-                            <span key={artist._id}>
-                              <button
-                                onClick={() => handleArtistClick(artist._id)}
-                                className="hover:text-[#8b5cf6] focus:outline-none focus:text-[#8b5cf6]"
-                              >
-                                {artist.name}
-                              </button>
-                              {index < currentSong.artist.length - 1 && ", "}
-                            </span>
-                          ))
-                        : "Unknown Artist"}
+                    <div className="text-xs text-gray-400 truncate flex items-center gap-1 min-w-0">
+                      {isCurrentSongFromSmartShuffle && (
+                        <Sparkles
+                          className="size-3.5 shrink-0 text-[#8b5cf6]"
+                          aria-hidden
+                        />
+                      )}
+                      <span className="truncate">
+                        {currentSong.artist && currentSong.artist.length > 0
+                          ? currentSong.artist.map((artist, index) => (
+                              <span key={artist._id}>
+                                <button
+                                  onClick={() => handleArtistClick(artist._id)}
+                                  className="hover:text-[#8b5cf6] focus:outline-none focus:text-[#8b5cf6]"
+                                >
+                                  {artist.name}
+                                </button>
+                                {index < currentSong.artist.length - 1 && ", "}
+                              </span>
+                            ))
+                          : "Unknown Artist"}
+                      </span>
                     </div>
                   </div>
                   <SaveSongToLibraryControl song={currentSong} disabled={!user} />
@@ -1008,7 +1043,7 @@ const PlaybackControls = () => {
                     shuffleMode !== "off" ? "text-[#8b5cf6]" : "text-gray-400"
                   }`}
                   onClick={toggleShuffle}
-                  title={t("player.toggleShuffle")}
+                  title={shuffleTitle}
                 >
                   <div className="relative flex flex-col items-center justify-center">
                     <Shuffle className="size-4.5" />

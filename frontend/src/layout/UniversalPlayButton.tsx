@@ -7,6 +7,7 @@ import { fetchEntitySongsForPlay } from "@/lib/api/music";
 import type { Song, Album, Playlist, Artist, LibraryItem } from "@/types";
 import { useTranslation } from "react-i18next";
 import { getPlaylistDisplayTitle } from "@/lib/entitySection";
+import { isGeneratedPlaylistType } from "@/lib/playlistKinds";
 
 type EntityType = "song" | "album" | "playlist" | "artist";
 
@@ -169,6 +170,7 @@ const UniversalPlayButton = ({
           type: "album" as const,
           entityId: entity._id,
           entityTitle: (entity as Album).title,
+          supportsSmartShuffle: false,
         };
       case "playlist":
         return {
@@ -179,12 +181,16 @@ const UniversalPlayButton = ({
             i18n.language,
             t,
           ),
+          supportsSmartShuffle: !isGeneratedPlaylistType(
+            (entity as Playlist).type,
+          ),
         };
       case "artist":
         return {
           type: "artist" as const,
           entityId: entity._id,
           entityTitle: (entity as Artist).name,
+          supportsSmartShuffle: false,
         };
       default:
         return undefined;
