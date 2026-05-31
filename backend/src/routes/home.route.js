@@ -1,28 +1,21 @@
-// backend/src/routes/home.route.js
-
 import { Router } from "express";
 import { identifyUser } from "../middleware/identifyUser.middleware.js";
-import {
-  getPrimaryHomePageData,
-  getSecondaryHomePageData,
-  getBootstrapData,
-} from "../controller/home.controller.js";
+import { getBootstrapData } from "../controller/home.controller.js";
 import { cacheRoute } from "../middleware/cache.middleware.js";
+import {
+  GUEST_HOME_CACHE_TTL,
+  PERSONALIZED_HOME_CACHE_TTL,
+} from "../constants/cache.js";
 
 const router = Router();
 
-router.get("/bootstrap", identifyUser, cacheRoute(900, true), getBootstrapData);
-router.get(
-  "/primary",
-  identifyUser,
-  cacheRoute(900, true),
-  getPrimaryHomePageData,
-);
-router.get(
-  "/secondary",
-  identifyUser,
-  cacheRoute(900, true),
-  getSecondaryHomePageData,
-);
+const homeBootstrapCache = (req, res, next) => {
+  if (req.user?.id) {
+    return cacheRoute(PERSONALIZED_HOME_CACHE_TTL, true)(req, res, next);
+  }
+  return cacheRoute(GUEST_HOME_CACHE_TTL)(req, res, next);
+};
+
+router.get("/bootstrap", identifyUser, homeBootstrapCache, getBootstrapData);
 
 export default router;
