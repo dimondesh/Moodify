@@ -205,7 +205,22 @@
     "passwordsMismatch": "Нові паролі не збігаються",
     "passwordChanged": "Пароль успішно змінено.",
     "wrongCurrentPassword": "Невірний поточний пароль",
-    "passwordChangeFailed": "Не вдалося змінити пароль."
+    "passwordChangeFailed": "Не вдалося змінити пароль.",
+    "securityTitle": "Безпека",
+    "dangerZone": "Небезпечна зона",
+    "deleteAccount": "Видалити акаунт",
+    "deleteAccountDesc": "Назавжди видалити акаунт і всі пов’язані дані. Цю дію не можна скасувати.",
+    "deleteAccountDialog": {
+      "title": "Видалити акаунт?",
+      "description": "Буде видалено профіль, плейлисти, медіатеку, повідомлення та всі інші дані, пов’язані з акаунтом.",
+      "passwordLabel": "Введіть поточний пароль",
+      "confirmEmailLabel": "Введіть email для підтвердження",
+      "cancel": "Скасувати",
+      "confirm": "Видалити акаунт",
+      "success": "Акаунт видалено.",
+      "failed": "Не вдалося видалити акаунт.",
+      "adminForbidden": "Акаунт адміністратора не можна видалити."
+    }
   },
   "toasts": {
     "anonymousEnabled": "Анонімний режим увімкнено",

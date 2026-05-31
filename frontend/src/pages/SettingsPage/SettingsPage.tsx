@@ -30,6 +30,16 @@ import { useOfflineStore } from "../../stores/useOfflineStore";
 import toast from "react-hot-toast";
 import { useUIStore } from "@/stores/useUIStore";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const SettingsPage: React.FC = () => {
   const {
@@ -61,7 +71,11 @@ const SettingsPage: React.FC = () => {
   const { isIosDevice } = useUIStore();
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState(""); // Добавлено состояние подтверждения
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteConfirmEmail, setDeleteConfirmEmail] = useState("");
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   const { t, i18n } = useTranslation();
   const {
@@ -70,8 +84,11 @@ const SettingsPage: React.FC = () => {
     updateUserPrivacy,
     updateRecentlyListenedArtistsPrivacy,
     changePassword,
+    deleteAccount,
   } = useAuthStore();
   const isAnonymous = user?.isAnonymous ?? false;
+  const hasPassword = user?.hasPassword ?? true;
+  const isAdmin = user?.isAdmin ?? false;
   const showRecentlyListenedArtists = user?.showRecentlyListenedArtists ?? true;
 
   const frequencies = defaultFrequencies;
@@ -110,6 +127,51 @@ const SettingsPage: React.FC = () => {
       );
     } catch {
       toast.error(t("toasts.privacyUpdateFailed"));
+    }
+  };
+
+  const resetDeleteAccountDialog = () => {
+    setDeletePassword("");
+    setDeleteConfirmEmail("");
+    setIsDeletingAccount(false);
+  };
+
+  const handleDeleteAccountDialogChange = (open: boolean) => {
+    setDeleteAccountOpen(open);
+    if (!open) resetDeleteAccountDialog();
+  };
+
+  const canConfirmDeleteAccount = hasPassword
+    ? deletePassword.length > 0
+    : deleteConfirmEmail.trim().toLowerCase() ===
+      (user?.email ?? "").toLowerCase();
+
+  const handleDeleteAccount = async () => {
+    if (!canConfirmDeleteAccount || isDeletingAccount) return;
+
+    setIsDeletingAccount(true);
+    try {
+      await deleteAccount(
+        hasPassword
+          ? { password: deletePassword }
+          : { confirmEmail: deleteConfirmEmail.trim() },
+      );
+      toast.success(t("settings.deleteAccountDialog.success"));
+    } catch (error: unknown) {
+      setIsDeletingAccount(false);
+      const err = error as {
+        response?: { status?: number; data?: { error?: string } };
+      };
+      if (err?.response?.status === 403) {
+        toast.error(t("settings.deleteAccountDialog.adminForbidden"));
+      } else if (
+        err?.response?.status === 401 ||
+        err?.response?.data?.error?.toLowerCase().includes("password")
+      ) {
+        toast.error(t("settings.wrongCurrentPassword"));
+      } else {
+        toast.error(t("settings.deleteAccountDialog.failed"));
+      }
     }
   };
 
@@ -314,7 +376,7 @@ const SettingsPage: React.FC = () => {
           </Card>
 
           <h1 className="text-3xl font-bold text-white mb-6 mt-8">
-            {t("settings.securityTitle", "Безопасность")}
+            {t("settings.securityTitle")}
           </h1>
           <Card className="bg-[#1a1a1a] gap-0 py-4 border-[#2a2a2a] text-white shadow-lg mb-8 overflow-hidden">
             <div className="p-6 py-2 border-[#2a2a2a]">
@@ -381,6 +443,102 @@ const SettingsPage: React.FC = () => {
               </div>
             </form>
           </Card>
+
+          <Card className="bg-[#1a1a1a] border-[#2a2a2a] text-white shadow-lg p-6 mb-8">
+            <h2 className="text-xl font-semibold text-red-400 mb-2">
+              {t("settings.dangerZone")}
+            </h2>
+            <p className="text-gray-400 text-sm mb-4">
+              {t("settings.deleteAccountDesc")}
+            </p>
+            <Button
+              type="button"
+              variant="destructive"
+              className="w-full"
+              disabled={isAdmin}
+              onClick={() => setDeleteAccountOpen(true)}
+            >
+              {t("settings.deleteAccount")}
+            </Button>
+            {isAdmin && (
+              <p className="text-gray-500 text-sm mt-2 text-center">
+                {t("settings.deleteAccountDialog.adminForbidden")}
+              </p>
+            )}
+          </Card>
+
+          <AlertDialog
+            open={deleteAccountOpen}
+            onOpenChange={handleDeleteAccountDialogChange}
+          >
+            <AlertDialogContent className="bg-zinc-900 text-white border-zinc-700">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-white">
+                  {t("settings.deleteAccountDialog.title")}
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-zinc-400">
+                  {t("settings.deleteAccountDialog.description")}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <div className="space-y-2 py-2">
+                {hasPassword ? (
+                  <>
+                    <Label
+                      htmlFor="delete-account-password"
+                      className="text-gray-300"
+                    >
+                      {t("settings.deleteAccountDialog.passwordLabel")}
+                    </Label>
+                    <Input
+                      id="delete-account-password"
+                      type="password"
+                      value={deletePassword}
+                      onChange={(e) => setDeletePassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="bg-zinc-800/50 border-[#3a3a3a] text-white"
+                      autoComplete="current-password"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <Label
+                      htmlFor="delete-account-email"
+                      className="text-gray-300"
+                    >
+                      {t("settings.deleteAccountDialog.confirmEmailLabel")}
+                    </Label>
+                    <Input
+                      id="delete-account-email"
+                      type="email"
+                      value={deleteConfirmEmail}
+                      onChange={(e) => setDeleteConfirmEmail(e.target.value)}
+                      placeholder={user?.email}
+                      className="bg-zinc-800/50 border-[#3a3a3a] text-white"
+                      autoComplete="email"
+                    />
+                  </>
+                )}
+              </div>
+              <AlertDialogFooter>
+                <AlertDialogCancel
+                  disabled={isDeletingAccount}
+                  className="bg-zinc-800/50 text-white hover:bg-zinc-600 border-none"
+                >
+                  {t("settings.deleteAccountDialog.cancel")}
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-red-600 text-white hover:bg-red-700"
+                  disabled={!canConfirmDeleteAccount || isDeletingAccount}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    void handleDeleteAccount();
+                  }}
+                >
+                  {t("settings.deleteAccountDialog.confirm")}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           <h1 className="text-3xl font-bold text-white mb-6">
             {t("settings.audioTitle")}
@@ -625,7 +783,6 @@ const SettingsPage: React.FC = () => {
                   <p className="text-gray-400 text-sm mt-2">
                     {t("settings.waveAnalyzerDesc")}
                   </p>
-
                 </div>
               </>
             )}

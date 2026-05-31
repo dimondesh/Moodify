@@ -206,7 +206,22 @@
     "passwordsMismatch": "New passwords do not match",
     "passwordChanged": "Password changed successfully.",
     "wrongCurrentPassword": "Current password is incorrect",
-    "passwordChangeFailed": "Could not change password."
+    "passwordChangeFailed": "Could not change password.",
+    "securityTitle": "Security",
+    "dangerZone": "Danger zone",
+    "deleteAccount": "Delete account",
+    "deleteAccountDesc": "Permanently delete your account and all associated data. This cannot be undone.",
+    "deleteAccountDialog": {
+      "title": "Delete account?",
+      "description": "This will permanently delete your profile, playlists, library, messages, and all other data linked to your account.",
+      "passwordLabel": "Enter your current password",
+      "confirmEmailLabel": "Type your email to confirm",
+      "cancel": "Cancel",
+      "confirm": "Delete account",
+      "success": "Your account has been deleted.",
+      "failed": "Could not delete account.",
+      "adminForbidden": "Admin accounts cannot be deleted."
+    }
   },
   "toasts": {
     "anonymousEnabled": "Anonymous mode enabled",

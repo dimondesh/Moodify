@@ -89,6 +89,16 @@ export async function changePassword(
   );
 }
 
+export async function deleteAccount(
+  payload: { password?: string; confirmEmail?: string },
+  token: string,
+) {
+  await axiosInstance.delete("/auth/account", {
+    data: payload,
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
 export async function updateUserLanguage(language: string) {
   await axiosInstance.put("/users/language", { language });
 }

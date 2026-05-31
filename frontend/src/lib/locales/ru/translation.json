@@ -205,7 +205,22 @@
     "passwordsMismatch": "Новые пароли не совпадают",
     "passwordChanged": "Пароль успешно изменён.",
     "wrongCurrentPassword": "Неверный текущий пароль",
-    "passwordChangeFailed": "Не удалось сменить пароль."
+    "passwordChangeFailed": "Не удалось сменить пароль.",
+    "securityTitle": "Безопасность",
+    "dangerZone": "Опасная зона",
+    "deleteAccount": "Удалить аккаунт",
+    "deleteAccountDesc": "Безвозвратно удалить аккаунт и все связанные данные. Это действие нельзя отменить.",
+    "deleteAccountDialog": {
+      "title": "Удалить аккаунт?",
+      "description": "Будут удалены профиль, плейлисты, медиатека, сообщения и все остальные данные, связанные с аккаунтом.",
+      "passwordLabel": "Введите текущий пароль",
+      "confirmEmailLabel": "Введите email для подтверждения",
+      "cancel": "Отмена",
+      "confirm": "Удалить аккаунт",
+      "success": "Аккаунт удалён.",
+      "failed": "Не удалось удалить аккаунт.",
+      "adminForbidden": "Аккаунт администратора нельзя удалить."
+    }
   },
   "toasts": {
     "anonymousEnabled": "Анонимный режим включен",

@@ -14,6 +14,7 @@ import {
   updateUserPrivacy as updateUserPrivacyApi,
   updateRecentlyListenedArtistsPrivacy as updateRecentlyListenedArtistsPrivacyApi,
   changePassword as changePasswordApi,
+  deleteAccount as deleteAccountApi,
 } from "@/lib/api/auth";
 import { useChatStore } from "./useChatStore";
 import { usePlayerStore } from "./usePlayerStore";
@@ -45,6 +46,7 @@ export interface AuthUser {
   isAnonymous?: boolean;
   showRecentlyListenedArtists?: boolean;
   requiresOnboarding?: boolean;
+  hasPassword?: boolean;
 }
 
 interface UpdateProfileData {
@@ -63,6 +65,7 @@ function mapBackendUser(u: any): AuthUser {
     isAnonymous: u.isAnonymous,
     showRecentlyListenedArtists: u.showRecentlyListenedArtists,
     isAdmin: u.isAdmin,
+    hasPassword: u.hasPassword ?? Boolean(u.passwordHash),
     requiresOnboarding: u.requires_onboarding ?? false,
   };
 }
@@ -96,6 +99,10 @@ interface AuthStore {
     showRecentlyListenedArtists: boolean,
   ) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  deleteAccount: (payload: {
+    password?: string;
+    confirmEmail?: string;
+  }) => Promise<void>;
   completeTasteOnboarding: (artistIds: string[]) => Promise<void>;
 }
 
@@ -355,6 +362,13 @@ export const useAuthStore = create<AuthStore>()(
         const token = get().accessToken;
         if (!token) throw new Error("Not authenticated");
         await changePasswordApi(currentPassword, newPassword, token);
+      },
+
+      deleteAccount: async (payload) => {
+        const token = get().accessToken;
+        if (!token) throw new Error("Not authenticated");
+        await deleteAccountApi(payload, token);
+        await get().logout();
       },
 
       completeTasteOnboarding: async (artistIds) => {

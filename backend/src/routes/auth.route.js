@@ -11,6 +11,7 @@ import {
   resetPassword,
   getMe,
   changePassword,
+  deleteAccount,
 } from "../controller/auth.controller.js";
 import { protectRoute } from "../middleware/auth.middleware.js";
 import { attachRequiresOnboarding } from "../middleware/tasteOnboarding.middleware.js";
@@ -28,5 +29,6 @@ router.post("/verify-reset-code", verifyResetCode);
 router.post("/reset-password", resetPassword);
 router.get("/me", protectRoute, attachRequiresOnboarding, getMe);
 router.post("/change-password", protectRoute, changePassword);
+router.delete("/account", protectRoute, deleteAccount);
 
 export default router;

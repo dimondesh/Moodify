@@ -11,6 +11,10 @@ import {
   isSkippableCoverImageUrl,
 } from "../lib/media/coverAccent.service.js";
 import { isAdminUser } from "../lib/core/userRoles.js";
+import {
+  deleteUserAccount,
+  DeleteAccountError,
+} from "../lib/users/deleteAccount.service.js";
 import { needsTasteOnboarding } from "../lib/recommendations/tasteProfile.service.js";
 import {
   getLargeImageUrl,
@@ -81,6 +85,7 @@ export async function buildAuthPayload(user, requiresOnboardingOverride) {
       isAnonymous: user.isAnonymous,
       showRecentlyListenedArtists: user.showRecentlyListenedArtists,
       isAdmin,
+      hasPassword: Boolean(user.passwordHash),
       requires_onboarding,
     },
   };
@@ -587,6 +592,54 @@ export const changePassword = async (req, res) => {
     res.status(200).json({ message: "Password updated" });
   } catch (error) {
     console.error("changePassword error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const deleteAccount = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const { password, confirmEmail } = req.body ?? {};
+
+    if (user.passwordHash) {
+      if (!password) {
+        return res.status(400).json({ error: "Password is required" });
+      }
+      const ok = await bcrypt.compare(String(password), user.passwordHash);
+      if (!ok) {
+        return res.status(401).json({ error: "Current password is incorrect" });
+      }
+    } else {
+      const normalizedConfirm = (confirmEmail || "").trim().toLowerCase();
+      if (!normalizedConfirm || normalizedConfirm !== user.email) {
+        return res.status(400).json({ error: "Email confirmation does not match" });
+      }
+    }
+
+    await deleteUserAccount(userId);
+
+    const socketId = req.userSockets?.get(String(userId));
+    if (socketId && req.io) {
+      req.io.sockets.sockets.get(socketId)?.disconnect(true);
+      req.userSockets.delete(String(userId));
+      req.userActivities?.delete(String(userId));
+    }
+
+    res.status(204).send();
+  } catch (error) {
+    if (error instanceof DeleteAccountError) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    console.error("deleteAccount error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };

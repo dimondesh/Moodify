@@ -100,6 +100,18 @@ const clearSession = (userId) => {
   lastKnownTrackByUser.delete(userId);
 };
 
+/** Clears in-memory debounce state and Redis listening activity for a user. */
+export const purgeUserListeningState = async (userId) => {
+  const id = String(userId);
+  clearSession(id);
+  if (!redisClient.isOpen) return;
+  try {
+    await redisClient.del(redisKey(id));
+  } catch (err) {
+    console.error(`[ActivityPersistence] purge failed for ${id}:`, err);
+  }
+};
+
 export const setSessionActivity = (userId, activity) => {
   if (!isTrackActivity(activity)) return;
 
