@@ -11,7 +11,7 @@ import { useQuickCreatePlaylist } from "@/hooks/useQuickCreatePlaylist";
 import { useLibraryData } from "@/hooks/useLibraryData";
 import { getLibraryItemDisplay } from "@/lib/libraryDisplay";
 import EntityTypeFilter from "@/layout/EntityTypeFilter";
-import LibraryGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton";
+import LibraryPageSkeleton from "./LibraryPageSkeleton";
 import { LibrarySearchBar } from "@/components/library/LibrarySearchBar";
 import { LibraryItemRow } from "@/components/library/LibraryItemRow";
 import { LibraryItemCard } from "@/components/library/LibraryItemCard";
@@ -42,7 +42,7 @@ const LibraryPage = () => {
     isOffline,
   } = useLibraryData();
 
-  if (isLoading && !entityTypeFilter) return <LibraryGridSkeleton />;
+  if (isLoading && !entityTypeFilter) return <LibraryPageSkeleton />;
 
   if (errorMessage && !isOffline) {
     return (

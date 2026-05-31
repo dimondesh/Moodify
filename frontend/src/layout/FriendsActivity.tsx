@@ -191,7 +191,7 @@ function FriendActivityCard({
             <div>
               <button
                 type="button"
-                className="text-xs text-white font-medium truncate w-full text-left hover:text-[#8b5cf6]"
+                className="inline-block max-w-full truncate text-xs text-white font-medium text-left hover:text-[#8b5cf6]"
                 onClick={(e) => onSongClick(e, activity.albumId)}
               >
                 {activity.songTitle}
