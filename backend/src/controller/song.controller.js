@@ -4,10 +4,11 @@ import mongoose from "mongoose";
 import { Song } from "../models/song.model.js";
 import { ListenHistory } from "../models/listenHistory.model.js";
 import { User } from "../models/user.model.js";
-import { Album } from "../models/album.model.js";
-import { Playlist } from "../models/playlist.model.js";
-import { Artist } from "../models/artist.model.js";
 import { getVibeMatchTracks } from "../lib/recommendation.service.js";
+import {
+  getRecentActivityEntities,
+  recordRecentActivity,
+} from "../lib/recentActivity.service.js";
 
 const SONG_MINIMAL_SELECT =
   "_id title artist albumId images coverAccentHex duration playCount";
@@ -252,6 +253,12 @@ export const recordListen = async (req, res, next) => {
     await listen.save();
     await Song.updateOne({ _id: songId }, { $inc: { playCount: 1 } });
 
+    if (listenData.playbackContext?.entityId) {
+      recordRecentActivity(userId, listenData.playbackContext).catch((err) => {
+        console.error("Failed to record recent activity:", err);
+      });
+    }
+
     res
       .status(200)
       .json({ success: true, message: "Listen recorded successfully." });
@@ -269,117 +276,9 @@ export const getListenHistory = async (
 ) => {
   try {
     const userId = req.user.id;
-    const fullHistory = await ListenHistory.find({ user: userId })
-      .sort({ listenedAt: -1 })
-      .populate({
-        path: "song",
-        populate: { path: "artist", model: "Artist", select: "name images" },
-      })
-      .lean();
+    const entities = await getRecentActivityEntities(userId, limit);
+    const result = { entities };
 
-    if (!fullHistory || fullHistory.length === 0) {
-      const result = { entities: [] };
-      if (returnInternal) return result;
-      return res.json(result);
-    }
-
-    const uniqueEntities = [];
-    const seenEntityKeys = new Set();
-
-    for (const record of fullHistory) {
-      if (!record.playbackContext) continue;
-
-      const { type: rawType, entityId, entityTitle } = record.playbackContext;
-      const playlistLikeTypes = new Set([
-        "playlist",
-        "mix",
-        "generated-playlist",
-        "personal-mix",
-      ]);
-      const normalizedType = playlistLikeTypes.has(rawType)
-        ? "playlist"
-        : rawType;
-      const entityKey = `${normalizedType}-${entityId}`;
-
-      if (!seenEntityKeys.has(entityKey)) {
-        seenEntityKeys.add(entityKey);
-
-        const entity = {
-          _id: entityId,
-          itemType: normalizedType,
-          title: entityTitle || "Unknown",
-          images: [],
-          songs: [],
-        };
-
-        if (entityId) {
-          try {
-            let entityData = null;
-            switch (normalizedType) {
-              case "album":
-                entityData = await Album.findById(entityId)
-                  .select("title images type artist")
-                  .populate("artist", "name")
-                  .lean();
-                if (entityData) {
-                  entityData.songs = await Song.find({ albumId: entityId })
-                    .select(SONG_MINIMAL_SELECT)
-                    .populate({ path: "artist", select: "name images" })
-                    .sort({ trackNumber: 1, createdAt: 1 })
-                    .lean();
-                }
-                break;
-              case "playlist":
-                entityData = await Playlist.findById(entityId)
-                  .select("title images owner type sourceName")
-                  .populate("owner", "fullName")
-                  .populate({
-                    path: "songs",
-                    select: SONG_MINIMAL_SELECT,
-                    populate: { path: "artist", select: "name images" },
-                  })
-                  .lean();
-                break;
-              case "artist":
-                entityData = await Artist.findById(entityId)
-                  .select("name images")
-                  .lean();
-                if (entityData) {
-                  entityData.title = entityData.name;
-                  entityData.songs = await Song.find({ artist: entityId })
-                    .select(SONG_MINIMAL_SELECT)
-                    .populate({ path: "artist", select: "name images" })
-                    .sort({ playCount: -1 })
-                    .limit(5)
-                    .lean();
-                }
-                break;
-            }
-
-            if (entityData) {
-              entity.title = entityData.title || entityTitle;
-              entity.images = entityData.images || [];
-              entity.songs = entityData.songs || [];
-              if (normalizedType === "album") {
-                entity.type = entityData.type;
-                entity.artist = entityData.artist;
-              } else if (normalizedType === "playlist") {
-                entity.owner = entityData.owner;
-                entity.type = entityData.type;
-                entity.sourceName = entityData.sourceName;
-              } else if (normalizedType === "artist") {
-                entity.name = entityData.name;
-              }
-            }
-          } catch (error) {
-            entity.images = [];
-          }
-        }
-        uniqueEntities.push(entity);
-      }
-    }
-
-    const result = { entities: uniqueEntities.slice(0, limit) };
     if (returnInternal) return result;
     return res.status(200).json(result);
   } catch (error) {
