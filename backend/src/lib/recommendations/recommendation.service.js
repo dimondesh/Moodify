@@ -178,41 +178,289 @@ const isHarmonicallyCompatible = (target, candidate) => {
 
   return false;
 };
-export const getVibeMatchTracks = async (currentSongId, limit = 10) => {
+
+const MAX_EXCLUDE_IDS = 200;
+
+const parseValidExcludeIds = (excludeIds) => {
+  if (!Array.isArray(excludeIds)) return [];
+  return excludeIds
+    .filter((id) => id && mongoose.Types.ObjectId.isValid(id))
+    .slice(0, MAX_EXCLUDE_IDS)
+    .map((id) => new mongoose.Types.ObjectId(id));
+};
+
+const buildIdMatch = (currentSongId, validExcludeIds) => {
+  const idFilter = { $ne: currentSongId };
+  if (validExcludeIds.length > 0) {
+    idFilter.$nin = validExcludeIds;
+  }
+  return idFilter;
+};
+
+const getCandidateArtistIds = (candidate) =>
+  (candidate.artist || []).map((a) => (a._id || a).toString());
+
+export const buildRepeatContext = async ({
+  userId,
+  excludeIds = [],
+  repeatMode = "default",
+  currentSong,
+}) => {
+  const validExcludeIds = parseValidExcludeIds(excludeIds);
+  const currentArtistIds = (currentSong.artist || []).map((a) => a.toString());
+  const sessionArtistIds = new Set(currentArtistIds);
+
+  if (validExcludeIds.length > 0) {
+    const excludedSongs = await Song.find({ _id: { $in: validExcludeIds } })
+      .select("artist albumId")
+      .lean();
+    for (const song of excludedSongs) {
+      for (const artistId of song.artist || []) {
+        sessionArtistIds.add(artistId.toString());
+      }
+    }
+  }
+
+  const context = {
+    validExcludeIds,
+    currentArtistIds,
+    sessionArtistIds: [...sessionArtistIds],
+    repeatMode,
+    recentSongPenalties: new Map(),
+    recentArtistPenalties: new Map(),
+    recentAlbumPenalties: new Map(),
+  };
+
+  if (repeatMode === "fewerRepeats" && userId) {
+    const listenHistory = await ListenHistory.find({ user: userId })
+      .sort({ listenedAt: -1 })
+      .limit(80)
+      .populate({ path: "song", select: "artist albumId" })
+      .lean();
+
+    listenHistory.forEach((entry, index) => {
+      if (!entry.song) return;
+      const songId = entry.song._id.toString();
+      const isRecent = index < 20;
+      const songPenalty = isRecent ? 2.0 : 0.8;
+      context.recentSongPenalties.set(
+        songId,
+        Math.max(context.recentSongPenalties.get(songId) || 0, songPenalty),
+      );
+
+      for (const artistId of entry.song.artist || []) {
+        const aid = artistId.toString();
+        const artistPenalty = isRecent ? 0.5 : 0.2;
+        context.recentArtistPenalties.set(
+          aid,
+          Math.max(
+            context.recentArtistPenalties.get(aid) || 0,
+            artistPenalty,
+          ),
+        );
+      }
+
+      if (entry.song.albumId) {
+        context.recentAlbumPenalties.set(entry.song.albumId.toString(), 0.1);
+      }
+    });
+  }
+
+  return context;
+};
+
+const scoreVibeCandidate = (sourceSong, candidate, repeatContext) => {
+  const { genres, moods, audioFeatures } = sourceSong;
+  let score = calculateFeatureDistance(
+    audioFeatures || {},
+    candidate.audioFeatures || {},
+  );
+
+  if (
+    isHarmonicallyCompatible(
+      audioFeatures || {},
+      candidate.audioFeatures || {},
+    )
+  ) {
+    score -= 0.1;
+  }
+
+  const sharedMoods = (candidate.moods || []).filter((m) =>
+    (moods || []).some((tm) => tm.toString() === m.toString()),
+  ).length;
+  score -= sharedMoods * 0.05;
+
+  const sharedGenres = (candidate.genres || []).filter((g) =>
+    (genres || []).some((tg) => tg.toString() === g.toString()),
+  ).length;
+
+  if (sharedGenres === 0) {
+    score += 10;
+  } else {
+    score -= sharedGenres * 0.1;
+  }
+
+  if (
+    sourceSong.audioFeatures?.embedding &&
+    candidate.audioFeatures?.embedding
+  ) {
+    const similarity = cosineSimilarity(
+      sourceSong.audioFeatures.embedding,
+      candidate.audioFeatures.embedding,
+    );
+    score -= similarity * 2.0;
+  }
+
+  const candidateArtistIds = getCandidateArtistIds(candidate);
+
+  for (const artistId of candidateArtistIds) {
+    if (repeatContext.currentArtistIds.includes(artistId)) {
+      score += 0.3;
+      break;
+    }
+  }
+
+  let sessionArtistPenalty = 0;
+  for (const artistId of candidateArtistIds) {
+    if (
+      repeatContext.sessionArtistIds.includes(artistId) &&
+      !repeatContext.currentArtistIds.includes(artistId)
+    ) {
+      sessionArtistPenalty += 0.15;
+    }
+  }
+  score += Math.min(sessionArtistPenalty, 0.45);
+
+  const candidateId = candidate._id.toString();
+  if (repeatContext.recentSongPenalties.has(candidateId)) {
+    score += repeatContext.recentSongPenalties.get(candidateId);
+  }
+
+  for (const artistId of candidateArtistIds) {
+    if (repeatContext.recentArtistPenalties.has(artistId)) {
+      score += repeatContext.recentArtistPenalties.get(artistId);
+    }
+  }
+
+  if (candidate.albumId) {
+    const albumId = (candidate.albumId._id || candidate.albumId).toString();
+    if (repeatContext.recentAlbumPenalties.has(albumId)) {
+      score += repeatContext.recentAlbumPenalties.get(albumId);
+    }
+  }
+
+  return score;
+};
+
+const pickVibeMatchTracks = (scoredCandidates, limit, repeatMode) => {
+  if (scoredCandidates.length === 0) return [];
+
+  const temperature = repeatMode === "fewerRepeats" ? 0.25 : 0.4;
+  const poolSize = Math.min(scoredCandidates.length, limit * 4);
+  const pool = scoredCandidates.slice(0, poolSize);
+  const picked = [];
+  const usedArtistIds = new Set();
+  let remaining = [...pool];
+
+  while (picked.length < limit && remaining.length > 0) {
+    let candidates = remaining;
+    if (repeatMode === "fewerRepeats" && picked.length > 0) {
+      const filtered = remaining.filter((c) => {
+        const artistIds = getCandidateArtistIds(c);
+        return !artistIds.some((id) => usedArtistIds.has(id));
+      });
+      if (filtered.length > 0) candidates = filtered;
+    }
+
+    const weights = candidates.map((c) => Math.exp(-c.score / temperature));
+    const totalWeight = weights.reduce((a, b) => a + b, 0);
+
+    if (totalWeight === 0) {
+      const selected = candidates[0];
+      picked.push(selected);
+      for (const artistId of getCandidateArtistIds(selected)) {
+        usedArtistIds.add(artistId);
+      }
+      remaining = remaining.filter(
+        (c) => c._id.toString() !== selected._id.toString(),
+      );
+      continue;
+    }
+
+    let r = Math.random() * totalWeight;
+    let selectedIndex = 0;
+    for (let i = 0; i < weights.length; i++) {
+      r -= weights[i];
+      if (r <= 0) {
+        selectedIndex = i;
+        break;
+      }
+    }
+
+    const selected = candidates[selectedIndex];
+    picked.push(selected);
+    for (const artistId of getCandidateArtistIds(selected)) {
+      usedArtistIds.add(artistId);
+    }
+    remaining = remaining.filter(
+      (c) => c._id.toString() !== selected._id.toString(),
+    );
+  }
+
+  return picked.map(({ score: _score, ...song }) => song);
+};
+
+export const getVibeMatchTracks = async (
+  currentSongId,
+  limit = 10,
+  options = {},
+) => {
+  const { excludeIds = [], repeatMode = "default", userId = null } = options;
+
   const currentSong = await Song.findById(currentSongId).lean();
   if (!currentSong) return [];
 
-  const { genres, moods, audioFeatures } = currentSong;
+  const repeatContext = await buildRepeatContext({
+    userId,
+    excludeIds,
+    repeatMode,
+    currentSong,
+  });
 
-  // Если у трека нет анализа аудио, падаем на строгий поиск по жанрам
-  // Если у трека нет анализа аудио, падаем на строгий поиск по жанрам
+  const { genres, moods, audioFeatures } = currentSong;
+  const idMatch = buildIdMatch(currentSong._id, repeatContext.validExcludeIds);
+  const sampleSize = Math.min(200, limit * 15);
+
   if (!audioFeatures || audioFeatures.bpm === null) {
     const fallbackAgg = await Song.aggregate([
       {
         $match: {
-          _id: { $ne: currentSong._id },
-          genres: { $in: genres }, // Только тот же жанр! Никаких $or с настроением
+          _id: idMatch,
+          genres: { $in: genres },
         },
       },
-      { $sample: { size: limit } },
+      { $sample: { size: sampleSize } },
     ]);
     const populated = await Song.populate(fallbackAgg, {
       path: "artist",
       select: "name images",
     });
-    return populated.sort(() => 0.5 - Math.random());
+    const scoredCandidates = populated.map((candidate) => ({
+      ...candidate,
+      score: scoreVibeCandidate(currentSong, candidate, repeatContext),
+    }));
+    scoredCandidates.sort((a, b) => a.score - b.score);
+    return pickVibeMatchTracks(scoredCandidates, limit, repeatMode);
   }
 
   const targetBpm = audioFeatures.bpm;
   const bpmTolerance = 20;
 
-  // 1. ПЕРВИЧНЫЙ ПОИСК: ЖЕСТКО требуем совпадения жанра
   let candidatesAgg = await Song.aggregate([
     {
       $match: {
-        _id: { $ne: currentSong._id },
+        _id: idMatch,
         $and: [
-          // ГЛАВНОЕ ИЗМЕНЕНИЕ 1: Жанр обязан совпадать. Moods убраны из $or
           { genres: { $in: genres } },
           {
             $or: [
@@ -239,21 +487,19 @@ export const getVibeMatchTracks = async (currentSongId, limit = 10) => {
         ],
       },
     },
-    { $sample: { size: 100 } },
+    { $sample: { size: sampleSize } },
   ]);
 
-  // 2. Fallback: Если в этом жанре с таким BPM/Energy треков не нашлось,
-  // расширяем поиск до настроений, чтобы очередь не остановилась
   if (candidatesAgg.length < limit) {
     candidatesAgg = await Song.aggregate([
       {
         $match: {
-          _id: { $ne: currentSong._id },
+          _id: idMatch,
           $or: [{ genres: { $in: genres } }, { moods: { $in: moods } }],
           "audioFeatures.bpm": { $ne: null },
         },
       },
-      { $sample: { size: 100 } },
+      { $sample: { size: sampleSize } },
     ]);
   }
 
@@ -262,51 +508,13 @@ export const getVibeMatchTracks = async (currentSongId, limit = 10) => {
     select: "name images",
   });
 
-  // 3. Оценка кандидатов: применяем ЖАНРОВЫЙ ШТРАФ И КОСИНУСНОЕ СХОДСТВО
-  const scoredCandidates = candidates.map((candidate) => {
-    let score = calculateFeatureDistance(
-      audioFeatures,
-      candidate.audioFeatures,
-    );
+  const scoredCandidates = candidates.map((candidate) => ({
+    ...candidate,
+    score: scoreVibeCandidate(currentSong, candidate, repeatContext),
+  }));
 
-    if (isHarmonicallyCompatible(audioFeatures, candidate.audioFeatures)) {
-      score -= 0.1;
-    }
-
-    const sharedMoods = candidate.moods.filter((m) =>
-      moods.some((tm) => tm.toString() === m.toString()),
-    ).length;
-    score -= sharedMoods * 0.05;
-
-    const sharedGenres = candidate.genres.filter((g) =>
-      genres.some((tg) => tg.toString() === g.toString()),
-    ).length;
-
-    if (sharedGenres === 0) {
-      score += 10;
-    } else {
-      score -= sharedGenres * 0.1;
-    }
-
-    if (
-      currentSong.audioFeatures?.embedding &&
-      candidate.audioFeatures?.embedding
-    ) {
-      const similarity = cosineSimilarity(
-        currentSong.audioFeatures.embedding,
-        candidate.audioFeatures.embedding,
-      );
-      score -= similarity * 2.0;
-    }
-
-    return { ...candidate, score };
-  });
-
-  // 4. Сортируем: треки с нулевым sharedGenres будут иметь score > 10 и окажутся внизу
   scoredCandidates.sort((a, b) => a.score - b.score);
-
-  const topMatches = scoredCandidates.slice(0, limit * 2);
-  return topMatches.sort(() => 0.5 - Math.random()).slice(0, limit);
+  return pickVibeMatchTracks(scoredCandidates, limit, repeatMode);
 };
 
 const scoreCandidateAgainstPlaylist = (

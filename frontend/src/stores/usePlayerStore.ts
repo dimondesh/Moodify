@@ -12,6 +12,10 @@ import {
 } from "@/lib/api/music";
 import { getUserItem } from "@/lib/offline-db";
 import { useAuthStore } from "./useAuthStore";
+import {
+  collectSmartShuffleExcludeIds,
+  type SmartShuffleRepeatMode,
+} from "@/lib/smartShuffleContext";
 
 const migrateLocalStorageKey = (fromKey: string, toKey: string) => {
   try {
@@ -72,8 +76,10 @@ interface PlayerStore {
     entityTitle?: string;
   } | null;
   shuffleMode: "off" | "regular" | "smart";
+  smartShuffleRepeatMode: SmartShuffleRepeatMode;
 
   setRepeatMode: (mode: "off" | "all" | "one") => void;
+  setSmartShuffleRepeatMode: (mode: SmartShuffleRepeatMode) => void;
   toggleShuffle: () => void;
   initializeQueue: (songs: Song[]) => void;
   /** Fetches missing hlsUrl/lyrics for the persisted or queue-seeded current track. */
@@ -263,6 +269,7 @@ export const usePlayerStore = create<PlayerStore>()(
         originalDuration: 0,
         seekVersion: 0,
         shuffleMode: "off",
+        smartShuffleRepeatMode: "default",
 
         isDesktopLyricsOpen: false,
         isMobileLyricsFullScreen: false,
@@ -587,13 +594,23 @@ export const usePlayerStore = create<PlayerStore>()(
           const state = get();
           if (!state.currentSong) return;
           try {
-            const vibeTracks = await fetchSongRadio(state.currentSong._id);
+            const excludeIds = collectSmartShuffleExcludeIds(state);
+            const vibeTracks = await fetchSongRadio(state.currentSong._id, {
+              excludeIds,
+              repeatMode: state.smartShuffleRepeatMode,
+            });
             if (vibeTracks && vibeTracks.length > 0) {
+              const queueIds = new Set(state.queue.map((s) => s._id));
+              const uniqueTracks = vibeTracks.filter(
+                (track) => !queueIds.has(track._id),
+              );
+              if (uniqueTracks.length === 0) return;
+
               set((currentState) => {
-                const newQueue = [...currentState.queue, ...vibeTracks];
+                const newQueue = [...currentState.queue, ...uniqueTracks];
                 const startIndex = currentState.queue.length;
                 const newIndices = Array.from(
-                  { length: vibeTracks.length },
+                  { length: uniqueTracks.length },
                   (_, i) => startIndex + i,
                 );
                 const playedHistory = currentState.shuffleHistory.slice(
@@ -831,6 +848,8 @@ export const usePlayerStore = create<PlayerStore>()(
         },
 
         setRepeatMode: (mode) => set({ repeatMode: mode }),
+        setSmartShuffleRepeatMode: (mode) =>
+          set({ smartShuffleRepeatMode: mode }),
         setIsFullScreenPlayerOpen: (isOpen: boolean) =>
           set({ isFullScreenPlayerOpen: isOpen }),
         setMasterVolume: (volume) => set({ masterVolume: volume }),
@@ -1240,6 +1259,7 @@ export const usePlayerStore = create<PlayerStore>()(
         currentIndex: state.currentIndex,
         repeatMode: state.repeatMode,
         shuffleMode: state.shuffleMode,
+        smartShuffleRepeatMode: state.smartShuffleRepeatMode,
         isShuffle: state.isShuffle,
         shuffleHistory: state.shuffleHistory,
         shufflePointer: state.shufflePointer,

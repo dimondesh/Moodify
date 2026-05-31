@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { protectRoute } from "../middleware/auth.middleware.js";
+import { protectRoute, attachUserIfPresent } from "../middleware/auth.middleware.js";
 import {
   getAllSongs,
   getListenHistory,
@@ -20,7 +20,7 @@ router.get("/made-for-you", protectRoute, getMadeForYouSongs);
 router.get("/trending", getTrendingSongs);
 router.get("/:id/lyrics", getSongLyrics);
 router.post("/:id/listen", protectRoute, recordListen);
-router.get("/:id/radio", protectRoute, getRecommendedSongs);
+router.get("/:id/radio", attachUserIfPresent, getRecommendedSongs);
 router.get("/history", protectRoute, getListenHistory);
 router.get("/:id", getSongById);
 

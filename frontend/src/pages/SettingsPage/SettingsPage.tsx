@@ -26,6 +26,8 @@ import {
 } from "../../components/ui/select";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../stores/useAuthStore";
+import { usePlayerStore } from "../../stores/usePlayerStore";
+import type { SmartShuffleRepeatMode } from "../../lib/smartShuffleContext";
 import { Helmet } from "react-helmet-async";
 import { useOfflineStore } from "../../stores/useOfflineStore";
 import toast from "react-hot-toast";
@@ -74,6 +76,13 @@ const SettingsPage: React.FC = () => {
     setPlaybackRate,
     setIsReduceMotionEnabled,
   } = useAudioSettingsStore();
+
+  const smartShuffleRepeatMode = usePlayerStore(
+    (s) => s.smartShuffleRepeatMode,
+  );
+  const setSmartShuffleRepeatMode = usePlayerStore(
+    (s) => s.setSmartShuffleRepeatMode,
+  );
 
   const { isIosDevice } = useUIStore();
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
@@ -658,6 +667,32 @@ const SettingsPage: React.FC = () => {
                 </div>
               </>
             )}
+          </SettingsSection>
+
+          <SettingsSection title={t("settings.playbackTitle")}>
+            <SettingsRow
+              label={t("settings.smartShuffleRepeats")}
+              description={t("settings.smartShuffleRepeatsDesc")}
+            >
+              <Select
+                value={smartShuffleRepeatMode}
+                onValueChange={(value) =>
+                  setSmartShuffleRepeatMode(value as SmartShuffleRepeatMode)
+                }
+              >
+                <SelectTrigger className={compactSelectTriggerClass}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a] text-white">
+                  <SelectItem value="default">
+                    {t("settings.smartShuffleRepeatsDefault")}
+                  </SelectItem>
+                  <SelectItem value="fewerRepeats">
+                    {t("settings.smartShuffleRepeatsFewer")}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </SettingsRow>
           </SettingsSection>
 
           <SettingsSection title={t("settings.downloads")}>

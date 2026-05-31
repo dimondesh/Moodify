@@ -7,6 +7,7 @@ import {
 import { useOfflineStore } from "@/stores/useOfflineStore";
 import { useAuthStore } from "@/stores/useAuthStore";
 import type { Song, Album, Artist } from "@/types";
+import type { SmartShuffleRepeatMode } from "../smartShuffleContext";
 import toast from "react-hot-toast";
 import i18n from "@/lib/i18n";
 
@@ -142,13 +143,32 @@ export async function fetchSecondaryHomeWithToast(): Promise<SecondaryHomeResult
   }
 }
 
+export interface FetchSongRadioOptions {
+  excludeIds?: string[];
+  repeatMode?: SmartShuffleRepeatMode;
+}
+
 export async function fetchSongById(songId: string): Promise<Song> {
   const response = await axiosInstance.get(`/songs/${songId}`);
   return response.data;
 }
 
-export async function fetchSongRadio(songId: string): Promise<Song[]> {
-  const response = await axiosInstance.get(`/songs/${songId}/radio`);
+export async function fetchSongRadio(
+  songId: string,
+  options?: FetchSongRadioOptions,
+): Promise<Song[]> {
+  const params = new URLSearchParams();
+  if (options?.excludeIds?.length) {
+    params.set("exclude", options.excludeIds.slice(0, 150).join(","));
+  }
+  if (options?.repeatMode && options.repeatMode !== "default") {
+    params.set("repeatMode", options.repeatMode);
+  }
+  const query = params.toString();
+  const url = query
+    ? `/songs/${songId}/radio?${query}`
+    : `/songs/${songId}/radio`;
+  const response = await axiosInstance.get(url);
   return response.data;
 }
 

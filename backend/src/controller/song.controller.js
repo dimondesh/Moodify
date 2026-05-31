@@ -326,8 +326,23 @@ export const getSongLyrics = async (req, res, next) => {
 export const getRecommendedSongs = async (req, res) => {
   try {
     const { id } = req.params;
-    const { limit = 10 } = req.query;
-    const recommendations = await getVibeMatchTracks(id, parseInt(limit));
+    const { limit = 10, exclude, repeatMode: repeatModeQuery } = req.query;
+
+    const excludeIds =
+      typeof exclude === "string" && exclude.length > 0
+        ? exclude.split(",").map((s) => s.trim()).filter(Boolean)
+        : [];
+
+    const repeatMode =
+      repeatModeQuery === "fewerRepeats" && req.user?.id
+        ? "fewerRepeats"
+        : "default";
+
+    const recommendations = await getVibeMatchTracks(id, parseInt(limit), {
+      excludeIds,
+      repeatMode,
+      userId: req.user?.id ?? null,
+    });
     if (!recommendations || recommendations.length === 0) {
       return res.status(404).json({ message: "No similar tracks found" });
     }
