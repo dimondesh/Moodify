@@ -13,7 +13,7 @@ import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import { SITE_SLOGAN } from "@/lib/site-meta";
 import { useDominantColor } from "@/hooks/useDominantColor";
-import { Album, Song, type DisplayItem } from "@/types";
+import { Album, Artist, Song, type DisplayItem } from "@/types";
 import HorizontalSection from "./HorizontalSection";
 import { useNavigate } from "react-router-dom";
 import HomePageSkeleton from "./HomePageSkeleton";
@@ -201,6 +201,20 @@ const HomePageComponent = () => {
             navigate("/all-albums/trending", {
               state: {
                 albums,
+                title: t(`homepage.${section.id}`),
+              },
+            });
+        }
+        case "trendingArtists":
+        case "artistsYouMightLike": {
+          const artists = section.items.filter(
+            (item): item is Artist & { itemType: "artist" } =>
+              item.itemType === "artist",
+          );
+          return () =>
+            navigate("/list", {
+              state: {
+                items: artists,
                 title: t(`homepage.${section.id}`),
               },
             });

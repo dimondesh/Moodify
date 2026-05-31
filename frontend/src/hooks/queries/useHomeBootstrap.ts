@@ -4,6 +4,7 @@ import { fetchMyPlaylists } from "@/lib/api/playlists";
 import { queryKeys } from "@/lib/queryKeys";
 import { queryClient } from "@/lib/queryClient";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { isHomeFeedGenerating } from "@/lib/homeFeedGeneration";
 import { useLibraryStore } from "@/stores/useLibraryStore";
 
 async function syncLibraryForBootstrap() {
@@ -26,9 +27,11 @@ export function useHomeBootstrapAuthKey() {
 
 export function useHomeBootstrap() {
   const authKey = useHomeBootstrapAuthKey();
+  const requiresOnboarding = useAuthStore((s) => s.user?.requiresOnboarding);
 
   return useQuery({
     queryKey: queryKeys.home.bootstrap(authKey),
+    enabled: !requiresOnboarding && !isHomeFeedGenerating(),
     queryFn: async () => {
       const userId = useAuthStore.getState().user?.id;
       const tasks: Promise<unknown>[] = [

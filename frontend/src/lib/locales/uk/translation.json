@@ -107,6 +107,7 @@
     "recentlyListened": "Ви нещодавно слухали",
     "yourTopMixes": "Ваші топ-мікси",
     "albumsYouMightLike": "Альбоми, які можуть сподобатися",
+    "artistsYouMightLike": "Виконавці, які можуть сподобатися",
     "yourPlaylists": "Ваші плейлисти",
     "trendingSongs": "Трендові треки",
     "trendingArtists": "Трендові виконавці",
@@ -650,7 +651,13 @@
     "submitFailed": "Не вдалося зберегти вибір. Спробуйте ще раз.",
     "maxArtists": "Можна обрати не більше {{count}} виконавців",
     "noSearchResults": "Виконавців не знайдено",
-    "noArtists": "Немає доступних виконавців"
+    "noArtists": "Немає доступних виконавців",
+    "generatingTitle": "Збираємо вашу стрічку",
+    "generatingSubtitle": "Підбираємо рекомендації на основі вашого смаку.",
+    "generatingStep1": "Аналізуємо ваш смак",
+    "generatingStep2": "Підбираємо треки",
+    "generatingStep3": "Шукаємо виконавців",
+    "generatingFailed": "Не вдалося підготувати стрічку. Спробуйте через хвилину."
   },
   "auth": {
     "loggingIn": "Входимо в акаунт",

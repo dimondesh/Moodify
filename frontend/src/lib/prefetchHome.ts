@@ -18,9 +18,29 @@ async function syncLibraryForBootstrap() {
   }
 }
 
-export async function prefetchHomeData(authKey: string) {
-  await queryClient.prefetchQuery({
-    queryKey: queryKeys.home.bootstrap(authKey),
+export function clearHomeBootstrapCaches(userId?: string) {
+  queryClient.removeQueries({
+    queryKey: queryKeys.home.bootstrap("__guest__"),
+  });
+  if (userId) {
+    queryClient.removeQueries({
+      queryKey: queryKeys.home.bootstrap(userId),
+    });
+  }
+}
+
+export async function prefetchHomeData(
+  authKey: string,
+  { force = false }: { force?: boolean } = {},
+) {
+  const queryKey = queryKeys.home.bootstrap(authKey);
+
+  if (force) {
+    queryClient.removeQueries({ queryKey });
+  }
+
+  await queryClient.fetchQuery({
+    queryKey,
     queryFn: async () => {
       const userId = useAuthStore.getState().user?.id;
       const tasks: Promise<unknown>[] = [

@@ -107,6 +107,7 @@
     "recentlyListened": "Вы недавно слушали",
     "yourTopMixes": "Ваши топ-миксы",
     "albumsYouMightLike": "Альбомы, которые могут понравиться",
+    "artistsYouMightLike": "Исполнители, которые могут понравиться",
     "yourPlaylists": "Ваши плейлисты",
     "trendingSongs": "Трендовые треки",
     "trendingArtists": "Трендовые исполнители",
@@ -654,7 +655,13 @@
     "submitFailed": "Не удалось сохранить выбор. Попробуйте снова.",
     "maxArtists": "Можно выбрать не более {{count}} исполнителей",
     "noSearchResults": "Исполнители не найдены",
-    "noArtists": "Нет доступных исполнителей"
+    "noArtists": "Нет доступных исполнителей",
+    "generatingTitle": "Собираем вашу ленту",
+    "generatingSubtitle": "Подбираем рекомендации на основе вашего вкуса.",
+    "generatingStep1": "Анализируем ваш вкус",
+    "generatingStep2": "Подбираем треки",
+    "generatingStep3": "Ищем исполнителей",
+    "generatingFailed": "Не удалось подготовить ленту. Попробуйте через минуту."
   },
   "auth": {
     "loggingIn": "Входим в аккаунт",

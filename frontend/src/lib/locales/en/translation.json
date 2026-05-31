@@ -108,6 +108,7 @@
     "recentlyListened": "You Recently Listened",
     "yourTopMixes": "Your Top Mixes",
     "albumsYouMightLike": "Albums You Might Like",
+    "artistsYouMightLike": "Artists You Might Like",
     "yourPlaylists": "Your Playlists",
     "trendingSongs": "Trending Songs",
     "trendingArtists": "Trending Artists",
@@ -657,7 +658,13 @@
     "submitFailed": "Could not save your preferences. Please try again.",
     "maxArtists": "You can select at most {{count}} artists",
     "noSearchResults": "No artists found",
-    "noArtists": "No artists available"
+    "noArtists": "No artists available",
+    "generatingTitle": "Building your home feed",
+    "generatingSubtitle": "We're personalizing recommendations based on your taste.",
+    "generatingStep1": "Analyzing your taste",
+    "generatingStep2": "Picking tracks for you",
+    "generatingStep3": "Finding artists you might like",
+    "generatingFailed": "Could not prepare your feed. Please try again in a moment."
   },
   "auth": {
     "loggingIn": "Logging you in",

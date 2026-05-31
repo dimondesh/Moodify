@@ -2,6 +2,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { submitTasteOnboarding } from "@/lib/api/onboarding";
+import { clearHomeBootstrapCaches } from "@/lib/prefetchHome";
 import {
   fetchAuthMe,
   loginWithPassword as loginWithPasswordApi,
@@ -122,6 +123,9 @@ export const useAuthStore = create<AuthStore>()(
 
       applyAuthResponse: (data) => {
         const mapped = mapBackendUser(data.user);
+        if (mapped.requiresOnboarding) {
+          clearHomeBootstrapCaches(mapped.id);
+        }
         set({
           accessToken: data.token,
           user: mapped,
@@ -376,6 +380,7 @@ export const useAuthStore = create<AuthStore>()(
         try {
           const data = await submitTasteOnboarding(artistIds);
           get().applyAuthResponse(data);
+          set({ isLoading: false });
         } catch (error: any) {
           set({
             isLoading: false,

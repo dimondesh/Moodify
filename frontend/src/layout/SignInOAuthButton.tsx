@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { getPostAuthPath } from "@/lib/authNavigation";
 
 function SignInOAuthInner() {
   const { t } = useTranslation();
@@ -17,7 +18,9 @@ function SignInOAuthInner() {
       try {
         await completeGoogleAccessToken(tokenResponse.access_token);
         toast.success(t("auth.loginSuccess"));
-        navigate("/");
+        navigate(getPostAuthPath(useAuthStore.getState().user), {
+          replace: true,
+        });
       } catch (error: unknown) {
         const err = error as { response?: { data?: { code?: string } } };
         if (err?.response?.data?.code === "ACCOUNT_EXISTS_PASSWORD") {

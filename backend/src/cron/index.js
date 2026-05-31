@@ -1,6 +1,11 @@
 import "dotenv/config";
 import { connectDB } from "../lib/core/db.js";
+import { connectRedis } from "../lib/core/redis.js";
 import { registerCronJobs } from "./schedules.js";
+import {
+  createHomeFeedWorker,
+  closeHomeFeedWorker,
+} from "../lib/home/homeFeedQueue.service.js";
 
 const tasks = registerCronJobs();
 let isShuttingDown = false;
@@ -14,6 +19,7 @@ const shutdown = async (signal) => {
     task.stop();
   }
 
+  await closeHomeFeedWorker();
   process.exit(0);
 };
 
@@ -21,6 +27,8 @@ process.on("SIGTERM", () => void shutdown("SIGTERM"));
 process.on("SIGINT", () => void shutdown("SIGINT"));
 
 await connectDB();
+await connectRedis();
+createHomeFeedWorker();
 console.log(
-  `Cron worker started (${tasks.length} schedules) in ${process.env.NODE_ENV || "development"} mode`,
+  `Cron worker started (${tasks.length} schedules + home feed queue) in ${process.env.NODE_ENV || "development"} mode`,
 );

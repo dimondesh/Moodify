@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
@@ -22,6 +21,14 @@ import {
 import CardGridSkeleton from "@/components/ui/skeletons/CardGridSkeleton";
 import { cn } from "@/lib/utils";
 import MoodifyLogo from "@/components/MoodifyLogo";
+import {
+  markHomeFeedGenerating,
+  clearHomeFeedGenerating,
+} from "@/lib/homeFeedGeneration";
+import {
+  OnboardingGeneratingScreen,
+  useOnboardingFeedGeneration,
+} from "./useOnboardingFeedGeneration";
 
 function dedupeArtistsById<T extends { _id: string }>(artists: T[]): T[] {
   const seen = new Set<string>();
@@ -35,8 +42,9 @@ function dedupeArtistsById<T extends { _id: string }>(artists: T[]): T[] {
 
 const OnboardingPage = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-  const completeTasteOnboarding = useAuthStore((s) => s.completeTasteOnboarding);
+  const completeTasteOnboarding = useAuthStore(
+    (s) => s.completeTasteOnboarding,
+  );
   const isLoading = useAuthStore((s) => s.isLoading);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
@@ -46,6 +54,12 @@ const OnboardingPage = () => {
   const [searchResults, setSearchResults] = useState<OnboardingArtist[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGeneratingFeed, setIsGeneratingFeed] = useState(false);
+
+  useOnboardingFeedGeneration({
+    enabled: isGeneratingFeed,
+    onComplete: () => setIsGeneratingFeed(false),
+  });
 
   const isSearchMode = debouncedQuery.length > 0;
 
@@ -133,37 +147,42 @@ const OnboardingPage = () => {
     return () => observer.disconnect();
   }, [isSearchMode, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const toggleArtist = useCallback((artistId: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(artistId)) {
-        next.delete(artistId);
+  const toggleArtist = useCallback(
+    (artistId: string) => {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(artistId)) {
+          next.delete(artistId);
+          return next;
+        }
+        if (next.size >= TASTE_ONBOARDING_MAX_ARTISTS) {
+          toast.error(
+            t("onboarding.maxArtists", { count: TASTE_ONBOARDING_MAX_ARTISTS }),
+          );
+          return prev;
+        }
+        next.add(artistId);
         return next;
-      }
-      if (next.size >= TASTE_ONBOARDING_MAX_ARTISTS) {
-        toast.error(
-          t("onboarding.maxArtists", { count: TASTE_ONBOARDING_MAX_ARTISTS }),
-        );
-        return prev;
-      }
-      next.add(artistId);
-      return next;
-    });
-  }, [t]);
+      });
+    },
+    [t],
+  );
 
   const displayArtists = useMemo(
-    () =>
-      dedupeArtistsById(isSearchMode ? searchResults : suggestedArtists),
+    () => dedupeArtistsById(isSearchMode ? searchResults : suggestedArtists),
     [isSearchMode, searchResults, suggestedArtists],
   );
 
   const handleContinue = async () => {
     if (selectedIds.size < TASTE_ONBOARDING_MIN_ARTISTS) return;
+    markHomeFeedGenerating();
+    setIsGeneratingFeed(true);
     setIsSubmitting(true);
     try {
       await completeTasteOnboarding([...selectedIds]);
-      navigate("/", { replace: true });
     } catch {
+      clearHomeFeedGenerating();
+      setIsGeneratingFeed(false);
       toast.error(t("onboarding.submitFailed"));
     } finally {
       setIsSubmitting(false);
@@ -282,7 +301,9 @@ const OnboardingPage = () => {
                     ref={loadMoreRef}
                     className="flex justify-center py-8 min-h-[48px]"
                   >
-                    {isFetchingNextPage && <CardGridSkeleton count={6} className="w-full" />}
+                    {isFetchingNextPage && (
+                      <CardGridSkeleton count={6} className="w-full" />
+                    )}
                   </div>
                 )}
               </>

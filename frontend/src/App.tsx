@@ -9,6 +9,7 @@ import { isIosDevice } from "./lib/platform";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { SITE_NAME, SITE_SLOGAN, SITE_URL } from "./lib/site-meta";
 import { prefetchHomeData } from "./lib/prefetchHome";
+import { isHomeFeedGenerating } from "./lib/homeFeedGeneration";
 import { isDesktopLibraryContext } from "./lib/libraryPlatform";
 
 import HomePage from "./pages/HomePage/HomePage";
@@ -36,6 +37,7 @@ import OnboardingRedirect from "./components/OnboardingRedirect";
 function App() {
   const user = useAuthStore((state) => state.user);
   const userId = user?.id;
+  const requiresOnboarding = user?.requiresOnboarding ?? false;
   const isOffline = useOfflineStore((state) => state.isOffline);
   const location = useLocation();
   const navigate = useNavigate();
@@ -55,6 +57,8 @@ function App() {
 
   useEffect(() => {
     if (!navigator.onLine) return;
+    if (requiresOnboarding) return;
+    if (isHomeFeedGenerating()) return;
 
     const authKey = userId ?? "__guest__";
     if (lastBootstrapAuthKeyRef.current === authKey) return;
@@ -67,10 +71,12 @@ function App() {
     }, 100);
 
     return () => clearTimeout(timeoutId);
-  }, [userId]);
+  }, [userId, requiresOnboarding]);
 
   const fetchDataForUser = useCallback(() => {
     if (!navigator.onLine) return;
+    if (useAuthStore.getState().user?.requiresOnboarding) return;
+    if (isHomeFeedGenerating()) return;
 
     console.log("fetchDataForUser: Fetching initial data");
     const authKey = useAuthStore.getState().user?.id ?? "__guest__";

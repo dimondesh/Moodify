@@ -7,6 +7,7 @@ export type HomeSectionId =
   | "recentlyListened"
   | "yourTopMixes"
   | "albumsYouMightLike"
+  | "artistsYouMightLike"
   | "yourPlaylists"
   | "trendingSongs"
   | "trendingArtists"
@@ -51,6 +52,13 @@ export async function fetchHomeBootstrap(): Promise<HomeBootstrapResponse> {
     mode: data.mode === "personalized" ? "personalized" : "guest",
     sections: (data.sections ?? []).map(normalizeSection),
   };
+}
+
+export type HomeFeedStatus = "ready" | "pending" | "failed";
+
+export async function fetchHomeFeedStatus(): Promise<{ status: HomeFeedStatus }> {
+  const { data } = await axiosInstance.get("/home/feed/status");
+  return { status: data.status as HomeFeedStatus };
 }
 
 export async function fetchApiEndpoint<T = unknown>(

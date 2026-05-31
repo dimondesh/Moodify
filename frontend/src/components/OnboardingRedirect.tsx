@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { isHomeFeedGenerating } from "@/lib/homeFeedGeneration";
 
 const OnboardingRedirect = () => {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ const OnboardingRedirect = () => {
     }
 
     if (user && !user.requiresOnboarding && pathname === "/onboarding") {
+      if (isHomeFeedGenerating()) return;
       navigate("/", { replace: true });
     }
   }, [user, accessToken, isLoading, location.pathname, navigate]);

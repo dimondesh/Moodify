@@ -18,6 +18,7 @@ import { Eye, EyeOff, ArrowLeft, Check, X } from "lucide-react";
 import MoodifyLogo from "../../components/MoodifyLogo";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
+import { getPostAuthPath } from "@/lib/authNavigation";
 
 type AuthStep =
   | "email"
@@ -52,7 +53,9 @@ function AuthGoogleOAuthButton({
         await completeGoogleAccessToken(tokenResponse.access_token);
         setTempEmail("");
         toast.success(t("auth.loginSuccess"));
-        navigate("/");
+        navigate(getPostAuthPath(useAuthStore.getState().user), {
+          replace: true,
+        });
       } catch (error: unknown) {
         const err = error as { response?: { data?: { code?: string } } };
         const code = err?.response?.data?.code;
@@ -175,7 +178,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
 
   useEffect(() => {
     if (user) {
-      navigate("/");
+      navigate(getPostAuthPath(user), { replace: true });
     }
   }, [user, navigate]);
 
@@ -272,7 +275,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
       await loginWithPassword(formData.email, formData.password);
       toast.success(t("auth.loginSuccess", "Успешный вход"));
       setTempEmail("");
-      navigate("/");
+      navigate(getPostAuthPath(useAuthStore.getState().user), { replace: true });
     } catch (error: any) {
       const status = error?.response?.status;
       const code = error?.response?.data?.code;
@@ -359,7 +362,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
       await verifyEmailCode(formData.email, formData.verifyCode);
       toast.success(t("auth.loginSuccess"));
       setTempEmail("");
-      navigate("/");
+      navigate(getPostAuthPath(useAuthStore.getState().user), { replace: true });
     } catch {
       setErrorItem(t("auth.codeInvalid"));
     } finally {

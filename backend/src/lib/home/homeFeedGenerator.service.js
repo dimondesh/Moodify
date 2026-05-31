@@ -3,9 +3,11 @@ import { HomeFeed } from "../../models/homeFeed.model.js";
 import { ListenHistory } from "../../models/listenHistory.model.js";
 import { Playlist } from "../../models/playlist.model.js";
 import { Album } from "../../models/album.model.js";
+import { Artist } from "../../models/artist.model.js";
 import { Song } from "../../models/song.model.js";
 import { User } from "../../models/user.model.js";
 import { SavedAlbum } from "../../models/savedAlbum.model.js";
+import { FollowedArtist } from "../../models/followedArtist.model.js";
 import { GENERATED_PLAYLIST_TYPES } from "../../constants/playlistTypes.js";
 import { EMBEDDING_DIM } from "../../constants/embedding.js";
 import {
@@ -21,6 +23,8 @@ const TOP_MIXES_LIMIT = 12;
 const MIX_HISTORY_LIMIT = 150;
 const ALBUMS_LIMIT = 12;
 const ALBUM_CANDIDATE_POOL = 400;
+const ARTISTS_LIMIT = 12;
+const ARTIST_CANDIDATE_POOL = 400;
 
 const GLOBAL_MIX_TYPES = ["GENRE_MIX", "MOOD_MIX"];
 
@@ -417,6 +421,55 @@ export const generateAlbumsYouMightLike = async (userId, tasteVector) => {
     .map((item) => item._id);
 };
 
+export const generateArtistsYouMightLike = async (userId, tasteVector) => {
+  if (!hasValidEmbedding(tasteVector)) return [];
+
+  const ownerId = toObjectId(userId);
+
+  const [followedArtists, recentHistory] = await Promise.all([
+    FollowedArtist.find({ user: ownerId }).select("artist").lean(),
+    ListenHistory.find({ user: ownerId })
+      .sort({ listenedAt: -1 })
+      .limit(100)
+      .populate({ path: "song", select: "artist" })
+      .lean(),
+  ]);
+
+  const excludeArtistIds = new Set([
+    ...followedArtists.map((entry) => entry.artist.toString()),
+    ...recentHistory.flatMap((entry) =>
+      (entry.song?.artist || []).map((id) => id.toString()),
+    ),
+  ]);
+
+  const candidates = await Artist.aggregate([
+    {
+      $match: {
+        embedding: { $exists: true, $ne: null, $size: EMBEDDING_DIM },
+        ...(excludeArtistIds.size
+          ? {
+              _id: {
+                $nin: [...excludeArtistIds].map((id) => toObjectId(id)),
+              },
+            }
+          : {}),
+      },
+    },
+    { $sample: { size: ARTIST_CANDIDATE_POOL } },
+  ]);
+
+  if (!candidates.length) return [];
+
+  return candidates
+    .map((artist) => ({
+      _id: artist._id,
+      score: cosineSimilarity(tasteVector, artist.embedding),
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, ARTISTS_LIMIT)
+    .map((item) => item._id);
+};
+
 export const orderByIds = (documents, orderedIds) => {
   if (!orderedIds?.length) return [];
   const docMap = new Map(
@@ -427,24 +480,18 @@ export const orderByIds = (documents, orderedIds) => {
     .filter(Boolean);
 };
 
-export const enqueueHomeFeedGeneration = (userId) => {
-  setImmediate(() => {
-    generateHomeFeedForUser(userId).catch((error) => {
-      console.error(`[homeFeed] Async generation failed for ${userId}:`, error);
-    });
-  });
-};
-
 export const generateHomeFeedForUser = async (userId) => {
   const tasteVector = await computeUserTasteVector(userId);
   const now = new Date();
 
-  const [songIds, madeForYouIds, topMixIds, albumIds] = await Promise.all([
-    generateQuickPicks(userId),
-    generateMadeForYou(userId),
-    generateYourTopMixes(userId),
-    generateAlbumsYouMightLike(userId, tasteVector),
-  ]);
+  const [songIds, madeForYouIds, topMixIds, albumIds, artistIds] =
+    await Promise.all([
+      generateQuickPicks(userId),
+      generateMadeForYou(userId),
+      generateYourTopMixes(userId),
+      generateAlbumsYouMightLike(userId, tasteVector),
+      generateArtistsYouMightLike(userId, tasteVector),
+    ]);
 
   await HomeFeed.findOneAndUpdate(
     { userId },
@@ -455,6 +502,7 @@ export const generateHomeFeedForUser = async (userId) => {
         madeForYou: { playlistIds: madeForYouIds, updatedAt: now },
         yourTopMixes: { playlistIds: topMixIds, updatedAt: now },
         albumsYouMightLike: { albumIds, updatedAt: now },
+        artistsYouMightLike: { artistIds, updatedAt: now },
       },
     },
     { upsert: true, setDefaultsOnInsert: true },
@@ -467,5 +515,6 @@ export const generateHomeFeedForUser = async (userId) => {
     madeForYou: madeForYouIds,
     yourTopMixes: topMixIds,
     albumsYouMightLike: albumIds,
+    artistsYouMightLike: artistIds,
   };
 };

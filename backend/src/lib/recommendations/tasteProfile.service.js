@@ -14,6 +14,7 @@ import {
   meanPoolEmbeddings,
   cosineSimilarity,
 } from "./recommendation.service.js";
+import { enqueueHomeFeedGeneration } from "../home/homeFeedQueue.service.js";
 
 export const hasValidTasteVector = (user) =>
   Array.isArray(user?.tasteVector) && user.tasteVector.length === EMBEDDING_DIM;
@@ -77,6 +78,8 @@ export const completeTasteOnboarding = async (userId, artistIds) => {
     { $set: { tasteVector } },
     { new: true },
   );
+
+  enqueueHomeFeedGeneration(userId);
 
   return user;
 };

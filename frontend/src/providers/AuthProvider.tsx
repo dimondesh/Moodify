@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { useAuthStore } from "../stores/useAuthStore";
 import { useChatStore } from "../stores/useChatStore";
 import { useTranslation } from "react-i18next";
-import InitOnlyLoader from "../components/ui/InitOnlyLoader";
+import MoodifyLoader from "../components/ui/MoodifyLoader";
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -11,7 +11,7 @@ interface AuthProviderProps {
 
 const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [authReady, setAuthReady] = useState(false);
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
 
   const user = useAuthStore((state) => state.user);
   const isLoading = useAuthStore((state) => state.isLoading);
@@ -74,7 +74,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [chatError]);
 
   if (!authReady || (isLoading && accessToken && !user)) {
-    return <InitOnlyLoader />;
+    return <MoodifyLoader fullScreen text={t("auth.loggingIn")} size="lg" />;
   }
 
   return <>{children}</>;

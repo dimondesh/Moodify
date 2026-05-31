@@ -47,6 +47,15 @@ const homeFeedSchema = new mongoose.Schema(
       ],
       updatedAt: Date,
     },
+    artistsYouMightLike: {
+      artistIds: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Artist",
+        },
+      ],
+      updatedAt: Date,
+    },
   },
   { timestamps: false },
 );

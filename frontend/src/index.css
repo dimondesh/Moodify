@@ -134,6 +134,21 @@
     animation: fade-in 1200ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
   }
 
+  @keyframes dot-pulse {
+    0%, 70%, 100% {
+      transform: scale(0.55);
+      opacity: 0.35;
+    }
+    35% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  .animate-dot-pulse {
+    animation: dot-pulse 1.2s ease-in-out infinite;
+  }
+
   /* Дополнительные утилиты для плавных переходов */
   .smooth-background-transition {
     transition: background-color 1500ms cubic-bezier(0.25, 0.1, 0.25, 1),

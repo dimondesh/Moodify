@@ -24,6 +24,10 @@ import { getSitemap } from "./controller/sitemap.controller.js";
 import ogRoutes from "./routes/og.route.js";
 import redisClient, { connectRedis } from "./lib/core/redis.js";
 import { flushAllActivities } from "./lib/activity/activityPersistence.service.js";
+import {
+  createHomeFeedWorker,
+  closeHomeFeedWorker,
+} from "./lib/home/homeFeedQueue.service.js";
 
 const PORT = process.env.PORT || 5000;
 
@@ -121,6 +125,7 @@ const shutdown = async (signal) => {
   }
 
   httpServer.close(async () => {
+    await closeHomeFeedWorker();
     if (redisClient.isOpen) {
       try {
         await redisClient.quit();
@@ -143,6 +148,12 @@ process.on("SIGINT", () => void shutdown("SIGINT"));
 httpServer.listen(PORT, async () => {
   connectDB();
   await connectRedis();
+
+  if ((process.env.NODE_ENV || "development") === "development") {
+    createHomeFeedWorker();
+    console.log("[homeFeedQueue] Dev worker started in API process");
+  }
+
   console.log(
     `Server on port ${PORT} in ${process.env.NODE_ENV || "development"} mode`,
   );

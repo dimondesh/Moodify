@@ -28,7 +28,9 @@ export const cacheRoute = (
 
       const originalJson = res.json.bind(res);
       res.json = (data) => {
-        redisClient.setEx(cacheKey, durationInSeconds, JSON.stringify(data));
+        if (!res.locals.skipCache) {
+          redisClient.setEx(cacheKey, durationInSeconds, JSON.stringify(data));
+        }
         originalJson(data);
       };
 

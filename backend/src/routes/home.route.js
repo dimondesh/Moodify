@@ -1,6 +1,10 @@
 import { Router } from "express";
 import { identifyUser } from "../middleware/identifyUser.middleware.js";
-import { getBootstrapData } from "../controller/home.controller.js";
+import { protectRoute } from "../middleware/auth.middleware.js";
+import {
+  getBootstrapData,
+  getFeedStatus,
+} from "../controller/home.controller.js";
 import { cacheRoute } from "../middleware/cache.middleware.js";
 import {
   GUEST_HOME_CACHE_TTL,
@@ -17,5 +21,6 @@ const homeBootstrapCache = (req, res, next) => {
 };
 
 router.get("/bootstrap", identifyUser, homeBootstrapCache, getBootstrapData);
+router.get("/feed/status", protectRoute, getFeedStatus);
 
 export default router;
