@@ -17,6 +17,53 @@ interface CustomWindow extends Window {
 
 const iosNativePlayback = isIosDevice();
 
+const END_TOLERANCE_SEC = 0.25;
+const STALL_NEAR_END_SEC = 2;
+const STALL_TIMEOUT_MS = 1500;
+
+function getEffectiveDuration(
+  audio: HTMLAudioElement,
+  songDuration?: number,
+): number | null {
+  const mediaDuration = Number.isFinite(audio.duration) ? audio.duration : 0;
+  const metadataDuration = songDuration && songDuration > 0 ? songDuration : 0;
+
+  if (mediaDuration > 0 && metadataDuration > 0) {
+    // DB duration is floored; allow a small upper bound when media duration is inflated.
+    return Math.min(mediaDuration, metadataDuration + 1);
+  }
+  if (mediaDuration > 0) return mediaDuration;
+  if (metadataDuration > 0) return metadataDuration;
+  return null;
+}
+
+function isAtEndOfTrack(
+  audio: HTMLAudioElement,
+  songDuration?: number,
+): boolean {
+  if (audio.ended) return true;
+
+  const effectiveDuration = getEffectiveDuration(audio, songDuration);
+  if (
+    effectiveDuration &&
+    audio.currentTime >= effectiveDuration - END_TOLERANCE_SEC
+  ) {
+    return true;
+  }
+
+  if (audio.buffered.length > 0) {
+    const bufferedEnd = audio.buffered.end(audio.buffered.length - 1);
+    if (
+      bufferedEnd > 0 &&
+      audio.currentTime >= bufferedEnd - END_TOLERANCE_SEC
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 const AudioPlayer = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -29,11 +76,12 @@ const AudioPlayer = () => {
   const listenRecordedRef = useRef(false);
   const fallbackTriggeredRef = useRef(false);
   const lastRecordedTimeRef = useRef<number>(0);
+  const lastPlaybackTimeRef = useRef(0);
+  const lastPlaybackProgressAtRef = useRef(Date.now());
 
   const {
     currentSong,
     isPlaying,
-    playNext,
     repeatMode,
     masterVolume,
     setCurrentTime,
@@ -59,6 +107,27 @@ const AudioPlayer = () => {
     },
     [isOffline],
   );
+
+  const handleTrackEnd = useCallback((audio: HTMLAudioElement) => {
+    if (fallbackTriggeredRef.current) return;
+    fallbackTriggeredRef.current = true;
+
+    const state = usePlayerStore.getState();
+    const songIdBefore = state.currentSong?._id;
+
+    if (state.repeatMode === "one") {
+      fallbackTriggeredRef.current = false;
+      audio.currentTime = 0;
+      void audio.play();
+      return;
+    }
+
+    void state.playNext().finally(() => {
+      if (usePlayerStore.getState().currentSong?._id === songIdBefore) {
+        fallbackTriggeredRef.current = false;
+      }
+    });
+  }, []);
 
   // iOS: <audio> → speakers (HLS native / hls.js). Desktop: Web Audio graph for EQ, reverb, volume.
   useEffect(() => {
@@ -121,8 +190,10 @@ const AudioPlayer = () => {
 
     if (lastSongIdRef.current !== currentSong._id) {
       listenRecordedRef.current = false;
-      fallbackTriggeredRef.current = false; // Reset fallback trigger for new song
-      lastRecordedTimeRef.current = 0; // Reset recorded time for new song
+      fallbackTriggeredRef.current = false;
+      lastRecordedTimeRef.current = 0;
+      lastPlaybackTimeRef.current = 0;
+      lastPlaybackProgressAtRef.current = Date.now();
       lastSongIdRef.current = currentSong._id;
 
       // Загружаем lyrics для новой песни
@@ -143,6 +214,9 @@ const AudioPlayer = () => {
               .catch((e) => console.error("Autoplay failed on new track", e));
           }
         });
+        hls.on(Hls.Events.MEDIA_ENDED, () => {
+          handleTrackEnd(audioEl);
+        });
         hls.on(Hls.Events.ERROR, (_event, data) => {
           if (data.fatal) {
             console.error("HLS Fatal Error:", data.details);
@@ -159,7 +233,7 @@ const AudioPlayer = () => {
     } else {
       audioEl.pause();
     }
-  }, [currentSong, isPlaying, enrichSongWithLyricsIfNeeded]);
+  }, [currentSong, isPlaying, enrichSongWithLyricsIfNeeded, handleTrackEnd]);
 
   // Управление перемоткой
   useEffect(() => {
@@ -268,44 +342,50 @@ const AudioPlayer = () => {
     if (!audio) return;
 
     let lastUpdateTime = 0;
-    const UPDATE_INTERVAL = 500; // Обновляем не чаще чем раз в 100мс
+    const UPDATE_INTERVAL = 500;
 
     const handleTimeUpdate = () => {
       const now = Date.now();
+      const playbackTime = audio.currentTime;
+      const { currentSong: song, isPlaying: playing } =
+        usePlayerStore.getState();
+
+      if (
+        !fallbackTriggeredRef.current &&
+        isAtEndOfTrack(audio, song?.duration)
+      ) {
+        handleTrackEnd(audio);
+        return;
+      }
+
+      if (
+        !fallbackTriggeredRef.current &&
+        playing &&
+        !audio.paused &&
+        song?.duration &&
+        playbackTime >= song.duration - STALL_NEAR_END_SEC &&
+        playbackTime === lastPlaybackTimeRef.current &&
+        now - lastPlaybackProgressAtRef.current >= STALL_TIMEOUT_MS
+      ) {
+        handleTrackEnd(audio);
+        return;
+      }
+
+      if (playbackTime !== lastPlaybackTimeRef.current) {
+        lastPlaybackTimeRef.current = playbackTime;
+        lastPlaybackProgressAtRef.current = now;
+      }
+
       if (now - lastUpdateTime < UPDATE_INTERVAL) {
-        return; // Пропускаем обновление если прошло меньше 100мс
+        return;
       }
       lastUpdateTime = now;
-
-      setCurrentTime(audio.currentTime, true);
-
-      // Fallback: Check if we're very close to the end and the ended event didn't fire
-      if (
-        audio.duration &&
-        audio.currentTime >= audio.duration - 0.1 &&
-        !fallbackTriggeredRef.current
-      ) {
-        fallbackTriggeredRef.current = true;
-        const state = usePlayerStore.getState();
-        if (state.repeatMode === "one") {
-          audio.currentTime = 0;
-          audio.play();
-        } else {
-          state.playNext();
-        }
-      }
+      setCurrentTime(playbackTime, true);
     };
     const handleDurationChange = () =>
       setDuration(audio.duration, audio.duration);
     const handleEnded = () => {
-      const state = usePlayerStore.getState();
-      fallbackTriggeredRef.current = false; // Reset fallback trigger
-      if (state.repeatMode === "one") {
-        audio.currentTime = 0;
-        audio.play();
-      } else {
-        state.playNext();
-      }
+      handleTrackEnd(audio);
     };
 
     audio.addEventListener("timeupdate", handleTimeUpdate);
@@ -317,7 +397,7 @@ const AudioPlayer = () => {
       audio.removeEventListener("durationchange", handleDurationChange);
       audio.removeEventListener("ended", handleEnded);
     };
-  }, [setCurrentTime, setDuration, playNext, repeatMode]);
+  }, [setCurrentTime, setDuration, handleTrackEnd]);
 
   return (
     <audio
