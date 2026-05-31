@@ -12,7 +12,7 @@ import {
   AvatarImage,
 } from "../../components/ui/avatar";
 import { Button } from "../../components/ui/button";
-import StandardLoader from "../../components/ui/StandardLoader";
+import ProfilePageSkeleton from "@/components/ui/skeletons/ProfilePageSkeleton";
 import { EditProfileDialog } from "./EditProfileDialog";
 import { CoverDominantBackdrop } from "@/components/CoverDominantBackdrop";
 import { useDominantCoverGradient } from "@/hooks/useDominantCoverGradient";
@@ -110,13 +110,7 @@ const ProfilePage = () => {
         <Helmet>
           <title>Loading Profile...</title>
         </Helmet>
-        <div className="flex justify-center items-center h-full bg-[#0f0f0f]">
-          <StandardLoader
-            size="lg"
-            text={t("pages.profile.loading")}
-            showText={true}
-          />
-        </div>
+        <ProfilePageSkeleton />
       </>
     );
   }

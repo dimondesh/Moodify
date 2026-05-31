@@ -1,4 +1,4 @@
-// src/components/ui/StandardLoader.tsx
+// Internal spinner used only by InitOnlyLoader (auth bootstrap / lazy-route init).
 
 import React from "react";
 import { cn } from "../../lib/utils";

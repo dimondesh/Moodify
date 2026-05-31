@@ -19,7 +19,7 @@ import {
   TASTE_ONBOARDING_MIN_ARTISTS,
   TASTE_ONBOARDING_MAX_ARTISTS,
 } from "@/constants/onboarding";
-import StandardLoader from "@/components/ui/StandardLoader";
+import CardGridSkeleton from "@/components/ui/skeletons/CardGridSkeleton";
 import { cn } from "@/lib/utils";
 import MoodifyLogo from "@/components/MoodifyLogo";
 
@@ -263,13 +263,9 @@ const OnboardingPage = () => {
             )}
 
             {!isSearchMode && isLoadingSuggested ? (
-              <div className="flex justify-center py-16">
-                <StandardLoader size="lg" />
-              </div>
+              <CardGridSkeleton count={12} />
             ) : isSearchMode && isSearching ? (
-              <div className="flex justify-center py-16">
-                <StandardLoader size="md" />
-              </div>
+              <CardGridSkeleton count={6} />
             ) : displayArtists.length === 0 ? (
               <p className="text-gray-400 text-center py-12 text-base">
                 {isSearchMode
@@ -286,7 +282,7 @@ const OnboardingPage = () => {
                     ref={loadMoreRef}
                     className="flex justify-center py-8 min-h-[48px]"
                   >
-                    {isFetchingNextPage && <StandardLoader size="md" />}
+                    {isFetchingNextPage && <CardGridSkeleton count={6} className="w-full" />}
                   </div>
                 )}
               </>

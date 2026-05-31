@@ -14,7 +14,7 @@ import { Helmet } from "react-helmet-async";
 import { SharedContentMessage } from "./SharedContentMessage";
 import { Check, CheckCheck } from "lucide-react";
 import { TypingIndicator } from "./TypingIndicator";
-import StandardLoader from "../../components/ui/StandardLoader";
+import ChatMessagesSkeleton from "@/components/ui/skeletons/ChatMessagesSkeleton";
 import { cn } from "../../lib/utils";
 import { useUIStore } from "../../stores/useUIStore";
 
@@ -254,9 +254,7 @@ const ChatConversation = ({
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain no-scrollbar">
         <div className="px-3 sm:px-5 py-4 space-y-2 w-full max-w-full min-w-0 box-border">
           {isLoading ? (
-            <div className="flex justify-center items-center h-40">
-              <StandardLoader size="md" />
-            </div>
+            <ChatMessagesSkeleton />
           ) : messages.length === 0 ? (
             <div className="text-center text-zinc-400 mt-16 px-4">
               <p className="text-base">

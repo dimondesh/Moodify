@@ -4,7 +4,7 @@ import { useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { Play, UserPlus, UserCheck, Pause } from "lucide-react";
-import StandardLoader from "../../components/ui/StandardLoader";
+import ArtistPageSkeleton from "@/components/ui/skeletons/ArtistPageSkeleton";
 import { usePlayerStore } from "../../stores/usePlayerStore";
 import toast from "react-hot-toast";
 import { useLibraryStore } from "../../stores/useLibraryStore";
@@ -183,8 +183,8 @@ const ArtistPage = () => {
 
   if (loading) {
     return (
-      <main className="flex items-center justify-center h-full">
-        <StandardLoader size="lg" />
+      <main className="h-full">
+        <ArtistPageSkeleton />
       </main>
     );
   }

@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import StandardLoader from "@/components/ui/StandardLoader";
+import SongListSkeleton from "@/components/ui/skeletons/SongListSkeleton";
 import {
   fetchDiscoverSearchCategory,
   fetchDiscoverSearchPreview,
@@ -402,9 +402,7 @@ export function PlaylistDiscoverSection({
       {isRoot && hasSearchQuery && (
         <div className="space-y-6">
           {previewLoading ? (
-            <div className="flex justify-center py-6">
-              <StandardLoader size="md" />
-            </div>
+            <SongListSkeleton rows={4} />
           ) : !hasSearchResults ? (
             <p className="text-zinc-400 px-2">{t("pages.playlist.discover.noResults")}</p>
           ) : (
@@ -449,9 +447,7 @@ export function PlaylistDiscoverSection({
         <div>
           <h3 className="text-lg font-bold text-white mb-3 px-2">{currentView.title}</h3>
           {categoryLoading ? (
-            <div className="flex justify-center py-8">
-              <StandardLoader size="md" />
-            </div>
+            <SongListSkeleton rows={6} />
           ) : currentView.category === "songs" ? (
             categorySongs.length > 0 ? (
               <>
@@ -525,9 +521,7 @@ export function PlaylistDiscoverSection({
             </Button>
           </div>
           {isRecommendationsLoading ? (
-            <div className="flex justify-center py-6">
-              <StandardLoader size="md" />
-            </div>
+            <SongListSkeleton rows={5} />
           ) : playlistRecommendations && playlistRecommendations.length > 0 ? (
             <>
               <SongListHeader showPlayColumn />
@@ -551,9 +545,7 @@ export function PlaylistDiscoverSection({
       {currentView.kind === "artist" && (
         <div className="space-y-8">
           {musicLoading && !currentArtist ? (
-            <div className="flex justify-center py-8">
-              <StandardLoader size="md" />
-            </div>
+            <SongListSkeleton rows={6} showTitle />
           ) : (
             <>
               {currentArtist?.songs && currentArtist.songs.length > 0 && (
@@ -602,9 +594,7 @@ export function PlaylistDiscoverSection({
       {currentView.kind === "album" && (
         <div>
           {musicLoading && !currentAlbum ? (
-            <div className="flex justify-center py-8">
-              <StandardLoader size="md" />
-            </div>
+            <SongListSkeleton rows={6} />
           ) : currentAlbum?.songs && currentAlbum.songs.length > 0 ? (
             <>
               <SongListHeader showAlbumColumn={false} showPlayColumn />

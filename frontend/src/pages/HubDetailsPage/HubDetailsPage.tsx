@@ -2,7 +2,7 @@ import { useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
-import StandardLoader from "../../components/ui/StandardLoader";
+import HubDetailsSkeleton from "@/components/ui/skeletons/HubDetailsSkeleton";
 import HorizontalSection from "../HomePage/HorizontalSection";
 import { useHub } from "@/hooks/queries";
 import { getHubDisplayName } from "@/lib/entitySection";
@@ -92,11 +92,7 @@ const HubDetailsPage = () => {
   }, [navigate, t, playlistAllItems]);
 
   if (isPending) {
-    return (
-      <div className="flex justify-center items-center h-[50vh]">
-        <StandardLoader />
-      </div>
-    );
+    return <HubDetailsSkeleton />;
   }
 
   if (error || !hub) {

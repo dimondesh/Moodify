@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { useAuthStore } from "../stores/useAuthStore";
 import { useChatStore } from "../stores/useChatStore";
 import { useTranslation } from "react-i18next";
-import StandardLoader from "../components/ui/StandardLoader";
+import InitOnlyLoader from "../components/ui/InitOnlyLoader";
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -11,7 +11,7 @@ interface AuthProviderProps {
 
 const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [authReady, setAuthReady] = useState(false);
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
 
   const user = useAuthStore((state) => state.user);
   const isLoading = useAuthStore((state) => state.isLoading);
@@ -74,11 +74,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [chatError]);
 
   if (!authReady || (isLoading && accessToken && !user)) {
-    return (
-      <div className="h-screen w-full bg-[#0f0f0f] flex items-center justify-center">
-        <StandardLoader size="lg" text={t("auth.loggingIn")} showText={true} />
-      </div>
-    );
+    return <InitOnlyLoader />;
   }
 
   return <>{children}</>;

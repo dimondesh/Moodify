@@ -11,7 +11,7 @@ import UserGrid from "./UserGrid";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import HubBrowseGrid from "./HubBrowseGrid";
-import StandardLoader from "../../components/ui/StandardLoader";
+import SearchResultsSkeleton from "@/components/ui/skeletons/SearchResultsSkeleton";
 import { Search } from "lucide-react";
 import {
   Popover,
@@ -161,11 +161,7 @@ const SearchPage = () => {
             </>
           )}
 
-          {queryParam && isSearchLoading && (
-            <div className="flex justify-center py-12">
-              <StandardLoader size="lg" />
-            </div>
-          )}
+          {queryParam && isSearchLoading && <SearchResultsSkeleton />}
           {error && <p className="text-red-500">{error}</p>}
 
           {queryParam && !isSearchLoading && !error && !hasResults && (

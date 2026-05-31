@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { fetchSongById } from "@/lib/api/music";
-import StandardLoader from "@/components/ui/StandardLoader";
+import PlaylistDetailsSkeleton from "@/components/ui/skeletons/PlaylistDetailsSkeleton";
 
 export default function TrackRedirect() {
   const { id } = useParams();
@@ -30,9 +30,5 @@ export default function TrackRedirect() {
     }
   }, [id, navigate]);
 
-  return (
-    <div className="h-screen w-full bg-[#0f0f0f] flex items-center justify-center">
-      <StandardLoader size="lg" showText={false} />
-    </div>
-  );
+  return <PlaylistDetailsSkeleton />;
 }

@@ -4,7 +4,8 @@ import { useNavigate } from "react-router-dom";
 import type { Artist, RecentSearchItem } from "../../types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Loader2, X } from "lucide-react";
+import { X } from "lucide-react";
+import RecentSearchesSkeleton from "@/components/ui/skeletons/RecentSearchesSkeleton";
 import { useTranslation } from "react-i18next";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import UniversalPlayButton from "@/layout/UniversalPlayButton";
@@ -96,11 +97,7 @@ const RecentSearchesList: React.FC<RecentSearchesListProps> = ({
   };
 
   if (isRecentLoading) {
-    return (
-      <div className="flex h-24 items-center justify-center">
-        <Loader2 className="animate-spin text-zinc-400" />
-      </div>
-    );
+    return <RecentSearchesSkeleton />;
   }
 
   if (recentSearches.length === 0) {

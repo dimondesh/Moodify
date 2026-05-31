@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Loader2 } from "lucide-react";
+import CardGridSkeleton from "@/components/ui/skeletons/CardGridSkeleton";
 import { useHubs } from "@/hooks/queries";
 import { getHubDisplayName } from "@/lib/entitySection";
 import { getImageUrlByKey } from "@/lib/imageUrl";
@@ -100,8 +100,9 @@ const HubBrowseGrid = () => {
 
   if (isPending && hubs.length === 0) {
     return (
-      <div className="flex justify-center items-center h-[50vh]">
-        <Loader2 className="animate-spin text-violet-500 size-12" />
+      <div>
+        <div className="h-8 w-48 bg-zinc-800 rounded mb-4 animate-pulse" />
+        <CardGridSkeleton count={6} className="gap-3 sm:gap-4" />
       </div>
     );
   }

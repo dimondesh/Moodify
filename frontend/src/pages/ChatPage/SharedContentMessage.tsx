@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { fetchSharedContent } from "@/lib/api/chat";
 import { Album, Playlist, Song, Artist } from "@/types";
-import { Loader2, Music, Play, Plus, Heart } from "lucide-react";
+import { Music, Play, Plus, Heart } from "lucide-react";
+import SharedContentSkeleton from "@/components/ui/skeletons/SharedContentSkeleton";
 import { Button } from "@/components/ui/button";
 import { usePlayerStore } from "@/stores/usePlayerStore";
 import { useLibraryStore } from "@/stores/useLibraryStore";
@@ -102,11 +103,7 @@ export const SharedContentMessage: React.FC<SharedContentMessageProps> = ({
   };
 
   if (isLoading) {
-    return (
-      <div className="mt-2 w-full max-w-sm bg-zinc-800/80 p-3 rounded-lg flex items-center justify-center h-[124px]">
-        <Loader2 className="animate-spin text-zinc-400" />
-      </div>
-    );
+    return <SharedContentSkeleton />;
   }
 
   if (!entity) {
