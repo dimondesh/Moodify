@@ -189,6 +189,10 @@ const OnboardingPage = () => {
     }
   };
 
+  if (isGeneratingFeed) {
+    return <OnboardingGeneratingScreen />;
+  }
+
   const renderArtistCard = (artist: OnboardingArtist) => {
     const isSelected = selectedIds.has(artist._id);
     return (
