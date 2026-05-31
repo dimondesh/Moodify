@@ -16,6 +16,7 @@ import {
   useRecentSearches,
   useRemoveRecentSearch,
 } from "@/hooks/queries/useSearch";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 const RECENT_ROW =
   "flex items-center gap-3 px-3 py-2 rounded-none hover:bg-zinc-800/50 group";
@@ -31,8 +32,13 @@ const RecentSearchesList: React.FC<RecentSearchesListProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const authUser = useAuthStore((s) => s.user);
   const { data: recentSearches = [], isPending: isRecentLoading } =
     useRecentSearches(enabled);
+
+  if (!authUser) {
+    return null;
+  }
   const { mutate: removeRecentSearch } = useRemoveRecentSearch();
   const { mutate: clearRecentSearches } = useClearRecentSearches();
 

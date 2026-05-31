@@ -274,7 +274,13 @@ const Topbar = () => {
           isSearchVisible ? "block" : "hidden md:block"
         }`}
       >
-        <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+        <Popover
+          open={isPopoverOpen}
+          onOpenChange={(open) => {
+            if (open && !authUser) return;
+            setIsPopoverOpen(open);
+          }}
+        >
           <PopoverTrigger asChild>
             <div onClick={handleTriggerClick} className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
@@ -313,10 +319,12 @@ const Topbar = () => {
             align="start"
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
-            <RecentSearchesList
-              onItemClick={handleItemClickInPopover}
-              enabled={isPopoverOpen && Boolean(authUser)}
-            />
+            {authUser && (
+              <RecentSearchesList
+                onItemClick={handleItemClickInPopover}
+                enabled={isPopoverOpen}
+              />
+            )}
           </PopoverContent>
         </Popover>
         {isSearchVisible && (

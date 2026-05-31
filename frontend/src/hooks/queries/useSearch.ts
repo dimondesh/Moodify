@@ -34,6 +34,7 @@ export function useRecentSearches(enabled = true) {
 
 export function useAddRecentSearch() {
   const queryClient = useQueryClient();
+  const userId = useAuthStore((s) => s.user?.id);
 
   return useMutation({
     mutationFn: ({
@@ -42,7 +43,10 @@ export function useAddRecentSearch() {
     }: {
       itemId: string;
       itemType: string;
-    }) => addRecentSearch(itemId, itemType),
+    }) => {
+      if (!userId) return Promise.resolve();
+      return addRecentSearch(itemId, itemType);
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.search.recent });
     },
