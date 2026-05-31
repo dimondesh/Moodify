@@ -18,16 +18,16 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { useAuthStore } from "../../stores/useAuthStore";
-import { cn } from "../../lib/utils";
-import { Button, buttonVariants } from "./button";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { cn } from "@/lib/utils";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-} from "../ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 import {
   Drawer,
   DrawerTrigger,
@@ -35,19 +35,20 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerClose,
-} from "../ui/drawer";
-import { useUIStore } from "../../stores/useUIStore";
-import { useMediaQuery } from "../../hooks/useMediaQuery";
-import WaveAnalyzer from "./WaveAnalyzer";
+} from "@/components/ui/drawer";
+import { useUIStore } from "@/stores/useUIStore";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { MOBILE_MEDIA_QUERY } from "@/constants/breakpoints";
+import WaveAnalyzer from "@/layout/WaveAnalyzer";
 import { useTranslation } from "react-i18next";
-import MoodifyLogo from "../MoodifyLogo";
-import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
+import MoodifyLogo from "@/components/MoodifyLogo";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getUserAvatarUrl } from "@/lib/cdn";
-import { Popover, PopoverContent, PopoverTrigger } from "./popover";
-import { useChatStore } from "../../stores/useChatStore";
-import RecentSearchesList from "@/pages/SearchPage/RecentSearchesList";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useChatStore } from "@/stores/useChatStore";
+import RecentSearchesList from "@/components/search/RecentSearchesList";
 import { DROPDOWN_SURFACE } from "@/components/song-options/menuStyles";
-import { useAudioSettingsStore } from "../../lib/webAudio";
+import { useAudioSettingsStore } from "@/lib/webAudio";
 import { usePlayerStore } from "@/stores/usePlayerStore";
 
 const Topbar = () => {
@@ -58,7 +59,7 @@ const Topbar = () => {
   const [query, setQuery] = useState("");
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const { user: authUser, logout } = useAuthStore();
-  const isMobile = useMediaQuery("(max-width: 768px)");
+  const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY);
   const { waveAnalyzerEnabled } = useAudioSettingsStore();
   const { isPlaying } = usePlayerStore();
 

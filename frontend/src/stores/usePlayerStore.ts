@@ -5,7 +5,11 @@ import type { Song } from "../types";
 import toast from "react-hot-toast";
 import { useOfflineStore } from "./useOfflineStore";
 import { silentAudioService } from "@/lib/silentAudioService";
-import { axiosInstance } from "@/lib/axios";
+import {
+  fetchSongById,
+  fetchSongRadio,
+  fetchAlbumTitle,
+} from "@/lib/api/music";
 import { getUserItem } from "@/lib/offline-db";
 import { useAuthStore } from "./useAuthStore";
 
@@ -156,8 +160,7 @@ export const usePlayerStore = create<PlayerStore>()(
         )
           return;
         try {
-          const response = await axiosInstance.get(`/albums/${song.albumId}`);
-          const albumTitle = response.data.album?.title;
+          const albumTitle = await fetchAlbumTitle(song.albumId);
           if (albumTitle && get().currentSong?._id === song._id) {
             set((state) => ({
               currentSong: { ...state.currentSong!, albumTitle },
@@ -201,8 +204,7 @@ export const usePlayerStore = create<PlayerStore>()(
 
         set({ isFetchingLyrics: true });
         try {
-          const response = await axiosInstance.get(`/songs/${songId}`);
-          const fullData = response.data;
+          const fullData = await fetchSongById(songId);
 
           const completeSong = {
             ...song,
@@ -585,10 +587,7 @@ export const usePlayerStore = create<PlayerStore>()(
           const state = get();
           if (!state.currentSong) return;
           try {
-            const response = await axiosInstance.get(
-              `/songs/${state.currentSong._id}/radio`,
-            );
-            const vibeTracks = response.data;
+            const vibeTracks = await fetchSongRadio(state.currentSong._id);
             if (vibeTracks && vibeTracks.length > 0) {
               set((currentState) => {
                 const newQueue = [...currentState.queue, ...vibeTracks];

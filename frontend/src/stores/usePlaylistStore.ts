@@ -2,7 +2,18 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from "zustand";
-import { axiosInstance } from "@/lib/axios";
+import {
+  createPlaylistFromSong as createPlaylistFromSongApi,
+  createPlaylist as createPlaylistApi,
+  updatePlaylistApi,
+  deletePlaylistApi,
+  addSongToPlaylistApi,
+  removeSongFromPlaylistApi,
+  togglePlaylistInUserLibraryApi,
+  addPlaylistLikeApi,
+  removePlaylistLikeApi,
+  toggleSongLikeApi,
+} from "@/lib/api/playlists";
 import type { Playlist, Song } from "@/types";
 import toast from "react-hot-toast";
 import { useOfflineStore } from "./useOfflineStore";
@@ -63,16 +74,11 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
   createPlaylistFromSong: async (song: Song) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await axiosInstance.post("/playlists/from-song", {
-        title: song.title,
-        initialSongId: song._id,
-      });
+      await createPlaylistFromSongApi(song._id, song.title);
 
       toast.success(`Плейлист "${song.title}" создан!`);
 
       await invalidatePlaylistLists();
-
-      return response.data;
     } catch (err: any) {
       console.error("Failed to create playlist from song:", err);
       toast.error(err.response?.data?.message || "Не удалось создать плейлист");
@@ -85,23 +91,16 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
   createPlaylist: async (title, description, isPublic, imageFile) => {
     set({ isLoading: true, error: null });
     try {
-      const formData = new FormData();
-      formData.append("title", title);
-      formData.append("description", description);
-      formData.append("isPublic", String(isPublic));
-      if (imageFile) {
-        formData.append("image", imageFile);
-      }
-
-      const response = await axiosInstance.post("/playlists", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const response = await createPlaylistApi(
+        title,
+        description,
+        isPublic,
+        imageFile,
+      );
       await invalidatePlaylistLists();
 
       set({ isLoading: false });
-      return response.data;
+      return response;
     } catch (err: any) {
       console.error("Failed to create playlist:", err);
       set({
@@ -115,24 +114,16 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
   updatePlaylist: async (id, title, description, isPublic, imageFile, removeImage) => {
     set({ isLoading: true, error: null });
     try {
-      const formData = new FormData();
-      formData.append("title", title);
-      formData.append("description", description);
-      formData.append("isPublic", String(isPublic));
-      if (imageFile) {
-        formData.append("image", imageFile);
-      } else if (removeImage) {
-        formData.append("removeImage", "true");
-      }
-
-      const response = await axiosInstance.put(`/playlists/${id}`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const updated = await updatePlaylistApi(
+        id,
+        title,
+        description,
+        isPublic,
+        imageFile,
+        removeImage,
+      );
       await invalidatePlaylistLists();
 
-      const updated = response.data as Playlist;
       queryClient.setQueryData(queryKeys.playlists.detail(id), updated);
 
       set({ isLoading: false });
@@ -150,7 +141,7 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
   deletePlaylist: async (id: string) => {
     set({ isLoading: true, error: null });
     try {
-      await axiosInstance.delete(`/playlists/${id}`);
+      await deletePlaylistApi(id);
       await invalidatePlaylistLists();
       queryClient.removeQueries({ queryKey: queryKeys.playlists.detail(id) });
       set({ isLoading: false });
@@ -170,9 +161,10 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
   ) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await axiosInstance.post(
-        `/playlists/${playlistId}/songs`,
-        { songId, allowDuplicate: options?.allowDuplicate ?? false },
+      const response = await addSongToPlaylistApi(
+        playlistId,
+        songId,
+        options?.allowDuplicate ?? false,
       );
 
       const { isDownloaded, downloadItem } = useOfflineStore.getState().actions;
@@ -187,7 +179,7 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
         toast.success("Downloaded playlist updated!", { id: "playlist-sync" });
       }
 
-      const playlistFromApi = response.data?.playlist as Playlist | undefined;
+      const playlistFromApi = response?.playlist as Playlist | undefined;
       if (
         playlistFromApi?.songs &&
         Array.isArray(playlistFromApi.songs) &&
@@ -215,7 +207,7 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
 
   removeSongFromPlaylist: async (playlistId: string, songId: string) => {
     try {
-      await axiosInstance.delete(`/playlists/${playlistId}/songs/${songId}`);
+      await removeSongFromPlaylistApi(playlistId, songId);
 
       const cached = queryClient.getQueryData<Playlist>(
         queryKeys.playlists.detail(playlistId),
@@ -241,11 +233,8 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
 
   togglePlaylistInUserLibrary: async (playlistId: string) => {
     try {
-      const response = await axiosInstance.post(
-        `/api/library/playlists/toggle`,
-        { playlistId },
-      );
-      const { isAdded, message } = response.data;
+      const response = await togglePlaylistInUserLibraryApi(playlistId);
+      const { isAdded, message } = response;
 
       toast.success(
         message ||
@@ -267,7 +256,7 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
 
   addPlaylistLike: async (playlistId: string) => {
     try {
-      await axiosInstance.post(`/playlists/${playlistId}/like`);
+      await addPlaylistLikeApi(playlistId);
       toast.success("Playlist liked!");
       await invalidatePlaylistDetail(playlistId);
       await queryClient.invalidateQueries({
@@ -282,7 +271,7 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
 
   removePlaylistLike: async (playlistId: string) => {
     try {
-      await axiosInstance.delete(`/playlists/${playlistId}/unlike`);
+      await removePlaylistLikeApi(playlistId);
       toast.success("Playlist unliked!");
       await invalidatePlaylistDetail(playlistId);
       await queryClient.invalidateQueries({
@@ -313,10 +302,8 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
   toggleSongLike: async (songId: string) => {
     if (useOfflineStore.getState().isOffline) return;
     try {
-      const res = await axiosInstance.post("/library/songs/toggle-like", {
-        songId,
-      });
-      const playlistId = res.data.playlistId as string | undefined;
+      const res = await toggleSongLikeApi(songId);
+      const playlistId = res.playlistId;
       await invalidatePlaylistLists();
 
       if (playlistId) {

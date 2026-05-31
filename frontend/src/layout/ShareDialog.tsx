@@ -7,19 +7,19 @@ import { useChatStore } from "@/stores/useChatStore";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
-import { Button } from "./button";
-import { ScrollArea } from "./scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getUserAvatarUrl } from "@/lib/cdn";
-import { Separator } from "./separator";
-import { Popover, PopoverContent, PopoverTrigger } from "./popover";
+import { Separator } from "@/components/ui/separator";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "./dialog";
+} from "@/components/ui/dialog";
 import toast from "react-hot-toast";
 
 const PANEL_CLASS =

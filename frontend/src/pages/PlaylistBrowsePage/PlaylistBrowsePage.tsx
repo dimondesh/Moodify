@@ -3,11 +3,11 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import SectionGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton";
 import type { Playlist } from "../../types";
 import { useTranslation } from "react-i18next";
-import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
+import UniversalPlayButton from "@/layout/UniversalPlayButton";
 import { useSecondaryHome } from "@/hooks/queries";
 import { getImageUrlByKey } from "@/lib/imageUrl";
 import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
-import { getPlaylistDisplayTitle } from "@/lib/utils";
+import { getPlaylistDisplayTitle } from "@/lib/entitySection";
 
 type BrowseLocationState = { playlists?: Playlist[]; title?: string };
 

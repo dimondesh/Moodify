@@ -1,7 +1,7 @@
 import React, { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import UniversalPlayButton from "@/components/ui/UniversalPlayButton";
+import UniversalPlayButton from "@/layout/UniversalPlayButton";
 import { CoverImage } from "@/components/CoverImage";
 import { getImageUrlByKey } from "@/lib/imageUrl";
 import {

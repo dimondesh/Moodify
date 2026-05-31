@@ -2,10 +2,11 @@
 
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { ScrollArea, ScrollBar } from "./scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef, useState, useEffect, useCallback } from "react";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { DESKTOP_MEDIA_QUERY } from "@/constants/breakpoints";
 
 interface EntityTypeFilterProps {
   currentFilter: string | null;
@@ -24,7 +25,7 @@ const EntityTypeFilter = ({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
-  const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const isDesktop = useMediaQuery(DESKTOP_MEDIA_QUERY);
 
   const filters = [
     { key: "playlists", label: t("common.playlists") },

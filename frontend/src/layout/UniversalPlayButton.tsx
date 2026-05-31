@@ -1,12 +1,12 @@
 // frontend/src/components/ui/UniversalPlayButton.tsx
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Button } from "./button";
+import { Button } from "@/components/ui/button";
 import { Play, Pause } from "lucide-react";
 import { usePlayerStore } from "@/stores/usePlayerStore";
-import { axiosInstance } from "@/lib/axios";
+import { fetchEntitySongsForPlay } from "@/lib/api/music";
 import type { Song, Album, Playlist, Artist, LibraryItem } from "@/types";
 import { useTranslation } from "react-i18next";
-import { getPlaylistDisplayTitle } from "@/lib/utils";
+import { getPlaylistDisplayTitle } from "@/lib/entitySection";
 
 type EntityType = "song" | "album" | "playlist" | "artist";
 
@@ -90,13 +90,11 @@ const UniversalPlayButton = ({
     }
 
     if (apiEndpoint) {
-      axiosInstance
-        .get(apiEndpoint)
-        .then((response) => {
-          const songs =
-            entityType === "album"
-              ? response.data.album?.songs || []
-              : response.data.songs || [];
+      fetchEntitySongsForPlay(
+        entityType as "artist" | "album" | "playlist",
+        entity._id,
+      )
+        .then((songs) => {
           setLoadedSongs(songs);
           loadedEntitiesRef.current.add(entityKey);
         })

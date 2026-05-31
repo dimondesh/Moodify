@@ -14,7 +14,7 @@ import { isDesktopLibraryContext } from "./lib/libraryPlatform";
 import HomePage from "./pages/HomePage/HomePage";
 import MainLayout from "./layout/MainLayout";
 import AuthPage from "./pages/AuthPage/AuthPage";
-import TrackRedirect from "./pages/TrackRedirect";
+import TrackRedirect from "./pages/TrackRedirect/TrackRedirect";
 import AlbumPage from "./pages/AlbumPage/AlbumPage";
 import NotFoundPage from "./pages/NotFoundPage/NotFoundPage";
 import AllSongsPage from "./pages/AllSongs/AllSongsPage";

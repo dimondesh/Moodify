@@ -3,7 +3,13 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useGoogleLogin } from "@react-oauth/google";
 import { useAuthStore } from "../../stores/useAuthStore";
-import { axiosInstance } from "../../lib/axios";
+import {
+  checkAuthEmail,
+  forgotPassword,
+  resendVerificationEmail,
+  verifyResetCode,
+  resetPasswordWithToken,
+} from "@/lib/api/auth";
 import toast from "react-hot-toast";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -213,11 +219,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
 
     setIsLoading(true);
     try {
-      const response = await axiosInstance.post("/auth/check-email", {
-        email: formData.email,
-      });
-      const exists = response.data.exists as boolean;
-      const needsVerification = !!response.data.needsVerification;
+      const response = await checkAuthEmail(formData.email);
+      const exists = response.exists as boolean;
+      const needsVerification = !!response.needsVerification;
 
       if (mode === "login") {
         if (exists) {
@@ -288,9 +292,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
   const handleForgotPassword = async () => {
     setIsLoading(true);
     try {
-      await axiosInstance.post("/auth/forgot-password", {
-        email: formData.email.trim().toLowerCase(),
-      });
+      await forgotPassword(formData.email);
       setResetResendUntil(Date.now() + 60_000);
       setSearchParams({ step: "reset_verify_code" });
       setFormData((prev) => ({ ...prev, resetCode: "" }));
@@ -368,9 +370,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
   const handleResendCode = async () => {
     setIsLoading(true);
     try {
-      await axiosInstance.post("/auth/resend-verification", {
-        email: formData.email.trim().toLowerCase(),
-      });
+      await resendVerificationEmail(formData.email);
       toast.success(t("auth.verificationCodeSent"));
       setVerifyResendUntil(Date.now() + 60_000);
     } catch (error: unknown) {
@@ -392,9 +392,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
   const handleResendResetEmail = async () => {
     setIsLoading(true);
     try {
-      await axiosInstance.post("/auth/forgot-password", {
-        email: formData.email.trim().toLowerCase(),
-      });
+      await forgotPassword(formData.email);
       setResetResendUntil(Date.now() + 60_000);
     } catch (error: unknown) {
       const err = error as {
@@ -421,11 +419,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
     setIsLoading(true);
     setErrorItem("");
     try {
-      const res = await axiosInstance.post("/auth/verify-reset-code", {
-        email: formData.email.trim().toLowerCase(),
-        code: formData.resetCode.trim(),
-      });
-      setPasswordResetJwt(res.data.resetToken);
+      const res = await verifyResetCode(formData.email, formData.resetCode);
+      setPasswordResetJwt(res.resetToken);
       setFormData((prev) => ({
         ...prev,
         resetCode: "",
@@ -456,10 +451,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
     }
     setIsLoading(true);
     try {
-      await axiosInstance.post("/auth/reset-password", {
-        resetToken: passwordResetJwt,
-        newPassword: formData.newPassword,
-      });
+      await resetPasswordWithToken(passwordResetJwt, formData.newPassword);
       toast.success(t("auth.passwordUpdated"));
       setPasswordResetJwt(null);
       setSearchParams({ step: "login_password" });

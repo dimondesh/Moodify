@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchProfilePageData, toggleFollow } from "@/api/profile";
+import { fetchProfilePageData, toggleFollow } from "@/lib/api/profile";
 import { queryKeys } from "@/lib/queryKeys";
 
 export function useProfileData(userId: string | undefined) {

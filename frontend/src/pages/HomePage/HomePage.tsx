@@ -18,6 +18,7 @@ import HorizontalSection from "./HorizontalSection";
 import { useNavigate } from "react-router-dom";
 import HomePageSkeleton from "./HomePageSkeleton";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { MOBILE_MEDIA_QUERY } from "@/constants/breakpoints";
 import { useHomeBootstrap } from "@/hooks/queries";
 import type { HomeSection, HomeSectionId } from "@/lib/api/home";
 
@@ -34,7 +35,7 @@ const ALBUM_SECTION_IDS = new Set<HomeSectionId>([
 const HomePageComponent = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const isMobile = useMediaQuery("(max-width: 768px)");
+  const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY);
 
   const { data: homeData, isPending: isHomePageLoading } = useHomeBootstrap();
   const sections = homeData?.sections ?? [];

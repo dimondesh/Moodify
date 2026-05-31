@@ -17,12 +17,13 @@ import { CDN_DEFAULT_ARTIST_IMAGE } from "@/lib/cdn";
 import HorizontalSection from "../HomePage/HorizontalSection";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { MOBILE_MEDIA_QUERY } from "@/constants/breakpoints";
 import { CollectionSongList } from "@/components/CollectionSongList/CollectionSongList";
 
 const ArtistPage = () => {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
-  const isMobile = useMediaQuery("(max-width: 768px)");
+  const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentSong, isPlaying, playAlbum, setCurrentSong, togglePlay } =

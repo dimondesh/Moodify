@@ -7,7 +7,7 @@ import { Music } from "lucide-react";
 import { CoverImage } from "@/components/CoverImage";
 import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 import { playlistOwnerLabel } from "@/lib/site-meta";
-import { getPlaylistDisplayTitle } from "@/lib/utils";
+import { getPlaylistDisplayTitle } from "@/lib/entitySection";
 import { useTranslation } from "react-i18next";
 
 interface PlaylistRowProps {

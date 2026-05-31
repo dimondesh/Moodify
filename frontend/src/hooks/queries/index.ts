@@ -9,3 +9,11 @@ export { useHomeBootstrap, useHomeBootstrapAuthKey } from "./useHomeBootstrap";
 export { useListenHistory } from "./useListenHistory";
 export { useSecondaryHome } from "./useSecondaryHome";
 export { useHubs, useHub } from "./useHubs";
+export {
+  useSearchQuery,
+  useRecentSearches,
+  useAddRecentSearch,
+  useRemoveRecentSearch,
+  useClearRecentSearches,
+} from "./useSearch";
+export { useProfileData, useToggleFollow } from "./useProfile";

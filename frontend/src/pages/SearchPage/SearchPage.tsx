@@ -20,16 +20,17 @@ import {
 } from "../../components/ui/popover";
 import { useAuthStore } from "../../stores/useAuthStore";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
+import { MOBILE_MEDIA_QUERY } from "@/constants/breakpoints";
 import { DROPDOWN_SURFACE } from "@/components/song-options/menuStyles";
 import { cn } from "@/lib/utils";
-import RecentSearchesList from "./RecentSearchesList";
-import { useSearchQuery } from "@/hooks/useSearch";
+import RecentSearchesList from "@/components/search/RecentSearchesList";
+import { useSearchQuery } from "@/hooks/queries/useSearch";
 
 const SearchPage = () => {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const queryParam = searchParams.get("q") || "";
-  const isMobile = useMediaQuery("(max-width: 768px)");
+  const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY);
   const { user: authUser } = useAuthStore();
   const navigate = useNavigate();
   const navigateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);

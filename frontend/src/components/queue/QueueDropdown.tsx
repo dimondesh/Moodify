@@ -4,7 +4,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 import { QueueList } from "@/components/queue/QueueList";
 import { useQueueList } from "@/hooks/useQueueList";
 

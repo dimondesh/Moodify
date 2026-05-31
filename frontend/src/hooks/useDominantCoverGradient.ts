@@ -7,12 +7,7 @@ export interface CoverGradientLayer {
 
 const DEFAULT_COLOR = "#18181b";
 
-function validAccentHex(hex: string): string | null {
-  const t = hex.trim();
-  if (/^#[0-9a-fA-F]{6}$/.test(t)) return t.toLowerCase();
-  if (/^[0-9a-fA-F]{6}$/.test(t)) return `#${t.toLowerCase()}`;
-  return null;
-}
+import { normalizeAccentHex } from "@/hooks/useDominantColor";
 
 /** Page backdrop from `coverAccentHex` on the API or default when entity is shown. */
 export function useDominantCoverGradient(
@@ -36,7 +31,7 @@ export function useDominantCoverGradient(
       setBackgrounds([{ key: newKey, color }]);
     };
 
-    const validHex = coverAccentHex ? validAccentHex(coverAccentHex) : null;
+    const validHex = coverAccentHex ? normalizeAccentHex(coverAccentHex) : null;
     if (validHex) {
       updateBackgroundColor(validHex);
       return;

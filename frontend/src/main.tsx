@@ -3,7 +3,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import "./index.css";
 import App from "./App.tsx";
 import { BrowserRouter } from "react-router-dom";
-import AuthProvider from "./Providers/AuthProvider.tsx";
+import AuthProvider from "./providers/AuthProvider.tsx";
 import "./lib/i18n.ts";
 import { HelmetProvider } from "react-helmet-async";
 import { registerPwaAutoUpdate } from "./lib/register-pwa";

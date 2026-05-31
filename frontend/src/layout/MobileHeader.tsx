@@ -1,12 +1,12 @@
 // src/components/ui/MobileHeader.tsx
 
 import { useLocation } from "react-router-dom";
-import { useAuthStore } from "../../stores/useAuthStore";
-import { useUIStore } from "../../stores/useUIStore";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { useUIStore } from "@/stores/useUIStore";
 import { useTranslation } from "react-i18next";
-import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getUserAvatarUrl } from "@/lib/cdn";
-import { Button } from "./button";
+import { Button } from "@/components/ui/button";
 import {
   Drawer,
   DrawerContent,
@@ -14,10 +14,10 @@ import {
   DrawerTitle,
   DrawerTrigger,
   DrawerClose,
-} from "./drawer";
+} from "@/components/ui/drawer";
 import { LogOut, Settings, UserIcon, MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useChatStore } from "../../stores/useChatStore";
+import { useChatStore } from "@/stores/useChatStore";
 
 interface MobileHeaderProps {
   title: string;

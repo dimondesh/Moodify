@@ -12,8 +12,8 @@ import { CDN_DEFAULT_ARTIST_IMAGE } from "@/lib/cdn";
 import {
   fetchOnboardingArtistsPage,
   type OnboardingArtist,
-} from "@/api/onboarding";
-import { fetchSearch } from "@/api/search";
+} from "@/lib/api/onboarding";
+import { fetchSearch } from "@/lib/api/search";
 import { useAuthStore } from "@/stores/useAuthStore";
 import {
   TASTE_ONBOARDING_MIN_ARTISTS,

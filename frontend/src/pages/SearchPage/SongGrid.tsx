@@ -3,14 +3,15 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import type { Song } from "../../types";
-import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
+import UniversalPlayButton from "@/layout/UniversalPlayButton";
 import SectionGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton";
 import { useArtists } from "@/hooks/queries";
 import { getArtistNames } from "../../lib/utils";
 import { useTranslation } from "react-i18next";
-import AlbumCoverImage from "../../components/AlbumCoverImage";
+import { CoverImage } from "@/components/CoverImage";
+import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 
-import { useAddRecentSearch } from "@/hooks/useSearch";
+import { useAddRecentSearch } from "@/hooks/queries/useSearch";
 
 type SectionGridProps = {
   title: string;
@@ -67,11 +68,12 @@ const SongGridComponent = ({
             >
               <div className="relative mb-2">
                 <div className="relative aspect-square shadow-lg overflow-hidden rounded-md">
-                  <AlbumCoverImage
+                  <CoverImage
                     entity={song}
                     alt={song.title || t("common.noTitle")}
                     className="absolute inset-0 h-full w-full object-cover rounded-md transition-transform duration-300 group-hover:scale-105"
                     size="card"
+                    defaultUrl={CDN_DEFAULT_ALBUM_COVER}
                   />
                 </div>
                 <UniversalPlayButton

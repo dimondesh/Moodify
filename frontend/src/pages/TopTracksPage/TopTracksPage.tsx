@@ -4,7 +4,7 @@ import { useLocation, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Play } from "lucide-react";
 import { usePlayerStore } from "../../stores/usePlayerStore";
-import { axiosInstance } from "../../lib/axios";
+import { fetchAllTopTracksThisMonth } from "@/lib/api/profile";
 import Equalizer from "../../components/ui/equalizer";
 import { CoverImage } from "@/components/CoverImage";
 import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
@@ -38,10 +38,8 @@ const TopTracksPage = () => {
       try {
         setIsLoading(true);
         setError(null);
-        const response = await axiosInstance.get(
-          `/users/${userId}/all-top-tracks-this-month`,
-        );
-        setTracks(response.data.tracks);
+        const tracks = await fetchAllTopTracksThisMonth(userId);
+        setTracks(tracks);
       } catch (err: any) {
         console.error("Error fetching all top tracks:", err);
         setError(err.response?.data?.message || "Failed to load top tracks");

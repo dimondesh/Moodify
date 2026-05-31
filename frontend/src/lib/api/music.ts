@@ -141,3 +141,43 @@ export async function fetchSecondaryHomeWithToast(): Promise<SecondaryHomeResult
     throw err;
   }
 }
+
+export async function fetchSongById(songId: string): Promise<Song> {
+  const response = await axiosInstance.get(`/songs/${songId}`);
+  return response.data;
+}
+
+export async function fetchSongRadio(songId: string): Promise<Song[]> {
+  const response = await axiosInstance.get(`/songs/${songId}/radio`);
+  return response.data;
+}
+
+export async function fetchAlbumTitle(albumId: string): Promise<string | null> {
+  const response = await axiosInstance.get(`/albums/${albumId}`);
+  return response.data.album?.title ?? null;
+}
+
+export async function fetchCategorySongs(
+  endpoint: string,
+): Promise<Song[]> {
+  const response = await axiosInstance.get(endpoint);
+  const fetchedData = response.data.songs || response.data.albums;
+  return Array.isArray(fetchedData) ? fetchedData : [];
+}
+
+export async function fetchEntitySongsForPlay(
+  entityType: "artist" | "album" | "playlist",
+  entityId: string,
+): Promise<Song[]> {
+  const apiEndpoint =
+    entityType === "artist"
+      ? `/artists/${entityId}`
+      : entityType === "album"
+        ? `/albums/${entityId}`
+        : `/playlists/${entityId}`;
+  const response = await axiosInstance.get(apiEndpoint);
+  if (entityType === "album") {
+    return response.data.album?.songs || [];
+  }
+  return response.data.songs || [];
+}

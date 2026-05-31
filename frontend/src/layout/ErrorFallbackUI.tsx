@@ -2,7 +2,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent } from "./card"; // Убедитесь, что путь правильный
+import { Card, CardContent } from "@/components/ui/card";
 
 interface ErrorFallbackUIProps {
   error: Error | null;

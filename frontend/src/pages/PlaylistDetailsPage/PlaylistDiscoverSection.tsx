@@ -5,7 +5,7 @@ import {
   fetchDiscoverSearchPreview,
   type DiscoverSearchCategory,
   type DiscoverTopResult,
-} from "@/lib/playlistDiscoverSearch";
+} from "@/lib/api/search";
 import { usePlayerStore } from "@/stores/usePlayerStore";
 import {
   useArtist,

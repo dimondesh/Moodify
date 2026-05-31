@@ -2,7 +2,7 @@ import React from "react";
 import { Drawer } from "vaul";
 import { ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
 import { QueueList } from "@/components/queue/QueueList";
 import { useQueueList } from "@/hooks/useQueueList";
 

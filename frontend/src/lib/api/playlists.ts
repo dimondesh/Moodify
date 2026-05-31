@@ -86,3 +86,105 @@ export async function fetchRecommendedPlaylists(): Promise<Playlist[]> {
   );
   return response.data;
 }
+
+export async function createPlaylistFromSong(
+  songId: string,
+  title: string,
+): Promise<Playlist> {
+  const response = await axiosInstance.post("/playlists/from-song", {
+    title,
+    initialSongId: songId,
+  });
+  return response.data;
+}
+
+export async function createPlaylist(
+  title: string,
+  description: string,
+  isPublic: boolean,
+  imageFile?: File | null,
+): Promise<Playlist> {
+  const formData = new FormData();
+  formData.append("title", title);
+  formData.append("description", description);
+  formData.append("isPublic", String(isPublic));
+  if (imageFile) {
+    formData.append("image", imageFile);
+  }
+  const response = await axiosInstance.post("/playlists", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data;
+}
+
+export async function updatePlaylistApi(
+  id: string,
+  title: string,
+  description: string,
+  isPublic: boolean,
+  imageFile?: File | null,
+  removeImage?: boolean,
+): Promise<Playlist> {
+  const formData = new FormData();
+  formData.append("title", title);
+  formData.append("description", description);
+  formData.append("isPublic", String(isPublic));
+  if (imageFile) {
+    formData.append("image", imageFile);
+  } else if (removeImage) {
+    formData.append("removeImage", "true");
+  }
+  const response = await axiosInstance.put(`/playlists/${id}`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data;
+}
+
+export async function deletePlaylistApi(id: string): Promise<void> {
+  await axiosInstance.delete(`/playlists/${id}`);
+}
+
+export async function addSongToPlaylistApi(
+  playlistId: string,
+  songId: string,
+  allowDuplicate = false,
+): Promise<{ playlist?: Playlist }> {
+  const response = await axiosInstance.post(`/playlists/${playlistId}/songs`, {
+    songId,
+    allowDuplicate,
+  });
+  return response.data;
+}
+
+export async function removeSongFromPlaylistApi(
+  playlistId: string,
+  songId: string,
+): Promise<void> {
+  await axiosInstance.delete(`/playlists/${playlistId}/songs/${songId}`);
+}
+
+export async function togglePlaylistInUserLibraryApi(
+  playlistId: string,
+): Promise<{ isAdded: boolean; message?: string }> {
+  const response = await axiosInstance.post("/api/library/playlists/toggle", {
+    playlistId,
+  });
+  return response.data;
+}
+
+export async function addPlaylistLikeApi(playlistId: string): Promise<void> {
+  await axiosInstance.post(`/playlists/${playlistId}/like`);
+}
+
+export async function removePlaylistLikeApi(playlistId: string): Promise<void> {
+  await axiosInstance.delete(`/playlists/${playlistId}/unlike`);
+}
+
+export async function toggleSongLikeApi(
+  songId: string,
+): Promise<{ playlistId?: string }> {
+  const res = await axiosInstance.post("/library/songs/toggle-like", {
+    songId,
+  });
+  return res.data;
+}

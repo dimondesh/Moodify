@@ -21,7 +21,7 @@ import { useAuthStore } from "./useAuthStore";
 import { invalidateArtists } from "@/lib/invalidateQueries";
 import i18n from "@/lib/i18n";
 import { getLargeCoverUrl } from "@/lib/imageUrl";
-import { getPlaylistDisplayTitle } from "@/lib/utils";
+import { getPlaylistDisplayTitle } from "@/lib/entitySection";
 
 type ItemType = "albums" | "playlists";
 const HLS_ASSETS_CACHE_NAME = "moodify-hls-assets-cache";

@@ -2,14 +2,14 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Play } from "lucide-react";
-import { usePlayerStore } from "../stores/usePlayerStore";
-import Equalizer from "./ui/equalizer";
+import { usePlayerStore } from "@/stores/usePlayerStore";
+import Equalizer from "@/components/ui/equalizer";
 import { CoverImage } from "@/components/CoverImage";
 import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
-import type { Song } from "../types";
-import { Button } from "./ui/button";
-import { useAuthStore } from "../stores/useAuthStore";
-import { SaveSongToLibraryControl } from "../layout/SaveSongToLibraryControl";
+import type { Song } from "@/types";
+import { Button } from "@/components/ui/button";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { SaveSongToLibraryControl } from "@/layout/SaveSongToLibraryControl";
 
 interface TopTrack extends Song {
   listenCount: number;

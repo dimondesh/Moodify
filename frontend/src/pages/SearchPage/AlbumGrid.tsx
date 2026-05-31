@@ -8,9 +8,9 @@ import { useTranslation } from "react-i18next";
 import { getArtistNames } from "@/lib/utils";
 import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 import { CoverImage } from "@/components/CoverImage";
-import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
+import UniversalPlayButton from "@/layout/UniversalPlayButton";
 
-import { useAddRecentSearch } from "@/hooks/useSearch";
+import { useAddRecentSearch } from "@/hooks/queries/useSearch";
 
 type AlbumGridProps = {
   title: string;

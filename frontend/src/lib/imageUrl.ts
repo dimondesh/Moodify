@@ -12,10 +12,7 @@ export const IMAGE_SIZES = {
 
 export type ImageSizeKey = keyof typeof IMAGE_SIZES;
 
-export interface ImageVariant {
-  size: number;
-  url: string;
-}
+import type { ImageVariant } from "@/types";
 
 export interface ImageEntity {
   images?: ImageVariant[];

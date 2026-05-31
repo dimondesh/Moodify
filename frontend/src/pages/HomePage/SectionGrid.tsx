@@ -1,12 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import type { Song } from "../../types";
-import PlayButton from "./PlayButton";
+import PlayButton from "@/components/home/PlayButton";
 import SectionGridSkeleton from "./SectionGridSkeleton";
 import { useArtists } from "@/hooks/queries";
 import { JSX } from "react";
 import { useTranslation } from "react-i18next";
-import AlbumCoverImage from "../../components/AlbumCoverImage";
+import { CoverImage } from "@/components/CoverImage";
+import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 
 interface Artist {
   _id: string;
@@ -159,11 +160,12 @@ const SectionGrid = ({
                     onClick={(e) => handleNavigateToAlbum(e, song.albumId)}
                     className="w-full h-full block"
                   >
-                    <AlbumCoverImage
+                    <CoverImage
                       entity={song}
                       alt={song.title || t("common.noTitle")}
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                       size="card"
+                      defaultUrl={CDN_DEFAULT_ALBUM_COVER}
                     />
                   </button>
                 </div>

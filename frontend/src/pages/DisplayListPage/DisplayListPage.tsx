@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useLocation, Link } from "react-router-dom";
-import { axiosInstance } from "@/lib/axios";
+import { fetchApiEndpoint } from "@/lib/api/home";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SectionGridSkeleton from "@/components/ui/skeletons/PlaylistSkeleton";
 import { useTranslation } from "react-i18next";
-import { getArtistNames, getPlaylistDisplayTitle } from "@/lib/utils";
+import { getArtistNames } from "@/lib/utils";
+import { getPlaylistDisplayTitle } from "@/lib/entitySection";
 import type { Playlist, PlaylistKind } from "@/types";
 import { playlistOwnerLabel } from "@/lib/site-meta";
 import { CoverImage } from "@/components/CoverImage";
@@ -17,7 +18,7 @@ import {
   CDN_DEFAULT_USER_IMAGE,
 } from "@/lib/cdn";
 import { Artist, User } from "@/types";
-import UniversalPlayButton from "@/components/ui/UniversalPlayButton";
+import UniversalPlayButton from "@/layout/UniversalPlayButton";
 
 interface ListItem {
   _id: string;
@@ -73,10 +74,14 @@ const DisplayListPage = () => {
     } else if (apiEndpoint) {
       const fetchItems = async () => {
         try {
-          const response = await axiosInstance.get(apiEndpoint);
-          const data = response.data.items || response.data;
-          if (Array.isArray(data)) {
-            const formattedData = data.map(formatListItem);
+          const data = await fetchApiEndpoint<{ items?: unknown[] } | unknown[]>(
+            apiEndpoint,
+          );
+          const items = (Array.isArray(data) ? data : data.items || []) as Array<
+            Record<string, unknown> & { _id: string }
+          >;
+          if (items.length > 0) {
+            const formattedData = items.map(formatListItem);
             setItems(formattedData);
           }
         } catch (err) {

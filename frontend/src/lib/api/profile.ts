@@ -92,6 +92,15 @@ export async function fetchTopTracksThisMonth(userId: string): Promise<{
   }
 }
 
+export async function fetchAllTopTracksThisMonth(
+  userId: string,
+): Promise<ProfileTopTrack[]> {
+  const response = await axiosInstance.get(
+    `/users/${userId}/all-top-tracks-this-month`,
+  );
+  return response.data.tracks || [];
+}
+
 export async function toggleFollow(userId: string): Promise<void> {
   await axiosInstance.post(`/users/${userId}/follow`);
 }

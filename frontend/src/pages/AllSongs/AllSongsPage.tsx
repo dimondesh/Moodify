@@ -2,13 +2,14 @@
 // frontend/src/pages/AllSongs/AllSongsPage.tsx
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import PlayButton from "../../pages/HomePage/PlayButton";
+import PlayButton from "@/components/home/PlayButton";
 import SectionGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton";
 import type { Song } from "../../types/index";
-import axios from "axios";
+import { fetchCategorySongs } from "@/lib/api/music";
 import { useArtists } from "@/hooks/queries";
 import { useTranslation } from "react-i18next";
-import AlbumCoverImage from "../../components/AlbumCoverImage";
+import { CoverImage } from "@/components/CoverImage";
+import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 import { getArtistNames } from "@/lib/utils";
 
 const AllSongsPage = () => {
@@ -30,11 +31,8 @@ const AllSongsPage = () => {
     } else if (apiEndpoint) {
       const fetchSongs = async () => {
         try {
-          const response = await axios.get(apiEndpoint, {
-            withCredentials: true,
-          });
-          const fetchedData = response.data.songs || response.data.albums;
-          if (Array.isArray(fetchedData)) {
+          const fetchedData = await fetchCategorySongs(apiEndpoint);
+          if (fetchedData.length > 0) {
             setSongs(fetchedData);
           } else {
             setError(t("common.error"));
@@ -87,11 +85,12 @@ const AllSongsPage = () => {
           >
             <div className="relative mb-3">
               <div className="aspect-square rounded-md shadow-lg overflow-hidden">
-                <AlbumCoverImage
+                <CoverImage
                   entity={song}
                   alt={song.title || t("common.noTitle")}
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                   size="card"
+                  defaultUrl={CDN_DEFAULT_ALBUM_COVER}
                 />
               </div>
               <PlayButton song={song} songs={songs} songIndex={index} />

@@ -15,7 +15,7 @@ interface SongRemovalInfo {
 }
 
 type LibraryFilter = "all" | "downloaded";
-type EntityTypeFilter = "playlists" | "albums" | "artists" | "downloaded";
+import type { EntityTypeFilter } from "@/lib/libraryItems";
 type LibraryViewMode = "list" | "grid";
 
 interface UIStore {

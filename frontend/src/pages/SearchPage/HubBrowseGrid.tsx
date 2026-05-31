@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Loader2 } from "lucide-react";
 import { useHubs } from "@/hooks/queries";
-import { getHubDisplayName } from "@/lib/utils";
+import { getHubDisplayName } from "@/lib/entitySection";
 import { getImageUrlByKey } from "@/lib/imageUrl";
 import {
   CDN_DEFAULT_ALBUM_COVER,

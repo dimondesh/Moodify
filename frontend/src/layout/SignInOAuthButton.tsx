@@ -1,9 +1,9 @@
 import { useGoogleLogin } from "@react-oauth/google";
-import { Button } from "./button";
+import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import { useAuthStore } from "../../stores/useAuthStore";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 function SignInOAuthInner() {
   const { t } = useTranslation();

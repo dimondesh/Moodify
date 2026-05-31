@@ -1,6 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from "zustand";
-import { axiosInstance } from "../lib/axios";
+import {
+  fetchUnreadCounts as fetchUnreadCountsApi,
+  fetchMutualUsers,
+  fetchMessages as fetchMessagesApi,
+} from "@/lib/api/chat";
 import type { Message, User } from "../types";
 
 import { io, Socket } from "socket.io-client";
@@ -112,11 +116,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       const token = useAuthStore.getState().accessToken;
       if (!token) return;
 
-      const response = await axiosInstance.get("/users/unread-counts", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      const countsMap = new Map<string, number>(Object.entries(response.data));
+      const countsMap = await fetchUnreadCountsApi(token);
       set({ unreadMessages: countsMap });
       console.log("Unread counts fetched:", countsMap);
     } catch (error) {
@@ -145,14 +145,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       if (!token) {
         throw new Error("No access token for fetching users.");
       }
-      const response = await axiosInstance.get("/users/mutuals", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      set({
-        users: Array.isArray(response.data)
-          ? response.data
-          : response.data.users || [],
-      });
+      const users = await fetchMutualUsers(token);
+      set({ users });
     } catch (error: any) {
       console.error("Failed to fetch users:", error);
       set({ error: error.response?.data?.message || "Failed to fetch users" });
@@ -425,10 +419,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         throw new Error("No access token for fetching messages.");
       }
 
-      const response = await axiosInstance.get(`/users/messages/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      set({ messages: response.data });
+      const messages = await fetchMessagesApi(userId, token);
+      set({ messages });
       get().markMessagesAsRead(userId);
     } catch (error: any) {
       console.error("fetchMessages: Failed to fetch messages:", error);

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { axiosInstance } from "@/lib/axios";
+import { fetchSharedContent } from "@/lib/api/chat";
 import { Album, Playlist, Song, Artist } from "@/types";
 import { Loader2, Music, Play, Plus, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,10 +12,8 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getImageUrlByKey } from "@/lib/imageUrl";
 import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
-import {
-  getArtistNames as formatTrackArtists,
-  getPlaylistDisplayTitle,
-} from "@/lib/utils";
+import { getArtistNames as formatTrackArtists } from "@/lib/utils";
+import { getPlaylistDisplayTitle } from "@/lib/entitySection";
 
 interface SharedContentMessageProps {
   entityType: "song" | "album" | "playlist";
@@ -52,10 +50,8 @@ export const SharedContentMessage: React.FC<SharedContentMessageProps> = ({
   useEffect(() => {
     const fetchEntity = async () => {
       try {
-        const response = await axiosInstance.get(
-          `/share/${entityType}/${entityId}`,
-        );
-        setEntity(response.data);
+        const data = await fetchSharedContent(entityType, entityId);
+        setEntity(data);
       } catch (error) {
         console.error("Failed to fetch shared entity:", error);
       } finally {

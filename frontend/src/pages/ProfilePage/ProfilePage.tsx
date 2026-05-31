@@ -5,7 +5,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../stores/useAuthStore";
 import type { Playlist, Artist } from "../../types";
 import type { DisplayItem } from "@/types";
-import type { ProfileListItem } from "@/api/profile";
+import type { ProfileListItem } from "@/lib/api/profile";
 import {
   Avatar,
   AvatarFallback,
@@ -20,15 +20,15 @@ import PlaylistRow from "./PlaylistRow";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import { useUIStore } from "../../stores/useUIStore";
-import RecentlyListenedArtists from "../../components/RecentlyListenedArtists";
-import TopTracksThisMonth from "../../components/TopTracksThisMonth";
-import FixedRowEntitySection from "../HomePage/FixedRowEntitySection";
+import RecentlyListenedArtists from "@/components/profile/RecentlyListenedArtists";
+import TopTracksThisMonth from "@/components/profile/TopTracksThisMonth";
+import FixedRowEntitySection from "@/components/home/FixedRowEntitySection";
 import { CDN_DEFAULT_USER_IMAGE } from "@/lib/cdn";
 import {
   buildImageSrcSet,
   getImageUrlByKey,
 } from "@/lib/imageUrl";
-import { useProfileData, useToggleFollow } from "@/hooks/useProfile";
+import { useProfileData, useToggleFollow } from "@/hooks/queries/useProfile";
 
 function relationToDisplayItem(item: ProfileListItem): DisplayItem {
   switch (item.type) {

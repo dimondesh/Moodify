@@ -7,11 +7,11 @@ import PlaylistDetailsSkeleton from "@/components/ui/skeletons/PlaylistDetailsSk
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { CollectionSongList } from "@/components/CollectionSongList/CollectionSongList";
+import { formatPlaylistTotalDuration } from "@/lib/utils";
 import {
-  formatPlaylistTotalDuration,
   getPlaylistDisplayDescription,
   getPlaylistDisplayTitle,
-} from "@/lib/utils";
+} from "@/lib/entitySection";
 import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 import { getUserAvatarUrl } from "@/lib/imageUrl";
 import { CoverImage } from "@/components/CoverImage";
@@ -63,10 +63,11 @@ import {
 import { useLibraryStore } from "@/stores/useLibraryStore";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
-import { DownloadButton } from "@/components/ui/DownloadButton";
-import { ShareDialog } from "@/components/ui/ShareDialog";
+import { DownloadButton } from "@/layout/DownloadButton";
+import { ShareDialog } from "@/layout/ShareDialog";
 import { useUIStore } from "@/stores/useUIStore";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { MOBILE_MEDIA_QUERY } from "@/constants/breakpoints";
 
 function playlistKindLabel(
   t: (k: string) => string,
@@ -95,7 +96,7 @@ function playlistKindLabel(
 }
 
 const PlaylistDetailsPage = () => {
-  const isMobile = useMediaQuery("(max-width: 768px)");
+  const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY);
   const user = useAuthStore((s) => s.user);
   const { t, i18n } = useTranslation();
   const { playlistId } = useParams<{ playlistId: string }>();

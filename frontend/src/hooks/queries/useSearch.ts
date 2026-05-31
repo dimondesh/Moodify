@@ -5,7 +5,7 @@ import {
   fetchRecentSearches,
   fetchSearch,
   removeRecentSearch,
-} from "@/api/search";
+} from "@/lib/api/search";
 import { queryKeys } from "@/lib/queryKeys";
 import { useAuthStore } from "@/stores/useAuthStore";
 

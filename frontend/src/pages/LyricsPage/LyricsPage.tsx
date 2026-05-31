@@ -10,6 +10,7 @@ import { ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Drawer } from "vaul";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { MOBILE_MEDIA_QUERY } from "@/constants/breakpoints";
 import { useDominantColor } from "@/hooks/useDominantColor";
 import { CoverDominantBackdrop } from "@/components/CoverDominantBackdrop";
 
@@ -108,7 +109,7 @@ const LyricsPage: React.FC<LyricsPageProps> = ({ variant = "desktop" }) => {
   const mobileLyricsScrollRef = useRef<HTMLDivElement>(null);
   const [isUserScrolling, setIsUserScrolling] = useState(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isMobile = useMediaQuery("(max-width: 768px)");
+  const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY);
 
   const getLyricsScrollEl = useCallback((): HTMLElement | null => {
     if (variant === "mobile-drawer") return mobileLyricsScrollRef.current;

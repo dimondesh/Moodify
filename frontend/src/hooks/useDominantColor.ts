@@ -4,7 +4,7 @@ import { useCallback } from "react";
 
 export const DEFAULT_DOMINANT_COLOR = "#18181b";
 
-function normalizeAccentHex(hex: string): string | null {
+export function normalizeAccentHex(hex: string): string | null {
   const t = hex.trim();
   if (/^#[0-9a-fA-F]{6}$/.test(t)) return t.toLowerCase();
   if (/^[0-9a-fA-F]{6}$/.test(t)) return `#${t.toLowerCase()}`;

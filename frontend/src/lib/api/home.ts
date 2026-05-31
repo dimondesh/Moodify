@@ -1,6 +1,4 @@
 import { axiosInstance } from "@/lib/axios";
-import { useLibraryStore } from "@/stores/useLibraryStore";
-import { useAuthStore } from "@/stores/useAuthStore";
 import type { DisplayItem, Song } from "@/types";
 
 export type HomeSectionId =
@@ -47,25 +45,17 @@ function normalizeSection(section: {
 }
 
 export async function fetchHomeBootstrap(): Promise<HomeBootstrapResponse> {
-  const isLoggedIn = Boolean(useAuthStore.getState().accessToken);
-
-  const [bootstrapResponse] = await Promise.all([
-    axiosInstance.get("/home/bootstrap"),
-    isLoggedIn ? useLibraryStore.getState().fetchLibrary() : Promise.resolve(),
-  ]);
-
-  const { data } = bootstrapResponse;
-
-  if (!isLoggedIn) {
-    useLibraryStore.setState({
-      albums: [],
-      playlists: [],
-      followedArtists: [],
-    });
-  }
+  const { data } = await axiosInstance.get("/home/bootstrap");
 
   return {
     mode: data.mode === "personalized" ? "personalized" : "guest",
     sections: (data.sections ?? []).map(normalizeSection),
   };
+}
+
+export async function fetchApiEndpoint<T = unknown>(
+  endpoint: string,
+): Promise<T> {
+  const response = await axiosInstance.get(endpoint);
+  return response.data;
 }

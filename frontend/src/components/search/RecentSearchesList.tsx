@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import UniversalPlayButton from "@/components/ui/UniversalPlayButton";
+import UniversalPlayButton from "@/layout/UniversalPlayButton";
 import { CDN_DEFAULT_ARTIST_IMAGE } from "@/lib/cdn";
 import { playlistOwnerLabel } from "@/lib/site-meta";
 import { getImageUrlByKey, getUserAvatarUrl } from "@/lib/imageUrl";
@@ -15,7 +15,7 @@ import {
   useClearRecentSearches,
   useRecentSearches,
   useRemoveRecentSearch,
-} from "@/hooks/useSearch";
+} from "@/hooks/queries/useSearch";
 
 const RECENT_ROW =
   "flex items-center gap-3 px-3 py-2 rounded-none hover:bg-zinc-800/50 group";

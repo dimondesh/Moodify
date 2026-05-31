@@ -14,9 +14,10 @@ import HorizontalSectionSkeleton from "./HorizontalSectionSkeleton";
 import { TFunction } from "i18next";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { DESKTOP_MEDIA_QUERY } from "@/constants/breakpoints";
 import type { DisplayItem } from "@/types";
 import { isValidDisplayItem } from "@/lib/entitySection";
-import EntitySectionCard from "./EntitySectionCard";
+import EntitySectionCard from "@/components/home/EntitySectionCard";
 
 interface HorizontalSectionProps {
   title: string;
@@ -41,7 +42,7 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
-  const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const isDesktop = useMediaQuery(DESKTOP_MEDIA_QUERY);
 
   const validItems = useMemo(
     () => items.filter(isValidDisplayItem),

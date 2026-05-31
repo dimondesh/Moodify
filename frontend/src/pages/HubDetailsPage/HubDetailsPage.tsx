@@ -5,7 +5,7 @@ import { Helmet } from "react-helmet-async";
 import StandardLoader from "../../components/ui/StandardLoader";
 import HorizontalSection from "../HomePage/HorizontalSection";
 import { useHub } from "@/hooks/queries";
-import { getHubDisplayName } from "@/lib/utils";
+import { getHubDisplayName } from "@/lib/entitySection";
 import type { Album, Artist, Playlist } from "@/types";
 
 const HubDetailsPage = () => {

@@ -1,10 +1,11 @@
 // src/pages/HomePage/FeaturedSection.tsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
+import UniversalPlayButton from "@/layout/UniversalPlayButton";
 import { JSX } from "react";
 import { Song } from "@/types";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
+import { MOBILE_MEDIA_QUERY, DESKTOP_MEDIA_QUERY } from "@/constants/breakpoints";
 import { usePlayerStore } from "../../stores/usePlayerStore";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
@@ -31,10 +32,10 @@ const FeaturedSectionComponent = ({
   const { t } = useTranslation();
   const { data: artists = [], error } = useArtists();
   const navigate = useNavigate();
-  const isMobile = useMediaQuery("(max-width: 768px)");
+  const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY);
   const { playAlbum, togglePlay, currentSong, isPlaying } = usePlayerStore();
 
-  const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const isDesktop = useMediaQuery(DESKTOP_MEDIA_QUERY);
 
   const getArtistNamesDisplay = (
     artistsInput: (string | Artist)[] | undefined,

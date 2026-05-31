@@ -8,10 +8,10 @@ import { useTranslation } from "react-i18next";
 import { CoverImage } from "@/components/CoverImage";
 import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 import { playlistOwnerLabel } from "@/lib/site-meta";
-import { getPlaylistDisplayTitle } from "@/lib/utils";
-import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
+import { getPlaylistDisplayTitle } from "@/lib/entitySection";
+import UniversalPlayButton from "@/layout/UniversalPlayButton";
 
-import { useAddRecentSearch } from "@/hooks/useSearch";
+import { useAddRecentSearch } from "@/hooks/queries/useSearch";
 
 type PlaylistGridProps = {
   title: string;

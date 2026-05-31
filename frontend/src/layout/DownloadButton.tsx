@@ -3,7 +3,7 @@
 import React, { memo } from "react";
 import { X } from "lucide-react";
 import { useOfflineStore } from "@/stores/useOfflineStore";
-import { Button } from "./button";
+import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 

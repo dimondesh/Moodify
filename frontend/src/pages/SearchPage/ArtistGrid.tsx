@@ -7,9 +7,9 @@ import SectionGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton"
 import { useTranslation } from "react-i18next";
 import { CoverImage } from "@/components/CoverImage";
 import { CDN_DEFAULT_ARTIST_IMAGE } from "@/lib/cdn";
-import UniversalPlayButton from "../../components/ui/UniversalPlayButton";
+import UniversalPlayButton from "@/layout/UniversalPlayButton";
 
-import { useAddRecentSearch } from "@/hooks/useSearch";
+import { useAddRecentSearch } from "@/hooks/queries/useSearch";
 
 type ArtistGridProps = {
   title: string;

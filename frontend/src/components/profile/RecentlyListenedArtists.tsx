@@ -3,9 +3,9 @@
 import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import UniversalPlayButton from "./ui/UniversalPlayButton";
-import type { Artist } from "../types";
-import FixedRowEntitySection from "@/pages/HomePage/FixedRowEntitySection";
+import UniversalPlayButton from "@/layout/UniversalPlayButton";
+import type { Artist } from "@/types";
+import FixedRowEntitySection from "@/components/home/FixedRowEntitySection";
 import { CDN_DEFAULT_ARTIST_IMAGE } from "@/lib/cdn";
 import { getImageUrlByKey } from "@/lib/imageUrl";
 

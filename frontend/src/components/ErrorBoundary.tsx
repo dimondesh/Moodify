@@ -1,6 +1,6 @@
 // src/components/ErrorBoundary.tsx
 import { Component, ErrorInfo, ReactNode } from "react";
-import { ErrorFallbackUI } from "./ui/ErrorFallbackUI"; // Импортируем наш UI
+import { ErrorFallbackUI } from "@/layout/ErrorFallbackUI";
 
 interface Props {
   children: ReactNode;

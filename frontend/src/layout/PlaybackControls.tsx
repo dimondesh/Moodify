@@ -10,7 +10,7 @@ import { useAudioSettingsStore } from "../lib/webAudio";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Maximize, Share, Shuffle } from "lucide-react";
-import { ShareDialog } from "@/components/ui/ShareDialog";
+import { ShareDialog } from "@/layout/ShareDialog";
 import { SaveSongToLibraryControl } from "./SaveSongToLibraryControl";
 import Repeat from "@/components/ui/repeat-icon";
 import { CoverDominantBackdrop } from "@/components/CoverDominantBackdrop";
@@ -44,8 +44,8 @@ import { useChatStore } from "../stores/useChatStore";
 import { getArtistNames } from "@/lib/utils";
 import { useUIStore } from "@/stores/useUIStore";
 import { useAuthStore } from "../stores/useAuthStore";
-import { QueueDropdown } from "../components/QueueDropdown";
-import { QueueDrawer } from "../components/QueueDrawer";
+import { QueueDropdown } from "@/components/queue/QueueDropdown";
+import { QueueDrawer } from "@/components/queue/QueueDrawer";
 import Repeat1 from "@/components/ui/repeat-one-icon";
 
 const formatTime = (seconds: number) => {

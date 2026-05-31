@@ -18,7 +18,7 @@ import { useTranslation } from "react-i18next";
 import { useQuickCreatePlaylist } from "@/hooks/useQuickCreatePlaylist";
 import { useLibraryData } from "@/hooks/useLibraryData";
 import { getLibraryItemDisplay } from "@/lib/libraryDisplay";
-import EntityTypeFilter from "../components/ui/EntityTypeFilter";
+import EntityTypeFilter from "@/layout/EntityTypeFilter";
 import { LibrarySearchBar } from "@/components/library/LibrarySearchBar";
 import { LibraryItemRow } from "@/components/library/LibraryItemRow";
 import { LibraryItemCard } from "@/components/library/LibraryItemCard";

@@ -9,7 +9,7 @@ import { CDN_DEFAULT_USER_IMAGE } from "@/lib/cdn";
 import { useTranslation } from "react-i18next";
 import { getImageUrlByKey } from "@/lib/imageUrl";
 
-import { useAddRecentSearch } from "@/hooks/useSearch";
+import { useAddRecentSearch } from "@/hooks/queries/useSearch";
 
 type UserGridProps = {
   title: string;

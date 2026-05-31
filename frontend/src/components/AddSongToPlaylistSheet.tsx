@@ -16,7 +16,8 @@ import { useIsSongLiked } from "@/hooks/useLikedSongs";
 import { Song } from "@/types";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
-import { cn, getPlaylistDisplayTitle } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { getPlaylistDisplayTitle } from "@/lib/entitySection";
 import { CDN_DEFAULT_ALBUM_COVER, CDN_LIKED_PLAYLIST_COVER } from "@/lib/cdn";
 import { buildStaticCdnImages, getImageUrlByKey } from "@/lib/imageUrl";
 

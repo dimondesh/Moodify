@@ -1,8 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { axiosInstance } from "../lib/axios";
-import { submitTasteOnboarding } from "../api/onboarding";
+import { submitTasteOnboarding } from "@/lib/api/onboarding";
+import {
+  fetchAuthMe,
+  loginWithPassword as loginWithPasswordApi,
+  registerAccount as registerAccountApi,
+  verifyEmailCode as verifyEmailCodeApi,
+  resendVerificationEmail as resendVerificationEmailApi,
+  completeGoogleAccessToken as completeGoogleAccessTokenApi,
+  updateUserLanguage as updateUserLanguageApi,
+  updateUserProfile as updateUserProfileApi,
+  updateUserPrivacy as updateUserPrivacyApi,
+  updateRecentlyListenedArtistsPrivacy as updateRecentlyListenedArtistsPrivacyApi,
+  changePassword as changePasswordApi,
+} from "@/lib/api/auth";
 import { useChatStore } from "./useChatStore";
 import { usePlayerStore } from "./usePlayerStore";
 
@@ -87,15 +99,6 @@ interface AuthStore {
   completeTasteOnboarding: (artistIds: string[]) => Promise<void>;
 }
 
-const getAuthHeaders = (get: () => AuthStore) => {
-  const token = get().accessToken;
-  if (!token) return {};
-  return {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  };
-};
 
 export const useAuthStore = create<AuthStore>()(
   persist(
@@ -129,10 +132,8 @@ export const useAuthStore = create<AuthStore>()(
         }
         set({ isLoading: true, error: null });
         try {
-          const response = await axiosInstance.get("/auth/me", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          get().applyAuthResponse(response.data);
+          const response = await fetchAuthMe(token);
+          get().applyAuthResponse(response);
         } catch (error: any) {
           const status = error?.response?.status;
           if (status === 401 || status === 404) {
@@ -152,11 +153,8 @@ export const useAuthStore = create<AuthStore>()(
       loginWithPassword: async (email, password) => {
         set({ isLoading: true, error: null });
         try {
-          const response = await axiosInstance.post("/auth/login", {
-            email: email.trim().toLowerCase(),
-            password,
-          });
-          get().applyAuthResponse(response.data);
+          const response = await loginWithPasswordApi(email, password);
+          get().applyAuthResponse(response);
         } catch (error: any) {
           set({
             isLoading: false,
@@ -169,11 +167,7 @@ export const useAuthStore = create<AuthStore>()(
       registerAccount: async (email, password, fullName) => {
         set({ isLoading: true, error: null });
         try {
-          await axiosInstance.post("/auth/register", {
-            email: email.trim().toLowerCase(),
-            password,
-            fullName: fullName.trim(),
-          });
+          await registerAccountApi(email, password, fullName);
           set({ isLoading: false, error: null });
         } catch (error: any) {
           set({
@@ -187,11 +181,8 @@ export const useAuthStore = create<AuthStore>()(
       verifyEmailCode: async (email, code) => {
         set({ isLoading: true, error: null });
         try {
-          const response = await axiosInstance.post("/auth/verify-email", {
-            email: email.trim().toLowerCase(),
-            code: String(code).trim(),
-          });
-          get().applyAuthResponse(response.data);
+          const response = await verifyEmailCodeApi(email, code);
+          get().applyAuthResponse(response);
         } catch (error: any) {
           set({
             isLoading: false,
@@ -202,18 +193,14 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       resendVerificationEmail: async (email) => {
-        await axiosInstance.post("/auth/resend-verification", {
-          email: email.trim().toLowerCase(),
-        });
+        await resendVerificationEmailApi(email);
       },
 
       completeGoogleAccessToken: async (accessToken) => {
         set({ isLoading: true, error: null });
         try {
-          const response = await axiosInstance.post("/auth/google", {
-            accessToken,
-          });
-          get().applyAuthResponse(response.data);
+          const response = await completeGoogleAccessTokenApi(accessToken);
+          get().applyAuthResponse(response);
         } catch (error: any) {
           set({
             isLoading: false,
@@ -257,8 +244,7 @@ export const useAuthStore = create<AuthStore>()(
       updateUserLanguage: async (language: string) => {
         set({ isLoading: true, error: null });
         try {
-          const authHeaders = getAuthHeaders(get);
-          await axiosInstance.put("/users/language", { language }, authHeaders);
+          await updateUserLanguageApi(language);
 
           set((state) => ({
             user: state.user ? { ...state.user, language } : state.user,
@@ -284,22 +270,12 @@ export const useAuthStore = create<AuthStore>()(
             formData.append("imageUrl", data.imageUrl);
           }
 
-          const authHeaders = getAuthHeaders(get);
+          const token = get().accessToken;
+          if (!token) throw new Error("Not authenticated");
 
-          const config = {
-            headers: {
-              ...authHeaders.headers,
-              "Content-Type": "multipart/form-data",
-            },
-          };
+          const response = await updateUserProfileApi(formData, token);
 
-          const response = await axiosInstance.put(
-            "/users/me",
-            formData,
-            config,
-          );
-
-          const updatedUser = response.data.user;
+          const updatedUser = response.user;
 
           set((state) => ({
             user: state.user
@@ -325,7 +301,7 @@ export const useAuthStore = create<AuthStore>()(
       updateUserPrivacy: async (isAnonymous: boolean) => {
         set({ isLoading: true });
         try {
-          await axiosInstance.put("/users/privacy", { isAnonymous });
+          await updateUserPrivacyApi(isAnonymous);
           set((state) => ({
             user: state.user ? { ...state.user, isAnonymous } : null,
             isLoading: false,
@@ -356,9 +332,9 @@ export const useAuthStore = create<AuthStore>()(
       ) => {
         set({ isLoading: true });
         try {
-          await axiosInstance.put("/users/recently-listened-artists-privacy", {
+          await updateRecentlyListenedArtistsPrivacyApi(
             showRecentlyListenedArtists,
-          });
+          );
           set((state) => ({
             user: state.user
               ? { ...state.user, showRecentlyListenedArtists }
@@ -376,11 +352,9 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       changePassword: async (currentPassword, newPassword) => {
-        await axiosInstance.post(
-          "/auth/change-password",
-          { currentPassword, newPassword },
-          getAuthHeaders(get),
-        );
+        const token = get().accessToken;
+        if (!token) throw new Error("Not authenticated");
+        await changePasswordApi(currentPassword, newPassword, token);
       },
 
       completeTasteOnboarding: async (artistIds) => {

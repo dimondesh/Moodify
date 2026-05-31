@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Download } from "lucide-react";
 import { CoverImage } from "@/components/CoverImage";
-import UniversalPlayButton from "@/components/ui/UniversalPlayButton";
+import UniversalPlayButton from "@/layout/UniversalPlayButton";
 import { CDN_DEFAULT_ARTIST_IMAGE } from "@/lib/cdn";
 import { cn } from "@/lib/utils";
 import type { LibraryItemDisplay } from "@/lib/libraryDisplay";

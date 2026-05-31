@@ -3,7 +3,8 @@ import {
   CDN_LIKED_PLAYLIST_COVER,
 } from "@/lib/cdn";
 import { buildStaticCdnImages } from "@/lib/imageUrl";
-import { getArtistNames, getPlaylistDisplayTitle } from "@/lib/utils";
+import { getArtistNames } from "@/lib/utils";
+import { getPlaylistDisplayTitle } from "@/lib/entitySection";
 import { isLibraryMyPlaylist } from "@/lib/playlistKinds";
 import type {
   Album,

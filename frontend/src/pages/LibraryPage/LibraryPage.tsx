@@ -10,7 +10,7 @@ import { useUIStore } from "../../stores/useUIStore";
 import { useQuickCreatePlaylist } from "@/hooks/useQuickCreatePlaylist";
 import { useLibraryData } from "@/hooks/useLibraryData";
 import { getLibraryItemDisplay } from "@/lib/libraryDisplay";
-import EntityTypeFilter from "../../components/ui/EntityTypeFilter";
+import EntityTypeFilter from "@/layout/EntityTypeFilter";
 import LibraryGridSkeleton from "../../components/ui/skeletons/PlaylistSkeleton";
 import { LibrarySearchBar } from "@/components/library/LibrarySearchBar";
 import { LibraryItemRow } from "@/components/library/LibraryItemRow";

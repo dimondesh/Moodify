@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { axiosInstance } from "../lib/axios";
-import StandardLoader from "../components/ui/StandardLoader";
+import { fetchSongById } from "@/lib/api/music";
+import StandardLoader from "@/components/ui/StandardLoader";
 
 export default function TrackRedirect() {
   const { id } = useParams();
@@ -9,15 +9,13 @@ export default function TrackRedirect() {
 
   useEffect(() => {
     const fetchTrackAndRedirect = async () => {
+      if (!id) return;
       try {
-        const response = await axiosInstance.get("/songs/" + id);
-        const song = response.data;
-
-        const albumId =
-          song.albumId || (song.album && song.album._id) || song.album;
+        const song = await fetchSongById(id);
+        const albumId = song.albumId;
 
         if (albumId) {
-          navigate("/albums/" + albumId + "?play=" + id, { replace: true });
+          navigate(`/albums/${albumId}?play=${id}`, { replace: true });
         } else {
           navigate("/", { replace: true });
         }

@@ -1,6 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from "zustand";
-import { axiosInstance } from "../lib/axios";
+import {
+  fetchLibrarySummary,
+  fetchFollowedArtists as fetchFollowedArtistsApi,
+  toggleAlbumInLibrary,
+  togglePlaylistInLibrary,
+  toggleArtistFollow as toggleArtistFollowApi,
+} from "@/lib/api/library";
 import type { Album, LibraryPlaylist, Artist } from "../types";
 import { useOfflineStore } from "./useOfflineStore";
 import { getAllUserAlbums, getAllUserPlaylists } from "../lib/offline-db";
@@ -75,13 +81,12 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
     }
 
     try {
-      const response = await axiosInstance.get("/library/summary");
-      const data = response.data;
+      const data = await fetchLibrarySummary();
 
       set({
-        albums: data.albums || [],
-        playlists: data.playlists || [],
-        followedArtists: data.followedArtists || [],
+        albums: data.albums,
+        playlists: data.playlists,
+        followedArtists: data.followedArtists,
       });
     } catch (err: any) {
       set({
@@ -101,8 +106,8 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
       set({ isLoading: true, error: null });
     }
     try {
-      const res = await axiosInstance.get("/library/artists");
-      set({ followedArtists: res.data.artists, ...(!silent && { isLoading: false }) });
+      const artists = await fetchFollowedArtistsApi();
+      set({ followedArtists: artists, ...(!silent && { isLoading: false }) });
     } catch (err: any) {
       set({
         error: err.message || i18n.t("errors.fetchFollowedArtistsError"),
@@ -114,7 +119,7 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
   toggleAlbum: async (albumId: string) => {
     if (useOfflineStore.getState().isOffline) return;
     try {
-      await axiosInstance.post("/library/albums/toggle", { albumId });
+      await toggleAlbumInLibrary(albumId);
       await get().fetchLibrary({ silent: true });
     } catch (err) {
       console.error("Toggle album error", err);
@@ -125,7 +130,7 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
   togglePlaylist: async (playlistId: string) => {
     if (useOfflineStore.getState().isOffline) return;
     try {
-      await axiosInstance.post("/library/playlists/toggle", { playlistId });
+      await togglePlaylistInLibrary(playlistId);
       await get().fetchLibrary({ silent: true });
     } catch (err) {
       console.error("Toggle playlist error", err);
@@ -136,7 +141,7 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
   toggleArtistFollow: async (artistId: string) => {
     if (useOfflineStore.getState().isOffline) return;
     try {
-      await axiosInstance.post("/library/artists/toggle", { artistId });
+      await toggleArtistFollowApi(artistId);
       await get().fetchLibrary({ silent: true });
     } catch (err) {
       console.error("Toggle artist follow error", err);

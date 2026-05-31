@@ -13,7 +13,8 @@ import {
 } from "../components/ui/popover";
 import CheckedIcon from "@/components/ui/checkedIcon";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { cn, getPlaylistDisplayTitle } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { getPlaylistDisplayTitle } from "@/lib/entitySection";
 import { CDN_DEFAULT_ALBUM_COVER, CDN_LIKED_PLAYLIST_COVER } from "@/lib/cdn";
 import { buildStaticCdnImages, getImageUrlByKey } from "@/lib/imageUrl";
 import { useLibraryStore } from "../stores/useLibraryStore";

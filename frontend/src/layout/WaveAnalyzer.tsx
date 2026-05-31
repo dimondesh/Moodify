@@ -1,7 +1,7 @@
 // frontend/src/components/ui/WaveAnalyzer.tsx
 
 import React, { useRef, useEffect, useCallback } from "react";
-import { useAudioSettingsStore, webAudioService } from "../../lib/webAudio";
+import { useAudioSettingsStore, webAudioService } from "@/lib/webAudio";
 
 interface WaveAnalyzerProps {
   width?: number;
