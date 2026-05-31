@@ -83,6 +83,8 @@ const SettingsPage: React.FC = () => {
   const setSmartShuffleRepeatMode = usePlayerStore(
     (s) => s.setSmartShuffleRepeatMode,
   );
+  const autoplayEnabled = usePlayerStore((s) => s.autoplayEnabled);
+  const setAutoplayEnabled = usePlayerStore((s) => s.setAutoplayEnabled);
 
   const { isIosDevice } = useUIStore();
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
@@ -670,6 +672,17 @@ const SettingsPage: React.FC = () => {
           </SettingsSection>
 
           <SettingsSection title={t("settings.playbackTitle")}>
+            <SettingsRow
+              label={t("settings.autoplay")}
+              description={t("settings.autoplayDesc")}
+            >
+              <Switch
+                id="autoplay-enabled"
+                checked={autoplayEnabled}
+                onCheckedChange={setAutoplayEnabled}
+                className="data-[state=checked]:bg-violet-600"
+              />
+            </SettingsRow>
             <SettingsRow
               label={t("settings.smartShuffleRepeats")}
               description={t("settings.smartShuffleRepeatsDesc")}

@@ -34,23 +34,32 @@ export function EntityShuffleButton({
 }: EntityShuffleButtonProps) {
   const { t } = useTranslation();
   const shuffleMode = usePlayerStore((s) => s.shuffleMode);
+  const isAutoplayActive = usePlayerStore((s) => s.isAutoplayActive);
+  const autoplaySourceContext = usePlayerStore((s) => s.autoplaySourceContext);
   const isActiveEntity = usePlayerStore(
     (s) =>
       s.currentPlaybackContext?.type === entityType &&
       s.currentPlaybackContext?.entityId === entityId,
   );
+  const isAutoplaySourceEntity =
+    isAutoplayActive &&
+    autoplaySourceContext?.type === entityType &&
+    autoplaySourceContext?.entityId === entityId;
   const savedPref = usePlayerStore((s) => {
     void s.entityShufflePrefsRevision;
     return readEntityShufflePref(entityType, entityId, supportsSmartShuffle);
   });
   const cycleEntityShufflePref = usePlayerStore((s) => s.cycleEntityShufflePref);
 
-  const pref = clampMode(
-    isActiveEntity ? shuffleMode : savedPref,
-    supportsSmartShuffle,
-  );
+  const pref = isAutoplaySourceEntity
+    ? "off"
+    : clampMode(
+        isActiveEntity ? shuffleMode : savedPref,
+        supportsSmartShuffle,
+      );
 
   const handleClick = () => {
+    if (isAutoplaySourceEntity) return;
     cycleEntityShufflePref(entityType, entityId, supportsSmartShuffle);
   };
 
@@ -68,6 +77,7 @@ export function EntityShuffleButton({
         variant="ghost2"
         size="icon"
         onClick={handleClick}
+        disabled={isAutoplaySourceEntity}
         title={title}
         aria-label={title}
         aria-pressed={pref !== "off"}
@@ -89,6 +99,7 @@ export function EntityShuffleButton({
     <button
       type="button"
       onClick={handleClick}
+      disabled={isAutoplaySourceEntity}
       title={title}
       aria-label={title}
       aria-pressed={pref !== "off"}

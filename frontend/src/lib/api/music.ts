@@ -153,6 +153,10 @@ export async function fetchSongById(songId: string): Promise<Song> {
   return response.data;
 }
 
+export interface FetchAutoplayTracksOptions extends FetchSongRadioOptions {
+  limit?: number;
+}
+
 export async function fetchSongRadio(
   songId: string,
   options?: FetchSongRadioOptions,
@@ -170,6 +174,31 @@ export async function fetchSongRadio(
     : `/songs/${songId}/radio`;
   const response = await axiosInstance.get(url);
   return response.data;
+}
+
+export async function fetchAutoplayTracks(
+  songId: string,
+  options?: FetchAutoplayTracksOptions,
+): Promise<Song[]> {
+  const params = new URLSearchParams();
+  params.set("limit", String(options?.limit ?? 10));
+  if (options?.excludeIds?.length) {
+    params.set("exclude", options.excludeIds.slice(0, 150).join(","));
+  }
+  if (options?.repeatMode && options.repeatMode !== "default") {
+    params.set("repeatMode", options.repeatMode);
+  }
+  const query = params.toString();
+  const url = `/songs/${songId}/radio?${query}`;
+  try {
+    const response = await axiosInstance.get(url);
+    return response.data;
+  } catch (err: unknown) {
+    const status = (err as { response?: { status?: number } })?.response
+      ?.status;
+    if (status === 404) return [];
+    throw err;
+  }
 }
 
 export async function fetchAlbumTitle(albumId: string): Promise<string | null> {

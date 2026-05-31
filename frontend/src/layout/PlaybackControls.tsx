@@ -372,15 +372,26 @@ const PlaybackControls = () => {
   const setRepeatMode = usePlayerStore((s) => s.setRepeatMode);
   const shuffleMode = usePlayerStore((s) => s.shuffleMode);
   const toggleShuffle = usePlayerStore((s) => s.toggleShuffle);
-  const isCurrentSongFromSmartShuffle = usePlayerStore((s) => {
-    if (s.shuffleMode !== "smart" || !s.currentSong?._id) return false;
+  const isAutoplayActive = usePlayerStore((s) => s.isAutoplayActive);
+  const effectiveShuffleMode = isAutoplayActive ? "off" : shuffleMode;
+  const effectiveRepeatMode = isAutoplayActive ? "off" : repeatMode;
+  const showSparkles = usePlayerStore((s) => {
     if (s.currentSongFromUserQueue) return false;
+    if (s.isAutoplayActive) return true;
+    if (s.shuffleMode !== "smart" || !s.currentSong?._id) return false;
     return s.smartShuffleTrackIds.includes(s.currentSong._id);
   });
+  const currentIndex = usePlayerStore((s) => s.currentIndex);
+  const queueLength = usePlayerStore((s) => s.queue.length);
+
+  const isNextDisabled =
+    !currentSong || (isAutoplayActive && currentIndex >= queueLength - 1);
+  const isPrevDisabled =
+    !currentSong || (isAutoplayActive && currentIndex <= 0);
   const shuffleTitle =
-    shuffleMode === "smart"
+    effectiveShuffleMode === "smart"
       ? t("player.smartShuffle")
-      : shuffleMode === "regular"
+      : effectiveShuffleMode === "regular"
         ? t("player.shuffleOn")
         : t("player.shuffleOff");
   const isFullScreenPlayerOpen = usePlayerStore((s) => s.isFullScreenPlayerOpen);
@@ -525,6 +536,7 @@ const PlaybackControls = () => {
   }, [currentSong?._id, currentSong?.lyrics]);
 
   const toggleRepeatMode = () => {
+    if (isAutoplayActive) return;
     if (repeatMode === "off") {
       setRepeatMode("all");
     } else if (repeatMode === "all") {
@@ -639,7 +651,7 @@ const PlaybackControls = () => {
                       {currentSong.title}
                     </div>
                     <div className="flex min-w-0 items-center gap-1 truncate text-xs text-zinc-400">
-                      {isCurrentSongFromSmartShuffle && (
+                      {showSparkles && (
                         <Sparkles
                           className="size-3.5 shrink-0 text-[#8b5cf6]"
                           aria-hidden
@@ -761,7 +773,7 @@ const PlaybackControls = () => {
                             {currentSong?.title || t("player.noSong")}
                           </button>
                           <p className="text-zinc-400 text-base truncate mb-1 flex items-center gap-1 min-w-0">
-                            {isCurrentSongFromSmartShuffle && (
+                            {showSparkles && (
                               <Sparkles
                                 className="size-3.5 shrink-0 text-[#8b5cf6]"
                                 aria-hidden
@@ -806,16 +818,17 @@ const PlaybackControls = () => {
                           size="icon"
                           variant="ghost"
                           className={`hover:text-white ${
-                            shuffleMode !== "off"
+                            effectiveShuffleMode !== "off"
                               ? "text-violet-500"
                               : "text-zinc-400"
                           }`}
                           onClick={toggleShuffle}
+                          disabled={isAutoplayActive}
                           title={shuffleTitle}
                         >
                           <div className="relative flex flex-col items-center justify-center">
                             <Shuffle className="size-5.5" />
-                            {shuffleMode === "smart" && (
+                            {effectiveShuffleMode === "smart" && (
                               <div className="absolute right-3 -bottom-1 w-1 h-1 rounded-full bg-violet-500" />
                             )}
                           </div>
@@ -824,6 +837,7 @@ const PlaybackControls = () => {
                           size="icon"
                           variant="ghost"
                           className="hover:text-white text-zinc-400"
+                          disabled={isPrevDisabled}
                           onClick={() => {
                             const { currentTime, seekToTime, playPrevious } =
                               usePlayerStore.getState();
@@ -859,14 +873,15 @@ const PlaybackControls = () => {
                           size="icon"
                           variant="ghost"
                           className={`hover:text-white ${
-                            repeatMode !== "off"
+                            effectiveRepeatMode !== "off"
                               ? "text-violet-500"
                               : "text-zinc-400"
                           }`}
                           onClick={toggleRepeatMode}
+                          disabled={isAutoplayActive}
                           title={t("player.toggleRepeat")}
                         >
-                          {repeatMode === "one" ? (
+                          {effectiveRepeatMode === "one" ? (
                             <Repeat1 className="size-6" />
                           ) : (
                             <Repeat className="size-6" />
@@ -1007,7 +1022,7 @@ const PlaybackControls = () => {
                       {currentSong.title}
                     </button>
                     <div className="text-xs text-gray-400 truncate flex items-center gap-1 min-w-0">
-                      {isCurrentSongFromSmartShuffle && (
+                      {showSparkles && (
                         <Sparkles
                           className="size-3.5 shrink-0 text-[#8b5cf6]"
                           aria-hidden
@@ -1030,7 +1045,10 @@ const PlaybackControls = () => {
                       </span>
                     </div>
                   </div>
-                  <SaveSongToLibraryControl song={currentSong} disabled={!user} />
+                  <SaveSongToLibraryControl
+                    song={currentSong}
+                    disabled={!user}
+                  />
                 </>
               )}
             </div>
@@ -1040,14 +1058,17 @@ const PlaybackControls = () => {
                   size="icon"
                   variant="ghost"
                   className={`hover:text-white hover:bg-transparent! h-8 w-8 ${
-                    shuffleMode !== "off" ? "text-[#8b5cf6]" : "text-gray-400"
+                    effectiveShuffleMode !== "off"
+                      ? "text-[#8b5cf6]"
+                      : "text-gray-400"
                   }`}
                   onClick={toggleShuffle}
+                  disabled={isAutoplayActive}
                   title={shuffleTitle}
                 >
                   <div className="relative flex flex-col items-center justify-center">
                     <Shuffle className="size-4.5" />
-                    {shuffleMode === "smart" && (
+                    {effectiveShuffleMode === "smart" && (
                       <div className="absolute -bottom-1 right-2 w-1 h-1 rounded-full bg-[#8b5cf6] " />
                     )}
                   </div>
@@ -1065,7 +1086,7 @@ const PlaybackControls = () => {
                       void playPrevious();
                     }
                   }}
-                  disabled={!currentSong}
+                  disabled={isPrevDisabled}
                 >
                   <SkipBack className="size-5 fill-current" />
                 </Button>
@@ -1086,7 +1107,7 @@ const PlaybackControls = () => {
                   variant="ghost"
                   className="hover:text-white hover:bg-transparent! text-gray-400 h-8 w-8"
                   onClick={playNext}
-                  disabled={!currentSong}
+                  disabled={isNextDisabled}
                 >
                   <SkipForward className="size-5 fill-current" />
                 </Button>
@@ -1094,12 +1115,15 @@ const PlaybackControls = () => {
                   size="icon"
                   variant="ghost"
                   className={`hover:text-white hover:bg-transparent! h-8 w-8 ${
-                    repeatMode !== "off" ? "text-[#8b5cf6]" : "text-gray-400"
+                    effectiveRepeatMode !== "off"
+                      ? "text-[#8b5cf6]"
+                      : "text-gray-400"
                   }`}
                   onClick={toggleRepeatMode}
+                  disabled={isAutoplayActive}
                   title={t("player.toggleRepeat")}
                 >
-                  {repeatMode === "one" ? (
+                  {effectiveRepeatMode === "one" ? (
                     <Repeat1 className="size-5" />
                   ) : (
                     <Repeat className="size-5" />

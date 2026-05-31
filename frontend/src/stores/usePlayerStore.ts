@@ -8,7 +8,9 @@ import { silentAudioService } from "@/lib/silentAudioService";
 import {
   fetchSongById,
   fetchAlbumTitle,
+  fetchAutoplayTracks,
 } from "@/lib/api/music";
+import i18n from "@/lib/i18n";
 import { fetchPlaylistSmartShuffle } from "@/lib/api/playlists";
 import { getUserItem } from "@/lib/offline-db";
 import { useAuthStore } from "./useAuthStore";
@@ -98,7 +100,16 @@ interface PlayerStore {
   /** Bumped when entity shuffle prefs change in localStorage (for UI reactivity). */
   entityShufflePrefsRevision: number;
   currentSongFromUserQueue: boolean;
+  autoplayEnabled: boolean;
+  isAutoplayActive: boolean;
+  autoplayPlayedIds: string[];
+  /** Entity context active when autoplay was triggered (for shuffle UI). */
+  autoplaySourceContext: PlayerStore["currentPlaybackContext"];
 
+  setAutoplayEnabled: (enabled: boolean) => void;
+  disableRepeatAndShuffleForAutoplay: () => void;
+  startAutoplay: (sourceSong: Song) => Promise<void>;
+  handleQueueEnd: () => Promise<void>;
   setRepeatMode: (mode: "off" | "all" | "one") => void;
   setSmartShuffleRepeatMode: (mode: SmartShuffleRepeatMode) => void;
   toggleShuffle: () => void;
@@ -152,6 +163,7 @@ interface PlayerStore {
   removeFromQueue: (songId: string) => void;
   moveSongInQueue: (fromIndex: number, toIndex: number) => void;
   clearQueue: () => void;
+  appendAutoplayTracks: () => Promise<void>;
   addToQueue: (song: Song) => void;
   addSongsToQueue: (songs: Song[]) => void;
   /** Inserts a track into the user queue (next after current, before regular upcoming). */
@@ -283,11 +295,7 @@ export const usePlayerStore = create<PlayerStore>()(
         // Онлайн: догружаем с сервера
         // Оффлайн: пытаемся взять из IndexedDB (songs), иначе возвращаем как есть
         const songId = song?._id;
-        if (
-          !songId ||
-          songId === "undefined" ||
-          typeof songId !== "string"
-        ) {
+        if (!songId || songId === "undefined" || typeof songId !== "string") {
           console.error("ensureSongData: invalid song id", song);
           return null;
         }
@@ -323,7 +331,7 @@ export const usePlayerStore = create<PlayerStore>()(
               typeof (song as any).artist?.[0] === "object" &&
               (song as any).artist?.[0]?.name
                 ? (song as any).artist
-                : fullData.artist ?? song.artist,
+                : (fullData.artist ?? song.artist),
           };
 
           // Обновляем песню в очереди, чтобы данные закэшировались локально
@@ -424,11 +432,243 @@ export const usePlayerStore = create<PlayerStore>()(
           currentSong: fullSong,
           queue: newQueue,
           currentIndex: currentIndex >= 0 ? currentIndex : 0,
-          playbackPointer: state.playbackOrderIds ? playbackPointer : state.playbackPointer,
+          playbackPointer: state.playbackOrderIds
+            ? playbackPointer
+            : state.playbackPointer,
           shufflePointer,
           currentTime: 0,
           currentSongFromUserQueue: false,
         });
+      };
+
+      const disableRepeatAndShuffleForAutoplay = () => {
+        const state = get();
+        set({ repeatMode: "off" });
+
+        const contexts = [
+          state.currentPlaybackContext,
+          state.autoplaySourceContext,
+        ];
+        let bumped = false;
+        for (const ctx of contexts) {
+          if (ctx?.entityId && isEntityPlaybackType(ctx.type)) {
+            writeEntityShufflePref(ctx.type, ctx.entityId, "off");
+            bumped = true;
+          }
+        }
+        if (bumped) {
+          set((s) => ({
+            entityShufflePrefsRevision: s.entityShufflePrefsRevision + 1,
+          }));
+        }
+
+        get().applyShuffleMode("off");
+      };
+
+      const handleQueueEnd = async () => {
+        const state = get();
+        const { isOffline } = useOfflineStore.getState();
+
+        if (state.autoplayEnabled && !isOffline && state.currentSong) {
+          if (state.isAutoplayActive) {
+            // Если автоплей уже активен, пытаемся дозагрузить треки
+            const oldLength = state.queue.length;
+            await appendAutoplayTracks();
+
+            const newState = get();
+            // Если треки успешно добавились — переключаем на следующий
+            if (newState.queue.length > oldLength) {
+              await get().playNext();
+            } else {
+              // Если больше похожих треков нет — останавливаем
+              await pauseAtEntityFirstTrack();
+            }
+          } else {
+            // Если автоплей был выключен — стартуем его с нуля
+            await startAutoplay(state.currentSong);
+          }
+        } else {
+          await pauseAtEntityFirstTrack();
+        }
+      };
+
+      const appendAutoplayTracks = async () => {
+        const state = get();
+        const { isOffline } = useOfflineStore.getState();
+
+        // Проверяем, включен ли автоплей и активен ли он прямо сейчас
+        if (
+          isOffline ||
+          !state.autoplayEnabled ||
+          !state.currentSong ||
+          !state.isAutoplayActive
+        ) {
+          return;
+        }
+
+        // Исключаем все уже проигранные и добавленные в очередь треки
+        const excludeIds = [
+          ...new Set([
+            ...state.contextSourceSongIds,
+            ...state.queue.map((s) => s._id),
+            ...state.autoplayPlayedIds,
+          ]),
+        ];
+
+        try {
+          const tracks = await fetchAutoplayTracks(state.currentSong._id, {
+            excludeIds,
+            repeatMode: state.smartShuffleRepeatMode,
+          });
+
+          if (tracks.length > 0) {
+            set((s) => {
+              const newQueue = [...s.queue];
+              let added = false;
+
+              for (const track of tracks) {
+                if (!newQueue.some((q) => q._id === track._id)) {
+                  newQueue.push(track);
+                  added = true;
+                }
+              }
+
+              if (!added) return s;
+
+              return {
+                queue: newQueue,
+                autoplayPlayedIds: [
+                  ...new Set([
+                    ...s.autoplayPlayedIds,
+                    ...tracks.map((t) => t._id),
+                  ]),
+                ],
+              };
+            });
+          }
+        } catch (error) {
+          console.error("Failed to append autoplay tracks:", error);
+        }
+      };
+
+      // 1. Обновляем startAutoplay, чтобы она умела дописывать треки в конец очереди
+      const startAutoplay = async (sourceSong: Song) => {
+        const state = get();
+        const { isOffline } = useOfflineStore.getState();
+
+        if (isOffline) {
+          await pauseAtEntityFirstTrack();
+          return;
+        }
+
+        const isAlreadyActive = state.isAutoplayActive;
+
+        const autoplaySourceContext =
+          state.isAutoplayActive && state.autoplaySourceContext
+            ? state.autoplaySourceContext
+            : state.currentPlaybackContext?.entityId &&
+                isEntityPlaybackType(state.currentPlaybackContext.type)
+              ? {
+                  type: state.currentPlaybackContext.type,
+                  entityId: state.currentPlaybackContext.entityId,
+                  entityTitle: state.currentPlaybackContext.entityTitle,
+                  supportsSmartShuffle:
+                    state.currentPlaybackContext.supportsSmartShuffle,
+                }
+              : state.autoplaySourceContext;
+
+        if (autoplaySourceContext) {
+          set({ autoplaySourceContext });
+        }
+
+        disableRepeatAndShuffleForAutoplay();
+
+        const excludeIds = [
+          ...new Set([
+            ...state.contextSourceSongIds,
+            ...state.queue.map((s) => s._id),
+            ...state.autoplayPlayedIds,
+            sourceSong._id,
+          ]),
+        ];
+
+        let tracks: Song[];
+        try {
+          tracks = await fetchAutoplayTracks(sourceSong._id, {
+            excludeIds,
+            repeatMode: get().smartShuffleRepeatMode,
+          });
+        } catch {
+          if (!isAlreadyActive) await pauseAtEntityFirstTrack();
+          return;
+        }
+
+        if (tracks.length === 0) {
+          if (!isAlreadyActive) await pauseAtEntityFirstTrack();
+          return;
+        }
+
+        // Если автоплей уже активен — берем текущую очередь, иначе создаем пустую
+        let queueCache = isAlreadyActive ? [...state.queue] : [];
+        for (const track of tracks) {
+          queueCache = mergeSongIntoQueueCache(queueCache, track);
+        }
+
+        // ЕСЛИ АВТОПЛЕЙ УЖЕ РАБОТАЕТ: просто дописываем треки в хвост
+        if (isAlreadyActive) {
+          const autoplayPlayedIds = [
+            ...new Set([
+              ...state.autoplayPlayedIds,
+              ...tracks.map((t) => t._id),
+            ]),
+          ];
+          set({
+            queue: queueCache,
+            autoplayPlayedIds,
+          });
+          return;
+        }
+
+        // Первоначальный запуск автоплея (первый раз перешли из обычной очереди)
+        const firstTrack = await ensureSongData(queueCache[0]);
+        if (!firstTrack?.hlsUrl) {
+          await pauseAtEntityFirstTrack();
+          return;
+        }
+
+        queueCache[0] = firstTrack;
+        const autoplayPlayedIds = [
+          ...new Set([
+            ...state.autoplayPlayedIds,
+            sourceSong._id,
+            ...tracks.map((t) => t._id),
+          ]),
+        ];
+
+        silentAudioService.play();
+        set({
+          isAutoplayActive: true,
+          autoplayPlayedIds,
+          playbackOrderIds: null,
+          playbackPointer: -1,
+          contextSourceSongIds: [],
+          smartShuffleTrackIds: [],
+          queue: queueCache,
+          userQueue: [],
+          currentSong: firstTrack,
+          currentIndex: 0,
+          isPlaying: true,
+          currentTime: 0,
+          currentSongFromUserQueue: false,
+          shuffleHistory: [],
+          shufflePointer: -1,
+          currentPlaybackContext: {
+            type: "song",
+            entityTitle: i18n.t("player.autoplay"),
+          },
+        });
+
+        enrichSongWithAlbumTitleIfNeeded(firstTrack);
       };
 
       return {
@@ -457,6 +697,10 @@ export const usePlayerStore = create<PlayerStore>()(
         playbackPointer: -1,
         entityShufflePrefsRevision: 0,
         currentSongFromUserQueue: false,
+        autoplayEnabled: true,
+        isAutoplayActive: false,
+        autoplayPlayedIds: [],
+        autoplaySourceContext: null,
 
         isDesktopLyricsOpen: false,
         isMobileLyricsFullScreen: false,
@@ -551,6 +795,9 @@ export const usePlayerStore = create<PlayerStore>()(
               playbackOrderIds: null,
               playbackPointer: -1,
               currentSongFromUserQueue: false,
+              isAutoplayActive: false,
+              autoplayPlayedIds: [],
+              autoplaySourceContext: null,
             });
             return;
           }
@@ -653,6 +900,9 @@ export const usePlayerStore = create<PlayerStore>()(
               currentSongFromUserQueue: false,
               currentTime: 0,
               currentPlaybackContext: playbackContext,
+              isAutoplayActive: false,
+              autoplayPlayedIds: [],
+              autoplaySourceContext: null,
             });
 
             enrichSongWithAlbumTitleIfNeeded(fullSong);
@@ -713,10 +963,19 @@ export const usePlayerStore = create<PlayerStore>()(
             currentSongFromUserQueue: false,
             currentTime: 0,
             currentPlaybackContext: playbackContext,
+            isAutoplayActive: false,
+            autoplayPlayedIds: [],
+            autoplaySourceContext: null,
           });
 
           enrichSongWithAlbumTitleIfNeeded(fullSong);
         },
+
+        setAutoplayEnabled: (enabled) => set({ autoplayEnabled: enabled }),
+        disableRepeatAndShuffleForAutoplay,
+        startAutoplay,
+        appendAutoplayTracks,
+        handleQueueEnd,
 
         setCurrentSong: async (song: Song | null) => {
           if (!song) {
@@ -796,6 +1055,14 @@ export const usePlayerStore = create<PlayerStore>()(
           });
 
           enrichSongWithAlbumTitleIfNeeded(fullSong);
+
+          const afterState = get();
+          if (
+            afterState.isAutoplayActive &&
+            afterState.currentIndex >= afterState.queue.length - 3
+          ) {
+            void get().appendAutoplayTracks();
+          }
         },
 
         togglePlay: () => {
@@ -829,6 +1096,8 @@ export const usePlayerStore = create<PlayerStore>()(
         },
 
         toggleShuffle: () => {
+          if (get().isAutoplayActive) return;
+
           const state = get();
           const ctx = state.currentPlaybackContext;
 
@@ -866,6 +1135,14 @@ export const usePlayerStore = create<PlayerStore>()(
           entityId,
           supportsSmartShuffle,
         ) => {
+          const state = get();
+          if (state.isAutoplayActive) {
+            const src = state.autoplaySourceContext;
+            if (src?.entityId === entityId && src.type === entityType) {
+              return;
+            }
+          }
+
           const currentPref = readEntityShufflePref(
             entityType,
             entityId,
@@ -887,6 +1164,8 @@ export const usePlayerStore = create<PlayerStore>()(
         },
 
         applyShuffleMode: (mode: EntityShuffleMode) => {
+          if (get().isAutoplayActive && mode !== "off") return;
+
           const prevMode = get().shuffleMode;
 
           if (prevMode === "smart" && mode !== "smart") {
@@ -911,7 +1190,10 @@ export const usePlayerStore = create<PlayerStore>()(
               };
             }
             const { shuffleHistory, shufflePointer } =
-              buildShuffleHistoryForIndex(state.queue.length, state.currentIndex);
+              buildShuffleHistoryForIndex(
+                state.queue.length,
+                state.currentIndex,
+              );
             return { shuffleMode: mode, shuffleHistory, shufflePointer };
           });
 
@@ -938,7 +1220,11 @@ export const usePlayerStore = create<PlayerStore>()(
           set((state) => {
             const sourceIds = new Set(state.contextSourceSongIds);
             if (sourceIds.size === 0) {
-              return { smartShuffleTrackIds: [], playbackOrderIds: null, playbackPointer: -1 };
+              return {
+                smartShuffleTrackIds: [],
+                playbackOrderIds: null,
+                playbackPointer: -1,
+              };
             }
 
             if (state.playbackOrderIds) {
@@ -957,7 +1243,8 @@ export const usePlayerStore = create<PlayerStore>()(
                 smartShuffleTrackIds: [],
                 queue: newQueue,
                 currentSong:
-                  newQueue.find((s) => s._id === currentId) ?? state.currentSong,
+                  newQueue.find((s) => s._id === currentId) ??
+                  state.currentSong,
                 currentIndex: newQueue.findIndex(
                   (s) => s._id === state.currentSong?._id,
                 ),
@@ -1106,9 +1393,13 @@ export const usePlayerStore = create<PlayerStore>()(
             const order = state.playbackOrderIds;
             let nextPtr = state.playbackPointer + 1;
             if (nextPtr >= order.length) {
+              if (state.autoplayEnabled && !isOffline && state.currentSong) {
+                await handleQueueEnd();
+                return;
+              }
               if (repeatMode === "all") nextPtr = 0;
               else {
-                await pauseAtEntityFirstTrack();
+                await handleQueueEnd();
                 return;
               }
             }
@@ -1120,7 +1411,10 @@ export const usePlayerStore = create<PlayerStore>()(
 
             while (checked < order.length) {
               const nextId = order[ptr];
-              if (!isOffline || useOfflineStore.getState().actions.isSongDownloaded(nextId)) {
+              if (
+                !isOffline ||
+                useOfflineStore.getState().actions.isSongDownloaded(nextId)
+              ) {
                 fullNextSong = await resolveSongForPlayback(
                   nextId,
                   state.queue,
@@ -1133,6 +1427,9 @@ export const usePlayerStore = create<PlayerStore>()(
               }
               ptr++;
               if (ptr >= order.length) {
+                if (state.autoplayEnabled && !isOffline && state.currentSong) {
+                  break;
+                }
                 if (repeatMode === "all") ptr = 0;
                 else break;
               }
@@ -1140,14 +1437,17 @@ export const usePlayerStore = create<PlayerStore>()(
             }
 
             if (resolvedPtr === -1 || !fullNextSong) {
-              if (repeatMode === "all") {
+              if (
+                repeatMode === "all" &&
+                !(state.autoplayEnabled && !isOffline && state.currentSong)
+              ) {
                 toast(
                   isOffline ? "No other downloaded songs." : "End of queue.",
                 );
                 silentAudioService.pause();
                 set({ isPlaying: false, currentTime: 0 });
               } else {
-                await pauseAtEntityFirstTrack();
+                await handleQueueEnd();
               }
               return;
             }
@@ -1159,7 +1459,9 @@ export const usePlayerStore = create<PlayerStore>()(
               isPlaying: true,
               playbackPointer: resolvedPtr,
               queue: newQueue,
-              currentIndex: newQueue.findIndex((s) => s._id === fullNextSong._id),
+              currentIndex: newQueue.findIndex(
+                (s) => s._id === fullNextSong._id,
+              ),
               currentTime: 0,
               currentSongFromUserQueue: false,
             });
@@ -1194,6 +1496,9 @@ export const usePlayerStore = create<PlayerStore>()(
             while (checkedCount < tempShuffleHistory.length) {
               potentialPointer++;
               if (potentialPointer >= tempShuffleHistory.length) {
+                if (state.autoplayEnabled && !isOffline && state.currentSong) {
+                  break;
+                }
                 if (repeatMode === "all") potentialPointer = 0;
                 else break;
               }
@@ -1219,8 +1524,23 @@ export const usePlayerStore = create<PlayerStore>()(
               nextIndex = -1;
           }
 
+          if (
+            nextIndex >= 0 &&
+            repeatMode === "all" &&
+            state.autoplayEnabled &&
+            !isOffline &&
+            state.currentSong &&
+            nextIndex <= currentIndex
+          ) {
+            await handleQueueEnd();
+            return;
+          }
+
           if (nextIndex === -1) {
-            if (repeatMode === "all") {
+            if (
+              repeatMode === "all" &&
+              !(state.autoplayEnabled && !isOffline && state.currentSong)
+            ) {
               toast(isOffline ? "No other downloaded songs." : "End of queue.");
               silentAudioService.pause();
               set({
@@ -1230,7 +1550,7 @@ export const usePlayerStore = create<PlayerStore>()(
                 currentTime: 0,
               });
             } else {
-              await pauseAtEntityFirstTrack();
+              await handleQueueEnd();
             }
             return;
           }
@@ -1255,6 +1575,14 @@ export const usePlayerStore = create<PlayerStore>()(
           });
 
           enrichSongWithAlbumTitleIfNeeded(fullNextSong);
+
+          const afterState = get();
+          if (
+            afterState.isAutoplayActive &&
+            afterState.currentIndex >= afterState.queue.length - 3
+          ) {
+            void get().appendAutoplayTracks();
+          }
         },
 
         playPrevious: async () => {
@@ -1328,7 +1656,9 @@ export const usePlayerStore = create<PlayerStore>()(
               isPlaying: true,
               playbackPointer: resolvedPtr,
               queue: newQueue,
-              currentIndex: newQueue.findIndex((s) => s._id === fullPrevSong._id),
+              currentIndex: newQueue.findIndex(
+                (s) => s._id === fullPrevSong._id,
+              ),
               currentTime: 0,
               currentSongFromUserQueue: false,
             });
@@ -1407,7 +1737,10 @@ export const usePlayerStore = create<PlayerStore>()(
           enrichSongWithAlbumTitleIfNeeded(fullPrevSong);
         },
 
-        setRepeatMode: (mode) => set({ repeatMode: mode }),
+        setRepeatMode: (mode) => {
+          if (get().isAutoplayActive && mode !== "off") return;
+          set({ repeatMode: mode });
+        },
         setSmartShuffleRepeatMode: (mode) =>
           set({ smartShuffleRepeatMode: mode }),
         setIsFullScreenPlayerOpen: (isOpen: boolean) =>
@@ -1598,6 +1931,9 @@ export const usePlayerStore = create<PlayerStore>()(
             playbackOrderIds: null,
             playbackPointer: -1,
             currentSongFromUserQueue: false,
+            isAutoplayActive: false,
+            autoplayPlayedIds: [],
+            autoplaySourceContext: null,
           });
         },
         addToQueue: (song: Song) =>
@@ -1698,8 +2034,7 @@ export const usePlayerStore = create<PlayerStore>()(
               }
             } else if (state.shuffleMode !== "off") {
               const fromShuffleIndex = newShuffleHistory.indexOf(fromIndex);
-              const beforeShuffleIndex =
-                newShuffleHistory.indexOf(beforeIndex);
+              const beforeShuffleIndex = newShuffleHistory.indexOf(beforeIndex);
               if (fromShuffleIndex !== -1 && beforeShuffleIndex !== -1) {
                 const [movedQueueIndex] = newShuffleHistory.splice(
                   fromShuffleIndex,
@@ -1826,6 +2161,7 @@ export const usePlayerStore = create<PlayerStore>()(
         repeatMode: state.repeatMode,
         shuffleMode: state.shuffleMode,
         smartShuffleRepeatMode: state.smartShuffleRepeatMode,
+        autoplayEnabled: state.autoplayEnabled,
         isShuffle: state.isShuffle,
         shuffleHistory: state.shuffleHistory,
         shufflePointer: state.shufflePointer,
