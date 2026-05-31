@@ -24,6 +24,8 @@ interface HorizontalSectionProps {
   isLoading: boolean;
   onShowAll?: () => void;
   limit?: number;
+  /** Total stored items; when set, `items` is the server preview and Show all uses total vs preview length. */
+  totalCount?: number;
   t: TFunction;
 }
 
@@ -33,6 +35,7 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
   isLoading,
   onShowAll,
   limit = 6,
+  totalCount,
   t,
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -45,14 +48,16 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
     [items],
   );
 
-  const itemsToShow = useMemo(
-    () => validItems.slice(0, limit),
-    [validItems, limit],
-  );
-  const canShowAll = useMemo(
-    () => onShowAll && items.length > limit,
-    [onShowAll, items.length, limit],
-  );
+  const itemsToShow = useMemo(() => {
+    if (totalCount != null) return validItems;
+    return validItems.slice(0, limit);
+  }, [validItems, limit, totalCount]);
+
+  const canShowAll = useMemo(() => {
+    if (!onShowAll) return false;
+    if (totalCount != null) return totalCount > validItems.length;
+    return items.length > limit;
+  }, [onShowAll, totalCount, validItems.length, items.length, limit]);
 
   const songsOnly = useMemo(
     () =>

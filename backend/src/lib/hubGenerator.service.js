@@ -6,12 +6,39 @@ import { Album } from "../models/album.model.js";
 import { Artist } from "../models/artist.model.js";
 import { Playlist } from "../models/playlist.model.js";
 import { Hub } from "../models/hub.model.js";
-import { EMBEDDING_DIM } from "../constants/embedding.js";
+import {
+  EMBEDDING_DIM,
+  VALID_SONG_EMBEDDING,
+  VALID_ENTITY_EMBEDDING,
+} from "../constants/embedding.js";
 import { cosineSimilarity } from "./recommendation.service.js";
-import { calculateCentroids } from "./categoryEmbedding.service.js";
+import {
+  calculateCentroids,
+  getCategoryModel,
+  getCategoryTagField,
+  recomputeCentroidForCategory,
+} from "./categoryEmbedding.service.js";
+import {
+  HUB_MIN_TRACKS,
+  HUB_STORE_LIMIT,
+  HUB_CANDIDATE_POOL,
+  HUB_PREVIEW_COUNT,
+} from "../constants/hub.js";
+import { mapWithConcurrency } from "./asyncUtils.js";
 import redisClient from "./redis.js";
 
+const HUB_UPSERT_CONCURRENCY = 5;
+
+export {
+  HUB_MIN_TRACKS,
+  HUB_STORE_LIMIT,
+  HUB_CANDIDATE_POOL,
+  HUB_PREVIEW_COUNT,
+};
+
 export const HUBS_CACHE_KEY = "cache:/api/hubs";
+
+const COVER_SELECT = "images imagePublicId coverAccentHex";
 
 export const invalidateHubsCache = async () => {
   try {
@@ -22,13 +49,6 @@ export const invalidateHubsCache = async () => {
     console.error("[invalidateHubsCache]:", error);
   }
 };
-
-export const HUB_MIN_TRACKS = 51;
-export const HUB_SECTION_LIMIT = 12;
-export const HUB_CANDIDATE_POOL = 400;
-export const HUB_PREVIEW_COUNT = 3;
-
-const COVER_SELECT = "images imagePublicId coverAccentHex";
 
 const HUB_ACCENT_COLORS = [
   "#E13300",
@@ -43,14 +63,6 @@ const HUB_ACCENT_COLORS = [
   "#E91429",
 ];
 
-const EMBEDDING_FILTER = {
-  "audioFeatures.embedding": { $exists: true, $ne: null },
-};
-
-const VALID_EMBEDDING_MATCH = {
-  embedding: { $exists: true, $ne: null, $size: EMBEDDING_DIM },
-};
-
 const hasValidEmbedding = (vec) =>
   Array.isArray(vec) && vec.length === EMBEDDING_DIM;
 
@@ -63,54 +75,163 @@ const pickAccentColor = (categoryId) => {
   return HUB_ACCENT_COLORS[index];
 };
 
-const findNearestEntityIds = async (hubEmbedding, Model, extraMatch = {}) => {
-  if (!hasValidEmbedding(hubEmbedding)) return [];
-
-  const candidates = await Model.aggregate([
-    { $match: { ...VALID_EMBEDDING_MATCH, ...extraMatch } },
-    { $sample: { size: HUB_CANDIDATE_POOL } },
-  ]);
-
-  if (!candidates.length) return [];
-
-  return candidates
+const rankBySimilarity = (hubEmbedding, entities, limit) =>
+  entities
     .map((entity) => ({
       _id: entity._id,
       score: cosineSimilarity(hubEmbedding, entity.embedding),
     }))
     .sort((a, b) => b.score - a.score)
-    .slice(0, HUB_SECTION_LIMIT)
+    .slice(0, limit)
     .map((item) => item._id);
+
+const getTopAlbumIdsByPlayCount = async (categoryId, tagField, limit) => {
+  const rows = await Song.aggregate([
+    {
+      $match: {
+        [tagField]: categoryId,
+        albumId: { $ne: null },
+        ...VALID_SONG_EMBEDDING,
+      },
+    },
+    {
+      $group: {
+        _id: "$albumId",
+        playCount: { $sum: "$playCount" },
+      },
+    },
+    { $sort: { playCount: -1 } },
+    { $limit: limit },
+  ]);
+
+  return rows.map((row) => row._id);
+};
+
+const getTopArtistIdsByPlayCount = async (categoryId, tagField, limit) => {
+  const rows = await Song.aggregate([
+    {
+      $match: {
+        [tagField]: categoryId,
+        ...VALID_SONG_EMBEDDING,
+      },
+    },
+    { $unwind: "$artist" },
+    {
+      $group: {
+        _id: "$artist",
+        playCount: { $sum: "$playCount" },
+      },
+    },
+    { $sort: { playCount: -1 } },
+    { $limit: limit },
+  ]);
+
+  return rows.map((row) => row._id);
+};
+
+const getSongIdsForCategory = async (categoryId, tagField) => {
+  const songs = await Song.find({
+    [tagField]: categoryId,
+    ...VALID_SONG_EMBEDDING,
+  })
+    .select("_id")
+    .lean();
+
+  return songs.map((song) => song._id);
+};
+
+const findNearestAlbumIds = async (hubEmbedding, categoryId, tagField) => {
+  if (!hasValidEmbedding(hubEmbedding)) return [];
+
+  const albumIds = await getTopAlbumIdsByPlayCount(
+    categoryId,
+    tagField,
+    HUB_CANDIDATE_POOL,
+  );
+  if (!albumIds.length) return [];
+
+  const candidates = await Album.find({
+    _id: { $in: albumIds },
+    ...VALID_ENTITY_EMBEDDING,
+  })
+    .select("_id embedding")
+    .lean();
+
+  return rankBySimilarity(hubEmbedding, candidates, HUB_STORE_LIMIT);
+};
+
+const findNearestArtistIds = async (hubEmbedding, categoryId, tagField) => {
+  if (!hasValidEmbedding(hubEmbedding)) return [];
+
+  const artistIds = await getTopArtistIdsByPlayCount(
+    categoryId,
+    tagField,
+    HUB_CANDIDATE_POOL,
+  );
+  if (!artistIds.length) return [];
+
+  const candidates = await Artist.find({
+    _id: { $in: artistIds },
+    ...VALID_ENTITY_EMBEDDING,
+  })
+    .select("_id embedding")
+    .lean();
+
+  return rankBySimilarity(hubEmbedding, candidates, HUB_STORE_LIMIT);
+};
+
+const findNearestPlaylistIds = async (hubEmbedding, categoryId, tagField) => {
+  if (!hasValidEmbedding(hubEmbedding)) return [];
+
+  const songIds = await getSongIdsForCategory(categoryId, tagField);
+  if (!songIds.length) return [];
+
+  const candidates = await Playlist.find({
+    songs: { $in: songIds },
+    isPublic: true,
+    ...VALID_ENTITY_EMBEDDING,
+  })
+    .select("_id embedding")
+    .lean();
+
+  const pool =
+    candidates.length > HUB_CANDIDATE_POOL
+      ? candidates.slice(0, HUB_CANDIDATE_POOL)
+      : candidates;
+
+  return rankBySimilarity(hubEmbedding, pool, HUB_STORE_LIMIT);
 };
 
 const findEligibleCategories = async (Model, categoryType, tagField) => {
   const categories = await Model.find({
-    embedding: { $exists: true, $ne: null, $size: EMBEDDING_DIM },
+    ...VALID_ENTITY_EMBEDDING,
   })
     .select("_id name localizedNames embedding")
     .lean();
 
-  const eligible = [];
+  const eligible = await mapWithConcurrency(
+    categories,
+    async (category) => {
+      const trackCount = await Song.countDocuments({
+        [tagField]: category._id,
+        ...VALID_SONG_EMBEDDING,
+      });
 
-  for (const category of categories) {
-    const trackCount = await Song.countDocuments({
-      [tagField]: category._id,
-      ...EMBEDDING_FILTER,
-    });
+      if (trackCount < HUB_MIN_TRACKS) return null;
 
-    if (trackCount < HUB_MIN_TRACKS) continue;
+      return {
+        categoryType,
+        categoryId: category._id,
+        name: category.name,
+        localizedNames: category.localizedNames,
+        embedding: category.embedding,
+        trackCount,
+      };
+    },
+    HUB_UPSERT_CONCURRENCY,
+  );
 
-    eligible.push({
-      categoryType,
-      categoryId: category._id,
-      name: category.name,
-      localizedNames: category.localizedNames,
-      embedding: category.embedding,
-      trackCount,
-    });
-  }
-
-  return eligible;
+  return eligible.filter(Boolean);
 };
 
 const toPreviewCover = (entity, entityType) => {
@@ -237,6 +358,78 @@ export const attachPreviewCoversToHubs = async (hubs) => {
   });
 };
 
+export const upsertHubForCategory = async (category, generatedAt = new Date()) => {
+  const tagField = getCategoryTagField(category.categoryType);
+  if (!tagField || !hasValidEmbedding(category.embedding)) {
+    return null;
+  }
+
+  const [albumIds, artistIds, playlistIds] = await Promise.all([
+    findNearestAlbumIds(category.embedding, category.categoryId, tagField),
+    findNearestArtistIds(category.embedding, category.categoryId, tagField),
+    findNearestPlaylistIds(category.embedding, category.categoryId, tagField),
+  ]);
+
+  const previewCovers = await buildPreviewCovers(albumIds, artistIds);
+
+  return Hub.findOneAndUpdate(
+    {
+      categoryType: category.categoryType,
+      categoryId: category.categoryId,
+    },
+    {
+      $set: {
+        name: category.name,
+        localizedNames: category.localizedNames,
+        embedding: category.embedding,
+        trackCount: category.trackCount,
+        accentColor: pickAccentColor(category.categoryId),
+        albumIds,
+        artistIds,
+        playlistIds,
+        previewCovers,
+        generatedAt,
+      },
+    },
+    { upsert: true, setDefaultsOnInsert: true, new: true },
+  );
+};
+
+export const refreshHubForCategory = async (categoryType, categoryId) => {
+  const tagField = getCategoryTagField(categoryType);
+  const Model = getCategoryModel(categoryType);
+  if (!tagField || !Model) return null;
+
+  const embedding = await recomputeCentroidForCategory(categoryType, categoryId);
+  const trackCount = await Song.countDocuments({
+    [tagField]: categoryId,
+    ...VALID_SONG_EMBEDDING,
+  });
+
+  if (!embedding || trackCount < HUB_MIN_TRACKS) {
+    await Hub.deleteOne({ categoryType, categoryId });
+    await invalidateHubsCache();
+    return null;
+  }
+
+  const category = await Model.findById(categoryId)
+    .select("name localizedNames")
+    .lean();
+  if (!category) return null;
+
+  const hub = await upsertHubForCategory({
+    categoryType,
+    categoryId,
+    name: category.name,
+    localizedNames: category.localizedNames,
+    embedding,
+    trackCount,
+  });
+
+  await invalidateHubsCache();
+  return hub;
+};
+
 export const generateHubs = async () => {
   const [genreCategories, moodCategories] = await Promise.all([
     findEligibleCategories(Genre, "Genre", "genres"),
@@ -247,42 +440,19 @@ export const generateHubs = async () => {
   const eligibleKeys = new Set();
   const now = new Date();
 
-  for (const category of eligible) {
-    const key = `${category.categoryType}:${category.categoryId}`;
-    eligibleKeys.add(key);
+  await mapWithConcurrency(
+    eligible,
+    async (category) => {
+      const key = `${category.categoryType}:${category.categoryId}`;
+      eligibleKeys.add(key);
+      await upsertHubForCategory(category, now);
+    },
+    HUB_UPSERT_CONCURRENCY,
+  );
 
-    const [albumIds, artistIds, playlistIds] = await Promise.all([
-      findNearestEntityIds(category.embedding, Album),
-      findNearestEntityIds(category.embedding, Artist),
-      findNearestEntityIds(category.embedding, Playlist, { isPublic: true }),
-    ]);
-
-    const previewCovers = await buildPreviewCovers(albumIds, artistIds);
-
-    await Hub.findOneAndUpdate(
-      {
-        categoryType: category.categoryType,
-        categoryId: category.categoryId,
-      },
-      {
-        $set: {
-          name: category.name,
-          localizedNames: category.localizedNames,
-          embedding: category.embedding,
-          trackCount: category.trackCount,
-          accentColor: pickAccentColor(category.categoryId),
-          albumIds,
-          artistIds,
-          playlistIds,
-          previewCovers,
-          generatedAt: now,
-        },
-      },
-      { upsert: true, setDefaultsOnInsert: true },
-    );
-  }
-
-  const existingHubs = await Hub.find({}).select("_id categoryType categoryId").lean();
+  const existingHubs = await Hub.find({})
+    .select("_id categoryType categoryId")
+    .lean();
   const staleIds = existingHubs
     .filter(
       (hub) => !eligibleKeys.has(`${hub.categoryType}:${hub.categoryId}`),

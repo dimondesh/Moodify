@@ -195,11 +195,17 @@ export interface Hub {
   previewCovers?: HubPreviewCover[];
 }
 
+export interface HubSectionPayload<T> {
+  preview: T[];
+  total: number;
+  items: T[];
+}
+
 export interface HubDetailResponse {
   hub: Hub;
-  albums: Album[];
-  artists: Artist[];
-  playlists: Playlist[];
+  albums: HubSectionPayload<Album>;
+  artists: HubSectionPayload<Artist>;
+  playlists: HubSectionPayload<Playlist>;
 }
 
 export interface BaseLibraryItem {

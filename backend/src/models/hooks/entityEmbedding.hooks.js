@@ -3,6 +3,8 @@ import mongoose from "mongoose";
 let songHooksRegistered = false;
 let playlistHooksRegistered = false;
 
+const hooksEnabled = () => process.env.SKIP_EMBEDDING_HOOKS !== "1";
+
 const fireAndForget = (promise) => {
   void promise.catch((err) =>
     console.error("[EntityEmbeddingHooks]", err),
@@ -13,7 +15,7 @@ const loadRecommendationService = () =>
   import("../../lib/recommendation.service.js");
 
 const refreshAlbumEmbedding = (albumId) => {
-  if (!albumId) return;
+  if (!albumId || !hooksEnabled()) return;
   fireAndForget(
     loadRecommendationService().then(({ updateAlbumEmbedding }) =>
       updateAlbumEmbedding(albumId),
@@ -22,7 +24,7 @@ const refreshAlbumEmbedding = (albumId) => {
 };
 
 const refreshPlaylistEmbedding = (playlistId) => {
-  if (!playlistId) return;
+  if (!playlistId || !hooksEnabled()) return;
   fireAndForget(
     loadRecommendationService().then(({ updatePlaylistEmbedding }) =>
       updatePlaylistEmbedding(playlistId),
@@ -31,7 +33,7 @@ const refreshPlaylistEmbedding = (playlistId) => {
 };
 
 const refreshArtistEmbedding = (artistId) => {
-  if (!artistId) return;
+  if (!artistId || !hooksEnabled()) return;
   fireAndForget(
     loadRecommendationService().then(({ updateArtistEmbedding }) =>
       updateArtistEmbedding(artistId),

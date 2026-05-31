@@ -17,51 +17,79 @@ const HubDetailsPage = () => {
   const hub = data?.hub;
   const displayName = hub ? getHubDisplayName(hub, i18n.language) : "";
 
-  const albumItems = useMemo(
+  const albumPreviewItems = useMemo(
     () =>
-      (data?.albums ?? []).map((album: Album) => ({
+      (data?.albums?.preview ?? []).map((album: Album) => ({
         ...album,
         songs: album.songs ?? [],
         itemType: "album" as const,
       })),
-    [data?.albums],
+    [data?.albums?.preview],
   );
 
-  const artistItems = useMemo(
+  const albumAllItems = useMemo(
     () =>
-      (data?.artists ?? []).map((artist: Artist) => ({
+      (data?.albums?.items ?? []).map((album: Album) => ({
+        ...album,
+        songs: album.songs ?? [],
+        itemType: "album" as const,
+      })),
+    [data?.albums?.items],
+  );
+
+  const artistPreviewItems = useMemo(
+    () =>
+      (data?.artists?.preview ?? []).map((artist: Artist) => ({
         ...artist,
         itemType: "artist" as const,
       })),
-    [data?.artists],
+    [data?.artists?.preview],
   );
 
-  const playlistItems = useMemo(
+  const artistAllItems = useMemo(
     () =>
-      (data?.playlists ?? []).map((playlist: Playlist) => ({
+      (data?.artists?.items ?? []).map((artist: Artist) => ({
+        ...artist,
+        itemType: "artist" as const,
+      })),
+    [data?.artists?.items],
+  );
+
+  const playlistPreviewItems = useMemo(
+    () =>
+      (data?.playlists?.preview ?? []).map((playlist: Playlist) => ({
         ...playlist,
         itemType: "playlist" as const,
       })),
-    [data?.playlists],
+    [data?.playlists?.preview],
+  );
+
+  const playlistAllItems = useMemo(
+    () =>
+      (data?.playlists?.items ?? []).map((playlist: Playlist) => ({
+        ...playlist,
+        itemType: "playlist" as const,
+      })),
+    [data?.playlists?.items],
   );
 
   const handleShowAllAlbums = useCallback(() => {
     navigate("/list", {
-      state: { title: t("hubpage.albums"), items: albumItems },
+      state: { title: t("hubpage.albums"), items: albumAllItems },
     });
-  }, [navigate, t, albumItems]);
+  }, [navigate, t, albumAllItems]);
 
   const handleShowAllArtists = useCallback(() => {
     navigate("/list", {
-      state: { title: t("hubpage.artists"), items: artistItems },
+      state: { title: t("hubpage.artists"), items: artistAllItems },
     });
-  }, [navigate, t, artistItems]);
+  }, [navigate, t, artistAllItems]);
 
   const handleShowAllPlaylists = useCallback(() => {
     navigate("/list", {
-      state: { title: t("hubpage.playlists"), items: playlistItems },
+      state: { title: t("hubpage.playlists"), items: playlistAllItems },
     });
-  }, [navigate, t, playlistItems]);
+  }, [navigate, t, playlistAllItems]);
 
   if (isPending) {
     return (
@@ -110,30 +138,30 @@ const HubDetailsPage = () => {
           </div>
 
           <div className="p-4 sm:p-6 space-y-8">
-          <HorizontalSection
-            title={t("hubpage.albums")}
-            items={albumItems}
-            isLoading={false}
-            t={t}
-            limit={12}
-            onShowAll={handleShowAllAlbums}
-          />
-          <HorizontalSection
-            title={t("hubpage.artists")}
-            items={artistItems}
-            isLoading={false}
-            t={t}
-            limit={12}
-            onShowAll={handleShowAllArtists}
-          />
-          <HorizontalSection
-            title={t("hubpage.playlists")}
-            items={playlistItems}
-            isLoading={false}
-            t={t}
-            limit={12}
-            onShowAll={handleShowAllPlaylists}
-          />
+            <HorizontalSection
+              title={t("hubpage.albums")}
+              items={albumPreviewItems}
+              totalCount={data?.albums?.total}
+              isLoading={false}
+              t={t}
+              onShowAll={handleShowAllAlbums}
+            />
+            <HorizontalSection
+              title={t("hubpage.artists")}
+              items={artistPreviewItems}
+              totalCount={data?.artists?.total}
+              isLoading={false}
+              t={t}
+              onShowAll={handleShowAllArtists}
+            />
+            <HorizontalSection
+              title={t("hubpage.playlists")}
+              items={playlistPreviewItems}
+              totalCount={data?.playlists?.total}
+              isLoading={false}
+              t={t}
+              onShowAll={handleShowAllPlaylists}
+            />
           </div>
         </div>
       </div>
