@@ -9,6 +9,7 @@ function Slider({
   value,
   min = 0,
   max = 100,
+  orientation = "horizontal",
   ...props
 }: React.ComponentProps<typeof SliderPrimitive.Root>) {
   const _values = React.useMemo(
@@ -28,8 +29,13 @@ function Slider({
       value={value}
       min={min}
       max={max}
+      orientation={orientation}
       className={cn(
-        "relative flex w-full touch-none items-center group select-none data-[disabled]:opacity-50 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col",
+        "relative flex w-full touch-none select-none group data-[disabled]:opacity-50",
+        "data-[orientation=horizontal]:h-4 data-[orientation=horizontal]:items-center",
+        "data-[orientation=horizontal]:[--radix-slider-thumb-transform:translate(-50%,-50%)]",
+        "data-[orientation=horizontal]:[&>span:has([data-slot=slider-thumb])]:top-1/2",
+        "data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col data-[orientation=vertical]:items-center",
         className,
       )}
       {...props}
@@ -53,7 +59,10 @@ function Slider({
         <SliderPrimitive.Thumb
           data-slot="slider-thumb"
           key={index}
-          className="relative lg:hidden group-hover:block bg-white ring-ring/50 block size-2.5 shrink-0 rounded-full shadow-sm transition-[color,box-shadow] focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50 after:absolute after:-inset-3 after:content-['']"
+          className={cn(
+            "relative block size-2.5 shrink-0 rounded-full bg-white shadow-sm ring-ring/50 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity after:absolute after:-inset-3 after:content-['']",
+            orientation === "horizontal" && "-translate-y-1",
+          )}
         />
       ))}
     </SliderPrimitive.Root>

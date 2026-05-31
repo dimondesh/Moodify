@@ -1,6 +1,6 @@
 // src/layout/PlaybackControls.tsx
 
-import { useEffect, useState, startTransition, memo, useCallback } from "react";
+import { useEffect, useState, startTransition, memo, useCallback, useRef } from "react";
 import { Drawer } from "vaul";
 import { useDominantColor } from "@/hooks/useDominantColor";
 import { usePlayerStore } from "../stores/usePlayerStore";
@@ -94,52 +94,165 @@ const MiniPlayerSeekIndicator = memo(function MiniPlayerSeekIndicator() {
   );
 });
 
-const DrawerSeekBlock = memo(function DrawerSeekBlock() {
+const SeekSlider = memo(function SeekSlider({
+  variant = "desktop",
+}: {
+  variant?: "desktop" | "drawer";
+}) {
   const currentTime = usePlayerStore((s) => s.currentTime);
   const duration = usePlayerStore((s) => s.duration);
   const seekToTime = usePlayerStore((s) => s.seekToTime);
-  return (
-    <div className="w-full flex flex-col gap-2 mb-2 px-2">
+  const sliderWrapRef = useRef<HTMLDivElement>(null);
+  const [isScrubbing, setIsScrubbing] = useState(false);
+  const [previewTime, setPreviewTime] = useState<number | null>(null);
+  const [tooltipX, setTooltipX] = useState(0);
+  const [isHovering, setIsHovering] = useState(false);
+
+  const max = duration || 100;
+  const enableHoverPreview = variant === "desktop";
+  const showTooltip =
+    enableHoverPreview &&
+    duration > 0 &&
+    previewTime !== null &&
+    (isScrubbing || isHovering);
+  const sliderValue =
+    isScrubbing && previewTime !== null ? previewTime : currentTime;
+  const displayedCurrentTime =
+    isScrubbing && previewTime !== null ? previewTime : currentTime;
+
+  const setPreviewFromClientX = useCallback(
+    (clientX: number) => {
+      const el = sliderWrapRef.current;
+      if (!el || duration <= 0) return;
+      const rect = el.getBoundingClientRect();
+      const ratio = Math.max(
+        0,
+        Math.min(1, (clientX - rect.left) / rect.width),
+      );
+      const time = Math.round(ratio * duration);
+      setPreviewTime(time);
+      setTooltipX(ratio * rect.width);
+    },
+    [duration],
+  );
+
+  const setPreviewFromTime = useCallback(
+    (time: number) => {
+      const el = sliderWrapRef.current;
+      if (!el || duration <= 0) return;
+      const clamped = Math.max(0, Math.min(duration, time));
+      setPreviewTime(clamped);
+      setTooltipX((clamped / duration) * el.getBoundingClientRect().width);
+    },
+    [duration],
+  );
+
+  const handleSeekCommit = useCallback(
+    (time: number) => {
+      seekToTime(time);
+      setIsScrubbing(false);
+      setPreviewTime(null);
+    },
+    [seekToTime],
+  );
+
+  const clampedTooltipLeft = () => {
+    const width = sliderWrapRef.current?.getBoundingClientRect().width ?? tooltipX;
+    return Math.max(16, Math.min(tooltipX, width - 16));
+  };
+
+  const sliderNode = (
+    <div
+      ref={sliderWrapRef}
+      className={
+        variant === "drawer"
+          ? "relative w-full"
+          : "relative flex-1 min-w-0"
+      }
+      onMouseEnter={
+        enableHoverPreview ? () => setIsHovering(true) : undefined
+      }
+      onMouseMove={
+        enableHoverPreview
+          ? (e) => {
+              if (duration <= 0) return;
+              setPreviewFromClientX(e.clientX);
+            }
+          : undefined
+      }
+      onMouseLeave={
+        enableHoverPreview
+          ? () => {
+              setIsHovering(false);
+              if (!isScrubbing) {
+                setPreviewTime(null);
+              }
+            }
+          : undefined
+      }
+    >
+      {showTooltip && previewTime !== null && (
+        <div
+          className="absolute bottom-full mb-2 z-20 pointer-events-none -translate-x-1/2 rounded px-1.5 py-0.5 bg-[#242424] text-[11px] font-mono tabular-nums text-white shadow-md border border-white/10"
+          style={{ left: clampedTooltipLeft() }}
+        >
+          {formatTime(previewTime)}
+        </div>
+      )}
       <Slider
-        value={[currentTime]}
-        max={duration || 100}
+        value={[sliderValue]}
+        max={max}
         step={1}
-        className="w-full hover:cursor-grab active:cursor-grabbing"
-        onValueChange={(value) => seekToTime(value[0])}
+        className={
+          variant === "drawer"
+            ? "w-full hover:cursor-grab active:cursor-grabbing"
+            : "w-full hover:cursor-pointer"
+        }
+        onPointerDown={() => setIsScrubbing(true)}
+        onValueChange={(value) => {
+          setIsScrubbing(true);
+          setPreviewFromTime(value[0]);
+        }}
+        onValueCommit={(value) => handleSeekCommit(value[0])}
       />
-      <div className="w-full flex items-center justify-between">
-        <div className="text-xs text-zinc-400 font-mono">
-          {formatTime(currentTime)}
+    </div>
+  );
+
+  if (variant === "drawer") {
+    return (
+      <div className="w-full flex flex-col gap-2 mb-2 px-2">
+        {sliderNode}
+        <div className="w-full flex items-center justify-between">
+          <div className="text-xs text-zinc-400 font-mono tabular-nums">
+            {formatTime(displayedCurrentTime)}
+          </div>
+          <div className="text-xs text-zinc-400 font-mono tabular-nums">
+            {formatTime(duration)}
+          </div>
         </div>
-        <div className="text-xs text-zinc-400 font-mono">
-          {formatTime(duration)}
-        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-3 w-full">
+      <div className="text-xs text-gray-400 font-mono tabular-nums">
+        {formatTime(currentTime)}
+      </div>
+      {sliderNode}
+      <div className="text-xs text-gray-400 font-mono tabular-nums">
+        {formatTime(duration)}
       </div>
     </div>
   );
 });
 
+const DrawerSeekBlock = memo(function DrawerSeekBlock() {
+  return <SeekSlider variant="drawer" />;
+});
+
 const DesktopSeekRow = memo(function DesktopSeekRow() {
-  const currentTime = usePlayerStore((s) => s.currentTime);
-  const duration = usePlayerStore((s) => s.duration);
-  const seekToTime = usePlayerStore((s) => s.seekToTime);
-  return (
-    <div className="flex items-center gap-3 w-full">
-      <div className="text-xs text-gray-400 font-mono">
-        {formatTime(currentTime)}
-      </div>
-      <Slider
-        value={[currentTime]}
-        max={duration || 100}
-        step={1}
-        className="w-full hover:cursor-pointer"
-        onValueChange={(value) => seekToTime(value[0])}
-      />
-      <div className="text-xs text-gray-400 font-mono">
-        {formatTime(duration)}
-      </div>
-    </div>
-  );
+  return <SeekSlider variant="desktop" />;
 });
 
 const DrawerLyricsPreviewBlock = memo(function DrawerLyricsPreviewBlock({
@@ -468,7 +581,7 @@ const PlaybackControls = () => {
 
     return (
       <footer
-        className={`h-18 sm:h-20 bg-[#0f0f0f] border-t border-[#2a2a2a] px-4 z-40
+        className={`h-20 bg-[#0f0f0f] border-t border-[#2a2a2a] px-4 z-40 overflow-hidden
           ${isCompactView && isFullScreenPlayerOpen ? "hidden" : ""}`}
       >
         <div className="flex items-center justify-center h-full text-gray-400">
@@ -832,7 +945,7 @@ const PlaybackControls = () => {
         </>
       ) : (
         <footer
-          className={`h-18 sm:h-20 bg-[#0f0f0f] border-t border-[#2a2a2a] px-4 z-40`}
+          className={`h-20 bg-[#0f0f0f] border-t border-[#2a2a2a] px-4 z-40 overflow-hidden`}
         >
           <div className="flex justify-between items-center h-full max-w-screen mx-auto">
             <div className="flex items-center gap-4 min-w-[180px] w-[30%]">
