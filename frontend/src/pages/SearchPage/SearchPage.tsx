@@ -148,9 +148,6 @@ const SearchPage = () => {
             </h1>
           ) : (
             <>
-              <h1 className="hidden md:block text-2xl sm:text-3xl font-bold mb-6 text-left text-white">
-                {t("searchpage.findYourFavorites")}
-              </h1>
               <HubBrowseGrid />
             </>
           )}
