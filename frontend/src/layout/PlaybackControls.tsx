@@ -866,6 +866,7 @@ const PlaybackControls = () => {
                           variant="ghost"
                           className="hover:text-white text-zinc-400"
                           onClick={playNext}
+                          disabled={isNextDisabled}
                         >
                           <SkipForward className="size-6 fill-current" />
                         </Button>
