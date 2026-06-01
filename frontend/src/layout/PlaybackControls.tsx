@@ -53,6 +53,7 @@ import { useAuthStore } from "../stores/useAuthStore";
 import { QueueDropdown } from "@/components/queue/QueueDropdown";
 import { QueueDrawer } from "@/components/queue/QueueDrawer";
 import Repeat1 from "@/components/ui/repeat-one-icon";
+import SmartShuffle from "@/components/ui/smart-shuffle-icon";
 
 const formatTime = (seconds: number) => {
   if (isNaN(seconds) || seconds < 0) return "0:00";
@@ -834,9 +835,10 @@ const PlaybackControls = () => {
                           title={shuffleTitle}
                         >
                           <div className="relative flex flex-col items-center justify-center">
-                            <Shuffle className="size-5.5" />
-                            {effectiveShuffleMode === "smart" && (
-                              <div className="absolute right-3 -bottom-1 w-1 h-1 rounded-full bg-violet-500" />
+                            {effectiveShuffleMode === "smart" ? (
+                              <SmartShuffle className="size-5.5" />
+                            ) : (
+                              <Shuffle className="size-5.5" />
                             )}
                           </div>
                         </Button>
@@ -1075,9 +1077,10 @@ const PlaybackControls = () => {
                   title={shuffleTitle}
                 >
                   <div className="relative flex flex-col items-center justify-center">
-                    <Shuffle className="size-4.5" />
-                    {effectiveShuffleMode === "smart" && (
-                      <div className="absolute -bottom-1 right-2 w-1 h-1 rounded-full bg-[#8b5cf6] " />
+                    {effectiveShuffleMode === "smart" ? (
+                      <SmartShuffle className="size-4.5" />
+                    ) : (
+                      <Shuffle className="size-4.5" />
                     )}
                   </div>
                 </Button>

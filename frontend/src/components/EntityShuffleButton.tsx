@@ -8,6 +8,7 @@ import {
   type EntityType,
   type EntityShuffleMode,
 } from "@/lib/entityShufflePrefs";
+import SmartShuffle from "@/components/ui/smart-shuffle-icon";
 
 interface EntityShuffleButtonProps {
   entityType: EntityType;
@@ -49,14 +50,13 @@ export function EntityShuffleButton({
     void s.entityShufflePrefsRevision;
     return readEntityShufflePref(entityType, entityId, supportsSmartShuffle);
   });
-  const cycleEntityShufflePref = usePlayerStore((s) => s.cycleEntityShufflePref);
+  const cycleEntityShufflePref = usePlayerStore(
+    (s) => s.cycleEntityShufflePref,
+  );
 
   const pref = isAutoplaySourceEntity
     ? "off"
-    : clampMode(
-        isActiveEntity ? shuffleMode : savedPref,
-        supportsSmartShuffle,
-      );
+    : clampMode(isActiveEntity ? shuffleMode : savedPref, supportsSmartShuffle);
 
   const handleClick = () => {
     if (isAutoplaySourceEntity) return;
@@ -87,9 +87,10 @@ export function EntityShuffleButton({
           className,
         )}
       >
-        <Shuffle className="size-8" />
-        {pref === "smart" && (
-          <span className="absolute bottom-2 left-1/2 -translate-x-1/2 size-1.5 rounded-full bg-[#8b5cf6]" />
+        {pref === "smart" ? (
+          <SmartShuffle className="size-8" />
+        ) : (
+          <Shuffle className="size-8" />
         )}
       </Button>
     );
@@ -109,9 +110,10 @@ export function EntityShuffleButton({
         className,
       )}
     >
-      <Shuffle className={variant === "bar" ? "size-5.5" : "size-4.5"} />
-      {pref === "smart" && (
-        <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 size-1 rounded-full bg-violet-500" />
+      {pref === "smart" ? (
+        <SmartShuffle className={variant === "bar" ? "size-5.5" : "size-4.5"} />
+      ) : (
+        <Shuffle className={variant === "bar" ? "size-5.5" : "size-4.5"} />
       )}
     </button>
   );
