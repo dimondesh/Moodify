@@ -1,9 +1,11 @@
-// src/layout/AudioPlayer.tsx
-
 import { useEffect, useRef, useCallback } from "react";
 import Hls from "hls.js";
 import { usePlayerStore } from "../stores/usePlayerStore";
-import { webAudioService, useAudioSettingsStore, resolvePlaybackRate } from "../lib/webAudio";
+import {
+  webAudioService,
+  useAudioSettingsStore,
+  resolvePlaybackRate,
+} from "../lib/webAudio";
 import { isIosDevice } from "@/lib/platform";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { axiosInstance } from "@/lib/axios";
@@ -17,6 +19,7 @@ interface CustomWindow extends Window {
 
 const iosNativePlayback = isIosDevice();
 
+// --- Новые константы и утилиты (будут использоваться только не на iOS) ---
 const END_TOLERANCE_SEC = 0.25;
 const STALL_NEAR_END_SEC = 2;
 const STALL_TIMEOUT_MS = 1500;
@@ -29,7 +32,6 @@ function getEffectiveDuration(
   const metadataDuration = songDuration && songDuration > 0 ? songDuration : 0;
 
   if (mediaDuration > 0 && metadataDuration > 0) {
-    // DB duration is floored; allow a small upper bound when media duration is inflated.
     return Math.min(mediaDuration, metadataDuration + 1);
   }
   if (mediaDuration > 0) return mediaDuration;
@@ -63,6 +65,7 @@ function isAtEndOfTrack(
 
   return false;
 }
+// -------------------------------------------------------------------------
 
 const AudioPlayer = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -72,16 +75,20 @@ const AudioPlayer = () => {
     null,
   );
   const masterGainNodeRef = useRef<GainNode | null>(null);
+
   const lastSongIdRef = useRef<string | null>(null);
   const listenRecordedRef = useRef(false);
   const fallbackTriggeredRef = useRef(false);
   const lastRecordedTimeRef = useRef<number>(0);
+
+  // Рефы для новой логики (не iOS)
   const lastPlaybackTimeRef = useRef(0);
   const lastPlaybackProgressAtRef = useRef(Date.now());
 
   const {
     currentSong,
     isPlaying,
+    playNext,
     repeatMode,
     masterVolume,
     setCurrentTime,
@@ -101,9 +108,7 @@ const AudioPlayer = () => {
       if (song.lyrics || isOffline) {
         return;
       }
-
       // Lyrics уже должны быть в объекте песни
-      // Не делаем дополнительный запрос, чтобы избежать 404 ошибок
     },
     [isOffline],
   );
@@ -129,7 +134,7 @@ const AudioPlayer = () => {
     });
   }, []);
 
-  // iOS: <audio> → speakers (HLS native / hls.js). Desktop: Web Audio graph for EQ, reverb, volume.
+  // Web Audio Graph
   useEffect(() => {
     if (iosNativePlayback) return;
 
@@ -196,7 +201,6 @@ const AudioPlayer = () => {
       lastPlaybackProgressAtRef.current = Date.now();
       lastSongIdRef.current = currentSong._id;
 
-      // Загружаем lyrics для новой песни
       enrichSongWithLyricsIfNeeded(currentSong);
 
       if (Hls.isSupported()) {
@@ -207,6 +211,7 @@ const AudioPlayer = () => {
         hlsRef.current = hls;
         hls.loadSource(currentSong.hlsUrl);
         hls.attachMedia(audioEl);
+
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           if (usePlayerStore.getState().isPlaying) {
             audioEl
@@ -214,9 +219,13 @@ const AudioPlayer = () => {
               .catch((e) => console.error("Autoplay failed on new track", e));
           }
         });
-        hls.on(Hls.Events.MEDIA_ENDED, () => {
-          handleTrackEnd(audioEl);
-        });
+
+        if (!iosNativePlayback) {
+          hls.on(Hls.Events.MEDIA_ENDED, () => {
+            handleTrackEnd(audioEl);
+          });
+        }
+
         hls.on(Hls.Events.ERROR, (_event, data) => {
           if (data.fatal) {
             console.error("HLS Fatal Error:", data.details);
@@ -245,6 +254,7 @@ const AudioPlayer = () => {
     }
   }, [seekVersion, currentTime]);
 
+  // Управление звуком и скоростью
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -265,7 +275,13 @@ const AudioPlayer = () => {
     if (masterGainNodeRef.current) {
       masterGainNodeRef.current.gain.value = masterVolume / 100;
     }
-  }, [masterVolume, playbackRate, playbackRatePreset, playbackRateEnabled, currentSong]);
+  }, [
+    masterVolume,
+    playbackRate,
+    playbackRatePreset,
+    playbackRateEnabled,
+    currentSong,
+  ]);
 
   // Запись прослушивания
   useEffect(() => {
@@ -279,8 +295,8 @@ const AudioPlayer = () => {
       !isOffline
     ) {
       const shouldRecordListen =
-        !listenRecordedRef.current || // Первое прослушивание
-        (repeatMode === "one" && currentTime < lastRecordedTimeRef.current); // Повторное прослушивание в режиме "one"
+        !listenRecordedRef.current ||
+        (repeatMode === "one" && currentTime < lastRecordedTimeRef.current);
 
       if (shouldRecordListen) {
         listenRecordedRef.current = true;
@@ -301,12 +317,7 @@ const AudioPlayer = () => {
                 isValidContext
                   ? ` from ${playbackContext.type}`
                   : " (no context)"
-              }${
-                repeatMode === "one" &&
-                currentTime < lastRecordedTimeRef.current
-                  ? " (repeat)"
-                  : ""
-              }`,
+              }${repeatMode === "one" && currentTime < lastRecordedTimeRef.current ? " (repeat)" : ""}`,
             );
             void invalidateListenHistory();
           })
@@ -317,7 +328,6 @@ const AudioPlayer = () => {
       }
     }
 
-    // Сброс флага прослушивания если время меньше 1/3 трека
     if (
       currentSong &&
       currentTime < (currentSong.duration || 0) / 3 &&
@@ -336,7 +346,7 @@ const AudioPlayer = () => {
     repeatMode,
   ]);
 
-  // Event Listeners для <audio>
+  // Event Listeners для <audio> (Смешанная логика iOS vs Остальные)
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -346,46 +356,85 @@ const AudioPlayer = () => {
 
     const handleTimeUpdate = () => {
       const now = Date.now();
-      const playbackTime = audio.currentTime;
-      const { currentSong: song, isPlaying: playing } =
-        usePlayerStore.getState();
 
-      if (
-        !fallbackTriggeredRef.current &&
-        isAtEndOfTrack(audio, song?.duration)
-      ) {
-        handleTrackEnd(audio);
-        return;
-      }
+      if (iosNativePlayback) {
+        // --- СТАРАЯ ЛОГИКА (iOS) ---
+        if (now - lastUpdateTime < UPDATE_INTERVAL) return;
+        lastUpdateTime = now;
 
-      if (
-        !fallbackTriggeredRef.current &&
-        playing &&
-        !audio.paused &&
-        song?.duration &&
-        playbackTime >= song.duration - STALL_NEAR_END_SEC &&
-        playbackTime === lastPlaybackTimeRef.current &&
-        now - lastPlaybackProgressAtRef.current >= STALL_TIMEOUT_MS
-      ) {
-        handleTrackEnd(audio);
-        return;
-      }
+        setCurrentTime(audio.currentTime, true);
 
-      if (playbackTime !== lastPlaybackTimeRef.current) {
-        lastPlaybackTimeRef.current = playbackTime;
-        lastPlaybackProgressAtRef.current = now;
-      }
+        // Fallback: проверка близости к концу трека
+        if (
+          audio.duration &&
+          audio.currentTime >= audio.duration - 0.1 &&
+          !fallbackTriggeredRef.current
+        ) {
+          fallbackTriggeredRef.current = true;
+          const state = usePlayerStore.getState();
+          if (state.repeatMode === "one") {
+            audio.currentTime = 0;
+            audio.play();
+          } else {
+            state.playNext();
+          }
+        }
+      } else {
+        // --- НОВАЯ ЛОГИКА (Остальные платформы) ---
+        const playbackTime = audio.currentTime;
+        const { currentSong: song, isPlaying: playing } =
+          usePlayerStore.getState();
 
-      if (now - lastUpdateTime < UPDATE_INTERVAL) {
-        return;
+        if (
+          !fallbackTriggeredRef.current &&
+          isAtEndOfTrack(audio, song?.duration)
+        ) {
+          handleTrackEnd(audio);
+          return;
+        }
+
+        if (
+          !fallbackTriggeredRef.current &&
+          playing &&
+          !audio.paused &&
+          song?.duration &&
+          playbackTime >= song.duration - STALL_NEAR_END_SEC &&
+          playbackTime === lastPlaybackTimeRef.current &&
+          now - lastPlaybackProgressAtRef.current >= STALL_TIMEOUT_MS
+        ) {
+          handleTrackEnd(audio);
+          return;
+        }
+
+        if (playbackTime !== lastPlaybackTimeRef.current) {
+          lastPlaybackTimeRef.current = playbackTime;
+          lastPlaybackProgressAtRef.current = now;
+        }
+
+        if (now - lastUpdateTime < UPDATE_INTERVAL) return;
+        lastUpdateTime = now;
+        setCurrentTime(playbackTime, true);
       }
-      lastUpdateTime = now;
-      setCurrentTime(playbackTime, true);
     };
+
     const handleDurationChange = () =>
       setDuration(audio.duration, audio.duration);
+
     const handleEnded = () => {
-      handleTrackEnd(audio);
+      if (iosNativePlayback) {
+        // --- СТАРАЯ ЛОГИКА (iOS) ---
+        const state = usePlayerStore.getState();
+        fallbackTriggeredRef.current = false;
+        if (state.repeatMode === "one") {
+          audio.currentTime = 0;
+          audio.play();
+        } else {
+          state.playNext();
+        }
+      } else {
+        // --- НОВАЯ ЛОГИКА (Остальные платформы) ---
+        handleTrackEnd(audio);
+      }
     };
 
     audio.addEventListener("timeupdate", handleTimeUpdate);
@@ -397,7 +446,7 @@ const AudioPlayer = () => {
       audio.removeEventListener("durationchange", handleDurationChange);
       audio.removeEventListener("ended", handleEnded);
     };
-  }, [setCurrentTime, setDuration, handleTrackEnd]);
+  }, [setCurrentTime, setDuration, playNext, repeatMode, handleTrackEnd]);
 
   return (
     <audio
