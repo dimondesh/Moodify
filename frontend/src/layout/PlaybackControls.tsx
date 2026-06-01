@@ -1,6 +1,11 @@
-// src/layout/PlaybackControls.tsx
-
-import { useEffect, useState, startTransition, memo, useCallback, useRef } from "react";
+import {
+  useEffect,
+  useState,
+  startTransition,
+  memo,
+  useCallback,
+  useRef,
+} from "react";
 import { Drawer } from "vaul";
 import { useDominantColor } from "@/hooks/useDominantColor";
 import { usePlayerStore } from "../stores/usePlayerStore";
@@ -17,6 +22,7 @@ import { CoverDominantBackdrop } from "@/components/CoverDominantBackdrop";
 import { CoverImage } from "@/components/CoverImage";
 import { buildMediaSessionArtwork } from "@/lib/imageUrl";
 import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
+import { isIosDevice } from "@/lib/platform";
 
 import {
   Pause,
@@ -102,6 +108,7 @@ const SeekSlider = memo(function SeekSlider({
   const currentTime = usePlayerStore((s) => s.currentTime);
   const duration = usePlayerStore((s) => s.duration);
   const seekToTime = usePlayerStore((s) => s.seekToTime);
+  const ios = isIosDevice();
   const sliderWrapRef = useRef<HTMLDivElement>(null);
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [previewTime, setPreviewTime] = useState<number | null>(null);
@@ -115,10 +122,13 @@ const SeekSlider = memo(function SeekSlider({
     duration > 0 &&
     previewTime !== null &&
     (isScrubbing || isHovering);
-  const sliderValue =
-    isScrubbing && previewTime !== null ? previewTime : currentTime;
+  const sliderValue = ios
+    ? currentTime
+    : isScrubbing && previewTime !== null
+      ? previewTime
+      : currentTime;
   const displayedCurrentTime =
-    isScrubbing && previewTime !== null ? previewTime : currentTime;
+    !ios && isScrubbing && previewTime !== null ? previewTime : currentTime;
 
   const setPreviewFromClientX = useCallback(
     (clientX: number) => {
@@ -157,7 +167,8 @@ const SeekSlider = memo(function SeekSlider({
   );
 
   const clampedTooltipLeft = () => {
-    const width = sliderWrapRef.current?.getBoundingClientRect().width ?? tooltipX;
+    const width =
+      sliderWrapRef.current?.getBoundingClientRect().width ?? tooltipX;
     return Math.max(16, Math.min(tooltipX, width - 16));
   };
 
@@ -165,13 +176,9 @@ const SeekSlider = memo(function SeekSlider({
     <div
       ref={sliderWrapRef}
       className={
-        variant === "drawer"
-          ? "relative w-full"
-          : "relative flex-1 min-w-0"
+        variant === "drawer" ? "relative w-full" : "relative flex-1 min-w-0"
       }
-      onMouseEnter={
-        enableHoverPreview ? () => setIsHovering(true) : undefined
-      }
+      onMouseEnter={enableHoverPreview ? () => setIsHovering(true) : undefined}
       onMouseMove={
         enableHoverPreview
           ? (e) => {
@@ -208,12 +215,16 @@ const SeekSlider = memo(function SeekSlider({
             ? "w-full hover:cursor-grab active:cursor-grabbing"
             : "w-full hover:cursor-pointer"
         }
-        onPointerDown={() => setIsScrubbing(true)}
+        onPointerDown={ios ? undefined : () => setIsScrubbing(true)}
         onValueChange={(value) => {
+          if (ios) {
+            seekToTime(value[0]);
+            return;
+          }
           setIsScrubbing(true);
           setPreviewFromTime(value[0]);
         }}
-        onValueCommit={(value) => handleSeekCommit(value[0])}
+        onValueCommit={ios ? undefined : (value) => handleSeekCommit(value[0])}
       />
     </div>
   );
@@ -394,7 +405,9 @@ const PlaybackControls = () => {
       : effectiveShuffleMode === "regular"
         ? t("player.shuffleOn")
         : t("player.shuffleOff");
-  const isFullScreenPlayerOpen = usePlayerStore((s) => s.isFullScreenPlayerOpen);
+  const isFullScreenPlayerOpen = usePlayerStore(
+    (s) => s.isFullScreenPlayerOpen,
+  );
   const setIsFullScreenPlayerOpen = usePlayerStore(
     (s) => s.setIsFullScreenPlayerOpen,
   );
@@ -483,13 +496,7 @@ const PlaybackControls = () => {
         seekToTime(newTime);
       });
     }
-  }, [
-    currentSong,
-    isPlaying,
-    playNext,
-    playPrevious,
-    togglePlay,
-  ]);
+  }, [currentSong, isPlaying, playNext, playPrevious, togglePlay]);
 
   useEffect(() => {
     const checkScreenSize = () => {
