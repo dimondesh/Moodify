@@ -1,3 +1,5 @@
+// src/layout/PlaybackControls.tsx
+
 import {
   useEffect,
   useState,
@@ -22,7 +24,6 @@ import { CoverDominantBackdrop } from "@/components/CoverDominantBackdrop";
 import { CoverImage } from "@/components/CoverImage";
 import { buildMediaSessionArtwork } from "@/lib/imageUrl";
 import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
-import { isIosDevice } from "@/lib/platform";
 
 import {
   Pause,
@@ -53,7 +54,6 @@ import { useAuthStore } from "../stores/useAuthStore";
 import { QueueDropdown } from "@/components/queue/QueueDropdown";
 import { QueueDrawer } from "@/components/queue/QueueDrawer";
 import Repeat1 from "@/components/ui/repeat-one-icon";
-import SmartShuffle from "@/components/ui/smart-shuffle-icon";
 
 const formatTime = (seconds: number) => {
   if (isNaN(seconds) || seconds < 0) return "0:00";
@@ -109,7 +109,6 @@ const SeekSlider = memo(function SeekSlider({
   const currentTime = usePlayerStore((s) => s.currentTime);
   const duration = usePlayerStore((s) => s.duration);
   const seekToTime = usePlayerStore((s) => s.seekToTime);
-  const ios = isIosDevice();
   const sliderWrapRef = useRef<HTMLDivElement>(null);
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [previewTime, setPreviewTime] = useState<number | null>(null);
@@ -123,13 +122,10 @@ const SeekSlider = memo(function SeekSlider({
     duration > 0 &&
     previewTime !== null &&
     (isScrubbing || isHovering);
-  const sliderValue = ios
-    ? currentTime
-    : isScrubbing && previewTime !== null
-      ? previewTime
-      : currentTime;
+  const sliderValue =
+    isScrubbing && previewTime !== null ? previewTime : currentTime;
   const displayedCurrentTime =
-    !ios && isScrubbing && previewTime !== null ? previewTime : currentTime;
+    isScrubbing && previewTime !== null ? previewTime : currentTime;
 
   const setPreviewFromClientX = useCallback(
     (clientX: number) => {
@@ -216,16 +212,12 @@ const SeekSlider = memo(function SeekSlider({
             ? "w-full hover:cursor-grab active:cursor-grabbing"
             : "w-full hover:cursor-pointer"
         }
-        onPointerDown={ios ? undefined : () => setIsScrubbing(true)}
+        onPointerDown={() => setIsScrubbing(true)}
         onValueChange={(value) => {
-          if (ios) {
-            seekToTime(value[0]);
-            return;
-          }
           setIsScrubbing(true);
           setPreviewFromTime(value[0]);
         }}
-        onValueCommit={ios ? undefined : (value) => handleSeekCommit(value[0])}
+        onValueCommit={(value) => handleSeekCommit(value[0])}
       />
     </div>
   );
@@ -835,10 +827,9 @@ const PlaybackControls = () => {
                           title={shuffleTitle}
                         >
                           <div className="relative flex flex-col items-center justify-center">
-                            {effectiveShuffleMode === "smart" ? (
-                              <SmartShuffle className="size-5.5" />
-                            ) : (
-                              <Shuffle className="size-5.5" />
+                            <Shuffle className="size-5.5" />
+                            {effectiveShuffleMode === "smart" && (
+                              <div className="absolute right-3 -bottom-1 w-1 h-1 rounded-full bg-violet-500" />
                             )}
                           </div>
                         </Button>
@@ -1077,10 +1068,9 @@ const PlaybackControls = () => {
                   title={shuffleTitle}
                 >
                   <div className="relative flex flex-col items-center justify-center">
-                    {effectiveShuffleMode === "smart" ? (
-                      <SmartShuffle className="size-4.5" />
-                    ) : (
-                      <Shuffle className="size-4.5" />
+                    <Shuffle className="size-4.5" />
+                    {effectiveShuffleMode === "smart" && (
+                      <div className="absolute -bottom-1 right-2 w-1 h-1 rounded-full bg-[#8b5cf6] " />
                     )}
                   </div>
                 </Button>
