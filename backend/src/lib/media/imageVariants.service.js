@@ -134,3 +134,10 @@ export const replaceEntityImageVariants = async (entity, source, folder) => {
   await deleteImageVariants(previous);
   return uploadResult;
 };
+
+/** @param {{ size: number, url: string }[] | undefined} images */
+export const getSmallImageUrl = (images) => {
+  if (!images?.length) return null;
+  const sorted = [...images].sort((a, b) => a.size - b.size);
+  return sorted[0]?.url ?? null;
+};

@@ -61,6 +61,7 @@ import {
   replaceEntityImageVariants,
   toImageFields,
   uploadImageVariantsFromSource,
+  getSmallImageUrl
 } from "../lib/media/imageVariants.service.js";
 
 const DOWNLOAD_OPTS = {
@@ -1111,21 +1112,28 @@ export const getPaginatedSongs = async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 50;
     const skip = (page - 1) * limit;
 
-    const songsQuery = Song.find()
-      .populate("artist", "name images")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const totalSongsQuery = Song.countDocuments();
-
     const [songs, totalSongs] = await Promise.all([
-      songsQuery.exec(),
-      totalSongsQuery.exec(),
+      Song.find()
+        .populate("artist", "name images")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean()
+        .exec(),
+      Song.countDocuments().exec(),
     ]);
 
+    const formattedSongs = songs.map(song => ({
+      ...song,
+      imageUrl: getSmallImageUrl(song.images) || song.imageUrl,
+      artist: song.artist ? song.artist.map(a => ({
+        ...a,
+        imageUrl: getSmallImageUrl(a.images) || a.imageUrl
+      })) : []
+    }));
+
     res.status(200).json({
-      songs,
+      songs: formattedSongs,
       totalPages: Math.ceil(totalSongs / limit),
       currentPage: page,
     });
@@ -1141,18 +1149,15 @@ export const getPaginatedAlbums = async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 50;
     const skip = (page - 1) * limit;
 
-    const albumsQuery = Album.find()
-      .populate("artist", "name images")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
-
-    const totalAlbumsQuery = Album.countDocuments();
-
     const [albums, totalAlbums] = await Promise.all([
-      albumsQuery.exec(),
-      totalAlbumsQuery.exec(),
+      Album.find()
+        .populate("artist", "name images")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean()
+        .exec(),
+      Album.countDocuments().exec(),
     ]);
 
     const albumIds = albums.map((album) => album._id);
@@ -1162,8 +1167,17 @@ export const getPaginatedAlbums = async (req, res, next) => {
           .lean()
       : [];
 
+    const formattedAlbums = attachSongsToAlbums(albums, songs).map(album => ({
+      ...album,
+      imageUrl: getSmallImageUrl(album.images) || album.imageUrl,
+      artist: album.artist ? album.artist.map(a => ({
+        ...a,
+        imageUrl: getSmallImageUrl(a.images) || a.imageUrl
+      })) : []
+    }));
+
     res.status(200).json({
-      albums: attachSongsToAlbums(albums, songs),
+      albums: formattedAlbums,
       totalPages: Math.ceil(totalAlbums / limit),
       currentPage: page,
     });
@@ -1179,20 +1193,23 @@ export const getPaginatedArtists = async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 50;
     const skip = (page - 1) * limit;
 
-    const artistsQuery = Artist.find()
-      .sort({ name: 1 })
-      .skip(skip)
-      .limit(limit);
-
-    const totalArtistsQuery = Artist.countDocuments();
-
     const [artists, totalArtists] = await Promise.all([
-      artistsQuery.exec(),
-      totalArtistsQuery.exec(),
+      Artist.find()
+        .sort({ name: 1 })
+        .skip(skip)
+        .limit(limit)
+        .lean()
+        .exec(),
+      Artist.countDocuments().exec(),
     ]);
 
+    const formattedArtists = artists.map(artist => ({
+      ...artist,
+      imageUrl: getSmallImageUrl(artist.images) || artist.imageUrl
+    }));
+
     res.status(200).json({
-      artists,
+      artists: formattedArtists,
       totalPages: Math.ceil(totalArtists / limit),
       currentPage: page,
     });
