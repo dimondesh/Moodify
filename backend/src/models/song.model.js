@@ -102,6 +102,7 @@ songSchema.index({ playCount: -1 });
 songSchema.index({ genres: 1 });
 songSchema.index({ moods: 1 });
 songSchema.index({ title: "text" });
+songSchema.index({ createdAt: -1 });
 
 export const Song = mongoose.model("Song", songSchema);
 
