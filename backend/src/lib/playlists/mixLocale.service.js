@@ -1,79 +1,49 @@
-import axios from "axios";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import { Genre } from "../../models/genre.model.js";
 import { Mood } from "../../models/mood.model.js";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+// Инициализация официального SDK
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+const aiModel = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
 export const MIX_LOCALE_LANGS = ["en", "ru", "uk"];
 const BATCH_SIZE = 15;
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export const hasCompleteLocalizedNames = (localizedNames) =>
   MIX_LOCALE_LANGS.every((lang) => localizedNames?.[lang]?.trim());
 
-/** Первый сбалансированный JSON-объект (greedy regex ломается на хвосте ответа). */
-const parseGeminiJson = (rawText) => {
-  const cleaned = rawText
-    .replace(/```json/gi, "")
-    .replace(/```/g, "")
-    .trim();
-  const start = cleaned.indexOf("{");
-  if (start === -1) throw new Error("No JSON object in Gemini response");
-
-  let depth = 0;
-  let inString = false;
-  let escaped = false;
-
-  for (let i = start; i < cleaned.length; i += 1) {
-    const ch = cleaned[i];
-    if (escaped) {
-      escaped = false;
-      continue;
-    }
-    if (inString && ch === "\\") {
-      escaped = true;
-      continue;
-    }
-    if (ch === '"') {
-      inString = !inString;
-      continue;
-    }
-    if (inString) continue;
-
-    if (ch === "{") depth += 1;
-    if (ch === "}") {
-      depth -= 1;
-      if (depth === 0) {
-        return JSON.parse(cleaned.slice(start, i + 1));
-      }
-    }
-  }
-
-  throw new Error("Unclosed JSON object in Gemini response");
-};
-
-const mapBatchResponse = (parsed, items) => {
-  const result = {};
-  for (const item of items) {
-    const entry = parsed[item.id];
-    if (!entry || typeof entry !== "object") continue;
-
-    const localizedNames = {};
-    for (const lang of MIX_LOCALE_LANGS) {
-      if (typeof entry[lang] === "string" && entry[lang].trim()) {
-        localizedNames[lang] = entry[lang].trim();
-      }
-    }
-    if (localizedNames.en) {
-      result[item.id] = localizedNames;
-    }
-  }
-  return result;
+// --- Схема для Structured Outputs ---
+const localizationBatchSchema = {
+  type: SchemaType.ARRAY,
+  description: "Array of localized names for genres or moods",
+  items: {
+    type: SchemaType.OBJECT,
+    properties: {
+      id: {
+        type: SchemaType.STRING,
+        description: "The ID provided in the prompt",
+      },
+      en: { type: SchemaType.STRING, description: "Standard English name" },
+      ru: {
+        type: SchemaType.STRING,
+        description: "Russian translation/transliteration without 'Микс'",
+      },
+      uk: {
+        type: SchemaType.STRING,
+        description: "Ukrainian translation/transliteration without 'Мікс'",
+      },
+    },
+    required: ["id", "en", "ru", "uk"],
+  },
 };
 
 const buildBatchPrompt = (category, items) => {
   const list = items
-    .map((item) => `${item.id}: "${item.name}"`)
+    .map((item) => `ID: ${item.id} | Name: "${item.name}"`)
     .join("\n");
 
   return `You are a music streaming localization expert. Translate these music ${category} names into natural display names.
@@ -83,8 +53,7 @@ RULES:
 2. Russian (ru): natural translation or transliteration of the name only — do NOT add "Микс".
 3. Ukrainian (uk): natural translation or transliteration — do NOT add "Мікс".
 4. These are category labels (for hubs and tags), NOT playlist titles — never append "Mix", "Микс", or "Мікс".
-5. Return ONLY a raw JSON object. Keys are the ids from the list. Values: { "en": "...", "ru": "...", "uk": "..." }.
-6. No markdown, no explanations.
+5. Return an array of objects corresponding to the provided items.
 
 LIST:
 ${list}`;
@@ -93,36 +62,60 @@ ${list}`;
 /**
  * @param {"genre"|"mood"} category
  * @param {{ id: string, name: string }[]} items
- * @returns {Promise<Record<string, { en: string, ru: string, uk: string }>>}
+ * @returns {Promise<Array>}
  */
 const requestGeminiBatch = async (category, items) => {
-  const response = await axios.post(
-    GEMINI_API_URL,
-    {
-      contents: [{ parts: [{ text: buildBatchPrompt(category, items) }] }],
-      generationConfig: { response_mime_type: "application/json" },
-    },
-    { timeout: 120_000 },
-  );
+  const prompt = buildBatchPrompt(category, items);
 
-  const rawText = response.data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!rawText) throw new Error("Empty Gemini response");
-  return parseGeminiJson(rawText);
+  const result = await aiModel.generateContent({
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    generationConfig: {
+      responseMimeType: "application/json",
+      responseSchema: localizationBatchSchema,
+    },
+  });
+
+  return JSON.parse(result.response.text());
 };
 
 export const translateMixSourcesBatch = async (category, items) => {
   if (!items.length) return {};
   if (!GEMINI_API_KEY) {
-    console.warn("[MixLocale] GEMINI_API_KEY missing — skip batch translation.");
+    console.warn(
+      "[MixLocale] GEMINI_API_KEY missing — skip batch translation.",
+    );
     return {};
   }
 
   try {
-    const parsed = await requestGeminiBatch(category, items);
-    return mapBatchResponse(parsed, items);
-  } catch (error) {
-    const message = error.response?.data?.error?.message || error.message;
+    const parsedArray = await requestGeminiBatch(category, items);
 
+    // Преобразуем массив обратно в словарь { id: { en, ru, uk } }
+    const result = {};
+    for (const entry of parsedArray) {
+      if (!entry || !entry.id) continue;
+
+      const localizedNames = {};
+      for (const lang of MIX_LOCALE_LANGS) {
+        if (typeof entry[lang] === "string" && entry[lang].trim()) {
+          localizedNames[lang] = entry[lang].trim();
+        }
+      }
+      if (localizedNames.en) {
+        result[entry.id] = localizedNames;
+      }
+    }
+    return result;
+  } catch (error) {
+    const message = error.message || String(error);
+
+    // Обработка лимитов (429) перед ретраем
+    if (error.status === 429) {
+      console.warn(`[MixLocale] Rate limit 429. Pausing for 2s...`);
+      await sleep(2000);
+    }
+
+    // Рекурсивное деление батча пополам при ошибках (очень полезно, если какой-то спецсимвол ломает промпт)
     if (items.length > 1) {
       const mid = Math.ceil(items.length / 2);
       console.warn(
@@ -135,14 +128,20 @@ export const translateMixSourcesBatch = async (category, items) => {
       return { ...first, ...second };
     }
 
-    console.error("[MixLocale] Gemini batch translation failed:", message);
+    console.error(
+      "[MixLocale] Gemini batch translation failed completely for item:",
+      items[0]?.id,
+      message,
+    );
     return {};
   }
 };
 
 const fillMissingForModel = async (Model, category) => {
   const docs = await Model.find({}).select("name localizedNames").lean();
-  const missing = docs.filter((d) => !hasCompleteLocalizedNames(d.localizedNames));
+  const missing = docs.filter(
+    (d) => !hasCompleteLocalizedNames(d.localizedNames),
+  );
 
   if (missing.length === 0) {
     return { total: docs.length, translated: 0 };
@@ -167,10 +166,7 @@ const fillMissingForModel = async (Model, category) => {
       const localizedNames = batchResult[doc._id.toString()];
       if (!localizedNames) continue;
 
-      await Model.updateOne(
-        { _id: doc._id },
-        { $set: { localizedNames } },
-      );
+      await Model.updateOne({ _id: doc._id }, { $set: { localizedNames } });
       translated += 1;
     }
   }
@@ -203,10 +199,7 @@ const retranslateAllForModel = async (Model, category) => {
       const localizedNames = batchResult[doc._id.toString()];
       if (!localizedNames) continue;
 
-      await Model.updateOne(
-        { _id: doc._id },
-        { $set: { localizedNames } },
-      );
+      await Model.updateOne({ _id: doc._id }, { $set: { localizedNames } });
       translated += 1;
     }
   }

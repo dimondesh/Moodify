@@ -1,12 +1,15 @@
 // backend/src/lib/ai.service.js
 
-import axios from "axios";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import { Genre } from "../../models/genre.model.js";
 import { Mood } from "../../models/mood.model.js";
 import { localizeNewMixSource } from "../playlists/mixLocale.service.js";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+
+const aiModel = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
 const CORE_GENRES_LIST = [
   "Rock",
@@ -32,6 +35,49 @@ const CORE_GENRES_LIST = [
 ];
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// --- Схемы для Структурированного Вывода (Structured Outputs) ---
+
+const trackSchema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    primaryGenre: {
+      type: SchemaType.STRING,
+      description: "The ONE most fitting core genre",
+    },
+    subGenres: {
+      type: SchemaType.ARRAY,
+      items: { type: SchemaType.STRING },
+      description: "1 or 2 specific sub-genres",
+    },
+    moods: {
+      type: SchemaType.ARRAY,
+      items: { type: SchemaType.STRING },
+      description: "1 to 3 moods",
+    },
+  },
+  required: ["primaryGenre", "subGenres", "moods"],
+};
+
+const batchSchema = {
+  type: SchemaType.ARRAY,
+  description: "Array of analyzed tracks",
+  items: {
+    type: SchemaType.OBJECT,
+    properties: {
+      tempId: {
+        type: SchemaType.STRING,
+        description: "The ID provided in the prompt",
+      },
+      primaryGenre: { type: SchemaType.STRING },
+      subGenres: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+      moods: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+    },
+    required: ["tempId", "primaryGenre", "subGenres", "moods"],
+  },
+};
+
+// --- Вспомогательные функции ---
 
 const findOrCreate = async (model, name) => {
   const cleanedName = name.trim();
@@ -64,55 +110,50 @@ const parseTagsForTrack = async (tags) => {
   return { genreIds, moodIds };
 };
 
+// --- Основные функции ---
+
 export const getTagsFromAI = async (artistName, trackName) => {
   if (!GEMINI_API_KEY) {
     console.error("[AI Service] GEMINI_API_KEY не найден.");
     return { genreIds: [], moodIds: [] };
   }
 
-  const prompt = `You are an expert musicologist. Your task is to analyze the provided artist and track and return its primary genre, specific sub-genres, and relevant moods.
+  const prompt = `You are an expert musicologist. Analyze the provided artist and track.
 Artist: "${artistName}"
 Track: "${trackName}"
+Core Genres List: [${CORE_GENRES_LIST.join(", ")}]
+
 Constraints:
-1.  **Determine the Primary Core Genre**: From the following list, choose the ONE most fitting core genre. Core Genres List: [${CORE_GENRES_LIST.join(
-    ", ",
-  )}]
-2.  **Determine Specific Sub-Genres**: Identify 1 or 2 more specific sub-genres (e.g., "Shoegaze", "Synthpop"). Do NOT repeat the core genre here.
-3.  **Determine Moods**: Identify 1 to 3 moods that describe the feeling of the song (e.g., "Melancholic", "Energetic", "Dreamy").
-4.  **Format the Output**: Your response MUST be ONLY a valid JSON object, starting with { and ending with }. Do not include any text, explanations, or markdown.
-Example Response: { "primaryGenre": "Alternative", "subGenres": ["Indie Pop", "Jangle Pop"], "moods": ["Melancholic", "Nostalgic", "Bittersweet"] }`;
+1. Determine the ONE most fitting core genre from the Core Genres List.
+2. Identify 1 or 2 specific sub-genres (do not repeat the core genre).
+3. Identify 1 to 3 moods.`;
 
   try {
     console.log(
-      `[AI Service] Отправка запроса к Gemini для трека: ${artistName} - ${trackName}`,
+      `[AI Service] Отправка запроса к Gemini: ${artistName} - ${trackName}`,
     );
 
-    const response = await axios.post(GEMINI_API_URL, {
-      contents: [{ parts: [{ text: prompt }] }],
+    // Передаем схему в генерацию
+    const result = await aiModel.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: trackSchema,
+      },
     });
 
-    const rawText = response.data.candidates[0].content.parts[0].text;
-    const cleanedText = rawText
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
-    const tags = JSON.parse(cleanedText);
-
-    if (!tags.primaryGenre || !tags.subGenres || !tags.moods) {
-      console.warn("[AI Service] Gemini вернул JSON без обязательных полей.");
-      return { genreIds: [], moodIds: [] };
-    }
-
+    // SDK сам вернет нам чистый текст в формате JSON, без ```json
+    const tags = JSON.parse(result.response.text());
     console.log(`[AI Service] Получены теги от Gemini:`, tags);
 
     return parseTagsForTrack(tags);
   } catch (error) {
     console.error(
       "[AI Service] Ошибка при обращении к Gemini API:",
-      error.response?.data?.error?.message || error.message,
+      error.message,
     );
 
-    if (error.response && error.response.status === 429) {
+    if (error.status === 429) {
       console.log(
         "[AI Service] Достигнут лимит запросов. Пауза на 2 секунды...",
       );
@@ -138,54 +179,41 @@ export const getBatchTagsFromAI = async (tracks) => {
       (t) =>
         `ID: ${t.tempId} | Artist: "${t.artistName}" | Track: "${t.trackName}"`,
     )
-    .join(`
-`);
+    .join("\n");
 
-  const prompt = `You are an expert musicologist. Analyze the following list of tracks and return their primary genre, specific sub-genres, and relevant moods.
+  const prompt = `You are an expert musicologist. Analyze the following list of tracks.
 Core Genres List: [${CORE_GENRES_LIST.join(", ")}]
 
 Tracks to analyze:
 ${tracksText}
 
-Constraints:
-1. For each track, determine the ONE most fitting Primary Core Genre from the list.
-2. Determine 1 or 2 specific sub-genres. Do NOT repeat the core genre here.
+Constraints for each track:
+1. Determine the ONE most fitting Primary Core Genre from the list.
+2. Determine 1 or 2 specific sub-genres. Do NOT repeat the core genre.
 3. Determine 1 to 3 moods.
-4. Your response MUST be ONLY a valid JSON object where the key is the track ID and the value is the analysis. Do not include any text, explanations, or markdown.
-Example Response:
-{
-  "track123": { "primaryGenre": "Alternative", "subGenres": ["Indie Pop", "Jangle Pop"], "moods": ["Melancholic", "Nostalgic"] },
-  "track456": { "primaryGenre": "Rock", "subGenres": ["Post-Punk"], "moods": ["Energetic", "Dark"] }
-}`;
+Return an array of objects corresponding to the tracks.`;
 
   try {
     console.log(
-      `[AI Service] Отправка batch-запроса к Gemini для ${tracks.length} треков`,
+      `[AI Service] Отправка batch-запроса для ${tracks.length} треков`,
     );
 
-    const response = await axios.post(GEMINI_API_URL, {
-      contents: [{ parts: [{ text: prompt }] }],
+    const result = await aiModel.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: batchSchema,
+      },
     });
 
-    const rawText = response.data.candidates[0].content.parts[0].text;
-    const cleanedText = rawText
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
-    const tagsMap = JSON.parse(cleanedText);
-
-    console.log(`[AI Service] Получены теги от Gemini (Batch):`, tagsMap);
+    const tagsArray = JSON.parse(result.response.text());
+    console.log(`[AI Service] Получены теги от Gemini (Batch):`, tagsArray);
 
     const resultMap = {};
 
-    for (const [tempId, tags] of Object.entries(tagsMap)) {
-      if (!tags.primaryGenre || !tags.subGenres || !tags.moods) {
-        console.warn(
-          `[AI Service] Gemini вернул неполные данные для ID ${tempId}`,
-        );
-        resultMap[tempId] = { genreIds: [], moodIds: [] };
-        continue;
-      }
+    for (const tags of tagsArray) {
+      const { tempId } = tags;
+      if (!tempId) continue;
 
       resultMap[tempId] = await parseTagsForTrack(tags);
     }
@@ -194,7 +222,7 @@ Example Response:
   } catch (error) {
     console.error(
       "[AI Service] Ошибка при обращении к Gemini API (Batch):",
-      error.response?.data?.error?.message || error.message,
+      error.message,
     );
     return {};
   }
