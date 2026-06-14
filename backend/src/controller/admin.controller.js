@@ -37,16 +37,9 @@ import axios from "axios";
 import { createWriteStream } from "fs";
 import { analyzeAudioFeatures } from "../lib/integrations/audioAnalysis.service.js";
 import {
-  enqueueAdminFileJob,
-  getAdminFileQueueSnapshot,
-} from "../lib/media/adminUploadQueue.service.js";
-import {
-  touchChunkAssemblyLease,
-  releaseChunkAssemblyLease,
-  getChunkAssemblyLeaseStats,
-  getGlobalLeaseStats,
-  sanitizeChunkUploadId,
-} from "../lib/media/adminUploadLease.service.js";
+  setUploadInProgress,
+  clearUploadInProgress,
+} from "../lib/media/activeUploads.service.js";
 import os from "os";
 import {
   extractCoverAccentHexFromBuffer,
@@ -123,109 +116,111 @@ export const createSong = async (req, res, next) => {
     return res.status(400).json({ message: "Audio file is required." });
 
   try {
-    await enqueueAdminFileJob(async () => {
-      const {
-        title,
-        artistIds: artistIdsJsonString,
-        albumId,
-        releaseYear,
-        lyrics,
-        genreIds: genreIdsJson,
-        moodIds: moodIdsJson,
-      } = req.body;
+    setUploadInProgress();
 
-      const { hlsUrl, duration } =
-        await processAndUploadSong(req.files.audioFile.tempFilePath);
+    const {
+      title,
+      artistIds: artistIdsJsonString,
+      albumId,
+      releaseYear,
+      lyrics,
+      genreIds: genreIdsJson,
+      moodIds: moodIdsJson,
+    } = req.body;
 
-      let imageFields = {
-        imagePublicId: null,
-        images: [],
-      };
-      let finalAlbumId = albumId && albumId !== "none" ? albumId : null;
-      const artistIds = JSON.parse(artistIdsJsonString);
-      let songCoverAccentHex = null;
+    const { hlsUrl, duration } =
+      await processAndUploadSong(req.files.audioFile.tempFilePath);
 
-      if (!finalAlbumId) {
-        if (!req.files.imageFile)
-          throw new Error("Image file is required for singles.");
+    let imageFields = {
+      imagePublicId: null,
+      images: [],
+    };
+    let finalAlbumId = albumId && albumId !== "none" ? albumId : null;
+    const artistIds = JSON.parse(artistIdsJsonString);
+    let songCoverAccentHex = null;
 
-        const coverBuf = await fs.readFile(req.files.imageFile.tempFilePath);
-        const coverAccentHex =
-          await extractCoverAccentHexFromBuffer(coverBuf);
+    if (!finalAlbumId) {
+      if (!req.files.imageFile)
+        throw new Error("Image file is required for singles.");
 
-        const variantUpload = await uploadImageVariantsFromSource(
-          req.files.imageFile,
-          "albums",
-        );
-        imageFields = toImageFields(variantUpload);
+      const coverBuf = await fs.readFile(req.files.imageFile.tempFilePath);
+      const coverAccentHex =
+        await extractCoverAccentHexFromBuffer(coverBuf);
 
-        const newAlbum = new Album({
-          title,
-          artist: artistIds,
-          ...imageFields,
-          releaseYear: releaseYear || new Date().getFullYear(),
-          type: "Single",
-          coverAccentHex,
-        });
-        await newAlbum.save();
-        finalAlbumId = newAlbum._id;
-        songCoverAccentHex = coverAccentHex;
-      } else {
-        const existingAlbum = await Album.findById(finalAlbumId);
-        if (!existingAlbum) throw new Error("Album not found.");
-        imageFields = toImageFields(existingAlbum);
-        songCoverAccentHex = existingAlbum.coverAccentHex ?? null;
-      }
+      const variantUpload = await uploadImageVariantsFromSource(
+        req.files.imageFile,
+        "albums",
+      );
+      imageFields = toImageFields(variantUpload);
 
-      let trackNumber = 1;
-      if (albumId && albumId !== "none") {
-        const parsedTrackNumber = req.body.trackNumber
-          ? parseInt(req.body.trackNumber, 10)
-          : null;
-        trackNumber =
-          parsedTrackNumber ||
-          (await Song.countDocuments({ albumId: finalAlbumId })) + 1;
-      }
-
-      const song = new Song({
+      const newAlbum = new Album({
         title,
         artist: artistIds,
-        albumId: finalAlbumId,
-        trackNumber,
         ...imageFields,
-        coverAccentHex: songCoverAccentHex,
-        hlsUrl,
-        duration,
-        lyrics: lyrics || null,
-        genres: genreIdsJson ? JSON.parse(genreIdsJson) : [],
-        moods: moodIdsJson ? JSON.parse(moodIdsJson) : [],
+        releaseYear: releaseYear || new Date().getFullYear(),
+        type: "Single",
+        coverAccentHex,
       });
+      await newAlbum.save();
+      finalAlbumId = newAlbum._id;
+      songCoverAccentHex = coverAccentHex;
+    } else {
+      const existingAlbum = await Album.findById(finalAlbumId);
+      if (!existingAlbum) throw new Error("Album not found.");
+      imageFields = toImageFields(existingAlbum);
+      songCoverAccentHex = existingAlbum.coverAccentHex ?? null;
+    }
 
-      await song.save();
+    let trackNumber = 1;
+    if (albumId && albumId !== "none") {
+      const parsedTrackNumber = req.body.trackNumber
+        ? parseInt(req.body.trackNumber, 10)
+        : null;
+      trackNumber =
+        parsedTrackNumber ||
+        (await Song.countDocuments({ albumId: finalAlbumId })) + 1;
+    }
 
-      // Попытка анализа аудио (не блокирующая)
-      try {
-        const audioFeatures = await analyzeAudioFeatures(
-          req.files.audioFile.tempFilePath,
-        );
-        song.audioFeatures = audioFeatures;
-        await song.save();
-        console.log(
-          `[AdminController] Аудио-характеристики сохранены для песни: ${song.title}`,
-        );
-      } catch (audioAnalysisError) {
-        console.warn(
-          `[AdminController] Не удалось проанализировать аудио для песни ${song.title}:`,
-          audioAnalysisError.message,
-        );
-        // Не прерываем создание песни, если анализ не удался
-      }
-
-      res.status(201).json(song);
+    const song = new Song({
+      title,
+      artist: artistIds,
+      albumId: finalAlbumId,
+      trackNumber,
+      ...imageFields,
+      coverAccentHex: songCoverAccentHex,
+      hlsUrl,
+      duration,
+      lyrics: lyrics || null,
+      genres: genreIdsJson ? JSON.parse(genreIdsJson) : [],
+      moods: moodIdsJson ? JSON.parse(moodIdsJson) : [],
     });
+
+    await song.save();
+
+    // Попытка анализа аудио (не блокирующая)
+    try {
+      const audioFeatures = await analyzeAudioFeatures(
+        req.files.audioFile.tempFilePath,
+      );
+      song.audioFeatures = audioFeatures;
+      await song.save();
+      console.log(
+        `[AdminController] Аудио-характеристики сохранены для песни: ${song.title}`,
+      );
+    } catch (audioAnalysisError) {
+      console.warn(
+        `[AdminController] Не удалось проанализировать аудио для песни ${song.title}:`,
+        audioAnalysisError.message,
+      );
+      // Не прерываем создание песни, если анализ не удался
+    }
+
+    res.status(201).json(song);
   } catch (error) {
     console.log("Error in createSong", error);
     next(error);
+  } finally {
+    clearUploadInProgress();
   }
 };
 
@@ -244,85 +239,77 @@ export const updateSong = async (req, res, next) => {
   const audioFile = req.files ? req.files.audioFile : null;
   const imageFile = req.files ? req.files.imageFile : null;
 
-  const runQueuedUpload = audioFile
-    ? (fn) => enqueueAdminFileJob(fn)
-    : (fn) => fn();
-
   try {
-    const existingSong = await Song.findById(id);
-    if (!existingSong) {
+    if (audioFile) {
+      setUploadInProgress();
+    }
+
+    const song = await Song.findById(id);
+    if (!song) {
       return res.status(404).json({ message: "Song not found." });
     }
 
-    await runQueuedUpload(async () => {
-      const song = await Song.findById(id);
-      if (!song) {
-        const err = new Error("Song not found.");
-        err.statusCode = 404;
-        throw err;
-      }
+    if (artistIdsJson) {
+      song.artist = JSON.parse(artistIdsJson);
+    }
 
-      if (artistIdsJson) {
-        song.artist = JSON.parse(artistIdsJson);
-      }
-
-      if (audioFile) {
-        if (song.hlsUrl) {
-          const hlsPath = getPathFromUrl(song.hlsUrl);
-          if (hlsPath) {
-            const hlsDir = path.dirname(hlsPath);
-            await deleteFromBunny(hlsDir + "/");
-          }
-        }
-        const { hlsUrl, duration } =
-          await processAndUploadSong(audioFile.tempFilePath);
-        song.hlsUrl = hlsUrl;
-        song.duration = duration;
-
-        try {
-          const audioFeatures = await analyzeAudioFeatures(
-            audioFile.tempFilePath,
-          );
-          song.audioFeatures = audioFeatures;
-          await song.save();
-          console.log(
-            `[AdminController] Аудио-характеристики обновлены для песни: ${song.title}`,
-          );
-        } catch (audioAnalysisError) {
-          console.warn(
-            `[AdminController] Не удалось проанализировать новое аудио для песни ${song.title}:`,
-            audioAnalysisError.message,
-          );
+    if (audioFile) {
+      if (song.hlsUrl) {
+        const hlsPath = getPathFromUrl(song.hlsUrl);
+        if (hlsPath) {
+          const hlsDir = path.dirname(hlsPath);
+          await deleteFromBunny(hlsDir + "/");
         }
       }
+      const { hlsUrl, duration } =
+        await processAndUploadSong(audioFile.tempFilePath);
+      song.hlsUrl = hlsUrl;
+      song.duration = duration;
 
-      if (imageFile) {
-        const coverBuf = await fs.readFile(imageFile.tempFilePath);
-        song.coverAccentHex =
-          await extractCoverAccentHexFromBuffer(coverBuf);
-        await replaceEntityImageVariants(song, imageFile, "songs/images");
+      try {
+        const audioFeatures = await analyzeAudioFeatures(
+          audioFile.tempFilePath,
+        );
+        song.audioFeatures = audioFeatures;
+        await song.save();
+        console.log(
+          `[AdminController] Аудио-характеристики обновлены для песни: ${song.title}`,
+        );
+      } catch (audioAnalysisError) {
+        console.warn(
+          `[AdminController] Не удалось проанализировать новое аудио для песни ${song.title}:`,
+          audioAnalysisError.message,
+        );
       }
+    }
 
-      if (albumId !== undefined) {
-        const newAlbumId =
-          albumId === "none" || albumId === "" ? null : albumId;
-        song.albumId = newAlbumId;
-      }
+    if (imageFile) {
+      const coverBuf = await fs.readFile(imageFile.tempFilePath);
+      song.coverAccentHex =
+        await extractCoverAccentHexFromBuffer(coverBuf);
+      await replaceEntityImageVariants(song, imageFile, "songs/images");
+    }
 
-      song.title = title || song.title;
-      song.lyrics = lyrics !== undefined ? lyrics : song.lyrics;
-      if (genreIdsJson) song.genres = JSON.parse(genreIdsJson);
-      if (moodIdsJson) song.moods = JSON.parse(moodIdsJson);
+    if (albumId !== undefined) {
+      const newAlbumId =
+        albumId === "none" || albumId === "" ? null : albumId;
+      song.albumId = newAlbumId;
+    }
 
-      await song.save();
-      res.status(200).json(song);
-    });
+    song.title = title || song.title;
+    song.lyrics = lyrics !== undefined ? lyrics : song.lyrics;
+    if (genreIdsJson) song.genres = JSON.parse(genreIdsJson);
+    if (moodIdsJson) song.moods = JSON.parse(moodIdsJson);
+
+    await song.save();
+    res.status(200).json(song);
   } catch (error) {
-    if (error.statusCode === 404) {
-      return res.status(404).json({ message: "Song not found." });
-    }
     console.log("Error in updateSong", error);
     next(error);
+  } finally {
+    if (audioFile) {
+      clearUploadInProgress();
+    }
   }
 };
 
@@ -636,16 +623,6 @@ export const uploadChunk = async (req, res, next) => {
 
     const { uploadId, chunkIndex, totalChunks } = req.body;
 
-    if (!uploadId || String(uploadId).trim() === "") {
-      return res.status(400).json({ message: "uploadId is required." });
-    }
-
-    const safeChunkUploadId = sanitizeChunkUploadId(uploadId);
-    if (!safeChunkUploadId) {
-      return res.status(400).json({ message: "uploadId invalid after sanitization." });
-    }
-    touchChunkAssemblyLease(safeChunkUploadId);
-
     const chunk = req.files.chunk;
 
     // Создаем папку для сборки файла
@@ -653,7 +630,7 @@ export const uploadChunk = async (req, res, next) => {
       process.cwd(),
       "temp",
       "chunks",
-      safeChunkUploadId,
+      uploadId,
     );
     if (!fsSync.existsSync(tempDir)) {
       fsSync.mkdirSync(tempDir, { recursive: true });
@@ -688,9 +665,6 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
 
   const { spotifyAlbumUrl, uploadId } = req.body;
   const albumAudioZip = req.files ? req.files.albumAudioZip : null;
-  const safeChunkUploadId = uploadId
-    ? sanitizeChunkUploadId(uploadId)
-    : null;
 
   if (!spotifyAlbumUrl) {
     return res
@@ -699,18 +673,12 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
   }
 
   let zipFilePath;
-  if (uploadId !== undefined && uploadId !== null && String(uploadId).trim()) {
-    if (!safeChunkUploadId) {
-      return res.status(400).json({
-        success: false,
-        message: "uploadId invalid after sanitization.",
-      });
-    }
+  if (uploadId) {
     zipFilePath = path.join(
       process.cwd(),
       "temp",
       "chunks",
-      safeChunkUploadId,
+      uploadId,
       "album.zip",
     );
     if (!fsSync.existsSync(zipFilePath)) {
@@ -726,37 +694,34 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
       .json({ success: false, message: "ZIP file or uploadId is required." });
   }
 
+  const tempUnzipDir = path.join(
+    process.cwd(),
+    "temp_unzip_albums",
+    `${Date.now()}_${uuidv4()}`,
+  );
+
+  const uploadedBunnyPaths = [];
+  const newlyCreatedArtistIds = [];
+  const createdSongIds = [];
+  let album = null;
+
+  setUploadInProgress();
+
   try {
-    await enqueueAdminFileJob(async () => {
-      const tempUnzipDir = path.join(
-        process.cwd(),
-        "temp_unzip_albums",
-        `${Date.now()}_${uuidv4()}`,
-      );
+    const spotifyAlbumData = await getAlbumDataFromSpotify(spotifyAlbumUrl);
+    if (!spotifyAlbumData) {
+      throw new Error("Could not get album data from Spotify.");
+    }
 
-      const uploadedBunnyPaths = [];
-      const newlyCreatedArtistIds = [];
-      const createdSongIds = [];
-      let album = null;
+    const existingAlbum = await Album.findOne({ title: spotifyAlbumData.name });
+    if (existingAlbum) {
+      return res.status(409).json({
+        success: false,
+        message: `Альбом с названием "${spotifyAlbumData.name}" уже существует.`,
+      });
+    }
 
-      try {
-        const spotifyAlbumData = await getAlbumDataFromSpotify(spotifyAlbumUrl);
-        if (!spotifyAlbumData) {
-          throw new Error("Could not get album data from Spotify.");
-        }
-
-        const existingAlbum = await Album.findOne({
-          title: spotifyAlbumData.name,
-        });
-        if (existingAlbum) {
-          const conflict = new Error(
-            `Альбом с названием "${spotifyAlbumData.name}" уже существует.`,
-          );
-          conflict.statusCode = 409;
-          throw conflict;
-        }
-
-        const extractedFilePaths = await extractZip(zipFilePath, tempUnzipDir);
+    const extractedFilePaths = await extractZip(zipFilePath, tempUnzipDir);
     const trackFilesMap = {};
     for (const filePath of extractedFilePaths) {
       const parsed = parseTrackFileName(filePath);
@@ -1017,10 +982,6 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
       songs: createdSongs.map((s) => ({ title: s.title, id: s._id })),
     });
   } catch (error) {
-    if (error.statusCode === 409) {
-      throw error;
-    }
-
     console.error(
       "[AdminController] Critical error occurred. Starting rollback...",
       error,
@@ -1046,45 +1007,18 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
       await Artist.deleteMany({ _id: { $in: newlyCreatedArtistIds } });
     }
 
-    throw error;
+    next(error);
   } finally {
-      if (safeChunkUploadId) {
-        releaseChunkAssemblyLease(safeChunkUploadId);
-      }
-      await cleanUpTempDir(tempUnzipDir);
-      if (safeChunkUploadId) {
-        await fs
-          .rm(
-            path.join(process.cwd(), "temp", "chunks", safeChunkUploadId),
-            {
-              recursive: true,
-              force: true,
-            },
-          )
-          .catch(() => {});
-      }
+    clearUploadInProgress();
+    await cleanUpTempDir(tempUnzipDir);
+    if (uploadId) {
+      await fs
+        .rm(path.join(process.cwd(), "temp", "chunks", uploadId), {
+          recursive: true,
+          force: true,
+        })
+        .catch(() => {});
     }
-    });
-  } catch (error) {
-    if (error.statusCode === 409) {
-      return res.status(409).json({
-        success: false,
-        message: error.message,
-      });
-    }
-    next(error);
-  }
-};
-
-export const getAdminUploadQueueStatus = async (req, res, next) => {
-  try {
-    res.status(200).json({
-      fileJobQueue: getAdminFileQueueSnapshot(),
-      globalLease: getGlobalLeaseStats(),
-      chunkedZipSessions: getChunkAssemblyLeaseStats(),
-    });
-  } catch (error) {
-    next(error);
   }
 };
 
