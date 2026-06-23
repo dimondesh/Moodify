@@ -27,7 +27,9 @@
     "migrate:artist-banners": "node src/scripts/migrations/migrateArtistBanners.js",
     "translate:mix-locales": "node src/scripts/jobs/translateMixLocales.js",
     "strip:category-mix-suffixes": "node src/scripts/migrations/stripCategoryMixSuffixes.js",
-    "strip:playlist-searchable-names": "node src/scripts/migrations/removePlaylistSearchableNames.js"
+    "strip:playlist-searchable-names": "node src/scripts/migrations/removePlaylistSearchableNames.js",
+    "import:jamendo": "node src/scripts/jobs/importJamendoCatalog.js",
+    "post-import:jamendo": "npm run generate:missing-embeddings && npm run pipeline:embeddings && npm run generate:all"
   },
   "keywords": [],
   "type": "module",

@@ -14,7 +14,7 @@ export const extractZip = (zipFilePath, tempDir) => {
       yauzl.open(zipFilePath, { lazyEntries: true }, (err, zipfile) => {
         if (err)
           return reject(
-            new Error(`[ZipHandler] Ошибка открытия ZIP: ${err.message}`)
+            new Error(`[ZipHandler] Ошибка открытия ZIP: ${err.message}`),
           );
 
         zipfile.readEntry();
@@ -36,7 +36,7 @@ export const extractZip = (zipFilePath, tempDir) => {
           zipfile.openReadStream(entry, (err, readStream) => {
             if (err)
               return reject(
-                new Error(`[ZipHandler] Ошибка чтения записи: ${err.message}`)
+                new Error(`[ZipHandler] Ошибка чтения записи: ${err.message}`),
               );
 
             const writeStream = fs.createWriteStream(destPath);
@@ -49,8 +49,8 @@ export const extractZip = (zipFilePath, tempDir) => {
             writeStream.on("error", (writeErr) => {
               reject(
                 new Error(
-                  `[ZipHandler] Ошибка записи файла: ${writeErr.message}`
-                )
+                  `[ZipHandler] Ошибка записи файла: ${writeErr.message}`,
+                ),
               );
             });
           });
@@ -63,13 +63,13 @@ export const extractZip = (zipFilePath, tempDir) => {
 
         zipfile.on("error", (zipErr) => {
           reject(
-            new Error(`[ZipHandler] Критическая ошибка ZIP: ${zipErr.message}`)
+            new Error(`[ZipHandler] Критическая ошибка ZIP: ${zipErr.message}`),
           );
         });
       });
     } catch (error) {
       reject(
-        new Error(`[ZipHandler] Не удалось начать распаковку: ${error.message}`)
+        new Error(`[ZipHandler] Не удалось начать распаковку: ${error.message}`),
       );
     }
   });
@@ -77,7 +77,6 @@ export const extractZip = (zipFilePath, tempDir) => {
 
 /**
  * Parses a track filename to identify its type (audio or lyrics).
- * Now expects a single audio file per song.
  * @param {string} filename - The full path to the file.
  * @returns {{songName: string, trackType: 'audio' | 'lrc'} | null}
  */
@@ -95,15 +94,12 @@ export const parseTrackFileName = (filename) => {
     ".opus",
   ];
 
-  // Если это файл текста, обрабатываем его
   if (extension === ".lrc") {
     const songName = baseName.replace(/[-_](lyrics|lrc)$/i, "").trim();
     return { songName, trackType: "lrc" };
   }
 
-  // Если это аудиофайл, обрабатываем его
   if (audioExtensions.includes(extension)) {
-    // Убираем возможные старые суффиксы для чистого имени
     const songName = baseName
       .replace(/[-_](instrumental|instr|vocals|vocal)$/i, "")
       .trim();
@@ -111,8 +107,43 @@ export const parseTrackFileName = (filename) => {
   }
 
   console.warn(
-    `[ZipHandler] Не удалось распознать формат файла: ${filename}. Пропускаем.`
+    `[ZipHandler] Не удалось распознать формат файла: ${filename}. Пропускаем.`,
   );
+  return null;
+};
+
+const normalizeTrackName = (name) =>
+  name.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+
+/** @param {string[]} extractedFilePaths */
+export const buildTrackFilesMap = (extractedFilePaths) => {
+  const trackFilesMap = {};
+  for (const filePath of extractedFilePaths) {
+    const parsed = parseTrackFileName(filePath);
+    if (!parsed) continue;
+    const normalizedSongName = normalizeTrackName(parsed.songName);
+    if (!trackFilesMap[normalizedSongName]) {
+      trackFilesMap[normalizedSongName] = {};
+    }
+    trackFilesMap[normalizedSongName][`${parsed.trackType}Path`] = filePath;
+  }
+  return trackFilesMap;
+};
+
+/** @param {Record<string, Record<string, string>>} trackFilesMap */
+export const findTrackFiles = (trackFilesMap, trackName) => {
+  const normalizedName = normalizeTrackName(trackName);
+  if (trackFilesMap[normalizedName]) {
+    return trackFilesMap[normalizedName];
+  }
+  for (const fileKey in trackFilesMap) {
+    if (
+      normalizedName.includes(fileKey) ||
+      fileKey.includes(normalizedName)
+    ) {
+      return trackFilesMap[fileKey];
+    }
+  }
   return null;
 };
 
@@ -124,7 +155,7 @@ export const cleanUpTempDir = async (dirPath) => {
     if (error.code !== "ENOENT") {
       console.error(
         `[ZipHandler] Ошибка при удалении ${dirPath}:`,
-        error.message
+        error.message,
       );
     }
   }

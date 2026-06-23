@@ -6,9 +6,8 @@ import {
   uploadToBunny,
   deleteFromBunny,
   getPathFromUrl,
-  uploadDirectoryToBunny,
 } from "../lib/media/bunny.service.js";
-import * as mm from "music-metadata";
+import { processAndUploadSong } from "../lib/media/songUpload.service.js";
 
 import {
   getAlbumDataFromSpotify,
@@ -17,7 +16,8 @@ import {
 import { getLrcLyricsFromLrclib } from "../lib/integrations/lyricsService.js";
 import {
   extractZip,
-  parseTrackFileName,
+  buildTrackFilesMap,
+  findTrackFiles,
   cleanUpTempDir,
 } from "../lib/media/zipHandler.js";
 
@@ -28,11 +28,6 @@ import { getBatchTagsFromAI } from "../lib/integrations/ai.service.js";
 import { Genre } from "../models/genre.model.js";
 import { Mood } from "../models/mood.model.js";
 import { v4 as uuidv4 } from "uuid";
-import {
-  transcodeToHls,
-  getDurationFromHlsManifest,
-  roundTrackDuration,
-} from "../lib/media/ffmpeg.service.js";
 import axios from "axios";
 import { createWriteStream } from "fs";
 import { analyzeAudioFeatures } from "../lib/integrations/audioAnalysis.service.js";
@@ -78,37 +73,6 @@ const attachSongsToAlbums = (albums, songs) => {
     ...album,
     songs: songsByAlbumId.get(album._id.toString()) || [],
   }));
-};
-
-const processAndUploadSong = async (audioFilePath) => {
-  const tempHlsDir = path.join(process.cwd(), "temp_hls", uuidv4());
-
-  try {
-    const manifestPath = await transcodeToHls(audioFilePath, tempHlsDir);
-
-    const hlsRemotePath = `songs/hls/${uuidv4()}`;
-    await uploadDirectoryToBunny(tempHlsDir, hlsRemotePath);
-
-    const hlsUrl = `https://${process.env.BUNNY_PULL_ZONE_HOSTNAME}/${hlsRemotePath}/master.m3u8`;
-
-    let duration = await getDurationFromHlsManifest(manifestPath);
-    if (!duration) {
-      const metadata = await mm.parseFile(audioFilePath);
-      duration = roundTrackDuration(metadata.format.duration || 0);
-    }
-
-    return {
-      hlsUrl,
-      hlsRemotePath,
-      duration,
-    };
-  } finally {
-    await fs
-      .rm(tempHlsDir, { recursive: true, force: true })
-      .catch((err) =>
-        console.error(`Failed to cleanup temp HLS dir ${tempHlsDir}:`, err),
-      );
-  }
 };
 
 export const createSong = async (req, res, next) => {
@@ -722,48 +686,16 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
     }
 
     const extractedFilePaths = await extractZip(zipFilePath, tempUnzipDir);
-    const trackFilesMap = {};
-    for (const filePath of extractedFilePaths) {
-      const parsed = parseTrackFileName(filePath);
-      if (parsed) {
-        const normalizedSongName = parsed.songName
-          .toLowerCase()
-          .replace(/[^\p{L}\p{N}]/gu, "");
-        if (!trackFilesMap[normalizedSongName])
-          trackFilesMap[normalizedSongName] = {};
-        trackFilesMap[normalizedSongName][`${parsed.trackType}Path`] = filePath;
-      }
-    }
+    const trackFilesMap = buildTrackFilesMap(extractedFilePaths);
 
     const tracksToProcess =
       spotifyAlbumData.tracks.items || spotifyAlbumData.tracks;
-
-    const findTrackFiles = (spotifyTrackName) => {
-      const normalizedSpotifyName = spotifyTrackName
-        .toLowerCase()
-        .replace(/[^\p{L}\p{N}]/gu, "");
-      if (trackFilesMap[normalizedSpotifyName]) {
-        return trackFilesMap[normalizedSpotifyName];
-      }
-      for (const fileKey in trackFilesMap) {
-        if (
-          normalizedSpotifyName.includes(fileKey) ||
-          fileKey.includes(normalizedSpotifyName)
-        ) {
-          console.log(
-            `[AdminController] Fuzzy match: Spotify track "${spotifyTrackName}" matched to file key "${fileKey}"`,
-          );
-          return trackFilesMap[fileKey];
-        }
-      }
-      return null;
-    };
 
     console.log(
       "[AdminController] Performing pre-flight check for all required audio files...",
     );
     for (const spotifyTrack of tracksToProcess) {
-      const filesForTrack = findTrackFiles(spotifyTrack.name);
+      const filesForTrack = findTrackFiles(trackFilesMap, spotifyTrack.name);
       if (!filesForTrack || !filesForTrack.audioPath) {
         throw new Error(
           `Validation failed: Audio file for track "${spotifyTrack.name}" could not be matched in the ZIP archive.`,
@@ -867,7 +799,7 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
       trackIndex++;
 
       console.log(`[AdminController] Processing track: ${songName}`);
-      const filesForTrack = findTrackFiles(songName);
+      const filesForTrack = findTrackFiles(trackFilesMap, songName);
 
       // Проверяем, что файл все еще существует
       if (!filesForTrack || !filesForTrack.audioPath) {
@@ -1137,9 +1069,28 @@ export const getPaginatedArtists = async (req, res, next) => {
       Artist.countDocuments().exec(),
     ]);
 
-    const formattedArtists = artists.map(artist => ({
+    const artistIds = artists.map((artist) => artist._id);
+    const albumCountByArtist =
+      artistIds.length > 0
+        ? await Album.aggregate([
+            { $match: { artist: { $in: artistIds } } },
+            { $unwind: "$artist" },
+            { $match: { artist: { $in: artistIds } } },
+            { $group: { _id: "$artist", albumCount: { $sum: 1 } } },
+          ])
+        : [];
+
+    const albumCountMap = new Map(
+      albumCountByArtist.map(({ _id, albumCount }) => [
+        _id.toString(),
+        albumCount,
+      ]),
+    );
+
+    const formattedArtists = artists.map((artist) => ({
       ...artist,
-      imageUrl: getSmallImageUrl(artist.images) || artist.imageUrl
+      imageUrl: getSmallImageUrl(artist.images) || artist.imageUrl,
+      albumCount: albumCountMap.get(artist._id.toString()) ?? 0,
     }));
 
     res.status(200).json({

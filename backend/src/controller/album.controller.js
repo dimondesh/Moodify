@@ -3,7 +3,7 @@ import { Song } from "../models/song.model.js";
 import { ListenHistory } from "../models/listenHistory.model.js";
 
 const SONG_MINIMAL_SELECT =
-  "_id title images coverAccentHex duration playCount albumId createdAt";
+  "_id title images coverAccentHex duration playCount albumId createdAt sourceShareUrl licenseCcUrl sourceProvider";
 
 const attachSongsToAlbums = async (albums) => {
   if (!albums.length) return albums;

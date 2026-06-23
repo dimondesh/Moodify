@@ -36,11 +36,23 @@ const albumSchema = new mongoose.Schema(
       default: null,
       index: true,
     },
+    sourceProvider: {
+      type: String,
+      default: null,
+    },
+    sourceExternalId: {
+      type: String,
+      default: null,
+    },
   },
   { timestamps: true }
 );
 
 albumSchema.index({ title: 1 });
+albumSchema.index(
+  { sourceProvider: 1, sourceExternalId: 1 },
+  { unique: true, sparse: true },
+);
 albumSchema.index({ artist: 1 });
 albumSchema.index({ createdAt: -1 });
 
