@@ -10,6 +10,7 @@ import { usePlaylistStore } from "@/stores/usePlaylistStore";
 import { usePlayerStore } from "@/stores/usePlayerStore";
 import type { Song } from "@/types";
 import type { SongOptionsContext } from "@/components/SongOptionsMenu";
+import { songHasCredits } from "./songCredits";
 import toast from "react-hot-toast";
 
 export function useSongOptionsActions(
@@ -29,8 +30,10 @@ export function useSongOptionsActions(
   const addToQueueNext = usePlayerStore((s) => s.addToQueueNext);
   const isLiked = useIsSongLiked(song._id);
   const [isAddToPlaylistOpen, setIsAddToPlaylistOpen] = useState(false);
+  const [isCreditsOpen, setIsCreditsOpen] = useState(false);
 
   const isPlaylist = context === "playlist";
+  const hasCredits = songHasCredits(song);
   const canRemoveFromThisPlaylist =
     isPlaylist && isOwner && Boolean(playlistId);
   const artists = song.artist ?? [];
@@ -83,6 +86,13 @@ export function useSongOptionsActions(
     setIsAddToPlaylistOpen(true);
   }, [sessionUser, onClose]);
 
+  const openCredits = useCallback(() => {
+    onClose();
+    requestAnimationFrame(() => {
+      setIsCreditsOpen(true);
+    });
+  }, [onClose]);
+
   const openShare = useCallback(() => {
     openShareDialog({ type: "song", id: song._id });
     onClose();
@@ -121,16 +131,20 @@ export function useSongOptionsActions(
     artists,
     hasMultipleArtists,
     hasAlbum,
+    hasCredits,
     canRemoveFromThisPlaylist,
     playlistIdsContainingSong,
     goToArtist,
     goToAlbum,
     toggleLiked,
     openAddToPlaylistSheet,
+    openCredits,
     openShare,
     handleRemoveFromPlaylist,
     handleAddToQueue,
     isAddToPlaylistOpen,
     setIsAddToPlaylistOpen,
+    isCreditsOpen,
+    setIsCreditsOpen,
   };
 }

@@ -15,7 +15,7 @@ const HOME_SECTION_LIMIT = 12;
 const USER_PLAYLISTS_MIN_COUNT = 3;
 
 const SONG_MINIMAL_SELECT =
-  "_id title artist albumId images coverAccentHex duration playCount";
+  "_id title artist albumId images coverAccentHex duration playCount sourceShareUrl licenseCcUrl sourceProvider";
 
 const ALBUM_SONG_SELECT =
   "_id title images coverAccentHex duration playCount albumId createdAt trackNumber";

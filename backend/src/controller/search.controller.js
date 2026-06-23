@@ -5,7 +5,7 @@ import { Artist } from "../models/artist.model.js";
 import { User } from "../models/user.model.js";
 
 const SONG_MINIMAL_SELECT =
-  "_id title artist albumId images coverAccentHex duration playCount";
+  "_id title artist albumId images coverAccentHex duration playCount sourceShareUrl licenseCcUrl sourceProvider";
 
 const TOP_RESULTS_LIMIT = 4;
 const CATEGORY_DEFAULT_LIMIT = 10;

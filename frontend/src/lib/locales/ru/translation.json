@@ -4,6 +4,17 @@
     "hoursOnly": "{{hours}} ч",
     "minutesOnly": "{{minutes}} мин"
   },
+  "songOptions": {
+    "credits": "Атрибуция",
+    "creditsDialog": {
+      "title": "Атрибуция",
+      "work": "{{artist}} — {{title}}",
+      "licensePrefix": "Лицензия:",
+      "sourcePrefix": "Источник:",
+      "via": "через Jamendo",
+      "link": "Открыть на Jamendo"
+    }
+  },
   "sidebar": {
     "home": "Главная",
     "search": "Поиск",

@@ -24,7 +24,7 @@ const toPublicHub = (hub) => {
 };
 
 const SONG_MINIMAL_SELECT =
-  "_id title images coverAccentHex duration playCount albumId createdAt trackNumber";
+  "_id title images coverAccentHex duration playCount albumId createdAt trackNumber sourceShareUrl licenseCcUrl sourceProvider";
 
 const attachSongsToAlbums = async (albums) => {
   if (!albums.length) return albums;

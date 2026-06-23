@@ -10,6 +10,7 @@ import {
   ListEnd,
   ListPlus,
   PlusCircle,
+  Scale,
   Share,
   Trash2,
   User,
@@ -20,13 +21,14 @@ import { SongAddToPlaylistSubmenu } from "./SongAddToPlaylistSubmenu";
 import { SongShareSubmenu } from "./SongShareSubmenu";
 import { SONG_MENU_ITEM, SONG_MENU_SUB_TRIGGER, SONG_MENU_SURFACE } from "./menuStyles";
 import type { SongOptionsContext } from "@/components/SongOptionsMenu";
-import { useSongOptionsActions } from "./useSongOptionsActions";
+import type { useSongOptionsActions } from "./useSongOptionsActions";
+
+type SongOptionsActions = ReturnType<typeof useSongOptionsActions>;
 
 export interface SongOptionsDropdownContentProps {
   song: Song;
   context: SongOptionsContext;
-  playlistId?: string;
-  isOwner?: boolean;
+  actions: SongOptionsActions;
   onClose: () => void;
   onRemoveFromQueue?: () => void;
 }
@@ -34,8 +36,7 @@ export interface SongOptionsDropdownContentProps {
 export function SongOptionsDropdownContent({
   song,
   context,
-  playlistId = "",
-  isOwner = false,
+  actions,
   onClose,
   onRemoveFromQueue,
 }: SongOptionsDropdownContentProps) {
@@ -47,14 +48,16 @@ export function SongOptionsDropdownContent({
     artists,
     hasMultipleArtists,
     hasAlbum,
+    hasCredits,
     canRemoveFromThisPlaylist,
     playlistIdsContainingSong,
     goToArtist,
     goToAlbum,
     toggleLiked,
+    openCredits,
     handleRemoveFromPlaylist,
     handleAddToQueue,
-  } = useSongOptionsActions(song, context, playlistId, isOwner, onClose);
+  } = actions;
 
   return (
     <DropdownMenuContent
@@ -179,6 +182,19 @@ export function SongOptionsDropdownContent({
           <SongShareSubmenu songId={song._id} onRequestClose={onClose} />
         </DropdownMenuSubContent>
       </DropdownMenuSub>
+
+      {hasCredits && (
+        <DropdownMenuItem
+          className={SONG_MENU_ITEM}
+          onSelect={(e) => {
+            e.preventDefault();
+            openCredits();
+          }}
+        >
+          <Scale />
+          <span>{t("songOptions.credits", "Credits")}</span>
+        </DropdownMenuItem>
+      )}
 
       {canRemoveFromThisPlaylist && (
         <DropdownMenuItem

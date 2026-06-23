@@ -6,6 +6,7 @@ import {
   Heart,
   ListEnd,
   ListPlus,
+  Scale,
   Share,
   Trash2,
   User,
@@ -32,11 +33,13 @@ export function SongOptionsDrawerContent({ actions }: SongOptionsDrawerContentPr
     artists,
     hasMultipleArtists,
     hasAlbum,
+    hasCredits,
     canRemoveFromThisPlaylist,
     goToArtist,
     goToAlbum,
     toggleLiked,
     openAddToPlaylistSheet,
+    openCredits,
     openShare,
     handleRemoveFromPlaylist,
     handleAddToQueue,
@@ -157,6 +160,13 @@ export function SongOptionsDrawerContent({ actions }: SongOptionsDrawerContentPr
           )}
         </span>
       </Button>
+
+      {hasCredits && (
+        <Button variant="ghost" className={DRAWER_ITEM} onClick={openCredits}>
+          <Scale className="size-5 shrink-0 text-zinc-400" />
+          <span>{t("songOptions.credits", "Credits")}</span>
+        </Button>
+      )}
 
       {canRemoveFromThisPlaylist && (
         <Button

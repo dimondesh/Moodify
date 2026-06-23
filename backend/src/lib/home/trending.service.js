@@ -9,7 +9,7 @@ const DEFAULT_LIMIT = 12;
 const TREND_LOOKBACK_MS = 7 * 24 * 60 * 60 * 1000;
 
 const SONG_MINIMAL_SELECT =
-  "_id title artist albumId images coverAccentHex duration playCount";
+  "_id title artist albumId images coverAccentHex duration playCount sourceShareUrl licenseCcUrl sourceProvider";
 
 const ALBUM_SONG_SELECT =
   "_id title images coverAccentHex duration playCount albumId createdAt";

@@ -7,7 +7,7 @@ import { LIKED_PLAYLIST_ID } from "./playlist.controller.js";
 import { USER_CREATED_PLAYLIST_TYPE } from "../constants/playlistTypes.js";
 
 const SONG_MINIMAL_SELECT =
-  "_id title artist albumId images coverAccentHex duration playCount";
+  "_id title artist albumId images coverAccentHex duration playCount sourceShareUrl licenseCcUrl sourceProvider";
 
 const mapPopulated = (rows, refPath) =>
   rows

@@ -4,6 +4,17 @@
     "hoursOnly": "{{hours}} hr",
     "minutesOnly": "{{minutes}} min"
   },
+  "songOptions": {
+    "credits": "Credits",
+    "creditsDialog": {
+      "title": "Credits",
+      "work": "{{artist}} — {{title}}",
+      "licensePrefix": "Licensed under",
+      "sourcePrefix": "Source:",
+      "via": "via Jamendo",
+      "link": "View on Jamendo"
+    }
+  },
   "sidebar": {
     "home": "Home",
     "search": "Search",

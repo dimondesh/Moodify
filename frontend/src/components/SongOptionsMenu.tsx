@@ -20,6 +20,7 @@ import { CoverImage } from "@/components/CoverImage";
 import { CDN_DEFAULT_ALBUM_COVER } from "@/lib/cdn";
 import { SongOptionsDropdownContent } from "@/components/song-options/SongOptionsDropdownContent";
 import { SongOptionsDrawerContent } from "@/components/song-options/SongOptionsDrawerContent";
+import { SongCreditsDialog } from "@/components/song-options/SongCreditsDialog";
 import { useSongOptionsActions } from "@/components/song-options/useSongOptionsActions";
 
 export type SongOptionsContext = "album" | "playlist";
@@ -83,17 +84,23 @@ const SongOptionsMenu: React.FC<SongOptionsMenuProps> = ({
 
   if (variant === "dropdown") {
     return (
-      <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen} modal={!nested}>
-        <DropdownMenuTrigger asChild>{triggerButton}</DropdownMenuTrigger>
-        <SongOptionsDropdownContent
+      <>
+        <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen} modal={!nested}>
+          <DropdownMenuTrigger asChild>{triggerButton}</DropdownMenuTrigger>
+          <SongOptionsDropdownContent
+            song={song}
+            context={context}
+            actions={actions}
+            onClose={onClose}
+            onRemoveFromQueue={onRemoveFromQueue}
+          />
+        </DropdownMenu>
+        <SongCreditsDialog
           song={song}
-          context={context}
-          playlistId={playlistId}
-          isOwner={isOwner}
-          onClose={onClose}
-          onRemoveFromQueue={onRemoveFromQueue}
+          open={actions.isCreditsOpen}
+          onOpenChange={actions.setIsCreditsOpen}
         />
-      </DropdownMenu>
+      </>
     );
   }
 
@@ -132,6 +139,11 @@ const SongOptionsMenu: React.FC<SongOptionsMenuProps> = ({
         notifyPlaylistMembershipChanges={isPlaylist}
         notifyLibraryChanges={isPlaylist}
         onOpenChange={actions.setIsAddToPlaylistOpen}
+      />
+      <SongCreditsDialog
+        song={song}
+        open={actions.isCreditsOpen}
+        onOpenChange={actions.setIsCreditsOpen}
       />
     </>
   );

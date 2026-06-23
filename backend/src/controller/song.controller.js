@@ -11,7 +11,7 @@ import {
 } from "../lib/activity/recentActivity.service.js";
 
 const SONG_MINIMAL_SELECT =
-  "_id title artist albumId images coverAccentHex duration playCount";
+  "_id title artist albumId images coverAccentHex duration playCount sourceShareUrl licenseCcUrl sourceProvider";
 
 export const getAllSongs = async (req, res, next) => {
   try {

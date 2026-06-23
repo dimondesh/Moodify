@@ -6,7 +6,7 @@ import { Artist } from "../../models/artist.model.js";
 import { Song } from "../../models/song.model.js";
 
 const SONG_MINIMAL_SELECT =
-  "_id title artist albumId images coverAccentHex duration playCount";
+  "_id title artist albumId images coverAccentHex duration playCount sourceShareUrl licenseCcUrl sourceProvider";
 
 const LEGACY_TO_PLAYLIST = {
   mix: "playlist",
