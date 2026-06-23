@@ -20,14 +20,12 @@ import { Song } from "@/types";
 import { SongAddToPlaylistSubmenu } from "./SongAddToPlaylistSubmenu";
 import { SongShareSubmenu } from "./SongShareSubmenu";
 import { SONG_MENU_ITEM, SONG_MENU_SUB_TRIGGER, SONG_MENU_SURFACE } from "./menuStyles";
-import type { SongOptionsContext } from "@/components/SongOptionsMenu";
 import type { useSongOptionsActions } from "./useSongOptionsActions";
 
 type SongOptionsActions = ReturnType<typeof useSongOptionsActions>;
 
 export interface SongOptionsDropdownContentProps {
   song: Song;
-  context: SongOptionsContext;
   actions: SongOptionsActions;
   onClose: () => void;
   onRemoveFromQueue?: () => void;
@@ -35,7 +33,6 @@ export interface SongOptionsDropdownContentProps {
 
 export function SongOptionsDropdownContent({
   song,
-  context,
   actions,
   onClose,
   onRemoveFromQueue,

@@ -89,7 +89,6 @@ const SongOptionsMenu: React.FC<SongOptionsMenuProps> = ({
           <DropdownMenuTrigger asChild>{triggerButton}</DropdownMenuTrigger>
           <SongOptionsDropdownContent
             song={song}
-            context={context}
             actions={actions}
             onClose={onClose}
             onRemoveFromQueue={onRemoveFromQueue}
