@@ -35,29 +35,29 @@ The repository is a monorepo:
 
 - **Adaptive HLS streaming** via `hls.js` and CDN-hosted segments
 - **Queue management** — user queue, drag-and-drop reorder, repeat/shuffle, smart shuffle for large playlists
-- **Web Audio effects** — 10-band EQ with presets, convolution reverb, loudness normalization, playback speed
+- **Web Audio effects** — 6-band parametric EQ with presets, convolution reverb, loudness normalization, playback speed
 - **Waveform analyzer** — real-time oscilloscope-style visualization
-- **Synced lyrics** for supported tracks
-- **Autoplay** and context-aware playback (album, playlist, artist, hub)
+- **Synced lyrics** — LRC-timestamped lyrics for tracks that have them
+- **Autoplay** and context-aware playback (album, playlist, artist)
 
 ### Discovery & Personalization
 
 - **Personalized home feed** — sections generated from listening history and taste profile
 - **Genre & mood hubs** — curated entry points into the catalog
 - **Smart playlists** — Discover Weekly-style mixes, On Repeat, On Repeat Rewind, and taste-based personal mixes
-- **Search** — albums, artists, playlists, and tracks
-- **Taste onboarding** — initial genre/artist selection for cold-start recommendations
+- **Search** — regex-based search across albums, artists, playlists, and tracks
+- **Taste onboarding** — pick 3–20 favorite artists to bootstrap recommendations
 
 ### Social
 
 - **Real-time chat** — text messages and shared tracks, albums, and playlists (`Socket.IO`)
-- **Friend activity** — see what mutual followers are listening to in real time
-- **User profiles** — public libraries, top tracks, and listening activity
+- **Friend activity** — see what mutual followers are listening to (online or within the last 7 days)
+- **User profiles** — public playlists, top tracks this month, and recently listened artists
 
 ### Offline & Privacy
 
 - **Offline mode** — download albums and playlists to IndexedDB; HLS segments and covers cached by the Service Worker
-- **Anonymous mode** — listen without exposing activity to friends
+- **Anonymous mode** — hides you from friend activity and skips listen-history recording
 - **PWA** — installable app with Workbox runtime caching
 
 ### Platform
@@ -90,7 +90,7 @@ The repository is a monorepo:
 - FFmpeg / fluent-ffmpeg for media processing
 - Bunny CDN for HLS delivery and image variants
 - Google Gemini (playlist locale translation, AI helpers)
-- Spotify API (optional metadata and cover art)
+- Spotify API (optional — mainly admin album import metadata and cover art)
 
 ### ML / Audio Services
 
@@ -137,10 +137,11 @@ flowchart TB
   Cron --> Redis
   Express --> Analyzer
   Express --> Embedding
-  Cron --> Embedding
 ```
 
-The API and cron worker run as separate processes (see `backend/ecosystem.config.cjs` for PM2). The cron worker handles scheduled playlist generation, home feed warming, trending cache, and hub regeneration without duplicating jobs across horizontally scaled API instances.
+The analyzer and embedding services are called during **catalog ingestion** (admin uploads and maintenance scripts), not on every playback request. Cron jobs recompute playlist/home-feed data and category centroids from embeddings already stored in MongoDB.
+
+The API and cron worker run as separate processes (see `backend/ecosystem.config.cjs` for PM2). Home feed generation uses both scheduled cron runs and a BullMQ worker (on-demand, e.g. after onboarding); in development the BullMQ worker also starts inside the API process.
 
 ---
 
@@ -150,7 +151,9 @@ The API and cron worker run as separate processes (see `backend/ecosystem.config
 Moodify/
 ├── frontend/
 │   ├── src/
-│   │   ├── pages/          # Route-level UI + colocated data fetching
+│   │   ├── pages/          # Route-level UI
+│   │   ├── hooks/queries/  # React Query hooks (legacy layer in this fork)
+│   │   ├── lib/api/        # HTTP client helpers (legacy layer in this fork)
 │   │   ├── layout/         # App shell, player chrome, navigation
 │   │   ├── stores/         # Zustand — player, auth, offline, chat
 │   │   ├── components/ui/  # Shared UI primitives
@@ -174,7 +177,7 @@ Moodify/
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 18+
 - MongoDB
 - Redis
 - FFmpeg (for backend media processing)
@@ -265,9 +268,9 @@ Scheduled tasks (cron worker) include:
 
 - Personal and global genre/mood mix generation
 - Discover Weekly, On Repeat, and On Repeat Rewind playlists
-- Personalized home feed regeneration (BullMQ queue)
+- Home feed generation (scheduled cron + BullMQ on-demand queue)
 - Trending cache warming
-- Category embeddings and hub regeneration
+- Category centroids and hub regeneration (from stored embeddings)
 - Temp directory cleanup
 
 One-off scripts live under `backend/src/scripts/` — migrations, Jamendo import, embedding pipelines, and catalog generators. See `backend/package.json` scripts for entry points.
@@ -287,9 +290,10 @@ One-off scripts live under `backend/src/scripts/` — migrations, Jamendo import
 | `/api/library` | Liked songs, saved albums/playlists |
 | `/api/home` | Personalized home feed |
 | `/api/hubs` | Genre and mood hubs |
-| `/api/search` | Full-text search |
+| `/api/search` | Regex search across catalog entities |
 | `/api/share` | Share links and OG metadata |
-| `/api/admin` | Catalog upload and maintenance (admin role) |
+| `/api/admin` | Catalog upload and maintenance (admin role; separate admin UI, not in this repo) |
+| `/api/stats` | App stats and ML service health checks |
 
 Real-time events (chat, typing indicators, friend activity) are delivered over Socket.IO on the same server as the HTTP API.
 
