@@ -5,6 +5,7 @@ import { Playlist } from "../models/playlist.model.js";
 import { LikedSong } from "../models/likedSong.model.js";
 import { LIKED_PLAYLIST_ID } from "./playlist.controller.js";
 import { USER_CREATED_PLAYLIST_TYPE } from "../constants/playlistTypes.js";
+import { applySystemPlaylistCoverAccent } from "../constants/cdn.js";
 
 const SONG_MINIMAL_SELECT =
   "_id title artist albumId images coverAccentHex duration playCount sourceShareUrl licenseCcUrl sourceProvider";
@@ -33,7 +34,7 @@ const albumPopulate = {
 const playlistPopulate = {
   path: "playlist",
   select:
-    "title images owner madeFor isPublic type isSystem updatedAt localizedNames",
+    "title images coverAccentHex owner madeFor isPublic type isSystem updatedAt localizedNames",
   populate: { path: "owner", select: "fullName images" },
 };
 
@@ -78,7 +79,9 @@ async function fetchLibraryRows(userId, { limit = 0 } = {}) {
 
   return {
     albums: mapPopulated(albumRows, "album"),
-    playlists: mapPopulated(playlistRows, "playlist"),
+    playlists: mapPopulated(playlistRows, "playlist").map(
+      applySystemPlaylistCoverAccent,
+    ),
     followedArtists: mapPopulated(artistRows, "artist"),
   };
 }
@@ -188,7 +191,9 @@ export const getPlaylistsInLibrary = async (req, res, next) => {
       .populate(playlistPopulateWithSongs);
 
     const playlistRows = await applyOptionalLimit(query, limit).lean();
-    const playlists = mapPopulated(playlistRows, "playlist");
+    const playlists = mapPopulated(playlistRows, "playlist").map(
+      applySystemPlaylistCoverAccent,
+    );
 
     res.json({ playlists });
   } catch (err) {

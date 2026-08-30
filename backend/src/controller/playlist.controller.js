@@ -13,12 +13,12 @@ import {
 import fs from "fs/promises";
 import {
   extractCoverAccentHexFromBuffer,
-  extractCoverAccentHexFromUrl,
-  isSkippableCoverImageUrl,
 } from "../lib/media/coverAccent.service.js";
 import {
   CDN_DEFAULT_ALBUM_COVER,
   CDN_LIKED_PLAYLIST_COVER,
+  CDN_SYSTEM_PLAYLIST_ACCENT_BY_TYPE,
+  applySystemPlaylistCoverAccent,
 } from "../constants/cdn.js";
 import { USER_CREATED_PLAYLIST_TYPE, LIKED_PLAYLIST_ID } from "../constants/playlistTypes.js";
 import { canUserViewPlaylist } from "../lib/playlists/playlistAccess.js";
@@ -79,6 +79,7 @@ export async function buildVirtualLikedPlaylist(
     _id: LIKED_PLAYLIST_ID,
     title: "Liked Songs",
     images: buildStaticCdnImages(CDN_LIKED_PLAYLIST_COVER),
+    coverAccentHex: CDN_SYSTEM_PLAYLIST_ACCENT_BY_TYPE.LIKED_SONGS,
     type: "LIKED_SONGS",
     isSystem: true,
     isPublic: false,
@@ -183,7 +184,9 @@ export const getMyPlaylists = async (req, res, next) => {
       combinedPlaylistsMap.set(p._id.toString(), p);
     });
 
-    const allMyPlaylists = Array.from(combinedPlaylistsMap.values());
+    const allMyPlaylists = Array.from(combinedPlaylistsMap.values()).map(
+      applySystemPlaylistCoverAccent,
+    );
     const likedVirtual = await buildVirtualLikedPlaylist(userId, {
       populateSongs: false,
     });
@@ -230,6 +233,8 @@ export const getPlaylistById = async (req, res, next) => {
         .status(403)
         .json({ message: "Access denied. This is a private playlist." });
     }
+
+    applySystemPlaylistCoverAccent(playlist);
 
     res.status(200).json(playlist);
   } catch (error) {

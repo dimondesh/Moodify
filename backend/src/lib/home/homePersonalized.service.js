@@ -5,6 +5,7 @@ import { Playlist } from "../../models/playlist.model.js";
 import { HomeFeed } from "../../models/homeFeed.model.js";
 import { populatePlaylistEmbeddedSongs } from "../../controller/playlist.controller.js";
 import { USER_CREATED_PLAYLIST_TYPE } from "../../constants/playlistTypes.js";
+import { applySystemPlaylistCoverAccent } from "../../constants/cdn.js";
 import { getRecentEntities } from "../activity/recentActivity.service.js";
 import {
   orderByIds,
@@ -99,7 +100,10 @@ const batchHydrateHomeEntities = async ({
   return {
     songById: new Map(songs.map((song) => [song._id.toString(), song])),
     playlistById: new Map(
-      playlists.map((playlist) => [playlist._id.toString(), playlist]),
+      playlists.map((playlist) => [
+        playlist._id.toString(),
+        applySystemPlaylistCoverAccent(playlist),
+      ]),
     ),
     albumById: new Map(
       albumsWithSongs.map((album) => [album._id.toString(), album]),

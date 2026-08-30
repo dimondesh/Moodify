@@ -11,11 +11,16 @@ import {
   CDN_DISCOVER_WEEKLY_IMAGE,
   CDN_ON_REPEAT_REWIND_IMAGE,
   CDN_DEFAULT_ALBUM_COVER,
+  CDN_SYSTEM_PLAYLIST_ACCENT_BY_TYPE,
 } from "../../constants/cdn.js";
 import {
   buildStaticCdnImages,
   getLargeImageUrl,
 } from "../media/imageVariants.service.js";
+import {
+  extractCoverAccentHexFromUrl,
+  isSkippableCoverImageUrl,
+} from "../media/coverAccent.service.js";
 import {
   buildMixPlaylistLabels,
   buildPersonalMixLabels,
@@ -42,11 +47,16 @@ const getTodayStart = () => {
 const pickMixCoverImages = (songWithArtists) => {
   const artistImages = songWithArtists?.artistDetails?.[0]?.images;
   if (artistImages?.length) return artistImages;
-
-  const songCover = getLargeImageUrl(songWithArtists?.images);
-  if (songCover) return buildStaticCdnImages(songCover);
-
   return buildStaticCdnImages(CDN_DEFAULT_ALBUM_COVER);
+};
+
+const pickMixCover = async (songWithArtists) => {
+  const images = pickMixCoverImages(songWithArtists);
+  const coverUrl = getLargeImageUrl(images);
+  const coverAccentHex = isSkippableCoverImageUrl(coverUrl)
+    ? null
+    : await extractCoverAccentHexFromUrl(coverUrl);
+  return { images, coverAccentHex };
 };
 
 const upsertSystemPlaylist = async (filter, data) => {
@@ -120,6 +130,7 @@ export const generateGlobalGenreAndMoodMixes = async () => {
     if (!randomSongs) continue;
 
     const { title, localizedNames } = buildMixPlaylistLabels(source);
+    const mixCover = await pickMixCover(randomSongs[0]);
 
     await upsertSystemPlaylist(
       { owner: null, type: source.mixType, sourceId: source._id },
@@ -132,7 +143,8 @@ export const generateGlobalGenreAndMoodMixes = async () => {
         sourceId: source._id,
         localizedNames,
         songs: randomSongs.map((s) => s._id),
-        images: pickMixCoverImages(randomSongs[0]),
+        images: mixCover.images,
+        coverAccentHex: mixCover.coverAccentHex,
         isPublic: true,
         lastGeneratedAt: today,
       },
@@ -205,6 +217,7 @@ export const generatePersonalMixesForUser = async (userId) => {
 
       mixIndex += 1;
       const { title, localizedNames } = buildPersonalMixLabels(mixIndex);
+      const mixCover = await pickMixCover(randomSongs[0]);
 
       const personalMix = await upsertSystemPlaylist(
         { madeFor: ownerId, type: "PERSONAL_MIX", sourceId: sourceDoc._id },
@@ -218,7 +231,8 @@ export const generatePersonalMixesForUser = async (userId) => {
           sourceName: sourceDoc.name,
           sourceId: sourceDoc._id,
           songs: randomSongs.map((s) => s._id),
-          images: pickMixCoverImages(randomSongs[0]),
+          images: mixCover.images,
+          coverAccentHex: mixCover.coverAccentHex,
           isPublic: false,
           lastGeneratedAt: today,
         },
@@ -285,6 +299,7 @@ export const generateOnRepeatPlaylistForUser = async (userId) => {
       description: "",
       songs: songIds,
       images: buildStaticCdnImages(CDN_ON_REPEAT_IMAGE),
+      coverAccentHex: CDN_SYSTEM_PLAYLIST_ACCENT_BY_TYPE.ON_REPEAT,
       isPublic: false,
     },
   );
@@ -392,6 +407,7 @@ export const generateDiscoverWeeklyForUser = async (userId) => {
         localizedNames,
         description: "",
         images: buildStaticCdnImages(CDN_DISCOVER_WEEKLY_IMAGE),
+        coverAccentHex: CDN_SYSTEM_PLAYLIST_ACCENT_BY_TYPE.DISCOVER_WEEKLY,
         songs: finalTracks.map((song) => song._id),
         isPublic: false,
       },
@@ -478,6 +494,7 @@ export const generateOnRepeatRewindForUser = async (userId) => {
         localizedNames,
         description: "",
         images: buildStaticCdnImages(CDN_ON_REPEAT_REWIND_IMAGE),
+        coverAccentHex: CDN_SYSTEM_PLAYLIST_ACCENT_BY_TYPE.ON_REPEAT_REWIND,
         songs: finalTracks.map((song) => song._id),
         isPublic: false,
       },
