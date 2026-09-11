@@ -4,17 +4,6 @@
     "hoursOnly": "{{hours}} год",
     "minutesOnly": "{{minutes}} хв"
   },
-  "songOptions": {
-    "credits": "Атрибуція",
-    "creditsDialog": {
-      "title": "Атрибуція",
-      "work": "{{artist}} — {{title}}",
-      "licensePrefix": "Ліцензія:",
-      "sourcePrefix": "Джерело:",
-      "via": "через Jamendo",
-      "link": "Відкрити на Jamendo"
-    }
-  },
   "sidebar": {
     "home": "Головна",
     "search": "Пошук",
@@ -69,9 +58,6 @@
     "lyrics": "Текст",
     "close": "Закрити",
     "noLyrics": "Для цього треку немає тексту.",
-    "ccAttribution": "Ліцензія: {{license}}",
-    "ccAttributionVia": "через Jamendo",
-    "ccAttributionLink": "Відкрити на Jamendo",
     "addedToLiked": "Додано до Улюблених Треків",
     "removedFromLiked": "Видалено з Улюблених Треків",
     "addedToPlaylist": "Додано до плейлиста",

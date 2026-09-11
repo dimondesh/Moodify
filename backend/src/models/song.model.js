@@ -59,22 +59,6 @@ const songSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
-    sourceProvider: {
-      type: String,
-      default: null,
-    },
-    sourceExternalId: {
-      type: String,
-      default: null,
-    },
-    sourceShareUrl: {
-      type: String,
-      default: null,
-    },
-    licenseCcUrl: {
-      type: String,
-      default: null,
-    },
     genres: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -119,10 +103,6 @@ songSchema.index({ genres: 1 });
 songSchema.index({ moods: 1 });
 songSchema.index({ title: "text" });
 songSchema.index({ createdAt: -1 });
-songSchema.index(
-  { sourceProvider: 1, sourceExternalId: 1 },
-  { unique: true, sparse: true },
-);
 
 export const Song = mongoose.model("Song", songSchema);
 

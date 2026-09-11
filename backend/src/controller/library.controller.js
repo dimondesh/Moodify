@@ -8,7 +8,7 @@ import { USER_CREATED_PLAYLIST_TYPE } from "../constants/playlistTypes.js";
 import { applySystemPlaylistCoverAccent } from "../constants/cdn.js";
 
 const SONG_MINIMAL_SELECT =
-  "_id title artist albumId images coverAccentHex duration playCount sourceShareUrl licenseCcUrl sourceProvider";
+  "_id title artist albumId images coverAccentHex duration playCount";
 
 const mapPopulated = (rows, refPath) =>
   rows

@@ -11,8 +11,6 @@ export interface Artist {
   songs: Song[];
   albums: Album[];
   addedAt?: string;
-  sourceProvider?: string | null;
-  sourceExternalId?: string | null;
 
   createdAt: string;
   updatedAt: string;
@@ -45,10 +43,6 @@ export interface Song {
   likedAt?: string;
   addedAt?: string;
   lyrics?: string;
-  sourceProvider?: string | null;
-  sourceExternalId?: string | null;
-  sourceShareUrl?: string | null;
-  licenseCcUrl?: string | null;
 }
 
 export interface RecentSearchItem {
@@ -78,8 +72,6 @@ export interface Album {
   updatedAt: string;
   addedAt?: string;
   coverAccentHex?: string | null;
-  sourceProvider?: string | null;
-  sourceExternalId?: string | null;
 }
 
 export interface Stats {

@@ -35,7 +35,7 @@ Python services are optional for UI/API work — only needed when touching catal
 
 ## Backend scripts
 
-One-off migrations live in `src/scripts/migrations`, jobs in `src/scripts/jobs`, all wired as npm scripts (`migrate:*`, `generate:*`, `pipeline:*`, `import:jamendo`). They mutate real MongoDB data — read before running.
+One-off migrations live in `src/scripts/migrations`, jobs in `src/scripts/jobs`, all wired as npm scripts (`migrate:*`, `generate:*`, `pipeline:*`). They mutate real MongoDB data — read before running.
 
 ## Deploy
 

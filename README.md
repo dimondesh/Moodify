@@ -65,7 +65,6 @@ The repository is a monorepo:
 - **Authentication** — email/password with verification codes (Resend), Google OAuth, password reset
 - **Internationalization** — English, Russian, and Ukrainian (`i18next`)
 - **Admin API** — album/song upload, HLS transcoding pipeline, catalog maintenance
-- **Jamendo import** — optional royalty-free catalog ingestion script
 
 ---
 
@@ -250,7 +249,6 @@ Docker images are available in `analyzer/Dockerfile` and `embedding/Dockerfile`.
 | `EMBEDDING_SERVICE_URL` | Embedding service URL (default `http://127.0.0.1:5006`) |
 | `GEMINI_API_KEY` | Google Gemini (locale translation, AI features) |
 | `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` | Optional Spotify metadata |
-| `JAMENDO_CLIENT_ID` | Optional Jamendo catalog import |
 
 **Frontend** (`.env` in `frontend/`):
 
@@ -273,7 +271,7 @@ Scheduled tasks (cron worker) include:
 - Category centroids and hub regeneration (from stored embeddings)
 - Temp directory cleanup
 
-One-off scripts live under `backend/src/scripts/` — migrations, Jamendo import, embedding pipelines, and catalog generators. See `backend/package.json` scripts for entry points.
+One-off scripts live under `backend/src/scripts/` — migrations, embedding pipelines, and catalog generators. See `backend/package.json` scripts for entry points.
 
 ---
 

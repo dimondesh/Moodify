@@ -10,7 +10,6 @@ import {
   ListEnd,
   ListPlus,
   PlusCircle,
-  Scale,
   Share,
   Trash2,
   User,
@@ -45,13 +44,11 @@ export function SongOptionsDropdownContent({
     artists,
     hasMultipleArtists,
     hasAlbum,
-    hasCredits,
     canRemoveFromThisPlaylist,
     playlistIdsContainingSong,
     goToArtist,
     goToAlbum,
     toggleLiked,
-    openCredits,
     handleRemoveFromPlaylist,
     handleAddToQueue,
   } = actions;
@@ -179,19 +176,6 @@ export function SongOptionsDropdownContent({
           <SongShareSubmenu songId={song._id} onRequestClose={onClose} />
         </DropdownMenuSubContent>
       </DropdownMenuSub>
-
-      {hasCredits && (
-        <DropdownMenuItem
-          className={SONG_MENU_ITEM}
-          onSelect={(e) => {
-            e.preventDefault();
-            openCredits();
-          }}
-        >
-          <Scale />
-          <span>{t("songOptions.credits", "Credits")}</span>
-        </DropdownMenuItem>
-      )}
 
       {canRemoveFromThisPlaylist && (
         <DropdownMenuItem

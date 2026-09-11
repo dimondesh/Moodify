@@ -4,17 +4,6 @@
     "hoursOnly": "{{hours}} ч",
     "minutesOnly": "{{minutes}} мин"
   },
-  "songOptions": {
-    "credits": "Атрибуция",
-    "creditsDialog": {
-      "title": "Атрибуция",
-      "work": "{{artist}} — {{title}}",
-      "licensePrefix": "Лицензия:",
-      "sourcePrefix": "Источник:",
-      "via": "через Jamendo",
-      "link": "Открыть на Jamendo"
-    }
-  },
   "sidebar": {
     "home": "Главная",
     "search": "Поиск",
@@ -69,9 +58,6 @@
     "lyrics": "Текст",
     "close": "Закрыть",
     "noLyrics": "Для этого трека нет текста.",
-    "ccAttribution": "Лицензия: {{license}}",
-    "ccAttributionVia": "через Jamendo",
-    "ccAttributionLink": "Открыть на Jamendo",
     "addedToLiked": "Добавлено в Любимые Треки",
     "removedFromLiked": "Удалено из Любимых Треков",
     "addedToPlaylist": "Добавлено в плейлист",
