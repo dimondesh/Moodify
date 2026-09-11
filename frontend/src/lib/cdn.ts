@@ -1,4 +1,12 @@
-export const CDN_BASE = "https://moodify-one.b-cdn.net";
+const hostname = (
+  import.meta.env.VITE_BUNNY_PULL_ZONE_HOSTNAME || ""
+).replace(/^https?:\/\//, "");
+
+if (!hostname) {
+  throw new Error("VITE_BUNNY_PULL_ZONE_HOSTNAME is required");
+}
+
+export const CDN_BASE = `https://${hostname}`;
 
 export const cdnAsset = (path: string) =>
   `${CDN_BASE}/${path.replace(/^\//, "")}`;

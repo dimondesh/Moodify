@@ -244,7 +244,7 @@ Docker images are available in `analyzer/Dockerfile` and `embedding/Dockerfile`.
 | `JWT_EXPIRES_IN` | Token TTL (default `7d`) |
 | `RESEND_API_KEY` | Resend API key for transactional email |
 | `EMAIL_FROM` | Sender address for verification/reset emails |
-| `BUNNY_PULL_ZONE_HOSTNAME` | Bunny CDN pull zone for HLS and images |
+| `BUNNY_PULL_ZONE_HOSTNAME` | Bunny CDN pull zone hostname — also used for static CDN asset URLs |
 | `ANALYSIS_SERVICE_URL` | Analyzer service URL (default `http://127.0.0.1:5001`) |
 | `EMBEDDING_SERVICE_URL` | Embedding service URL (default `http://127.0.0.1:5006`) |
 | `GEMINI_API_KEY` | Google Gemini (locale translation, AI features) |
@@ -257,6 +257,7 @@ Docker images are available in `analyzer/Dockerfile` and `embedding/Dockerfile`.
 | `VITE_API_URL` | Backend API base URL |
 | `VITE_SOCKETIO_URL` | Socket.IO server URL |
 | `VITE_GOOGLE_CLIENT_ID` | Google OAuth client ID (optional) |
+| `VITE_BUNNY_PULL_ZONE_HOSTNAME` | Bunny CDN pull zone hostname (same as backend `BUNNY_PULL_ZONE_HOSTNAME`) |
 
 ---
 

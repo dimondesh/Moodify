@@ -1,0 +1,5 @@
+venv
+__pycache__
+*.pyc
+msd-musicnn-1.pb
+check_sample_vs_full.py
