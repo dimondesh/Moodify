@@ -182,53 +182,29 @@ Moodify/
 - FFmpeg (for backend media processing)
 - Python 3.9+ (for analyzer and embedding services, or use Docker)
 
-### 1. Backend
+### One-command local stack
+
+From the repo root (after `backend` / `frontend` deps and `.env` files exist, and Redis is running):
 
 ```bash
-cd backend
-npm install
-# Create backend/.env — see Environment Variables below
-npm run dev            # API on http://localhost:5000
-```
-
-In a second terminal, start the cron worker:
-
-```bash
-cd backend
-npm run dev:cron
-```
-
-For production, use PM2:
-
-```bash
-npm run start:pm2
-```
-
-### 2. Frontend
-
-```bash
-cd frontend
-npm install
-# Create frontend/.env — see Environment Variables below
+npm install          # once — installs root orchestrator (concurrently)
 npm run dev
 ```
 
-### 3. Python services (optional for full recommendation pipeline)
+This starts analyzer (:5001) and embedding (:5006) in Docker (source bind-mounted, hot-reload), then the API, cron worker, and Vite frontend. Ctrl+C stops Node processes; containers keep running. Useful extras: `npm run docker:logs`, `npm run docker:down`.
+
+Note: Ubuntu’s `docker.io` package often lacks the Compose plugin. The root scripts fall back to plain `docker build`/`run` automatically. Optional: `sudo apt install docker-compose-v2` to use `docker-compose.yml` directly.
+### Backend / frontend separately
 
 ```bash
-# Analyzer — default port 5001
-cd analyzer
-pip install -r requirements.txt
-uvicorn app:app --host 0.0.0.0 --port 5001
-
-# Embedding — default port 5006
-cd embedding
-pip install -r requirements.txt
-uvicorn app:app --host 0.0.0.0 --port 5006
+cd backend && npm install && npm run dev       # API :5000
+cd backend && npm run dev:cron                # cron worker
+cd frontend && npm install && npm run dev
 ```
 
-Docker images are available in `analyzer/Dockerfile` and `embedding/Dockerfile`.
+Production API+cron: `cd backend && npm run start:pm2`.
 
+Python services can still be run without Docker (`uvicorn` in `analyzer/` / `embedding/`); Compose is the default path now.
 ### Environment Variables
 
 **Backend** (`.env` in `backend/`):

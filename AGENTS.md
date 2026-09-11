@@ -2,11 +2,11 @@
 
 ## Repo layout
 
-Monorepo with **no root manifest** — every npm command runs inside its package dir.
+Monorepo. Root `package.json` is only for the unified `npm run dev` orchestrator; package work still lives in each dir.
 
 - `frontend/` — React 19 + TS + Vite 6 PWA
 - `backend/` — Express 5, plain JS ESM (no TypeScript), Mongo + Redis + BullMQ
-- `analyzer/`, `embedding/` — FastAPI Python services (ports 5001 / 5006)
+- `analyzer/`, `embedding/` — FastAPI Python services (ports 5001 / 5006), via root `docker-compose.yml`
 
 ## Gotchas
 
@@ -27,11 +27,10 @@ npm run build         # tsc -b && vite build (strict TS; this is the real typech
 # backend — no lint/typecheck exists; node syntax-check or boot it
 ```
 
-Backend dev needs MongoDB, Redis running, and `backend/.env`; frontend needs `frontend/.env` (`VITE_API_URL`, etc.). Both `.env` files are gitignored but present locally.
+Backend/frontend still need their own `.env` files (gitignored). Redis must already be running locally; Mongo is typically Atlas.
 
-Two separate processes in dev: `npm run dev` (API :5000) and `npm run dev:cron` (cron worker). In production they're PM2 apps (`ecosystem.config.cjs`: `moodify-api`, `moodify-cron`).
-
-Python services are optional for UI/API work — only needed when touching catalog ingestion or the recommendation/embedding pipeline (`ANALYSIS_SERVICE_URL`, `EMBEDDING_SERVICE_URL`).
+From repo root: `npm run dev` brings up analyzer/embedding in Docker (bind-mount + uvicorn `--reload`), then API (:5000), cron, and Vite together. Containers stay up after Ctrl+C; use `npm run docker:down` to stop them. Image rebuild is skipped when the image id is unchanged; only `Dockerfile` / `requirements.txt` changes recreate containers. If `docker compose` is missing, `scripts/ensure-docker.mjs` uses plain `docker build`/`run`.
+In production API+cron are PM2 apps (`ecosystem.config.cjs`: `moodify-api`, `moodify-cron`).
 
 ## Backend scripts
 

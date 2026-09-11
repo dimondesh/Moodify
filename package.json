@@ -1,0 +1,14 @@
+{
+  "name": "moodify",
+  "private": true,
+  "scripts": {
+    "predev": "node scripts/ensure-docker.mjs",
+    "dev": "concurrently -k -n api,cron,web -c blue,magenta,green \"npm run dev --prefix backend\" \"npm run dev:cron --prefix backend\" \"npm run dev --prefix frontend\"",
+    "docker:up": "node scripts/ensure-docker.mjs",
+    "docker:down": "node scripts/docker-down.mjs",
+    "docker:logs": "node scripts/docker-logs.mjs"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

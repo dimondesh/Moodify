@@ -1,0 +1,24 @@
+services:
+  analyzer:
+    build: ./analyzer
+    image: moodify-analyzer
+    container_name: moodify-analyzer
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./analyzer:/app
+    command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5001", "--reload"]
+    restart: unless-stopped
+
+  embedding:
+    build: ./embedding
+    image: moodify-embedding
+    container_name: moodify-embedding
+    ports:
+      - "5006:5006"
+    volumes:
+      - ./embedding:/app
+      # Host venv is for local Python; keep the image's /app layout clean.
+      - /app/venv
+    command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5006", "--reload"]
+    restart: unless-stopped
