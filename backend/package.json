@@ -38,9 +38,8 @@
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@google/generative-ai": "^0.24.1",
-    "adm-zip": "^0.5.16",
     "axios": "^1.11.0",
-    "bcrypt": "^5.1.1",
+    "bcrypt": "^6.0.0",
     "bullmq": "^5.77.6",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
@@ -58,12 +57,17 @@
     "node-vibrant": "^4.0.4",
     "redis": "^5.11.0",
     "resend": "^4.0.1",
-    "sharp": "^0.34.3",
+    "sharp": "^0.35.4",
     "socket.io": "^4.8.1",
     "uuid": "^14.0.0",
     "yauzl": "^3.2.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
+  },
+  "allowScripts": {
+    "@ffmpeg-installer/linux-x64@4.1.0": true,
+    "bcrypt@6.0.0": true,
+    "msgpackr-extract@3.0.4": true
   }
 }
