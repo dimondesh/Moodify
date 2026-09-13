@@ -14,6 +14,7 @@ Monorepo. Root `package.json` is only for the unified `npm run dev` orchestrator
 - Frontend installs rely on `legacy-peer-deps=true` (`frontend/.npmrc`). Don't bypass it.
 - Backend imports use explicit `.js` extensions (ESM requirement).
 - `backend/temp*` and `backend/tmp` are runtime scratch dirs created by media processing — don't commit or clean blindly.
+- **Admin Spotify URL ingest** needs system `deemix` on PATH (or absolute `DEEMIX_BIN` in `backend/.env`), plus `DEEZER_ARL`. Optional: `DEEMIX_BITRATE` (default `128`). ZIP upload remains as fallback.
 
 ## Commands
 

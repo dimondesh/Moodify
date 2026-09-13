@@ -147,6 +147,21 @@ export const findTrackFiles = (trackFilesMap, trackName) => {
   return null;
 };
 
+/** Recursively list all files under dirPath. */
+export const listFilesRecursive = async (dirPath) => {
+  const results = [];
+  const entries = await fsp.readdir(dirPath, { withFileTypes: true });
+  for (const entry of entries) {
+    const full = path.join(dirPath, entry.name);
+    if (entry.isDirectory()) {
+      results.push(...(await listFilesRecursive(full)));
+    } else if (entry.isFile()) {
+      results.push(full);
+    }
+  }
+  return results;
+};
+
 export const cleanUpTempDir = async (dirPath) => {
   try {
     await fsp.rm(dirPath, { recursive: true, force: true });

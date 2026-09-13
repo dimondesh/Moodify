@@ -3,47 +3,25 @@ import { Song } from "../models/song.model.js";
 import { Album } from "../models/album.model.js";
 import { Artist } from "../models/artist.model.js";
 import {
-  uploadToBunny,
   deleteFromBunny,
   getPathFromUrl,
 } from "../lib/media/bunny.service.js";
 import { processAndUploadSong } from "../lib/media/songUpload.service.js";
 
-import {
-  getAlbumDataFromSpotify,
-  getArtistDataFromSpotify,
-} from "../lib/integrations/spotifyService.js";
-import { getLrcLyricsFromLrclib } from "../lib/integrations/lyricsService.js";
-import {
-  extractZip,
-  buildTrackFilesMap,
-  findTrackFiles,
-  cleanUpTempDir,
-} from "../lib/media/zipHandler.js";
-
 import path from "path";
 import fs from "fs/promises";
 import fsSync from "fs";
-import { getBatchTagsFromAI } from "../lib/integrations/ai.service.js";
 import { Genre } from "../models/genre.model.js";
 import { Mood } from "../models/mood.model.js";
-import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
 import { createWriteStream } from "fs";
 import { analyzeAudioFeatures } from "../lib/integrations/audioAnalysis.service.js";
 import {
-  setUploadInProgress,
   clearUploadInProgress,
+  tryAcquireUploadLock,
+  uploadBusyError,
 } from "../lib/media/activeUploads.service.js";
-import os from "os";
-import {
-  extractCoverAccentHexFromBuffer,
-  isSkippableCoverImageUrl,
-} from "../lib/media/coverAccent.service.js";
-import {
-  CDN_DEFAULT_ALBUM_COVER,
-  CDN_DEFAULT_ARTIST_IMAGE,
-} from "../constants/cdn.js";
+import { extractCoverAccentHexFromBuffer } from "../lib/media/coverAccent.service.js";
 import {
   deleteImageVariants,
   replaceEntityImageVariants,
@@ -51,12 +29,11 @@ import {
   uploadImageVariantsFromSource,
   getSmallImageUrl
 } from "../lib/media/imageVariants.service.js";
-
-const DOWNLOAD_OPTS = {
-  responseType: "arraybuffer",
-  timeout: 20000,
-  maxContentLength: 8 * 1024 * 1024,
-};
+import { ingestAlbumFromSpotify } from "../lib/media/albumIngest.service.js";
+import {
+  enqueueAlbumIngestFromUrl,
+  getAlbumIngestJobStatus,
+} from "../lib/media/albumIngestQueue.service.js";
 
 const attachSongsToAlbums = (albums, songs) => {
   const songsByAlbumId = new Map();
@@ -79,9 +56,11 @@ export const createSong = async (req, res, next) => {
   if (!req.files || !req.files.audioFile)
     return res.status(400).json({ message: "Audio file is required." });
 
-  try {
-    setUploadInProgress();
+  if (!tryAcquireUploadLock()) {
+    return res.status(409).json({ message: uploadBusyError().message });
+  }
 
+  try {
     const {
       title,
       artistIds: artistIdsJsonString,
@@ -202,10 +181,14 @@ export const updateSong = async (req, res, next) => {
   } = req.body;
   const audioFile = req.files ? req.files.audioFile : null;
   const imageFile = req.files ? req.files.imageFile : null;
+  let acquiredUploadLock = false;
 
   try {
     if (audioFile) {
-      setUploadInProgress();
+      if (!tryAcquireUploadLock()) {
+        return res.status(409).json({ message: uploadBusyError().message });
+      }
+      acquiredUploadLock = true;
     }
 
     const song = await Song.findById(id);
@@ -271,7 +254,7 @@ export const updateSong = async (req, res, next) => {
     console.log("Error in updateSong", error);
     next(error);
   } finally {
-    if (audioFile) {
+    if (acquiredUploadLock) {
       clearUploadInProgress();
     }
   }
@@ -623,10 +606,6 @@ export const uploadChunk = async (req, res, next) => {
 export const uploadFullAlbumAuto = async (req, res, next) => {
   console.log("🚀 Reached HLS /admin/albums/upload-full-album route");
 
-  const DEFAULT_ARTIST_IMAGE_URL = CDN_DEFAULT_ARTIST_IMAGE;
-  const DEFAULT_ALBUM_IMAGE_URL = CDN_DEFAULT_ALBUM_COVER;
-
-
   const { spotifyAlbumUrl, uploadId } = req.body;
   const albumAudioZip = req.files ? req.files.albumAudioZip : null;
 
@@ -658,291 +637,34 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
       .json({ success: false, message: "ZIP file or uploadId is required." });
   }
 
-  const tempUnzipDir = path.join(
-    process.cwd(),
-    "temp_unzip_albums",
-    `${Date.now()}_${uuidv4()}`,
-  );
-
-  const uploadedBunnyPaths = [];
-  const newlyCreatedArtistIds = [];
-  const createdSongIds = [];
-  let album = null;
-
-  setUploadInProgress();
+  if (!tryAcquireUploadLock()) {
+    return res.status(409).json({
+      success: false,
+      message: uploadBusyError().message,
+    });
+  }
 
   try {
-    const spotifyAlbumData = await getAlbumDataFromSpotify(spotifyAlbumUrl);
-    if (!spotifyAlbumData) {
-      throw new Error("Could not get album data from Spotify.");
-    }
-
-    const existingAlbum = await Album.findOne({ title: spotifyAlbumData.name });
-    if (existingAlbum) {
-      return res.status(409).json({
-        success: false,
-        message: `Альбом с названием "${spotifyAlbumData.name}" уже существует.`,
-      });
-    }
-
-    const extractedFilePaths = await extractZip(zipFilePath, tempUnzipDir);
-    const trackFilesMap = buildTrackFilesMap(extractedFilePaths);
-
-    const tracksToProcess =
-      spotifyAlbumData.tracks.items || spotifyAlbumData.tracks;
-
-    console.log(
-      "[AdminController] Performing pre-flight check for all required audio files...",
-    );
-    for (const spotifyTrack of tracksToProcess) {
-      const filesForTrack = findTrackFiles(trackFilesMap, spotifyTrack.name);
-      if (!filesForTrack || !filesForTrack.audioPath) {
-        throw new Error(
-          `Validation failed: Audio file for track "${spotifyTrack.name}" could not be matched in the ZIP archive.`,
-        );
-      }
-    }
-    console.log(
-      "[AdminController] Pre-flight check successful. All audio files matched.",
-    );
-
-    const albumArtistIds = [];
-    for (const spotifyArtist of spotifyAlbumData.artists || []) {
-      let artist = await Artist.findOne({ name: spotifyArtist.name });
-      if (!artist) {
-        const artistDetails = await getArtistDataFromSpotify(spotifyArtist.id);
-        const artistImageUrl =
-          artistDetails?.images?.[0]?.url || DEFAULT_ARTIST_IMAGE_URL;
-        const imageUploadResult = await uploadImageVariantsFromSource(
-          artistImageUrl,
-          "artists",
-        );
-        for (const img of imageUploadResult.images) {
-          uploadedBunnyPaths.push(getPathFromUrl(img.url));
-        }
-        artist = new Artist({
-          name: spotifyArtist.name,
-          ...toImageFields(imageUploadResult),
-        });
-        await artist.save();
-        newlyCreatedArtistIds.push(artist._id);
-      }
-      albumArtistIds.push(artist._id);
-    }
-
-    const albumTypeFromSpotify = spotifyAlbumData.album_type;
-    const totalTracks = spotifyAlbumData.total_tracks;
-    let albumType;
-
-    if (totalTracks === 1) {
-      albumType = "Single";
-    } else if (totalTracks >= 2 && totalTracks <= 6) {
-      albumType = "EP";
-    } else {
-      albumType = "Album";
-    }
-
-    const albumImageUrl =
-      spotifyAlbumData.images?.[0]?.url || DEFAULT_ALBUM_IMAGE_URL;
-    let albumCoverAccentHex = null;
-    let albumImageUpload;
-
-    if (!isSkippableCoverImageUrl(albumImageUrl)) {
-      const imgRes = await axios.get(albumImageUrl, DOWNLOAD_OPTS);
-      const imgBuf = Buffer.from(imgRes.data);
-      albumCoverAccentHex = await extractCoverAccentHexFromBuffer(imgBuf);
-      albumImageUpload = await uploadImageVariantsFromSource(imgBuf, "albums");
-    } else {
-      albumImageUpload = await uploadImageVariantsFromSource(
-        albumImageUrl,
-        "albums",
-      );
-    }
-    for (const img of albumImageUpload.images) {
-      uploadedBunnyPaths.push(getPathFromUrl(img.url));
-    }
-
-    album = new Album({
-      title: spotifyAlbumData.name,
-      artist: albumArtistIds,
-      ...toImageFields(albumImageUpload),
-      releaseYear: parseInt(spotifyAlbumData.release_date.split("-")[0]),
-      type: albumType,
-      coverAccentHex: albumCoverAccentHex,
+    const { album, songs } = await ingestAlbumFromSpotify({
+      spotifyAlbumUrl,
+      zipFilePath,
     });
-    await album.save();
-    console.log(`[AdminController] Album created in DB: ${album.title}`);
-
-    const primaryAlbumArtistName =
-      spotifyAlbumData.artists?.[0]?.name || "Unknown Artist";
-    const tracksForAI = tracksToProcess.map((track, index) => {
-      const artistName = track.artists?.[0]?.name || primaryAlbumArtistName;
-      return {
-        tempId: track.id || `track_${index}`,
-        artistName: artistName,
-        trackName: track.name,
-      };
-    });
-
-    console.log(
-      `[AdminController] Requesting batch AI tags for ${tracksForAI.length} tracks...`,
-    );
-    const batchTags = await getBatchTagsFromAI(tracksForAI);
-    console.log(`[AdminController] Received batch AI tags.`);
-
-    const createdSongs = [];
-    let trackIndex = 0;
-
-    for (const spotifyTrack of tracksToProcess) {
-      const songName = spotifyTrack.name;
-      const trackTempId = spotifyTrack.id || `track_${trackIndex}`;
-      trackIndex++;
-
-      console.log(`[AdminController] Processing track: ${songName}`);
-      const filesForTrack = findTrackFiles(trackFilesMap, songName);
-
-      // Проверяем, что файл все еще существует
-      if (!filesForTrack || !filesForTrack.audioPath) {
-        console.error(
-          `[AdminController] Файл для трека "${songName}" не найден`,
-        );
-        continue;
-      }
-
-      try {
-        const { hlsUrl, hlsRemotePath, duration } =
-          await processAndUploadSong(filesForTrack.audioPath);
-        uploadedBunnyPaths.push(hlsRemotePath + "/");
-
-        const songArtistIds = [];
-        for (const spotifyTrackArtist of spotifyTrack.artists || []) {
-          let artist = await Artist.findOne({ name: spotifyTrackArtist.name });
-          if (!artist) {
-            const artistDetails = await getArtistDataFromSpotify(
-              spotifyTrackArtist.id,
-            );
-            const artistImageUrl =
-              artistDetails?.images?.[0]?.url || DEFAULT_ARTIST_IMAGE_URL;
-            const imageUploadResult = await uploadImageVariantsFromSource(
-              artistImageUrl,
-              "artists",
-            );
-            for (const img of imageUploadResult.images) {
-              uploadedBunnyPaths.push(getPathFromUrl(img.url));
-            }
-            artist = new Artist({
-              name: spotifyTrackArtist.name,
-              ...toImageFields(imageUploadResult),
-            });
-            await artist.save();
-            newlyCreatedArtistIds.push(artist._id);
-          }
-          songArtistIds.push(artist._id);
-        }
-
-        const primaryArtistName = (await Artist.findById(songArtistIds[0]))
-          .name;
-
-        const aiTags = batchTags[trackTempId] || { genreIds: [], moodIds: [] };
-        const { genreIds, moodIds } = aiTags;
-
-        let lrcText = "";
-        if (filesForTrack.lrcPath) {
-          try {
-            lrcText = await fs.readFile(filesForTrack.lrcPath, "utf8");
-          } catch (readError) {
-            console.error(`Error reading LRC file for ${songName}:`, readError);
-          }
-        }
-        if (!lrcText) {
-          lrcText = await getLrcLyricsFromLrclib({
-            artistName: primaryArtistName,
-            songName,
-            albumName: album.title,
-            songDuration: duration * 1000,
-          });
-        }
-
-        const song = new Song({
-          title: songName,
-          artist: songArtistIds,
-          albumId: album._id,
-          trackNumber: spotifyTrack.track_number || trackIndex,
-          hlsUrl,
-          lyrics: lrcText || "",
-          duration,
-          ...toImageFields(album),
-          coverAccentHex: albumCoverAccentHex,
-          genres: genreIds,
-          moods: moodIds,
-        });
-
-        await song.save();
-        createdSongIds.push(song._id);
-        createdSongs.push(song);
-
-        // Попытка анализа аудио (не блокирующая)
-        try {
-          const audioFeatures = await analyzeAudioFeatures(
-            filesForTrack.audioPath,
-          );
-          song.audioFeatures = audioFeatures;
-          await song.save();
-          console.log(
-            `[AdminController] Аудио-характеристики сохранены для песни: ${song.title}`,
-          );
-        } catch (audioAnalysisError) {
-          console.warn(
-            `[AdminController] Не удалось проанализировать аудио для песни ${song.title}:`,
-            audioAnalysisError.message,
-          );
-          // Не прерываем создание песни, если анализ не удался
-        }
-      } catch (trackError) {
-        console.error(
-          `[AdminController] Ошибка обработки трека "${songName}":`,
-          trackError,
-        );
-        // Продолжаем обработку остальных треков
-      }
-    }
 
     res.status(200).json({
       success: true,
-      message: `Album "${album.title}" (${album.type}) and ${createdSongs.length} tracks added successfully!`,
+      message: `Album "${album.title}" (${album.type}) and ${songs.length} tracks added successfully!`,
       album,
-      songs: createdSongs.map((s) => ({ title: s.title, id: s._id })),
+      songs: songs.map((s) => ({ title: s.title, id: s._id })),
     });
   } catch (error) {
-    console.error(
-      "[AdminController] Critical error occurred. Starting rollback...",
-      error,
-    );
-
-    await Promise.allSettled(
-      uploadedBunnyPaths.map((bunnyPath) => {
-        if (!bunnyPath) return Promise.resolve();
-        if (bunnyPath.endsWith("/")) {
-          return deleteFromBunny(bunnyPath);
-        }
-        return deleteFromBunny(bunnyPath);
-      }),
-    );
-
-    if (createdSongIds.length > 0) {
-      await Song.deleteMany({ _id: { $in: createdSongIds } });
+    if (error.statusCode === 409) {
+      return res.status(409).json({
+        success: false,
+        message: error.message,
+      });
     }
-    if (album) {
-      await Album.findByIdAndDelete(album._id);
-    }
-    if (newlyCreatedArtistIds.length > 0) {
-      await Artist.deleteMany({ _id: { $in: newlyCreatedArtistIds } });
-    }
-
     next(error);
   } finally {
-    clearUploadInProgress();
-    await cleanUpTempDir(tempUnzipDir);
     if (uploadId) {
       await fs
         .rm(path.join(process.cwd(), "temp", "chunks", uploadId), {
@@ -951,6 +673,48 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
         })
         .catch(() => {});
     }
+    clearUploadInProgress();
+  }
+};
+
+export const uploadAlbumFromSpotifyUrl = async (req, res, next) => {
+  try {
+    const { spotifyAlbumUrl } = req.body;
+    if (!spotifyAlbumUrl) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Spotify URL is required." });
+    }
+
+    const jobId = await enqueueAlbumIngestFromUrl(spotifyAlbumUrl);
+    res.status(202).json({
+      success: true,
+      jobId,
+      message: "Album ingest job queued.",
+    });
+  } catch (error) {
+    if (error.statusCode === 409) {
+      return res.status(409).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    next(error);
+  }
+};
+
+export const getAlbumUploadJobStatus = async (req, res, next) => {
+  try {
+    const { jobId } = req.params;
+    const status = await getAlbumIngestJobStatus(jobId);
+    if (!status) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Job not found." });
+    }
+    res.status(200).json({ success: true, ...status });
+  } catch (error) {
+    next(error);
   }
 };
 

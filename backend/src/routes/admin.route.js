@@ -10,6 +10,8 @@ import {
   updateArtist,
   deleteArtist,
   uploadFullAlbumAuto,
+  uploadAlbumFromSpotifyUrl,
+  getAlbumUploadJobStatus,
   getGenres,
   getMoods,
   getPaginatedSongs,
@@ -39,6 +41,8 @@ router.put("/albums/:id", updateAlbum);
 router.delete("/albums/:id", deleteAlbum);
 router.post("/albums/upload-chunk", uploadChunk);
 router.post("/albums/upload-full-album", uploadFullAlbumAuto);
+router.post("/albums/upload-from-url", uploadAlbumFromSpotifyUrl);
+router.get("/albums/upload-jobs/:jobId", getAlbumUploadJobStatus);
 
 router.post("/artists", createArtist);
 router.put("/artists/:id", updateArtist);

@@ -28,6 +28,10 @@ import {
   createHomeFeedWorker,
   closeHomeFeedWorker,
 } from "./lib/home/homeFeedQueue.service.js";
+import {
+  createAlbumIngestWorker,
+  closeAlbumIngestWorker,
+} from "./lib/media/albumIngestQueue.service.js";
 
 const PORT = process.env.PORT || 5000;
 
@@ -126,6 +130,7 @@ const shutdown = async (signal) => {
 
   httpServer.close(async () => {
     await closeHomeFeedWorker();
+    await closeAlbumIngestWorker();
     if (redisClient.isOpen) {
       try {
         await redisClient.quit();
@@ -148,6 +153,9 @@ process.on("SIGINT", () => void shutdown("SIGINT"));
 httpServer.listen(PORT, async () => {
   connectDB();
   await connectRedis();
+
+  createAlbumIngestWorker();
+  console.log("[albumIngestQueue] Worker started in API process");
 
   if ((process.env.NODE_ENV || "development") === "development") {
     createHomeFeedWorker();
