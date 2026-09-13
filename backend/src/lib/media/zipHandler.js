@@ -118,16 +118,16 @@ const FEAT_PAREN_RE =
 const FEAT_DASH_RE = /\s*[-–—]\s*(?:feat(?:uring)?|ft)\.?\s+.+$/i;
 const FEAT_TRAIL_RE = /\s+(?:feat(?:uring)?|ft)\.?\s+.+$/i;
 
-/** Version tags: remaster(ed), remix, radio edit, live, … in (), [], after dash, or bare. */
-const VERSION_TAG =
-  "(?:re-?masters?(?:ed)?(?:\\s+\\d{2,4})?|re-?mix(?:es)?|radio\\s*edit|live(?:\\s+[^)\\]}\\-–—]+)?|explicit|clean|deluxe|extended(?:\\s+mix)?|bonus(?:\\s+track)?|instrumental|acoustic)";
+/** Version tags: remaster(ed) (±year before/after), remix, radio edit, live, … */
+const REMASTER_TAG = "(?:\\d{2,4}\\s+)?re-?masters?(?:ed)?(?:\\s+\\d{2,4})?";
+const VERSION_TAG = `(?:${REMASTER_TAG}|re-?mix(?:es)?|radio\\s*edit|live(?:\\s+[^)\\]}\\-–—]+)?|explicit|clean|deluxe|extended(?:\\s+mix)?|bonus(?:\\s+track)?|instrumental|acoustic)`;
 const VERSION_PAREN_RE = new RegExp(
   `\\s*[([{]\\s*${VERSION_TAG}\\s*[)\\]}]`,
   "gi",
 );
 const VERSION_DASH_RE = new RegExp(`\\s*[-–—]\\s*${VERSION_TAG}\\s*$`, "i");
 const VERSION_TRAIL_RE = new RegExp(
-  `\\s+(?:re-?masters?(?:ed)?(?:\\s+\\d{2,4})?|re-?mix(?:es)?)\\s*$`,
+  `\\s+(?:${REMASTER_TAG}|re-?mix(?:es)?)\\s*$`,
   "i",
 );
 

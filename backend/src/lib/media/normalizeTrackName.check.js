@@ -26,11 +26,14 @@ const cases = [
   ["Song - feat. Artist", "Song (feat. Artist)"],
   ["Song (feat. A & B)", "Song featuring A and B"],
 
-  // remaster variants: paren / dash / bare, remaster vs remastered
+  // remaster variants: paren / dash / bare, remaster vs remastered, year before/after
   ["Song - Remastered", "Song (Remastered)"],
   ["Song Remastered", "Song - Remaster"],
   ["Song (Remastered 2011)", "Song - Remastered"],
   ["Song - Remastered 2011", "Song (Remastered)"],
+  ["Song (2008 Remaster)", "Song (Remastered 2008)"],
+  ["Song - 2008 Remaster", "Song (Remastered 2008)"],
+  ["Song Remastered 2008", "Song (2008 Remaster)"],
 
   // stacked
   ["Song (feat. X) - Remastered", "Song featuring X"],
