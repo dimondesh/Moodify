@@ -71,6 +71,7 @@ export const createSong = async (req, res, next) => {
       lyrics,
       genreIds: genreIdsJson,
       moodIds: moodIdsJson,
+      explicit: explicitRaw,
     } = req.body;
 
     const { hlsUrl, duration } =
@@ -117,6 +118,7 @@ export const createSong = async (req, res, next) => {
     }
 
     let trackNumber = 1;
+    let discNumber = 1;
     if (albumId && albumId !== "none") {
       const parsedTrackNumber = req.body.trackNumber
         ? parseInt(req.body.trackNumber, 10)
@@ -124,6 +126,12 @@ export const createSong = async (req, res, next) => {
       trackNumber =
         parsedTrackNumber ||
         (await Song.countDocuments({ albumId: finalAlbumId })) + 1;
+      const parsedDiscNumber = req.body.discNumber
+        ? parseInt(req.body.discNumber, 10)
+        : null;
+      if (parsedDiscNumber && parsedDiscNumber > 0) {
+        discNumber = parsedDiscNumber;
+      }
     }
 
     const song = new Song({
@@ -131,6 +139,8 @@ export const createSong = async (req, res, next) => {
       artist: artistIds,
       albumId: finalAlbumId,
       trackNumber,
+      discNumber,
+      explicit: explicitRaw === "true" || explicitRaw === true,
       ...imageFields,
       coverAccentHex: songCoverAccentHex,
       hlsUrl,
@@ -180,6 +190,9 @@ export const updateSong = async (req, res, next) => {
     lyrics,
     genreIds: genreIdsJson,
     moodIds: moodIdsJson,
+    trackNumber,
+    discNumber,
+    explicit: explicitRaw,
   } = req.body;
   const audioFile = req.files ? req.files.audioFile : null;
   const imageFile = req.files ? req.files.imageFile : null;
@@ -249,6 +262,22 @@ export const updateSong = async (req, res, next) => {
     song.lyrics = lyrics !== undefined ? lyrics : song.lyrics;
     if (genreIdsJson) song.genres = JSON.parse(genreIdsJson);
     if (moodIdsJson) song.moods = JSON.parse(moodIdsJson);
+
+    const parsedTrackNumber = trackNumber
+      ? parseInt(trackNumber, 10)
+      : null;
+    if (parsedTrackNumber && parsedTrackNumber > 0) {
+      song.trackNumber = parsedTrackNumber;
+    }
+    const parsedDiscNumber = discNumber
+      ? parseInt(discNumber, 10)
+      : null;
+    if (parsedDiscNumber && parsedDiscNumber > 0) {
+      song.discNumber = parsedDiscNumber;
+    }
+    if (explicitRaw !== undefined) {
+      song.explicit = explicitRaw === "true" || explicitRaw === true;
+    }
 
     await song.save();
     res.status(200).json(song);
@@ -795,7 +824,7 @@ export const getPaginatedAlbums = async (req, res, next) => {
     const albumIds = albums.map((album) => album._id);
     const songs = albumIds.length
       ? await Song.find({ albumId: { $in: albumIds } })
-          .sort({ trackNumber: 1, createdAt: 1 })
+          .sort({ discNumber: 1, trackNumber: 1, createdAt: 1 })
           .lean()
       : [];
 

@@ -96,6 +96,9 @@ export const getAlbumDataFromSpotify = async (albumUrl) => {
         id: track.id,
         name: track.name,
         duration_ms: track.duration_ms,
+        track_number: track.track_number,
+        disc_number: track.disc_number,
+        explicit: Boolean(track.explicit),
 
         artists: track.artists.map((artist) => ({
           id: artist.id,

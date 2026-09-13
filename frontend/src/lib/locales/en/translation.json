@@ -472,7 +472,8 @@
       "headers": {
         "title": "Title",
         "releaseDate": "Released Date"
-      }
+      },
+      "disc": "Disc {{n}}"
     },
     "artist": {
       "loading": "Loading artist...",
@@ -788,6 +789,7 @@
   },
   "common": {
     "unknownArtist": "Unknown Artist",
+    "explicit": "Explicit",
     "continue": "Continue",
     "next": "Next",
     "songsNotFound": "No available songs.",

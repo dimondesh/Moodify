@@ -1,4 +1,5 @@
 import { Play } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import Equalizer from "@/components/ui/equalizer";
 import EqualizerTitle from "@/components/ui/equalizer-title";
 import { CoverImage } from "@/components/CoverImage";
@@ -17,9 +18,24 @@ import type { Song } from "@/types";
 
 export type MobileSongListVariant = "album" | "playlist" | "artist";
 
+function ExplicitBadge() {
+  const { t } = useTranslation();
+  return (
+    <span
+      className="inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-[2px] bg-zinc-500 px-0.5 text-[10px] font-bold leading-none text-black"
+      title={t("common.explicit")}
+      aria-label={t("common.explicit")}
+    >
+      E
+    </span>
+  );
+}
+
 export interface SongListRowProps {
   song: Song;
   index: number;
+  /** Overrides the # column (defaults to index + 1). */
+  displayNumber?: number;
   isMobile: boolean;
   isCurrentSong: boolean;
   isPlaying: boolean;
@@ -39,6 +55,7 @@ export interface SongListRowProps {
 export function SongListRow({
   song,
   index,
+  displayNumber,
   isMobile,
   isCurrentSong,
   isPlaying,
@@ -54,6 +71,7 @@ export function SongListRow({
   mobileArtistNames,
   isLoggedIn,
 }: SongListRowProps) {
+  const numberLabel = displayNumber ?? index + 1;
   if (isMobile) {
     const showMobileCover =
       mobileVariant === "playlist" || mobileVariant === "artist";
@@ -79,7 +97,7 @@ export function SongListRow({
             />
           )}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               {isCurrentSong && isPlaying && (
                 <div className="block sm:hidden flex-shrink-0">
                   <EqualizerTitle />
@@ -93,13 +111,14 @@ export function SongListRow({
                 {song.title}
               </p>
             </div>
-            <p
-              className={`text-sm text-zinc-400 truncate ${
+            <div
+              className={`flex items-center gap-1.5 text-sm text-zinc-400 min-w-0 ${
                 showMobileCover ? "w-45 sm:w-120" : ""
               }`}
             >
-              {subtitle}
-            </p>
+              {song.explicit ? <ExplicitBadge /> : null}
+              <p className="truncate">{subtitle}</p>
+            </div>
           </div>
         </div>
         <SongOptionsMenu
@@ -127,7 +146,7 @@ export function SongListRow({
             <Equalizer />
           </div>
         ) : (
-          <span className="group-hover:hidden">{index + 1}</span>
+          <span className="group-hover:hidden">{numberLabel}</span>
         )}
         <Play className="h-4 w-4 hidden group-hover:block fill-current text-zinc-400" />
       </div>
@@ -151,21 +170,24 @@ export function SongListRow({
           >
             {song.title}
           </button>
-          <div className="text-gray-400 truncate">
-            {song.artist.map((artist, artistIndex) => (
-              <span key={artist._id}>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onArtistClick(artist._id);
-                  }}
-                  className="hover:text-[#8b5cf6] focus:outline-none focus:text-[#8b5cf6]"
-                >
-                  {artist.name}
-                </button>
-                {artistIndex < song.artist.length - 1 && ", "}
-              </span>
-            ))}
+          <div className="flex items-center gap-1.5 min-w-0 text-gray-400">
+            {song.explicit ? <ExplicitBadge /> : null}
+            <div className="truncate">
+              {song.artist.map((artist, artistIndex) => (
+                <span key={artist._id}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onArtistClick(artist._id);
+                    }}
+                    className="hover:text-[#8b5cf6] focus:outline-none focus:text-[#8b5cf6]"
+                  >
+                    {artist.name}
+                  </button>
+                  {artistIndex < song.artist.length - 1 && ", "}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       </div>

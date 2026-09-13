@@ -29,6 +29,9 @@ export interface Song {
   title: string;
   artist: Artist[];
   albumId: string | null;
+  trackNumber?: number | null;
+  discNumber?: number | null;
+  explicit?: boolean;
   images?: ImageVariant[];
   hlsUrl?: string;
   canvasUrl?: string;

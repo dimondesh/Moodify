@@ -26,7 +26,7 @@ import { canUserViewPlaylist } from "../lib/playlists/playlistAccess.js";
 export { LIKED_PLAYLIST_ID };
 
 const SONG_MINIMAL_SELECT =
-  "_id title images coverAccentHex duration playCount albumId createdAt";
+  "_id title images coverAccentHex duration playCount albumId createdAt explicit";
 
 export const populatePlaylistEmbeddedSongs = {
   path: "songs",

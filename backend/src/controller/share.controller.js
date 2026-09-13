@@ -3,7 +3,7 @@ import { Album } from "../models/album.model.js";
 import { Playlist } from "../models/playlist.model.js";
 
 const SHARED_SONG_SELECT =
-  "title duration images artist albumId hlsUrl playCount genres moods";
+  "title duration images artist albumId hlsUrl playCount genres moods explicit";
 
 const playlistSongPopulateOptions = {
   path: "songs",
@@ -34,7 +34,7 @@ export const getSharedEntity = async (req, res, next) => {
         const songs = await Song.find({ albumId: entityId })
           .select(SHARED_SONG_SELECT)
           .populate({ path: "artist", select: "name images" })
-          .sort({ trackNumber: 1, createdAt: 1 })
+          .sort({ discNumber: 1, trackNumber: 1, createdAt: 1 })
           .lean();
 
         entity = { ...album, songs };

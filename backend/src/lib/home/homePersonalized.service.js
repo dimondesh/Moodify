@@ -16,10 +16,10 @@ const HOME_SECTION_LIMIT = 12;
 const USER_PLAYLISTS_MIN_COUNT = 3;
 
 const SONG_MINIMAL_SELECT =
-  "_id title artist albumId images coverAccentHex duration playCount";
+  "_id title artist albumId images coverAccentHex duration playCount explicit";
 
 const ALBUM_SONG_SELECT =
-  "_id title images coverAccentHex duration playCount albumId createdAt trackNumber";
+  "_id title images coverAccentHex duration playCount albumId createdAt trackNumber discNumber explicit";
 
 const uniqueObjectIds = (ids) => {
   const seen = new Set();
@@ -41,7 +41,7 @@ const attachSongsToAlbums = async (albums) => {
   const songs = await Song.find({ albumId: { $in: albumIds } })
     .select(ALBUM_SONG_SELECT)
     .populate({ path: "artist", select: "name images" })
-    .sort({ trackNumber: 1, createdAt: 1 })
+    .sort({ discNumber: 1, trackNumber: 1, createdAt: 1 })
     .lean();
 
   const songsByAlbumId = new Map();

@@ -25,6 +25,14 @@ const songSchema = new mongoose.Schema(
       type: Number,
       default: null,
     },
+    discNumber: {
+      type: Number,
+      default: null,
+    },
+    explicit: {
+      type: Boolean,
+      default: false,
+    },
     imagePublicId: {
       type: String,
       default: null,
@@ -97,7 +105,7 @@ const songSchema = new mongoose.Schema(
 songSchema.index({ title: 1 });
 songSchema.index({ artist: 1 });
 songSchema.index({ albumId: 1 });
-songSchema.index({ albumId: 1, trackNumber: 1 });
+songSchema.index({ albumId: 1, discNumber: 1, trackNumber: 1 });
 songSchema.index({ playCount: -1 });
 songSchema.index({ genres: 1 });
 songSchema.index({ moods: 1 });

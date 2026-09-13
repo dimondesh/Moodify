@@ -469,7 +469,8 @@
       "headers": {
         "title": "Название",
         "releaseDate": "Дата выпуска"
-      }
+      },
+      "disc": "Диск {{n}}"
     },
     "artist": {
       "loading": "Загрузка исполнителя...",
@@ -785,6 +786,7 @@
   },
   "common": {
     "unknownArtist": "Неизвестный исполнитель",
+    "explicit": "Explicit",
     "songsNotFound": "Треки не найдены.",
     "continue": "Продолжить",
     "next": "Далее",

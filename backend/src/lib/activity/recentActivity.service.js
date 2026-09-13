@@ -6,7 +6,7 @@ import { Artist } from "../../models/artist.model.js";
 import { Song } from "../../models/song.model.js";
 
 const SONG_MINIMAL_SELECT =
-  "_id title artist albumId images coverAccentHex duration playCount";
+  "_id title artist albumId images coverAccentHex duration playCount explicit";
 
 const LEGACY_TO_PLAYLIST = {
   mix: "playlist",
@@ -44,7 +44,7 @@ const buildAlbumSnapshot = async (entityId) => {
 
   const songs = await Song.find({ albumId: entityId })
     .select("_id")
-    .sort({ trackNumber: 1, createdAt: 1 })
+    .sort({ discNumber: 1, trackNumber: 1, createdAt: 1 })
     .lean();
 
   return {

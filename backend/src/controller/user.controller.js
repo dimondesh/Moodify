@@ -36,7 +36,7 @@ import {
 } from "../constants/embedding.js";
 
 const SONG_MINIMAL_SELECT =
-  "_id title artist albumId images coverAccentHex duration playCount";
+  "_id title artist albumId images coverAccentHex duration playCount explicit";
 
 export const getAllUsers = async (req, res, next) => {
   try {

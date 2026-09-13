@@ -280,6 +280,8 @@ export const ingestAlbumFromSpotify = async ({
         artist: songArtistIds,
         albumId: album._id,
         trackNumber: spotifyTrack.track_number || trackIndex,
+        discNumber: spotifyTrack.disc_number || 1,
+        explicit: Boolean(spotifyTrack.explicit),
         hlsUrl,
         lyrics: lrcText || "",
         duration,

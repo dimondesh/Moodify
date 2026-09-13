@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { Clock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { SongListRow, MobileSongListVariant } from "./SongListRow";
@@ -32,6 +33,8 @@ export interface CollectionSongListProps {
   dimBackground?: boolean;
 }
 
+const resolveDiscNumber = (song: Song) => song.discNumber ?? 1;
+
 export function CollectionSongList({
   songs,
   context,
@@ -53,6 +56,12 @@ export function CollectionSongList({
   dimBackground = true,
 }: CollectionSongListProps) {
   const { t } = useTranslation();
+
+  const isMultiDisc =
+    context === "album" &&
+    new Set(songs.map(resolveDiscNumber)).size > 1;
+
+  const discTrackCounters = new Map<number, number>();
 
   return (
     <div className={dimBackground ? "bg-black/20" : undefined}>
@@ -76,27 +85,54 @@ export function CollectionSongList({
       )}
       <div className={isMobile ? "px-2 sm:px-6" : undefined}>
         <div className="space-y-1 sm:space-y-2 py-4">
-          {songs.map((song, index) => (
-            <SongListRow
-              key={song._id}
-              song={song}
-              index={index}
-              isMobile={isMobile}
-              isCurrentSong={currentSongId === song._id}
-              isPlaying={isPlaying}
-              onPlay={onPlay}
-              onArtistClick={onArtistClick}
-              onAlbumClick={onAlbumClick}
-              getDateLabel={getDateLabel}
-              getMobileSubtitle={getMobileSubtitle}
-              context={context}
-              playlistId={playlistId}
-              isOwner={isOwner}
-              mobileVariant={mobileVariant}
-              mobileArtistNames={mobileArtistNames}
-              isLoggedIn={isLoggedIn}
-            />
-          ))}
+          {songs.map((song, index) => {
+            const disc = resolveDiscNumber(song);
+            const showDiscHeader =
+              isMultiDisc &&
+              (index === 0 || resolveDiscNumber(songs[index - 1]) !== disc);
+
+            const withinDisc = (discTrackCounters.get(disc) ?? 0) + 1;
+            discTrackCounters.set(disc, withinDisc);
+
+            const displayNumber = isMultiDisc
+              ? (song.trackNumber ?? withinDisc)
+              : index + 1;
+
+            return (
+              <Fragment key={song._id}>
+                {showDiscHeader && (
+                  <div
+                    className={`${
+                      isMobile
+                        ? "px-2 pt-3 pb-1"
+                        : `${desktopSongListPaddingClass} pt-4 pb-1`
+                    } text-sm font-semibold text-zinc-300`}
+                  >
+                    {t("pages.album.disc", { n: disc })}
+                  </div>
+                )}
+                <SongListRow
+                  song={song}
+                  index={index}
+                  displayNumber={displayNumber}
+                  isMobile={isMobile}
+                  isCurrentSong={currentSongId === song._id}
+                  isPlaying={isPlaying}
+                  onPlay={onPlay}
+                  onArtistClick={onArtistClick}
+                  onAlbumClick={onAlbumClick}
+                  getDateLabel={getDateLabel}
+                  getMobileSubtitle={getMobileSubtitle}
+                  context={context}
+                  playlistId={playlistId}
+                  isOwner={isOwner}
+                  mobileVariant={mobileVariant}
+                  mobileArtistNames={mobileArtistNames}
+                  isLoggedIn={isLoggedIn}
+                />
+              </Fragment>
+            );
+          })}
         </div>
       </div>
     </div>

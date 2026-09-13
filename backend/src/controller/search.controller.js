@@ -5,7 +5,7 @@ import { Artist } from "../models/artist.model.js";
 import { User } from "../models/user.model.js";
 
 const SONG_MINIMAL_SELECT =
-  "_id title artist albumId images coverAccentHex duration playCount";
+  "_id title artist albumId images coverAccentHex duration playCount explicit";
 
 const TOP_RESULTS_LIMIT = 4;
 const CATEGORY_DEFAULT_LIMIT = 10;
@@ -83,7 +83,7 @@ const attachSongsToAlbums = async (albums) => {
   const songs = await Song.find({ albumId: { $in: albumIds } })
     .select(SONG_MINIMAL_SELECT)
     .populate({ path: "artist", select: "name images" })
-    .sort({ trackNumber: 1, createdAt: 1 })
+    .sort({ discNumber: 1, trackNumber: 1, createdAt: 1 })
     .lean();
 
   const songsByAlbumId = new Map();

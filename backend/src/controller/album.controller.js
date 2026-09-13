@@ -3,7 +3,7 @@ import { Song } from "../models/song.model.js";
 import { ListenHistory } from "../models/listenHistory.model.js";
 
 const SONG_MINIMAL_SELECT =
-  "_id title images coverAccentHex duration playCount albumId createdAt";
+  "_id title images coverAccentHex duration playCount albumId createdAt discNumber trackNumber explicit";
 
 const attachSongsToAlbums = async (albums) => {
   if (!albums.length) return albums;
@@ -16,7 +16,7 @@ const attachSongsToAlbums = async (albums) => {
       model: "Artist",
       select: "name images",
     })
-    .sort({ trackNumber: 1, createdAt: 1 })
+    .sort({ discNumber: 1, trackNumber: 1, createdAt: 1 })
     .lean();
 
   const songsByAlbumId = new Map();
