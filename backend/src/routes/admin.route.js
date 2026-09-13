@@ -22,6 +22,7 @@ import {
   uploadChunk,
   testAudioAnalysis,
   testEmbeddingExtraction,
+  getEmbeddingMap,
 } from "../controller/admin.controller.js";
 import { protectRoute } from "../middleware/auth.middleware.js";
 import { requireAdmin } from "../middleware/requireAdmin.middleware.js";
@@ -60,5 +61,6 @@ router.post("/test-analysis", testAudioAnalysis);
 router.post("/songs/:songId/analyze", analyzeSongAudio);
 router.get("/songs/:songId/audio-features", getSongAudioFeatures);
 router.post("/test-embedding", testEmbeddingExtraction);
+router.get("/embeddings/map", getEmbeddingMap);
 
 export default router;

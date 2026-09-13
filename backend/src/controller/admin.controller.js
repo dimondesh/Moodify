@@ -2,6 +2,7 @@
 import { Song } from "../models/song.model.js";
 import { Album } from "../models/album.model.js";
 import { Artist } from "../models/artist.model.js";
+import { Playlist } from "../models/playlist.model.js";
 import {
   deleteFromBunny,
   getPathFromUrl,
@@ -34,6 +35,7 @@ import {
   enqueueAlbumIngestFromUrl,
   getAlbumIngestJobStatus,
 } from "../lib/media/albumIngestQueue.service.js";
+import { projectEmbeddingsTo2d } from "../lib/embeddings/projectTo2d.js";
 
 const attachSongsToAlbums = (albums, songs) => {
   const songsByAlbumId = new Map();
@@ -1039,5 +1041,181 @@ export const testEmbeddingExtraction = async (req, res) => {
       message: "Embedding service error",
       error: error.response?.data || error.message,
     });
+  }
+};
+
+function topPrediction(predictions) {
+  if (!Array.isArray(predictions) || predictions.length === 0) return null;
+  let best = predictions[0];
+  for (const p of predictions) {
+    if ((p?.probability ?? 0) > (best?.probability ?? 0)) best = p;
+  }
+  return best?.name || null;
+}
+
+function labelFromRefs(refs) {
+  if (!Array.isArray(refs) || refs.length === 0) return null;
+  const first = refs[0];
+  if (typeof first === "string") return first;
+  return first?.name || null;
+}
+
+function majorityDim(items, getEmbedding) {
+  const counts = new Map();
+  for (const item of items) {
+    const emb = getEmbedding(item);
+    if (!Array.isArray(emb) || emb.length < 2) continue;
+    counts.set(emb.length, (counts.get(emb.length) || 0) + 1);
+  }
+  let bestDim = null;
+  let bestCount = 0;
+  for (const [dim, count] of counts) {
+    if (count > bestCount) {
+      bestDim = dim;
+      bestCount = count;
+    }
+  }
+  return bestDim;
+}
+
+function projectEntityRows(rows, getEmbedding) {
+  const dim = majorityDim(rows, getEmbedding);
+  if (!dim) {
+    return { points: [], dimensions: 0 };
+  }
+
+  const usable = rows.filter((row) => getEmbedding(row)?.length === dim);
+  const embeddings = usable.map(getEmbedding);
+  const projected = projectEmbeddingsTo2d(embeddings);
+
+  const points = usable.map((row, i) => ({
+    id: String(row._id),
+    title: row._mapTitle || "Unknown",
+    x: projected[i].x,
+    y: projected[i].y,
+    group: row._mapGroup || "Unknown",
+    sub: row._mapSub || "Unknown",
+  }));
+
+  points.sort((a, b) => a.group.localeCompare(b.group));
+  return { points, dimensions: dim };
+}
+
+async function loadTrackMapRows() {
+  const songs = await Song.find({
+    "audioFeatures.embedding.0": { $exists: true },
+  })
+    .select(
+      "title genres moods audioFeatures.embedding audioFeatures.predictedGenres audioFeatures.predictedMoods",
+    )
+    .populate("genres", "name")
+    .populate("moods", "name")
+    .lean()
+    .exec();
+
+  return songs.map((song) => {
+    const af = song.audioFeatures || {};
+    return {
+      ...song,
+      _mapTitle: song.title || "Unknown",
+      _mapGroup:
+        topPrediction(af.predictedGenres) ||
+        labelFromRefs(song.genres) ||
+        "Unknown",
+      _mapSub:
+        topPrediction(af.predictedMoods) ||
+        labelFromRefs(song.moods) ||
+        "Unknown",
+    };
+  });
+}
+
+async function loadAlbumMapRows() {
+  const albums = await Album.find({ "embedding.0": { $exists: true } })
+    .select("title type artist embedding")
+    .populate("artist", "name")
+    .lean()
+    .exec();
+
+  return albums.map((album) => ({
+    ...album,
+    _mapTitle: album.title || "Unknown",
+    _mapGroup: album.type || "Album",
+    _mapSub: labelFromRefs(album.artist) || "Unknown",
+  }));
+}
+
+async function loadArtistMapRows() {
+  const artists = await Artist.find({ "embedding.0": { $exists: true } })
+    .select("name embedding")
+    .lean()
+    .exec();
+
+  return artists.map((artist) => ({
+    ...artist,
+    _mapTitle: artist.name || "Unknown",
+    _mapGroup: "Artist",
+    _mapSub: "Unknown",
+  }));
+}
+
+async function loadPlaylistMapRows() {
+  const playlists = await Playlist.find({ "embedding.0": { $exists: true } })
+    .select("title type sourceName embedding")
+    .lean()
+    .exec();
+
+  return playlists.map((playlist) => ({
+    ...playlist,
+    _mapTitle: playlist.title || "Unknown",
+    _mapGroup: playlist.type || "USER_CREATED",
+    _mapSub: playlist.sourceName || "Unknown",
+  }));
+}
+
+const EMBEDDING_MAP_LOADERS = {
+  tracks: {
+    load: loadTrackMapRows,
+    getEmbedding: (row) => row.audioFeatures?.embedding,
+  },
+  albums: {
+    load: loadAlbumMapRows,
+    getEmbedding: (row) => row.embedding,
+  },
+  artists: {
+    load: loadArtistMapRows,
+    getEmbedding: (row) => row.embedding,
+  },
+  playlists: {
+    load: loadPlaylistMapRows,
+    getEmbedding: (row) => row.embedding,
+  },
+};
+
+/**
+ * PCA→t-SNE map of embeddings (same pipeline as embedding-visual/main.py).
+ * GET /api/admin/embeddings/map?entity=tracks|albums|artists|playlists
+ */
+export const getEmbeddingMap = async (req, res, next) => {
+  try {
+    const entityRaw = String(req.query.entity || "tracks").toLowerCase();
+    const entity = EMBEDDING_MAP_LOADERS[entityRaw] ? entityRaw : "tracks";
+    const { load, getEmbedding } = EMBEDDING_MAP_LOADERS[entity];
+
+    const rows = await load();
+    const { points, dimensions } = projectEntityRows(rows, getEmbedding);
+
+    res.status(200).json({
+      points,
+      meta: {
+        entity,
+        count: points.length,
+        dimensions,
+        method: "pca+tsne",
+      },
+    });
+  } catch (error) {
+    console.error("Error in getEmbeddingMap:", error);
+    next(error);
   }
 };
