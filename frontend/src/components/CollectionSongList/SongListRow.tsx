@@ -151,13 +151,15 @@ export function SongListRow({
         <Play className="h-4 w-4 hidden group-hover:block fill-current text-zinc-400" />
       </div>
       <div className="flex items-center gap-3 min-w-0">
-        <CoverImage
-          entity={song}
-          size="thumb"
-          defaultUrl={CDN_DEFAULT_ALBUM_COVER}
-          alt={song.title}
-          className="size-10 object-cover rounded-md flex-shrink-0"
-        />
+        {context !== "album" && (
+          <CoverImage
+            entity={song}
+            size="thumb"
+            defaultUrl={CDN_DEFAULT_ALBUM_COVER}
+            alt={song.title}
+            className="size-10 object-cover rounded-md flex-shrink-0"
+          />
+        )}
         <div className="min-w-0">
           <button
             onClick={(e) => {

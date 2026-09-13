@@ -112,8 +112,50 @@ export const parseTrackFileName = (filename) => {
   return null;
 };
 
-const normalizeTrackName = (name) =>
-  name.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+/** Feat / featuring / ft / (with …) — paren, dash, or trailing bare. */
+const FEAT_PAREN_RE =
+  /\s*[([{]\s*(?:feat(?:uring)?|ft|with)\b\.?[^)\]}]*[)\]}]/gi;
+const FEAT_DASH_RE = /\s*[-–—]\s*(?:feat(?:uring)?|ft)\.?\s+.+$/i;
+const FEAT_TRAIL_RE = /\s+(?:feat(?:uring)?|ft)\.?\s+.+$/i;
+
+/** Version tags: remaster(ed), remix, radio edit, live, … in (), [], after dash, or bare. */
+const VERSION_TAG =
+  "(?:re-?masters?(?:ed)?(?:\\s+\\d{2,4})?|re-?mix(?:es)?|radio\\s*edit|live(?:\\s+[^)\\]}\\-–—]+)?|explicit|clean|deluxe|extended(?:\\s+mix)?|bonus(?:\\s+track)?|instrumental|acoustic)";
+const VERSION_PAREN_RE = new RegExp(
+  `\\s*[([{]\\s*${VERSION_TAG}\\s*[)\\]}]`,
+  "gi",
+);
+const VERSION_DASH_RE = new RegExp(`\\s*[-–—]\\s*${VERSION_TAG}\\s*$`, "i");
+const VERSION_TRAIL_RE = new RegExp(
+  `\\s+(?:re-?masters?(?:ed)?(?:\\s+\\d{2,4})?|re-?mix(?:es)?)\\s*$`,
+  "i",
+);
+
+/**
+ * Canonicalize Spotify ↔ Deezer/ZIP title differences (feat wording,
+ * remaster vs remastered, paren vs dash vs bare suffixes).
+ */
+const normalizeTrackName = (name) => {
+  let s = String(name || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  // ponytail: stacked suffixes like "(feat. X) - Remastered 2011"; 3 passes is enough
+  for (let i = 0; i < 3; i++) {
+    const prev = s;
+    s = s
+      .replace(FEAT_PAREN_RE, "")
+      .replace(VERSION_PAREN_RE, "")
+      .replace(FEAT_DASH_RE, "")
+      .replace(VERSION_DASH_RE, "")
+      .replace(FEAT_TRAIL_RE, "")
+      .replace(VERSION_TRAIL_RE, "");
+    if (s === prev) break;
+  }
+
+  return s.replace(/[^\p{L}\p{N}]/gu, "");
+};
 
 /** @param {string[]} extractedFilePaths */
 export const buildTrackFilesMap = (extractedFilePaths) => {
@@ -133,18 +175,24 @@ export const buildTrackFilesMap = (extractedFilePaths) => {
 /** @param {Record<string, Record<string, string>>} trackFilesMap */
 export const findTrackFiles = (trackFilesMap, trackName) => {
   const normalizedName = normalizeTrackName(trackName);
+  if (!normalizedName) return null;
   if (trackFilesMap[normalizedName]) {
     return trackFilesMap[normalizedName];
   }
+
+  let bestKey = null;
   for (const fileKey in trackFilesMap) {
     if (
-      normalizedName.includes(fileKey) ||
-      fileKey.includes(normalizedName)
+      !fileKey ||
+      !(normalizedName.includes(fileKey) || fileKey.includes(normalizedName))
     ) {
-      return trackFilesMap[fileKey];
+      continue;
+    }
+    if (!bestKey || fileKey.length > bestKey.length) {
+      bestKey = fileKey;
     }
   }
-  return null;
+  return bestKey ? trackFilesMap[bestKey] : null;
 };
 
 /** Recursively list all files under dirPath. */

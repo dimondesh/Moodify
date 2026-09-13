@@ -1,5 +1,5 @@
 import { Fragment } from "react";
-import { Clock } from "lucide-react";
+import { Clock, Disc3 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { SongListRow, MobileSongListVariant } from "./SongListRow";
 import {
@@ -102,13 +102,27 @@ export function CollectionSongList({
               <Fragment key={song._id}>
                 {showDiscHeader && (
                   <div
-                    className={`${
+                    className={
                       isMobile
-                        ? "px-2 pt-3 pb-1"
-                        : `${desktopSongListPaddingClass} pt-4 pb-1`
-                    } text-sm font-semibold text-zinc-300`}
+                        ? "px-2 pt-3 pb-1 text-sm font-semibold text-zinc-300"
+                        : `${desktopSongListGridClass} ${desktopSongListPaddingClass} pt-4 pb-1 text-sm font-semibold text-zinc-300`
+                    }
                   >
-                    {t("pages.album.disc", { n: disc })}
+                    {isMobile ? (
+                      t("pages.album.disc", { n: disc })
+                    ) : (
+                      <>
+                        <div className="flex items-center justify-center">
+                          <Disc3
+                            className="size-4 shrink-0 text-zinc-400"
+                            aria-hidden
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          {t("pages.album.disc", { n: disc })}
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
                 <SongListRow
