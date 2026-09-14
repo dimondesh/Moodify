@@ -3,6 +3,8 @@ firebaseServiceKey.json
 .env
 temp
 temp_unzip_albums
+temp_hls
+temp_jamendo_import
 tmp
 plan.txt
 src/scripts/jobs/skipped_canvases.json

@@ -10,13 +10,12 @@ import {
   listFilesRecursive,
   cleanUpTempDir,
 } from "../media/zipHandler.js";
+import { progressPercent } from "../media/albumUploadProgress.service.js";
 
 const DEEMIX_BITRATE = () => String(process.env.DEEMIX_BITRATE || "128");
 const getDeezerArl = () => process.env.DEEZER_ARL;
 
-const ABSOLUTE_DEEMIX_CANDIDATES = [
-  () => process.env.DEEMIX_BIN,
-];
+const ABSOLUTE_DEEMIX_CANDIDATES = [() => process.env.DEEMIX_BIN];
 
 /** Prefer DEEMIX_BIN if set; otherwise PATH `deemix`. */
 const resolveDeemixBin = () => {
@@ -42,7 +41,28 @@ class DeemixBinaryMissingError extends Error {
   }
 }
 
-const runDeemix = (downloadUrl, downloadDir, homeDir) =>
+/** jobId -> { child, kill } for cancel while deemix runs */
+const activeDeemixByJobId = new Map();
+
+export const killDeemixJob = (jobId) => {
+  const entry = activeDeemixByJobId.get(String(jobId));
+  if (!entry?.child) return false;
+  try {
+    entry.child.kill("SIGTERM");
+    setTimeout(() => {
+      try {
+        entry.child.kill("SIGKILL");
+      } catch {
+        /* ignore */
+      }
+    }, 2000).unref?.();
+  } catch {
+    /* ignore */
+  }
+  return true;
+};
+
+const runDeemix = (downloadUrl, downloadDir, homeDir, jobId) =>
   new Promise((resolve, reject) => {
     const deemixBin = resolveDeemixBin();
     const args = ["-p", downloadDir, "-b", DEEMIX_BITRATE(), downloadUrl];
@@ -53,6 +73,10 @@ const runDeemix = (downloadUrl, downloadDir, homeDir) =>
       env: { ...process.env, HOME: homeDir },
       cwd: homeDir,
     });
+
+    if (jobId) {
+      activeDeemixByJobId.set(String(jobId), { child });
+    }
 
     let stdout = "";
     let stderr = "";
@@ -68,6 +92,7 @@ const runDeemix = (downloadUrl, downloadDir, homeDir) =>
     });
 
     child.on("error", (err) => {
+      if (jobId) activeDeemixByJobId.delete(String(jobId));
       if (err.code === "ENOENT") {
         reject(new DeemixBinaryMissingError(deemixBin, err.message));
         return;
@@ -77,7 +102,14 @@ const runDeemix = (downloadUrl, downloadDir, homeDir) =>
       );
     });
 
-    child.on("close", (code) => {
+    child.on("close", (code, signal) => {
+      if (jobId) activeDeemixByJobId.delete(String(jobId));
+      if (signal) {
+        const err = new Error(`Deemix killed (${signal}).`);
+        err.isCancelled = true;
+        reject(err);
+        return;
+      }
       if (code === 0) {
         resolve({ stdout, stderr });
         return;
@@ -155,8 +187,13 @@ const searchAndDownloadMissingTracks = async (
   trackFilesMap,
   downloadDir,
   homeDir,
+  jobId,
+  onProgress,
 ) => {
   const stillMissing = missingSpotifyTracks(spotifyTracks, trackFilesMap);
+  let done = spotifyTracks.length - stillMissing.length;
+  const total = spotifyTracks.length;
+
   for (const trackName of stillMissing) {
     const track = spotifyTracks.find((t) => t.name === trackName);
     const artistName = track?.artists?.[0]?.name || "";
@@ -176,9 +213,16 @@ const searchAndDownloadMissingTracks = async (
       `[Deemix] Fallback track download: ${hit.artist?.name} - ${hit.title}`,
     );
     try {
-      await runDeemix(hit.link, downloadDir, homeDir);
+      await runDeemix(hit.link, downloadDir, homeDir, jobId);
+      done += 1;
+      await onProgress?.({
+        phase: "downloading",
+        tracksDone: done,
+        tracksTotal: total,
+        percent: progressPercent(done, total),
+      });
     } catch (err) {
-      if (err?.isBinaryMissing) throw err;
+      if (err?.isBinaryMissing || err?.isCancelled) throw err;
       console.warn(`[Deemix] Track download failed: ${err.message}`);
     }
   }
@@ -186,19 +230,27 @@ const searchAndDownloadMissingTracks = async (
 
 /**
  * Download album audio via deemix into temp/deemix/{jobId}/downloads.
- * Spotify URL is only used for our metadata API — deemix gets Deezer links
- * (avoids deemix Spotify plugin / scary stack traces).
+ * @param {string} spotifyAlbumUrl
+ * @param {string} jobId
+ * @param {object} [opts]
+ * @param {object} [opts.spotifyAlbumData]
+ * @param {(p: object) => void | Promise<void>} [opts.onProgress]
  * @returns {{ downloadDir: string, jobRoot: string, spotifyAlbumData: object }}
  */
-export const downloadAlbumWithDeemix = async (spotifyAlbumUrl, jobId) => {
-  const jobRoot = path.join(process.cwd(), "temp", "deemix", jobId);
+export const downloadAlbumWithDeemix = async (
+  spotifyAlbumUrl,
+  jobId,
+  { spotifyAlbumData: prefetched, onProgress } = {},
+) => {
+  const jobRoot = path.join(process.cwd(), "temp", "deemix", String(jobId));
   const downloadDir = path.join(jobRoot, "downloads");
 
   await cleanUpTempDir(jobRoot);
   await fs.mkdir(downloadDir, { recursive: true });
   await ensureDeemixHome(jobRoot);
 
-  const spotifyAlbumData = await getAlbumDataFromSpotify(spotifyAlbumUrl);
+  const spotifyAlbumData =
+    prefetched || (await getAlbumDataFromSpotify(spotifyAlbumUrl));
   if (!spotifyAlbumData) {
     throw new Error("Could not get album data from Spotify.");
   }
@@ -206,10 +258,18 @@ export const downloadAlbumWithDeemix = async (spotifyAlbumUrl, jobId) => {
   const spotifyTracks =
     spotifyAlbumData.tracks?.items || spotifyAlbumData.tracks || [];
   const primaryArtist = spotifyAlbumData.artists?.[0]?.name || "";
+  const total = spotifyTracks.length;
 
   console.log(
-    `[Deemix] Expecting ${spotifyTracks.length} tracks for "${spotifyAlbumData.name}" by ${primaryArtist}`,
+    `[Deemix] Expecting ${total} tracks for "${spotifyAlbumData.name}" by ${primaryArtist}`,
   );
+
+  await onProgress?.({
+    phase: "downloading",
+    tracksDone: 0,
+    tracksTotal: total,
+    percent: 0,
+  });
 
   let trackFilesMap = {};
   let missing = spotifyTracks.map((t) => t.name);
@@ -221,18 +281,27 @@ export const downloadAlbumWithDeemix = async (spotifyAlbumUrl, jobId) => {
       spotifyAlbumData.name,
     );
     if (!deezerAlbumUrl) {
-      console.warn(`[Deemix] No Deezer album found for "${primaryArtist} - ${spotifyAlbumData.name}"`);
+      console.warn(
+        `[Deemix] No Deezer album found for "${primaryArtist} - ${spotifyAlbumData.name}"`,
+      );
     } else {
-      await runDeemix(deezerAlbumUrl, downloadDir, jobRoot);
+      await runDeemix(deezerAlbumUrl, downloadDir, jobRoot, jobId);
       ({ trackFilesMap } = await getDownloadedAudioMap(downloadDir));
       missing = missingSpotifyTracks(spotifyTracks, trackFilesMap);
+      const done = total - missing.length;
       console.log(
-        `[Deemix] After Deezer album: ${spotifyTracks.length - missing.length}/${spotifyTracks.length} matched` +
+        `[Deemix] After Deezer album: ${done}/${total} matched` +
           (missing.length ? `; missing: ${missing.join(", ")}` : ""),
       );
+      await onProgress?.({
+        phase: "downloading",
+        tracksDone: done,
+        tracksTotal: total,
+        percent: progressPercent(done, total),
+      });
     }
   } catch (err) {
-    if (err?.isBinaryMissing) {
+    if (err?.isBinaryMissing || err?.isCancelled) {
       await cleanUpTempDir(jobRoot);
       throw err;
     }
@@ -247,9 +316,11 @@ export const downloadAlbumWithDeemix = async (spotifyAlbumUrl, jobId) => {
         trackFilesMap,
         downloadDir,
         jobRoot,
+        jobId,
+        onProgress,
       );
     } catch (err) {
-      if (err?.isBinaryMissing) {
+      if (err?.isBinaryMissing || err?.isCancelled) {
         await cleanUpTempDir(jobRoot);
         throw err;
       }
@@ -258,7 +329,7 @@ export const downloadAlbumWithDeemix = async (spotifyAlbumUrl, jobId) => {
     ({ trackFilesMap } = await getDownloadedAudioMap(downloadDir));
     missing = missingSpotifyTracks(spotifyTracks, trackFilesMap);
     console.log(
-      `[Deemix] After per-track: ${spotifyTracks.length - missing.length}/${spotifyTracks.length} matched` +
+      `[Deemix] After per-track: ${total - missing.length}/${total} matched` +
         (missing.length ? `; missing: ${missing.join(", ")}` : ""),
     );
   }
@@ -269,6 +340,13 @@ export const downloadAlbumWithDeemix = async (spotifyAlbumUrl, jobId) => {
       `Deemix could not download all tracks. Missing: ${missing.join(", ")}`,
     );
   }
+
+  await onProgress?.({
+    phase: "downloading",
+    tracksDone: total,
+    tracksTotal: total,
+    percent: 100,
+  });
 
   return { downloadDir, jobRoot, spotifyAlbumData };
 };

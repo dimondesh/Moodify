@@ -1,17 +1,27 @@
-// backend/src/lib/media/activeUploads.service.js
 // Exclusive upload lock shared with cron via lock file.
 import fs from "fs";
 import path from "path";
 
 const LOCK_PATH = path.join(process.cwd(), "temp", ".upload-in-progress");
-const STALE_LOCK_MS = 3 * 60 * 60 * 1000; // 3h — crashed job leftover
+// Heartbeat keeps mtime fresh while a job runs; after crash, ~15m is enough.
+const STALE_LOCK_MS = 15 * 60 * 1000;
 
 /** In-process nesting (outer acquire + ingest retain, etc.) */
 let lockDepth = 0;
 
-const writeLockFile = () => {
+const ensureLockDir = () => {
   fs.mkdirSync(path.dirname(LOCK_PATH), { recursive: true });
-  fs.writeFileSync(LOCK_PATH, `${Date.now()}\n`, "utf8");
+};
+
+/** Rewrite lock contents / mtime while held (cron + stale detection). */
+export const touchUploadLock = () => {
+  if (lockDepth <= 0) return;
+  try {
+    ensureLockDir();
+    fs.writeFileSync(LOCK_PATH, `${Date.now()}\n`, "utf8");
+  } catch (err) {
+    console.error("[ActiveUploads] Failed to touch lock:", err.message);
+  }
 };
 
 const removeLockFile = () => {
@@ -43,6 +53,31 @@ const hasFreshLockFile = () => {
   }
 };
 
+/** Atomic create; returns false if another holder exists. */
+const tryCreateLockFile = () => {
+  ensureLockDir();
+  try {
+    fs.writeFileSync(LOCK_PATH, `${Date.now()}\n`, { flag: "wx" });
+    return true;
+  } catch (err) {
+    if (err.code !== "EEXIST") {
+      console.error("[ActiveUploads] Lock create failed:", err.message);
+      return false;
+    }
+    // Race loser, or leftover — drop only if stale, then one retry.
+    if (hasFreshLockFile()) return false;
+    try {
+      fs.writeFileSync(LOCK_PATH, `${Date.now()}\n`, { flag: "wx" });
+      return true;
+    } catch (retryErr) {
+      if (retryErr.code !== "EEXIST") {
+        console.error("[ActiveUploads] Lock retry failed:", retryErr.message);
+      }
+      return false;
+    }
+  }
+};
+
 export const isUploadInProgress = () => {
   if (lockDepth > 0) return true;
   return hasFreshLockFile();
@@ -53,12 +88,15 @@ export const isUploadInProgress = () => {
  * @returns {boolean} false if another upload already holds the lock
  */
 export const tryAcquireUploadLock = () => {
-  if (lockDepth > 0 || hasFreshLockFile()) {
+  if (lockDepth > 0) {
+    console.log("[ActiveUploads] Upload lock busy — reject concurrent upload");
+    return false;
+  }
+  if (!tryCreateLockFile()) {
     console.log("[ActiveUploads] Upload lock busy — reject concurrent upload");
     return false;
   }
   lockDepth = 1;
-  writeLockFile();
   console.log("[ActiveUploads] Upload lock acquired (exclusive)");
   return true;
 };
@@ -66,7 +104,7 @@ export const tryAcquireUploadLock = () => {
 /** Nested retain while an outer lock is already held (e.g. ingest inside job). */
 export const setUploadInProgress = () => {
   lockDepth += 1;
-  writeLockFile();
+  touchUploadLock();
   console.log(
     `[ActiveUploads] Upload lock retained (depth=${lockDepth}) — cleanup blocked`,
   );
@@ -82,6 +120,16 @@ export const clearUploadInProgress = () => {
       `[ActiveUploads] Upload lock nested release (depth=${lockDepth})`,
     );
   }
+};
+
+/**
+ * After API process boot there is no live upload in this process — drop leftover
+ * lock file so cron/temp cleanup and new uploads are not blocked for STALE_LOCK_MS.
+ */
+export const resetUploadLockOnBoot = () => {
+  lockDepth = 0;
+  removeLockFile();
+  console.log("[ActiveUploads] Upload lock cleared on boot");
 };
 
 export const uploadBusyError = () => {

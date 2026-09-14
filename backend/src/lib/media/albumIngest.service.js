@@ -36,6 +36,11 @@ import {
   toImageFields,
   uploadImageVariantsFromSource,
 } from "../media/imageVariants.service.js";
+import { deleteAlbumStubAndMedia } from "./albumStub.service.js";
+import {
+  progressPercent,
+  setAlbumUploadProgress,
+} from "./albumUploadProgress.service.js";
 import path from "path";
 import fs from "fs/promises";
 import axios from "axios";
@@ -55,6 +60,9 @@ const DOWNLOAD_OPTS = {
  * @param {string} [opts.zipFilePath]
  * @param {string} [opts.audioDir]
  * @param {object} [opts.spotifyAlbumData] - skip Spotify fetch if already loaded
+ * @param {string} [opts.existingAlbumId] - queued stub to fill (skip create)
+ * @param {() => boolean} [opts.shouldCancel]
+ * @param {(p: object) => void | Promise<void>} [opts.onTrackProgress]
  * @returns {Promise<{ album: object, songs: object[] }>}
  */
 export const ingestAlbumFromSpotify = async ({
@@ -62,8 +70,11 @@ export const ingestAlbumFromSpotify = async ({
   zipFilePath,
   audioDir,
   spotifyAlbumData: prefetchedAlbumData,
+  existingAlbumId,
+  shouldCancel,
+  onTrackProgress,
 }) => {
-  if (!spotifyAlbumUrl && !prefetchedAlbumData) {
+  if (!spotifyAlbumUrl && !prefetchedAlbumData && !existingAlbumId) {
     throw new Error("Spotify URL is required.");
   }
   if (!zipFilePath && !audioDir) {
@@ -83,23 +94,50 @@ export const ingestAlbumFromSpotify = async ({
   const newlyCreatedArtistIds = [];
   const createdSongIds = [];
   let album = null;
+  let usedExistingStub = Boolean(existingAlbumId);
 
   setUploadInProgress();
 
+  const assertNotCancelled = () => {
+    if (shouldCancel?.()) {
+      const err = new Error("Album ingest cancelled.");
+      err.isCancelled = true;
+      throw err;
+    }
+  };
+
   try {
+    assertNotCancelled();
+
+    if (existingAlbumId) {
+      album = await Album.findById(existingAlbumId).setOptions({
+        includeQueued: true,
+      });
+      if (!album) {
+        throw new Error("Queued album stub not found.");
+      }
+    }
+
     const spotifyAlbumData =
-      prefetchedAlbumData || (await getAlbumDataFromSpotify(spotifyAlbumUrl));
+      prefetchedAlbumData ||
+      (await getAlbumDataFromSpotify(
+        spotifyAlbumUrl || album?.spotifyAlbumUrl,
+      ));
     if (!spotifyAlbumData) {
       throw new Error("Could not get album data from Spotify.");
     }
 
-    const existingAlbum = await Album.findOne({ title: spotifyAlbumData.name });
-    if (existingAlbum) {
-      const err = new Error(
-        `Альбом с названием "${spotifyAlbumData.name}" уже существует.`,
-      );
-      err.statusCode = 409;
-      throw err;
+    if (!existingAlbumId) {
+      const existingAlbum = await Album.findOne({
+        title: spotifyAlbumData.name,
+      }).setOptions({ includeQueued: true });
+      if (existingAlbum) {
+        const err = new Error(
+          `Альбом с названием "${spotifyAlbumData.name}" уже существует.`,
+        );
+        err.statusCode = 409;
+        throw err;
+      }
     }
 
     let extractedFilePaths;
@@ -125,72 +163,90 @@ export const ingestAlbumFromSpotify = async ({
       }
     }
     console.log("[AlbumIngest] Pre-flight check successful.");
+    assertNotCancelled();
 
-    const albumArtistIds = [];
-    for (const spotifyArtist of spotifyAlbumData.artists || []) {
-      let artist = await Artist.findOne({ name: spotifyArtist.name });
-      if (!artist) {
-        const artistDetails = await getArtistDataFromSpotify(spotifyArtist.id);
-        const artistImageUrl =
-          artistDetails?.images?.[0]?.url || DEFAULT_ARTIST_IMAGE_URL;
-        const imageUploadResult = await uploadImageVariantsFromSource(
-          artistImageUrl,
-          "artists",
-        );
-        for (const img of imageUploadResult.images) {
-          uploadedBunnyPaths.push(getPathFromUrl(img.url));
+    if (!existingAlbumId) {
+      const albumArtistIds = [];
+      for (const spotifyArtist of spotifyAlbumData.artists || []) {
+        let artist = await Artist.findOne({ name: spotifyArtist.name });
+        if (!artist) {
+          const artistDetails = await getArtistDataFromSpotify(
+            spotifyArtist.id,
+          );
+          const artistImageUrl =
+            artistDetails?.images?.[0]?.url || DEFAULT_ARTIST_IMAGE_URL;
+          const imageUploadResult = await uploadImageVariantsFromSource(
+            artistImageUrl,
+            "artists",
+          );
+          for (const img of imageUploadResult.images) {
+            uploadedBunnyPaths.push(getPathFromUrl(img.url));
+          }
+          artist = new Artist({
+            name: spotifyArtist.name,
+            ...toImageFields(imageUploadResult),
+          });
+          await artist.save();
+          newlyCreatedArtistIds.push(artist._id);
         }
-        artist = new Artist({
-          name: spotifyArtist.name,
-          ...toImageFields(imageUploadResult),
-        });
-        await artist.save();
-        newlyCreatedArtistIds.push(artist._id);
+        albumArtistIds.push(artist._id);
       }
-      albumArtistIds.push(artist._id);
+
+      const totalTracks = spotifyAlbumData.total_tracks;
+      let albumType;
+      if (totalTracks === 1) {
+        albumType = "Single";
+      } else if (totalTracks >= 2 && totalTracks <= 6) {
+        albumType = "EP";
+      } else {
+        albumType = "Album";
+      }
+
+      const albumImageUrl =
+        spotifyAlbumData.images?.[0]?.url || DEFAULT_ALBUM_IMAGE_URL;
+      let albumCoverAccentHex = null;
+      let albumImageUpload;
+
+      if (!isSkippableCoverImageUrl(albumImageUrl)) {
+        const imgRes = await axios.get(albumImageUrl, DOWNLOAD_OPTS);
+        const imgBuf = Buffer.from(imgRes.data);
+        albumCoverAccentHex = await extractCoverAccentHexFromBuffer(imgBuf);
+        albumImageUpload = await uploadImageVariantsFromSource(
+          imgBuf,
+          "albums",
+        );
+      } else {
+        albumImageUpload = await uploadImageVariantsFromSource(
+          albumImageUrl,
+          "albums",
+        );
+      }
+      for (const img of albumImageUpload.images) {
+        uploadedBunnyPaths.push(getPathFromUrl(img.url));
+      }
+
+      album = new Album({
+        title: spotifyAlbumData.name,
+        artist: albumArtistIds,
+        ...toImageFields(albumImageUpload),
+        releaseYear: parseInt(spotifyAlbumData.release_date.split("-")[0], 10),
+        type: albumType,
+        coverAccentHex: albumCoverAccentHex,
+        status: "queued",
+        spotifyAlbumUrl: spotifyAlbumUrl || null,
+      });
+      await album.save();
+      console.log(`[AlbumIngest] Album created in DB: ${album.title}`);
     }
 
-    const totalTracks = spotifyAlbumData.total_tracks;
-    let albumType;
-    if (totalTracks === 1) {
-      albumType = "Single";
-    } else if (totalTracks >= 2 && totalTracks <= 6) {
-      albumType = "EP";
-    } else {
-      albumType = "Album";
-    }
-
-    const albumImageUrl =
-      spotifyAlbumData.images?.[0]?.url || DEFAULT_ALBUM_IMAGE_URL;
-    let albumCoverAccentHex = null;
-    let albumImageUpload;
-
-    if (!isSkippableCoverImageUrl(albumImageUrl)) {
-      const imgRes = await axios.get(albumImageUrl, DOWNLOAD_OPTS);
-      const imgBuf = Buffer.from(imgRes.data);
-      albumCoverAccentHex = await extractCoverAccentHexFromBuffer(imgBuf);
-      albumImageUpload = await uploadImageVariantsFromSource(imgBuf, "albums");
-    } else {
-      albumImageUpload = await uploadImageVariantsFromSource(
-        albumImageUrl,
-        "albums",
-      );
-    }
-    for (const img of albumImageUpload.images) {
-      uploadedBunnyPaths.push(getPathFromUrl(img.url));
-    }
-
-    album = new Album({
-      title: spotifyAlbumData.name,
-      artist: albumArtistIds,
-      ...toImageFields(albumImageUpload),
-      releaseYear: parseInt(spotifyAlbumData.release_date.split("-")[0], 10),
-      type: albumType,
-      coverAccentHex: albumCoverAccentHex,
+    await setAlbumUploadProgress(album._id, {
+      phase: "ingesting",
+      tracksDone: 0,
+      tracksTotal: tracksToProcess.length,
+      percent: 0,
     });
-    await album.save();
-    console.log(`[AlbumIngest] Album created in DB: ${album.title}`);
 
+    const albumCoverAccentHex = album.coverAccentHex;
     const primaryAlbumArtistName =
       spotifyAlbumData.artists?.[0]?.name || "Unknown Artist";
     const tracksForAI = tracksToProcess.map((track, index) => {
@@ -206,11 +262,14 @@ export const ingestAlbumFromSpotify = async ({
       `[AlbumIngest] Requesting batch AI tags for ${tracksForAI.length} tracks...`,
     );
     const batchTags = await getBatchTagsFromAI(tracksForAI);
+    assertNotCancelled();
 
     const createdSongs = [];
     let trackIndex = 0;
 
     for (const spotifyTrack of tracksToProcess) {
+      assertNotCancelled();
+
       const songName = spotifyTrack.name;
       const trackTempId = spotifyTrack.id || `track_${trackIndex}`;
       trackIndex++;
@@ -295,6 +354,22 @@ export const ingestAlbumFromSpotify = async ({
       createdSongIds.push(song._id);
       createdSongs.push(song);
 
+      const done = createdSongs.length;
+      const total = tracksToProcess.length;
+      const percent = progressPercent(done, total);
+      await setAlbumUploadProgress(album._id, {
+        phase: "ingesting",
+        tracksDone: done,
+        tracksTotal: total,
+        percent,
+      });
+      await onTrackProgress?.({
+        phase: "ingesting",
+        tracksDone: done,
+        tracksTotal: total,
+        percent,
+      });
+
       try {
         const audioFeatures = await analyzeAudioFeatures(
           filesForTrack.audioPath,
@@ -319,21 +394,36 @@ export const ingestAlbumFromSpotify = async ({
   } catch (error) {
     console.error("[AlbumIngest] Critical error. Starting rollback...", error);
 
-    await Promise.allSettled(
-      uploadedBunnyPaths.map((bunnyPath) => {
-        if (!bunnyPath) return Promise.resolve();
-        return deleteFromBunny(bunnyPath);
-      }),
-    );
+    if (usedExistingStub && album?._id) {
+      await Promise.allSettled(
+        uploadedBunnyPaths.map((bunnyPath) => {
+          if (!bunnyPath) return Promise.resolve();
+          return deleteFromBunny(bunnyPath);
+        }),
+      );
+      try {
+        await deleteAlbumStubAndMedia(album._id);
+      } catch (cleanupErr) {
+        console.error("[AlbumIngest] Stub cleanup failed:", cleanupErr);
+      }
+      album = null;
+    } else {
+      await Promise.allSettled(
+        uploadedBunnyPaths.map((bunnyPath) => {
+          if (!bunnyPath) return Promise.resolve();
+          return deleteFromBunny(bunnyPath);
+        }),
+      );
 
-    if (createdSongIds.length > 0) {
-      await Song.deleteMany({ _id: { $in: createdSongIds } });
-    }
-    if (album) {
-      await Album.findByIdAndDelete(album._id);
-    }
-    if (newlyCreatedArtistIds.length > 0) {
-      await Artist.deleteMany({ _id: { $in: newlyCreatedArtistIds } });
+      if (createdSongIds.length > 0) {
+        await Song.deleteMany({ _id: { $in: createdSongIds } });
+      }
+      if (album) {
+        await Album.deleteOne({ _id: album._id });
+      }
+      if (newlyCreatedArtistIds.length > 0) {
+        await Artist.deleteMany({ _id: { $in: newlyCreatedArtistIds } });
+      }
     }
 
     throw error;

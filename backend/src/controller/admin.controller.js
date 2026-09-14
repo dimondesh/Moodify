@@ -30,9 +30,10 @@ import {
   uploadImageVariantsFromSource,
   getSmallImageUrl
 } from "../lib/media/imageVariants.service.js";
-import { ingestAlbumFromSpotify } from "../lib/media/albumIngest.service.js";
+import { createQueuedAlbumStubFromSpotify } from "../lib/media/albumStub.service.js";
 import {
-  enqueueAlbumIngestFromUrl,
+  cancelAlbumIngest,
+  enqueueAlbumIngest,
   getAlbumIngestJobStatus,
 } from "../lib/media/albumIngestQueue.service.js";
 import { projectEmbeddingsTo2d } from "../lib/embeddings/projectTo2d.js";
@@ -389,7 +390,7 @@ export const updateAlbum = async (req, res, next) => {
     } = req.body;
     const imageFile = req.files ? req.files.imageFile : null;
 
-    const album = await Album.findById(id);
+    const album = await Album.findById(id).setOptions({ includeQueued: true });
     if (!album) {
       return res.status(404).json({ message: "Album not found." });
     }
@@ -454,9 +455,18 @@ export const updateAlbum = async (req, res, next) => {
 export const deleteAlbum = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const album = await Album.findById(id);
+    const album = await Album.findById(id).setOptions({ includeQueued: true });
 
     if (!album) return res.status(404).json({ message: "Album not found." });
+
+    if (album.status === "queued") {
+      const result = await cancelAlbumIngest(id);
+      if (result.cancelled || result.reason === "not_found") {
+        return res.status(200).json({
+          message: "Queued album cancelled and deleted successfully",
+        });
+      }
+    }
 
     await deleteImageVariants(album);
 
@@ -482,7 +492,7 @@ export const deleteAlbum = async (req, res, next) => {
 
     // Удаляем все треки из базы данных
     await Song.deleteMany({ albumId: id });
-    await Album.findByIdAndDelete(id);
+    await Album.deleteOne({ _id: id });
 
     res
       .status(200)
@@ -668,34 +678,26 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
       .json({ success: false, message: "ZIP file or uploadId is required." });
   }
 
-  if (!tryAcquireUploadLock()) {
-    return res.status(409).json({
-      success: false,
-      message: uploadBusyError().message,
-    });
-  }
-
+  let album = null;
   try {
-    const { album, songs } = await ingestAlbumFromSpotify({
-      spotifyAlbumUrl,
-      zipFilePath,
-    });
+    const stub = await createQueuedAlbumStubFromSpotify(spotifyAlbumUrl);
+    album = stub.album;
 
-    res.status(200).json({
-      success: true,
-      message: `Album "${album.title}" (${album.type}) and ${songs.length} tracks added successfully!`,
-      album,
-      songs: songs.map((s) => ({ title: s.title, id: s._id })),
-    });
-  } catch (error) {
-    if (error.statusCode === 409) {
-      return res.status(409).json({
-        success: false,
-        message: error.message,
-      });
+    const ingestDir = path.join(
+      process.cwd(),
+      "temp",
+      "album-ingest",
+      album._id.toString(),
+    );
+    fsSync.mkdirSync(ingestDir, { recursive: true });
+    const stableZipPath = path.join(ingestDir, "album.zip");
+    try {
+      fsSync.renameSync(zipFilePath, stableZipPath);
+    } catch {
+      fsSync.copyFileSync(zipFilePath, stableZipPath);
+      fsSync.unlinkSync(zipFilePath);
     }
-    next(error);
-  } finally {
+
     if (uploadId) {
       await fs
         .rm(path.join(process.cwd(), "temp", "chunks", uploadId), {
@@ -704,11 +706,48 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
         })
         .catch(() => {});
     }
-    clearUploadInProgress();
+
+    const jobId = await enqueueAlbumIngest({
+      albumId: album._id.toString(),
+      spotifyAlbumUrl,
+      zipPath: stableZipPath,
+    });
+
+    const populated = await Album.findById(album._id)
+      .populate("artist", "name images")
+      .setOptions({ includeQueued: true })
+      .lean();
+
+    res.status(202).json({
+      success: true,
+      jobId,
+      album: {
+        ...populated,
+        imageUrl: getSmallImageUrl(populated.images) || populated.imageUrl,
+        songs: [],
+      },
+      message: "Album queued for ingest from ZIP.",
+    });
+  } catch (error) {
+    if (album?._id) {
+      try {
+        await cancelAlbumIngest(album._id.toString());
+      } catch {
+        /* ignore */
+      }
+    }
+    if (error.statusCode === 409) {
+      return res.status(409).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    next(error);
   }
 };
 
 export const uploadAlbumFromSpotifyUrl = async (req, res, next) => {
+  let album = null;
   try {
     const { spotifyAlbumUrl } = req.body;
     if (!spotifyAlbumUrl) {
@@ -717,19 +756,66 @@ export const uploadAlbumFromSpotifyUrl = async (req, res, next) => {
         .json({ success: false, message: "Spotify URL is required." });
     }
 
-    const jobId = await enqueueAlbumIngestFromUrl(spotifyAlbumUrl);
+    const stub = await createQueuedAlbumStubFromSpotify(spotifyAlbumUrl);
+    album = stub.album;
+
+    const jobId = await enqueueAlbumIngest({
+      albumId: album._id.toString(),
+      spotifyAlbumUrl,
+    });
+
+    const populated = await Album.findById(album._id)
+      .populate("artist", "name images")
+      .setOptions({ includeQueued: true })
+      .lean();
+
     res.status(202).json({
       success: true,
       jobId,
+      album: {
+        ...populated,
+        imageUrl: getSmallImageUrl(populated.images) || populated.imageUrl,
+        songs: [],
+      },
       message: "Album ingest job queued.",
     });
   } catch (error) {
+    if (album?._id) {
+      try {
+        await cancelAlbumIngest(album._id.toString());
+      } catch {
+        /* ignore */
+      }
+    }
     if (error.statusCode === 409) {
       return res.status(409).json({
         success: false,
         message: error.message,
       });
     }
+    next(error);
+  }
+};
+
+export const cancelAlbumUpload = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const result = await cancelAlbumIngest(id);
+    if (result.reason === "not_found") {
+      return res.status(404).json({ success: false, message: "Album not found." });
+    }
+    if (result.reason === "not_queued") {
+      return res.status(400).json({
+        success: false,
+        message: "Album is not in the upload queue.",
+      });
+    }
+    res.status(200).json({
+      success: true,
+      message: "Album upload cancelled.",
+      ...result,
+    });
+  } catch (error) {
     next(error);
   }
 };
@@ -812,13 +898,14 @@ export const getPaginatedAlbums = async (req, res, next) => {
 
     const [albums, totalAlbums] = await Promise.all([
       Album.find()
+        .setOptions({ includeQueued: true })
         .populate("artist", "name images")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean()
         .exec(),
-      Album.countDocuments().exec(),
+      Album.countDocuments().setOptions({ includeQueued: true }).exec(),
     ]);
 
     const albumIds = albums.map((album) => album._id);

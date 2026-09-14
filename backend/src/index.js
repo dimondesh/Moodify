@@ -31,7 +31,9 @@ import {
 import {
   createAlbumIngestWorker,
   closeAlbumIngestWorker,
+  recoverOrphanedAlbumIngests,
 } from "./lib/media/albumIngestQueue.service.js";
+import { resetUploadLockOnBoot } from "./lib/media/activeUploads.service.js";
 
 const PORT = process.env.PORT || 5000;
 
@@ -154,8 +156,15 @@ httpServer.listen(PORT, async () => {
   connectDB();
   await connectRedis();
 
+  resetUploadLockOnBoot();
   createAlbumIngestWorker();
   console.log("[albumIngestQueue] Worker started in API process");
+  void recoverOrphanedAlbumIngests().catch((err) => {
+    console.error(
+      "[albumIngestQueue] Startup recovery failed:",
+      err?.message || err,
+    );
+  });
 
   if ((process.env.NODE_ENV || "development") === "development") {
     createHomeFeedWorker();

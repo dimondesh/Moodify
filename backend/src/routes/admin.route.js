@@ -11,6 +11,7 @@ import {
   deleteArtist,
   uploadFullAlbumAuto,
   uploadAlbumFromSpotifyUrl,
+  cancelAlbumUpload,
   getAlbumUploadJobStatus,
   getGenres,
   getMoods,
@@ -43,6 +44,7 @@ router.delete("/albums/:id", deleteAlbum);
 router.post("/albums/upload-chunk", uploadChunk);
 router.post("/albums/upload-full-album", uploadFullAlbumAuto);
 router.post("/albums/upload-from-url", uploadAlbumFromSpotifyUrl);
+router.post("/albums/:id/cancel-upload", cancelAlbumUpload);
 router.get("/albums/upload-jobs/:jobId", getAlbumUploadJobStatus);
 
 router.post("/artists", createArtist);
