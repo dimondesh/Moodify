@@ -240,7 +240,7 @@ export const ingestAlbumFromSpotify = async ({
     }
 
     await setAlbumUploadProgress(album._id, {
-      phase: "ingesting",
+      phase: "preparing",
       tracksDone: 0,
       tracksTotal: tracksToProcess.length,
       percent: 0,
@@ -266,12 +266,25 @@ export const ingestAlbumFromSpotify = async ({
 
     const createdSongs = [];
     let trackIndex = 0;
+    const totalTracks = tracksToProcess.length;
 
     for (const spotifyTrack of tracksToProcess) {
       assertNotCancelled();
 
       const songName = spotifyTrack.name;
       const trackTempId = spotifyTrack.id || `track_${trackIndex}`;
+      await setAlbumUploadProgress(album._id, {
+        phase: "ingesting",
+        tracksDone: trackIndex,
+        tracksTotal: totalTracks,
+        percent: progressPercent(trackIndex, totalTracks),
+      });
+      await onTrackProgress?.({
+        phase: "ingesting",
+        tracksDone: trackIndex,
+        tracksTotal: totalTracks,
+        percent: progressPercent(trackIndex, totalTracks),
+      });
       trackIndex++;
 
       console.log(`[AlbumIngest] Processing track: ${songName}`);
@@ -355,18 +368,17 @@ export const ingestAlbumFromSpotify = async ({
       createdSongs.push(song);
 
       const done = createdSongs.length;
-      const total = tracksToProcess.length;
-      const percent = progressPercent(done, total);
+      const percent = progressPercent(done, totalTracks);
       await setAlbumUploadProgress(album._id, {
         phase: "ingesting",
         tracksDone: done,
-        tracksTotal: total,
+        tracksTotal: totalTracks,
         percent,
       });
       await onTrackProgress?.({
         phase: "ingesting",
         tracksDone: done,
-        tracksTotal: total,
+        tracksTotal: totalTracks,
         percent,
       });
 
