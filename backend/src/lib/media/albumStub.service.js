@@ -156,18 +156,8 @@ export const createQueuedAlbumStubFromSpotify = async (spotifyAlbumUrl) => {
   }
 };
 
-/**
- * Delete a queued/partial album and its songs + media (cancel or failed ingest).
- */
-export const deleteAlbumStubAndMedia = async (albumId) => {
-  const album = await Album.findById(albumId).setOptions({
-    includeQueued: true,
-  });
-  if (!album) return;
-
-  await deleteImageVariants(album);
-
-  const songsInAlbum = await Song.find({ albumId });
+const deleteAlbumSongsAndMedia = async (album) => {
+  const songsInAlbum = await Song.find({ albumId: album._id });
   for (const song of songsInAlbum) {
     if (song.hlsUrl) {
       const hlsPath = getPathFromUrl(song.hlsUrl);
@@ -185,7 +175,48 @@ export const deleteAlbumStubAndMedia = async (albumId) => {
       await deleteImageVariants(song);
     }
   }
+  await Song.deleteMany({ albumId: album._id });
+};
 
-  await Song.deleteMany({ albumId });
+/**
+ * Wipe partial ingest (songs + HLS) but keep the queued album stub.
+ * Resets upload progress so recovery can restart from scratch.
+ * @returns {boolean} false if stub missing or not queued
+ */
+export const purgePartialAlbumIngest = async (albumId) => {
+  const album = await Album.findById(albumId).setOptions({
+    includeQueued: true,
+  });
+  if (!album || album.status !== "queued") return false;
+
+  await deleteAlbumSongsAndMedia(album);
+
+  const tracksTotal = album.upload?.tracksTotal ?? 0;
+  await Album.findByIdAndUpdate(albumId, {
+    $set: {
+      ingestJobId: null,
+      upload: {
+        phase: "queued",
+        tracksDone: 0,
+        tracksTotal,
+        percent: 0,
+      },
+    },
+  }).setOptions({ includeQueued: true });
+
+  return true;
+};
+
+/**
+ * Delete a queued/partial album and its songs + media (cancel or failed ingest).
+ */
+export const deleteAlbumStubAndMedia = async (albumId) => {
+  const album = await Album.findById(albumId).setOptions({
+    includeQueued: true,
+  });
+  if (!album) return;
+
+  await deleteImageVariants(album);
+  await deleteAlbumSongsAndMedia(album);
   await Album.deleteOne({ _id: albumId });
 };

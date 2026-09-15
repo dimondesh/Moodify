@@ -153,18 +153,22 @@ process.on("SIGTERM", () => void shutdown("SIGTERM"));
 process.on("SIGINT", () => void shutdown("SIGINT"));
 
 httpServer.listen(PORT, async () => {
-  connectDB();
+  await connectDB();
   await connectRedis();
 
   resetUploadLockOnBoot();
-  createAlbumIngestWorker();
-  console.log("[albumIngestQueue] Worker started in API process");
-  void recoverOrphanedAlbumIngests().catch((err) => {
+  // Recover orphans before the worker can claim waiting jobs (otherwise the
+  // next album starts and the crashed one sits queued behind it).
+  try {
+    await recoverOrphanedAlbumIngests();
+  } catch (err) {
     console.error(
       "[albumIngestQueue] Startup recovery failed:",
       err?.message || err,
     );
-  });
+  }
+  createAlbumIngestWorker();
+  console.log("[albumIngestQueue] Worker started in API process");
 
   if ((process.env.NODE_ENV || "development") === "development") {
     createHomeFeedWorker();

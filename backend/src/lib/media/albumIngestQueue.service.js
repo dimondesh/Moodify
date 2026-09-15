@@ -15,7 +15,10 @@ import {
   touchUploadLock,
 } from "./activeUploads.service.js";
 import { Album } from "../../models/album.model.js";
-import { deleteAlbumStubAndMedia } from "./albumStub.service.js";
+import {
+  deleteAlbumStubAndMedia,
+  purgePartialAlbumIngest,
+} from "./albumStub.service.js";
 import {
   markAlbumUploadComplete,
   setAlbumUploadProgress,
@@ -23,6 +26,12 @@ import {
 
 const QUEUE_NAME = "album-ingest-from-url";
 const LOCK_HEARTBEAT_MS = 60 * 1000;
+/**
+ * BullMQ checks the wait list before the prioritized set, so numeric
+ * `priority` cannot jump ahead of already-waiting jobs. LIFO pushes to the
+ * front of wait — use that for crash-recovery requeues.
+ */
+const RECOVERY_JOB_OPTS = { lifo: true };
 
 const getRedisConnection = () => ({
   url: process.env.REDIS_URL || "redis://localhost:6379",
@@ -46,13 +55,50 @@ const getQueue = () => {
 const zipPathForAlbum = (albumId) =>
   path.join(process.cwd(), "temp", "album-ingest", String(albumId), "album.zip");
 
+/** Waiting/delayed only — stale `active` after a process crash is not healthy. */
+const findHealthyJobForAlbum = async (queue, albumId) => {
+  const jobs = await queue.getJobs([
+    "waiting",
+    "delayed",
+    "paused",
+    "waiting-children",
+  ]);
+  return (
+    jobs.find((j) => String(j.data?.albumId) === String(albumId)) || null
+  );
+};
+
+/** Drop zombie active/failed/completed jobs left after a process crash. */
+const clearUnhealthyJobsForAlbum = async (queue, albumId) => {
+  const jobs = await queue.getJobs(["active", "failed", "completed"]);
+  for (const job of jobs) {
+    if (String(job.data?.albumId) !== String(albumId)) continue;
+    try {
+      const state = await job.getState();
+      if (state === "active") {
+        await job.moveToFailed(
+          new Error("API restarted while job was active"),
+          "0",
+        );
+      }
+      await job.remove().catch(() => {});
+    } catch (err) {
+      console.warn(
+        `[albumIngestQueue] Recovery: could not clear job ${job.id}:`,
+        err?.message || err,
+      );
+    }
+  }
+};
+
 /**
- * @param {{ albumId: string, spotifyAlbumUrl: string, zipPath?: string|null }} data
+ * @param {{ albumId: string, spotifyAlbumUrl: string, zipPath?: string|null, lifo?: boolean }} data
  */
 export const enqueueAlbumIngest = async ({
   albumId,
   spotifyAlbumUrl,
   zipPath = null,
+  lifo = false,
 }) => {
   const jobId = uuidv4();
   const queue = getQueue();
@@ -61,6 +107,7 @@ export const enqueueAlbumIngest = async ({
     { albumId, spotifyAlbumUrl, zipPath },
     {
       jobId,
+      ...(lifo ? RECOVERY_JOB_OPTS : {}),
       removeOnComplete: { age: 3600, count: 50 },
       removeOnFail: { age: 86400, count: 100 },
       attempts: 1,
@@ -176,11 +223,60 @@ export const cancelAlbumIngest = async (albumId) => {
   return { cancelled: true, reason: "stub_deleted" };
 };
 
+const requeueQueuedStubAfterPartialWipe = async (
+  albumId,
+  { lifo = true } = {},
+) => {
+  const album = await Album.findById(albumId).setOptions({
+    includeQueued: true,
+  });
+  if (!album || album.status !== "queued") return false;
+
+  const queue = getQueue();
+  const existing = await findHealthyJobForAlbum(queue, albumId);
+  if (existing) return false;
+
+  if (!album.spotifyAlbumUrl) {
+    await deleteAlbumStubAndMedia(albumId);
+    return false;
+  }
+
+  await purgePartialAlbumIngest(albumId);
+
+  const zipCandidate = zipPathForAlbum(albumId);
+  const hasZip = fsSync.existsSync(zipCandidate);
+
+  await enqueueAlbumIngest({
+    albumId,
+    spotifyAlbumUrl: album.spotifyAlbumUrl,
+    zipPath: hasZip ? zipCandidate : null,
+    lifo,
+  });
+  return true;
+};
+
 /**
  * After API crash/restart: re-enqueue queued stubs whose BullMQ job is gone
  * or terminal (failed/completed), so they are not stuck forever.
  */
 export const recoverOrphanedAlbumIngests = async () => {
+  const deemixTemp = path.join(process.cwd(), "temp", "deemix");
+  try {
+    const entries = await fs.readdir(deemixTemp);
+    await Promise.all(
+      entries.map((entry) =>
+        fs.rm(path.join(deemixTemp, entry), { recursive: true, force: true }),
+      ),
+    );
+  } catch (err) {
+    if (err.code !== "ENOENT") {
+      console.warn(
+        "[albumIngestQueue] Recovery: deemix temp cleanup failed:",
+        err?.message || err,
+      );
+    }
+  }
+
   const queued = await Album.find({ status: "queued" })
     .setOptions({ includeQueued: true })
     .lean();
@@ -193,10 +289,13 @@ export const recoverOrphanedAlbumIngests = async () => {
   const queue = getQueue();
   let requeued = 0;
   let cleaned = 0;
+  /** @type {string[]} */
+  const toRequeue = [];
 
   for (const album of queued) {
     const albumId = album._id.toString();
     const spotifyAlbumUrl = album.spotifyAlbumUrl;
+    let preferFront = false;
 
     let job = album.ingestJobId
       ? await queue.getJob(album.ingestJobId)
@@ -215,6 +314,7 @@ export const recoverOrphanedAlbumIngests = async () => {
       }
       // active after our process restart has no live holder — drop + requeue.
       // failed / completed with stub still queued — same.
+      preferFront = state === "active";
       try {
         if (state === "active") {
           await job.moveToFailed(
@@ -229,6 +329,10 @@ export const recoverOrphanedAlbumIngests = async () => {
           err?.message || err,
         );
       }
+    } else {
+      const orphanJob = await findHealthyJobForAlbum(queue, albumId);
+      if (orphanJob) continue;
+      await clearUnhealthyJobsForAlbum(queue, albumId);
     }
 
     if (!spotifyAlbumUrl) {
@@ -240,15 +344,18 @@ export const recoverOrphanedAlbumIngests = async () => {
       continue;
     }
 
-    const zipCandidate = zipPathForAlbum(albumId);
-    const hasZip = fsSync.existsSync(zipCandidate);
+    if (preferFront) toRequeue.unshift(albumId);
+    else toRequeue.push(albumId);
+  }
 
-    await enqueueAlbumIngest({
-      albumId,
-      spotifyAlbumUrl,
-      zipPath: hasZip ? zipCandidate : null,
-    });
+  // LIFO puts each new job at the front of wait; enqueue in reverse so the
+  // first orphan (usually the one that was active) ends up first to run.
+  for (const albumId of toRequeue.reverse()) {
+    const didRequeue = await requeueQueuedStubAfterPartialWipe(albumId);
+    if (!didRequeue) continue;
+
     requeued += 1;
+    const hasZip = fsSync.existsSync(zipPathForAlbum(albumId));
     console.log(
       `[albumIngestQueue] Recovery: re-enqueued ${albumId}` +
         (hasZip ? " (with ZIP)" : ""),
@@ -419,11 +526,26 @@ export const createAlbumIngestWorker = () => {
     },
   );
 
-  workerInstance.on("failed", (job, error) => {
+  workerInstance.on("failed", async (job, error) => {
     console.error(
       `[albumIngestQueue] Job ${job?.id} failed:`,
       error?.message || error,
     );
+    const albumId = job?.data?.albumId;
+    if (!albumId) return;
+    try {
+      const didRequeue = await requeueQueuedStubAfterPartialWipe(albumId);
+      if (didRequeue) {
+        console.log(
+          `[albumIngestQueue] Recovery: re-queued stub ${albumId} after job ${job.id} failed`,
+        );
+      }
+    } catch (err) {
+      console.error(
+        "[albumIngestQueue] Failed to re-queue stub after job failure:",
+        err?.message || err,
+      );
+    }
   });
 
   workerInstance.on("completed", (job) => {

@@ -14,7 +14,7 @@ interface CollectionGradientLayoutProps {
   gradientHeightClassName?: string;
 }
 
-const DEFAULT_GRADIENT_HEIGHT = "h-[85vh] max-h-[960px] min-h-[520px]";
+const DEFAULT_GRADIENT_HEIGHT = "h-[150vh] max-h-[1200px] min-h-[600px]";
 
 /** Hero vertical gradient behind album or playlist content, driven by cover color. */
 export function CollectionGradientLayout({
@@ -32,13 +32,17 @@ export function CollectionGradientLayout({
     <div className={`h-full ${className}`}>
       <div className={innerClassName} style={{ backgroundColor: footerTint }}>
         <div
-          key={top.key}
-          className={`absolute inset-x-0 top-0 pointer-events-none transition-[opacity] duration-700 ease-out ${gradientHeightClassName}`}
+          className="absolute inset-0 overflow-hidden pointer-events-none"
           aria-hidden="true"
-          style={{
-            background: `linear-gradient(to bottom, ${top.color} 0%, ${midTint} 50%, ${footerTint} 100%)`,
-          }}
-        />
+        >
+          <div
+            key={top.key}
+            className={`absolute inset-x-0 top-0 transition-[opacity] duration-700 ease-out ${gradientHeightClassName}`}
+            style={{
+              background: `linear-gradient(to bottom, ${top.color} 0%, ${midTint} 50%, ${footerTint} 100%)`,
+            }}
+          />
+        </div>
         <div className="relative z-10">{children}</div>
       </div>
     </div>
