@@ -1,7 +1,11 @@
-import dotenv from "dotenv";
+#!/usr/bin/env node
+/**
+ * Пересчёт entity embeddings (album / artist / playlist) из треков.
+ *
+ *   cd backend && npm run generate:entity-embeddings
+ */
+import "dotenv/config";
 import mongoose from "mongoose";
-import path from "path";
-import { fileURLToPath } from "url";
 import { Album } from "../../models/album.model.js";
 import { Artist } from "../../models/artist.model.js";
 import { Playlist } from "../../models/playlist.model.js";
@@ -11,18 +15,7 @@ import {
   computePlaylistEmbedding,
 } from "../../lib/recommendations/recommendation.service.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
-
-const MONGO_URL = process.env.MONGODB_URI || process.env.MONGO_URI;
 const BATCH_SIZE = 100;
-
-if (!MONGO_URL) {
-  console.error(
-    "❌ Не найдена переменная MONGODB_URI или MONGO_URI в файле .env",
-  );
-  process.exit(1);
-}
 
 async function processCollection(Model, computeFn, label) {
   let processed = 0;
@@ -53,8 +46,13 @@ async function processCollection(Model, computeFn, label) {
 }
 
 async function run() {
+  if (!process.env.MONGO_URI) {
+    console.error("MONGO_URI is required in .env");
+    process.exit(1);
+  }
+
   try {
-    await mongoose.connect(MONGO_URL);
+    await mongoose.connect(process.env.MONGO_URI);
     console.log("✅ Подключение к MongoDB");
 
     console.log("\n📀 Альбомы...");

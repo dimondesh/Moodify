@@ -280,8 +280,10 @@ export function pickAccentHexFromPalette(palette) {
  * @returns {Promise<Buffer>}
  */
 async function preprocessCoverBuffer(buffer) {
+  // Vibrant (via jimp) has no WebP; covers on CDN are WebP — force PNG for palette.
   return sharp(buffer)
     .resize(128, 128, { fit: "inside", withoutEnlargement: true })
+    .png()
     .toBuffer();
 }
 

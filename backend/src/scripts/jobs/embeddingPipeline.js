@@ -30,7 +30,7 @@ const runScript = (scriptName) =>
     const child = spawn(process.execPath, [scriptPath], {
       stdio: "inherit",
       env: process.env,
-      cwd: path.resolve(__dirname, "../.."),
+      cwd: path.resolve(__dirname, "../../.."),
     });
 
     child.on("error", reject);

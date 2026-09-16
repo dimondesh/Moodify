@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { EMBEDDING_DIM } from "../../constants/embedding.js";
 
 let songHooksRegistered = false;
 let playlistHooksRegistered = false;
@@ -13,6 +14,18 @@ const fireAndForget = (promise) => {
 
 const loadRecommendationService = () =>
   import("../../lib/recommendations/recommendation.service.js");
+
+const hasValidSongEmbedding = (doc) => {
+  const emb = doc?.audioFeatures?.embedding;
+  return Array.isArray(emb) && emb.length === EMBEDDING_DIM;
+};
+
+/** Ingest/admin assign the whole audioFeatures object — use isModified, not isDirectModified. */
+export const songSaveTouchesTrackEmbedding = (doc) =>
+  doc.isModified("audioFeatures.embedding");
+
+export const songSaveShouldRefreshRelated = (doc) =>
+  songSaveTouchesTrackEmbedding(doc) || doc.isModified("artist");
 
 const refreshAlbumEmbedding = (albumId) => {
   if (!albumId || !hooksEnabled()) return;
@@ -83,12 +96,11 @@ const refreshSongRelatedEmbeddings = async (songDoc, previousArtistIds = []) => 
 
 function registerSongHooks(songSchema) {
   songSchema.pre("save", async function () {
+    this._wasNew = this.isNew;
     if (this.isNew) return;
 
     const needsPrior =
-      this.isModified("albumId") ||
-      this.isModified("artist") ||
-      this.isDirectModified("audioFeatures.embedding");
+      this.isModified("albumId") || this.isModified("artist");
 
     if (!needsPrior) return;
 
@@ -106,15 +118,16 @@ function registerSongHooks(songSchema) {
   });
 
   songSchema.post("save", function () {
+    // Shell create (ingest/admin): no track vector yet — wait for the audioFeatures save.
+    // Avoids racing a null entity embedding write over the follow-up refresh.
+    if (this._wasNew && !hasValidSongEmbedding(this)) return;
+
     if (this.isModified("albumId")) {
       refreshAlbumEmbedding(this.albumId);
       refreshAlbumEmbedding(this._previousAlbumId);
     }
 
-    if (
-      this.isDirectModified("audioFeatures.embedding") ||
-      this.isModified("artist")
-    ) {
+    if (songSaveShouldRefreshRelated(this)) {
       fireAndForget(refreshSongRelatedEmbeddings(this, this._previousArtistIds));
     }
   });

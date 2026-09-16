@@ -2,7 +2,10 @@
 
 import mongoose from "mongoose";
 import { Song } from "../models/song.model.js";
-import { ListenHistory } from "../models/listenHistory.model.js";
+import {
+  ListenHistory,
+  coercePlaybackEntityId,
+} from "../models/listenHistory.model.js";
 import { User } from "../models/user.model.js";
 import { getVibeMatchTracks } from "../lib/recommendations/recommendation.service.js";
 import {
@@ -244,7 +247,7 @@ export const recordListen = async (req, res, next) => {
         legacyToPlaylist[playbackContext.type] || playbackContext.type;
       listenData.playbackContext = {
         type: normalizedType,
-        entityId: playbackContext.entityId || null,
+        entityId: coercePlaybackEntityId(playbackContext.entityId),
         entityTitle: playbackContext.entityTitle || null,
       };
     }

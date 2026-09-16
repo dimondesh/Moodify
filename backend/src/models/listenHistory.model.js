@@ -2,6 +2,12 @@
 
 import mongoose from "mongoose";
 
+/** Virtual playlist ids (e.g. "liked") are not ObjectIds — store null. */
+export function coercePlaybackEntityId(entityId) {
+  if (!entityId) return null;
+  return mongoose.Types.ObjectId.isValid(entityId) ? entityId : null;
+}
+
 const listenHistorySchema = new mongoose.Schema(
   {
     user: {
