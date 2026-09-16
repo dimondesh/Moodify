@@ -21,6 +21,15 @@ export async function fetchOnboardingArtistsPage(
   return res.data;
 }
 
+export async function searchOnboardingArtists(
+  q: string,
+): Promise<OnboardingArtist[]> {
+  const res = await axiosInstance.get("/users/me/onboarding-artists", {
+    params: { q },
+  });
+  return res.data.artists || [];
+}
+
 export async function submitTasteOnboarding(
   artistIds: string[],
 ): Promise<{ token: string; user: Record<string, unknown> }> {

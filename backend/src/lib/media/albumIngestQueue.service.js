@@ -23,9 +23,12 @@ import {
   markAlbumUploadComplete,
   setAlbumUploadProgress,
 } from "./albumUploadProgress.service.js";
+import { onSpotifyRateLimit } from "../integrations/spotifyService.js";
 
 const QUEUE_NAME = "album-ingest-from-url";
 const LOCK_HEARTBEAT_MS = 60 * 1000;
+/** @type {ReturnType<typeof setTimeout> | null} */
+let spotifyRateLimitResumeTimer = null;
 /**
  * BullMQ checks the wait list before the prioritized set, so numeric
  * `priority` cannot jump ahead of already-waiting jobs. LIFO pushes to the
@@ -94,6 +97,37 @@ const clearUnhealthyJobsForAlbum = async (queue, albumId) => {
 /**
  * @param {{ albumId: string, spotifyAlbumUrl: string, zipPath?: string|null, lifo?: boolean }} data
  */
+/**
+ * Pause album-ingest on Spotify 429; auto-resume after Retry-After.
+ * @param {number} [retryAfterSec=30]
+ */
+export const pauseAlbumIngestForSpotifyRateLimit = async (
+  retryAfterSec = 30,
+) => {
+  const queue = getQueue();
+  const sec = Math.max(1, Number(retryAfterSec) || 30);
+  await queue.pause();
+  console.warn(
+    `[albumIngestQueue] Paused due to Spotify 429 (resume in ${sec}s)`,
+  );
+  if (spotifyRateLimitResumeTimer) clearTimeout(spotifyRateLimitResumeTimer);
+  spotifyRateLimitResumeTimer = setTimeout(() => {
+    spotifyRateLimitResumeTimer = null;
+    queue
+      .resume()
+      .then(() =>
+        console.log("[albumIngestQueue] Resumed after Spotify rate limit"),
+      )
+      .catch((err) =>
+        console.error(
+          "[albumIngestQueue] Resume after Spotify 429 failed:",
+          err?.message || err,
+        ),
+      );
+  }, sec * 1000);
+  spotifyRateLimitResumeTimer.unref?.();
+};
+
 export const enqueueAlbumIngest = async ({
   albumId,
   spotifyAlbumUrl,
@@ -483,6 +517,10 @@ export const createAlbumIngestWorker = () => {
           trackCount: songs.length,
         };
       } catch (error) {
+        // Keep stub on Spotify 429 — queue is paused; failed handler requeues.
+        if (error?.isSpotifyRateLimit) {
+          throw error;
+        }
         // ingest already deletes stub on failure when existingAlbumId set;
         // cancel before ingest / deemix fail may leave stub — clean up.
         const stillThere = await Album.findById(albumId).setOptions({
@@ -566,3 +604,6 @@ export const closeAlbumIngestWorker = async () => {
     queueInstance = null;
   }
 };
+
+// Any Spotify 429 (stub create or worker) pauses this queue immediately.
+onSpotifyRateLimit(pauseAlbumIngestForSpotifyRateLimit);

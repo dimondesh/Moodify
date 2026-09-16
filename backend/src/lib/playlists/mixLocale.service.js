@@ -6,7 +6,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 // Инициализация официального SDK
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const aiModel = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+const aiModel = genAI.getGenerativeModel({ model: "gemini-3.5-flash-lite" });
 
 export const MIX_LOCALE_LANGS = ["en", "ru", "uk"];
 const BATCH_SIZE = 15;

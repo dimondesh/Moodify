@@ -742,6 +742,13 @@ export const uploadFullAlbumAuto = async (req, res, next) => {
         message: error.message,
       });
     }
+    if (error?.isSpotifyRateLimit || error?.statusCode === 429) {
+      return res.status(429).json({
+        success: false,
+        message: error.message,
+        retryAfter: error.retryAfterSec,
+      });
+    }
     next(error);
   }
 };
@@ -791,6 +798,13 @@ export const uploadAlbumFromSpotifyUrl = async (req, res, next) => {
       return res.status(409).json({
         success: false,
         message: error.message,
+      });
+    }
+    if (error?.isSpotifyRateLimit || error?.statusCode === 429) {
+      return res.status(429).json({
+        success: false,
+        message: error.message,
+        retryAfter: error.retryAfterSec,
       });
     }
     next(error);

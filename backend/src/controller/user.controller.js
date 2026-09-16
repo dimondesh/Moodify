@@ -28,6 +28,7 @@ import { buildAuthPayload } from "./auth.controller.js";
 import {
   completeTasteOnboarding as completeTasteOnboardingService,
   selectDiverseOnboardingArtists,
+  searchOnboardingArtists,
 } from "../lib/recommendations/tasteProfile.service.js";
 import {
   TASTE_ONBOARDING_MIN_ARTISTS,
@@ -938,6 +939,12 @@ export const getTopTracksThisMonth = async (req, res, next) => {
 
 export const getOnboardingArtists = async (req, res, next) => {
   try {
+    const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+    if (q) {
+      const artists = await searchOnboardingArtists(q);
+      return res.status(200).json({ artists, hasMore: false });
+    }
+
     const skip = Math.max(0, parseInt(req.query.skip, 10) || 0);
     const limit = Math.min(
       Math.max(1, parseInt(req.query.limit, 10) || ONBOARDING_ARTISTS_PAGE_SIZE),

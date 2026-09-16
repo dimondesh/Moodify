@@ -494,7 +494,7 @@ const PlaylistDetailsPage = () => {
             </div>
           </div>
 
-          <div className="px-4 sm:px-6 pb-4 flex flex-wrap sm:justify-start items-center gap-1">
+          <div className="relative z-10 px-4 sm:px-6 pb-4 flex flex-wrap sm:justify-start items-center gap-1">
             {currentPlaylist.songs.length > 0 && (
               <Button
                 size="icon"

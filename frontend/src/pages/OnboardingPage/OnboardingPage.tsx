@@ -10,9 +10,9 @@ import { CoverImage } from "@/components/CoverImage";
 import { CDN_DEFAULT_ARTIST_IMAGE } from "@/lib/cdn";
 import {
   fetchOnboardingArtistsPage,
+  searchOnboardingArtists,
   type OnboardingArtist,
 } from "@/lib/api/onboarding";
-import { fetchSearch } from "@/lib/api/search";
 import { useAuthStore } from "@/stores/useAuthStore";
 import {
   TASTE_ONBOARDING_MIN_ARTISTS,
@@ -45,6 +45,7 @@ const OnboardingPage = () => {
   const completeTasteOnboarding = useAuthStore(
     (s) => s.completeTasteOnboarding,
   );
+  const logout = useAuthStore((s) => s.logout);
   const isLoading = useAuthStore((s) => s.isLoading);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
@@ -55,6 +56,7 @@ const OnboardingPage = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGeneratingFeed, setIsGeneratingFeed] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useOnboardingFeedGeneration({
     enabled: isGeneratingFeed,
@@ -103,18 +105,10 @@ const OnboardingPage = () => {
     let cancelled = false;
     setIsSearching(true);
 
-    void fetchSearch(debouncedQuery)
-      .then((results) => {
+    void searchOnboardingArtists(debouncedQuery)
+      .then((artists) => {
         if (cancelled) return;
-        setSearchResults(
-          dedupeArtistsById(
-            (results.artists || []).map((a) => ({
-              _id: a._id,
-              name: a.name,
-              images: a.images,
-            })),
-          ),
-        );
+        setSearchResults(dedupeArtistsById(artists));
       })
       .catch(() => {
         if (!cancelled) toast.error(t("onboarding.searchFailed"));
@@ -186,6 +180,16 @@ const OnboardingPage = () => {
       toast.error(t("onboarding.submitFailed"));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } catch {
+      setIsLoggingOut(false);
     }
   };
 
@@ -278,7 +282,7 @@ const OnboardingPage = () => {
             />
           </div>
 
-          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain no-scrollbar pb-32 lg:pb-36">
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain no-scrollbar pb-40 lg:pb-44">
             {isSearchMode && (
               <h2 className="text-lg lg:text-xl font-semibold mb-4 lg:mb-6">
                 {t("onboarding.searchResultsTitle")}
@@ -315,7 +319,7 @@ const OnboardingPage = () => {
           </div>
 
           <div className="fixed bottom-0 left-0 right-0 p-4 sm:p-6 lg:p-8 bg-gradient-to-t from-[#0f0f0f] from-60% via-[#0f0f0f]/95 to-transparent pointer-events-none">
-            <div className="w-full max-w-6xl mx-auto px-4 sm:px-8 lg:px-12 flex justify-center pointer-events-auto">
+            <div className="w-full max-w-6xl mx-auto px-4 sm:px-8 lg:px-12 flex flex-col items-center gap-2 pointer-events-auto">
               <Button
                 type="button"
                 disabled={
@@ -329,6 +333,15 @@ const OnboardingPage = () => {
                 {isSubmitting
                   ? t("onboarding.submitting")
                   : t("onboarding.continue")}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost2"
+                onClick={() => void handleLogout()}
+                disabled={isLoggingOut}
+                className="h-9 px-3 text-gray-400 hover:text-white"
+              >
+                {t("topbar.logout")}
               </Button>
             </div>
           </div>

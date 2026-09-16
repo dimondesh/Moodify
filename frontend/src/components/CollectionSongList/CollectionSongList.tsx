@@ -29,7 +29,7 @@ export interface CollectionSongListProps {
   isLoggedIn?: boolean;
   /** When false, skips the desktop column header row (e.g. artist popular tracks). */
   showDesktopHeader?: boolean;
-  /** When false, removes the list surface tint (bg-black/20). */
+  /** When false, removes the list surface tint (bg-black/20) and its overlap under action buttons. */
   dimBackground?: boolean;
 }
 
@@ -64,7 +64,14 @@ export function CollectionSongList({
   const discTrackCounters = new Map<number, number>();
 
   return (
-    <div className={dimBackground ? "bg-black/20" : undefined}>
+    <div
+      className={
+        dimBackground
+          ? // Pull tint up under the page action row (play / shuffle / …).
+            "relative z-0 -mt-20 sm:-mt-22 bg-black/20 pt-18 sm:pt-20"
+          : undefined
+      }
+    >
       {!isMobile && showDesktopHeader && (
         <div
           className={`${desktopSongListGridClass} ${desktopSongListPaddingClass} py-2 text-sm text-gray-400 border-b border-[#2a2a2a]`}

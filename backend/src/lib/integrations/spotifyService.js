@@ -8,6 +8,74 @@ const SPOTIFY_AUTH_URL = "https://accounts.spotify.com/api/token";
 let accessToken = null;
 let tokenExpiresAt = 0;
 
+/** @type {((retryAfterSec: number) => void | Promise<void>) | null} */
+let rateLimitHandler = null;
+
+export class SpotifyRateLimitError extends Error {
+  /**
+   * @param {number} retryAfterSec
+   */
+  constructor(retryAfterSec) {
+    const sec = Math.max(1, Number(retryAfterSec) || 30);
+    super(`Spotify rate limited (429), retry after ${sec}s`);
+    this.name = "SpotifyRateLimitError";
+    this.isSpotifyRateLimit = true;
+    this.statusCode = 429;
+    this.retryAfterSec = sec;
+  }
+}
+
+/**
+ * Register a handler invoked as soon as Spotify returns 429
+ * (e.g. pause the album-ingest queue).
+ * @param {(retryAfterSec: number) => void | Promise<void>} handler
+ */
+export const onSpotifyRateLimit = (handler) => {
+  rateLimitHandler = typeof handler === "function" ? handler : null;
+};
+
+const parseRetryAfterSec = (error) => {
+  const raw = error?.response?.headers?.["retry-after"];
+  const sec = Number(raw);
+  return Number.isFinite(sec) && sec > 0 ? sec : 30;
+};
+
+/**
+ * @param {unknown} error
+ * @param {string} context
+ * @returns {Promise<null>}
+ */
+const handleSpotifyRequestError = async (error, context) => {
+  if (error?.isSpotifyRateLimit) throw error;
+
+  if (error?.response?.status === 429) {
+    const retryAfterSec = parseRetryAfterSec(error);
+    console.warn(
+      `[SpotifyService] 429 rate limit (${context}), retry-after=${retryAfterSec}s`,
+    );
+    try {
+      await rateLimitHandler?.(retryAfterSec);
+    } catch (handlerErr) {
+      console.error(
+        "[SpotifyService] rate limit handler failed:",
+        handlerErr?.message || handlerErr,
+      );
+    }
+    throw new SpotifyRateLimitError(retryAfterSec);
+  }
+
+  console.error(`[SpotifyService] ${context}:`, error?.message || error);
+  if (error?.response) {
+    console.error(
+      "Status:",
+      error.response.status,
+      "Data:",
+      error.response.data,
+    );
+  }
+  return null;
+};
+
 const getAccessToken = async () => {
   if (accessToken && Date.now() < tokenExpiresAt) {
     return accessToken;
@@ -37,18 +105,7 @@ const getAccessToken = async () => {
     );
     return accessToken;
   } catch (error) {
-    console.error(
-      "[SpotifyService] Ошибка при получении/обновлении токена доступа Spotify:",
-      error.message
-    );
-    if (error.response) {
-      console.error(
-        "Status:",
-        error.response.status,
-        "Data:",
-        error.response.data
-      );
-    }
+    await handleSpotifyRequestError(error, "token");
     throw new Error("Не удалось получить токен доступа Spotify.");
   }
 };
@@ -112,19 +169,10 @@ export const getAlbumDataFromSpotify = async (albumUrl) => {
     );
     return extractedData;
   } catch (error) {
-    console.error(
-      `[SpotifyService] Ошибка при получении данных альбома ${albumId} со Spotify:`,
-      error.message
+    return handleSpotifyRequestError(
+      error,
+      `album ${albumId}`,
     );
-    if (error.response) {
-      console.error(
-        "Status:",
-        error.response.status,
-        "Data:",
-        error.response.data
-      );
-    }
-    return null;
   }
 };
 export const getArtistDataFromSpotify = async (artistId) => {
@@ -149,18 +197,6 @@ export const getArtistDataFromSpotify = async (artistId) => {
     );
     return response.data;
   } catch (error) {
-    console.error(
-      `[SpotifyService] Ошибка при получении данных артиста ${artistId} со Spotify:`,
-      error.message
-    );
-    if (error.response) {
-      console.error(
-        "Status:",
-        error.response.status,
-        "Data:",
-        error.response.data
-      );
-    }
-    return null;
+    return handleSpotifyRequestError(error, `artist ${artistId}`);
   }
 };

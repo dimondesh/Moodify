@@ -5,6 +5,7 @@ import { FollowedArtist } from "../../models/followedArtist.model.js";
 import { Song } from "../../models/song.model.js";
 import {
   EMBEDDING_DIM,
+  VALID_ENTITY_EMBEDDING,
   TASTE_ONBOARDING_MIN_ARTISTS,
   ONBOARDING_ARTISTS_LIMIT,
   ONBOARDING_ARTISTS_POOL_SIZE,
@@ -15,6 +16,15 @@ import {
   cosineSimilarity,
 } from "./recommendation.service.js";
 import { enqueueHomeFeedGeneration } from "../home/homeFeedQueue.service.js";
+
+const hasValidEntityEmbedding = (embedding) =>
+  Array.isArray(embedding) && embedding.length === EMBEDDING_DIM;
+
+const formatOnboardingArtist = ({ _id, name, images }) => ({
+  _id,
+  name,
+  images: images || [],
+});
 
 export const hasValidTasteVector = (user) =>
   Array.isArray(user?.tasteVector) && user.tasteVector.length === EMBEDDING_DIM;
@@ -32,12 +42,17 @@ export const needsTasteOnboarding = async (userId) => {
 
 export const computeTasteVectorFromArtistIds = async (artistIds) => {
   const objectIds = artistIds.map((id) => new mongoose.Types.ObjectId(id));
-  const artists = await Artist.find({ _id: { $in: objectIds } })
+  const artists = await Artist.find({
+    _id: { $in: objectIds },
+    ...VALID_ENTITY_EMBEDDING,
+  })
     .select("embedding")
     .lean();
 
   if (artists.length !== artistIds.length) {
-    const err = new Error("One or more artists were not found");
+    const err = new Error(
+      "One or more artists were not found or have no embeddings",
+    );
     err.statusCode = 400;
     throw err;
   }
@@ -101,13 +116,11 @@ let cachedOnboardingArtistList = null;
 const getOnboardingArtistList = async () => {
   if (cachedOnboardingArtistList) return cachedOnboardingArtistList;
 
-  const pool = dedupePoolByArtistId(await loadOnboardingArtistPool());
+  const pool = dedupePoolByArtistId(await loadOnboardingArtistPool()).filter(
+    (artist) => hasValidEntityEmbedding(artist.embedding),
+  );
   cachedOnboardingArtistList = buildDiverseArtistList(pool).map(
-    ({ _id, name, images }) => ({
-      _id,
-      name,
-      images: images || [],
-    }),
+    formatOnboardingArtist,
   );
   return cachedOnboardingArtistList;
 };
@@ -142,7 +155,6 @@ const loadOnboardingArtistPool = async () => {
       },
     },
     { $sort: { totalPlayCount: -1 } },
-    { $limit: ONBOARDING_ARTISTS_POOL_SIZE },
     {
       $lookup: {
         from: "artists",
@@ -152,6 +164,16 @@ const loadOnboardingArtistPool = async () => {
       },
     },
     { $unwind: "$artist" },
+    {
+      $match: {
+        "artist.embedding": {
+          $exists: true,
+          $ne: null,
+          $size: EMBEDDING_DIM,
+        },
+      },
+    },
+    { $limit: ONBOARDING_ARTISTS_POOL_SIZE },
     {
       $project: {
         _id: "$artist._id",
@@ -171,6 +193,7 @@ const loadOnboardingArtistPool = async () => {
   const remaining = ONBOARDING_ARTISTS_POOL_SIZE - topByPlayCount.length;
   const filler = await Artist.find({
     _id: { $nin: [...existingIds].map((id) => new mongoose.Types.ObjectId(id)) },
+    ...VALID_ENTITY_EMBEDDING,
   })
     .select("name images embedding")
     .limit(remaining)
@@ -183,8 +206,11 @@ const loadOnboardingArtistPool = async () => {
 };
 
 const buildDiverseArtistList = (pool) => {
-  const maxCount = Math.min(ONBOARDING_ARTISTS_LIMIT, pool.length);
-  let remaining = [...pool];
+  const eligible = pool.filter((a) => hasValidEntityEmbedding(a.embedding));
+  const maxCount = Math.min(ONBOARDING_ARTISTS_LIMIT, eligible.length);
+  if (maxCount === 0) return [];
+
+  let remaining = [...eligible];
   const selected = [];
 
   remaining.sort((a, b) => (b.totalPlayCount ?? 0) - (a.totalPlayCount ?? 0));
@@ -211,6 +237,24 @@ const buildDiverseArtistList = (pool) => {
   }
 
   return selected;
+};
+
+const ONBOARDING_ARTIST_SEARCH_LIMIT = 24;
+
+export const searchOnboardingArtists = async (q) => {
+  const query = String(q || "").trim();
+  if (!query) return [];
+
+  const artists = await Artist.find({
+    name: new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"),
+    ...VALID_ENTITY_EMBEDDING,
+  })
+    .select("name images")
+    .sort({ name: 1 })
+    .limit(ONBOARDING_ARTIST_SEARCH_LIMIT)
+    .lean();
+
+  return artists.map(formatOnboardingArtist);
 };
 
 export const selectDiverseOnboardingArtists = async ({
