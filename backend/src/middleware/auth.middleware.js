@@ -19,7 +19,9 @@ export const protectRoute = async (req, res, next) => {
       return res.status(401).json({ error: "Invalid or expired token" });
     }
 
-    const user = await User.findById(decoded.sub);
+    const user = await User.findById(decoded.sub)
+      .select("_id email role")
+      .lean();
     if (!user) {
       console.error("User not found in DB for token sub:", decoded.sub);
       return res.status(404).json({ error: "User not found" });
@@ -43,7 +45,9 @@ export const attachUserIfPresent = async (req, res, next) => {
 
     try {
       const decoded = verifyAccessToken(token);
-      const user = await User.findById(decoded.sub);
+      const user = await User.findById(decoded.sub)
+        .select("_id email role")
+        .lean();
       if (user) {
         req.user = buildReqUser(user);
       }

@@ -38,22 +38,13 @@ import {
 } from "../lib/media/albumIngestQueue.service.js";
 import { projectEmbeddingsTo2d } from "../lib/embeddings/projectTo2d.js";
 
-const attachSongsToAlbums = (albums, songs) => {
-  const songsByAlbumId = new Map();
-  for (const song of songs) {
-    if (!song.albumId) continue;
-    const albumKey = song.albumId.toString();
-    if (!songsByAlbumId.has(albumKey)) {
-      songsByAlbumId.set(albumKey, []);
-    }
-    songsByAlbumId.get(albumKey).push(song);
-  }
-
-  return albums.map((album) => ({
-    ...album,
-    songs: songsByAlbumId.get(album._id.toString()) || [],
-  }));
-};
+// List endpoints must not ship lyrics / beats / embeddings — those dominate payload size.
+const ADMIN_SONG_LIST_SELECT =
+  "_id title artist albumId images coverAccentHex duration playCount explicit genres moods hlsUrl trackNumber discNumber canvasUrl createdAt updatedAt audioFeatures.bpm audioFeatures.camelot";
+const ADMIN_ALBUM_LIST_SELECT =
+  "_id title artist images coverAccentHex releaseYear type status ingestJobId spotifyAlbumUrl upload createdAt updatedAt";
+const ADMIN_ARTIST_LIST_SELECT =
+  "_id name images bio createdAt updatedAt";
 
 export const createSong = async (req, res, next) => {
   if (!req.files || !req.files.audioFile)
@@ -875,6 +866,7 @@ export const getPaginatedSongs = async (req, res, next) => {
 
     const [songs, totalSongs] = await Promise.all([
       Song.find()
+        .select(ADMIN_SONG_LIST_SELECT)
         .populate("artist", "name images")
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -913,6 +905,7 @@ export const getPaginatedAlbums = async (req, res, next) => {
     const [albums, totalAlbums] = await Promise.all([
       Album.find()
         .setOptions({ includeQueued: true })
+        .select(ADMIN_ALBUM_LIST_SELECT)
         .populate("artist", "name images")
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -922,20 +915,29 @@ export const getPaginatedAlbums = async (req, res, next) => {
       Album.countDocuments().setOptions({ includeQueued: true }).exec(),
     ]);
 
+    // List UI only needs a count — shipping every track doc dominates latency.
     const albumIds = albums.map((album) => album._id);
-    const songs = albumIds.length
-      ? await Song.find({ albumId: { $in: albumIds } })
-          .sort({ discNumber: 1, trackNumber: 1, createdAt: 1 })
-          .lean()
+    const songCounts = albumIds.length
+      ? await Song.aggregate([
+          { $match: { albumId: { $in: albumIds } } },
+          { $group: { _id: "$albumId", count: { $sum: 1 } } },
+        ])
       : [];
+    const songCountByAlbumId = new Map(
+      songCounts.map(({ _id, count }) => [_id.toString(), count]),
+    );
 
-    const formattedAlbums = attachSongsToAlbums(albums, songs).map(album => ({
+    const formattedAlbums = albums.map((album) => ({
       ...album,
+      songCount: songCountByAlbumId.get(album._id.toString()) ?? 0,
+      songs: [],
       imageUrl: getSmallImageUrl(album.images) || album.imageUrl,
-      artist: album.artist ? album.artist.map(a => ({
-        ...a,
-        imageUrl: getSmallImageUrl(a.images) || a.imageUrl
-      })) : []
+      artist: album.artist
+        ? album.artist.map((a) => ({
+            ...a,
+            imageUrl: getSmallImageUrl(a.images) || a.imageUrl,
+          }))
+        : [],
     }));
 
     res.status(200).json({
@@ -957,6 +959,7 @@ export const getPaginatedArtists = async (req, res, next) => {
 
     const [artists, totalArtists] = await Promise.all([
       Artist.find()
+        .select(ADMIN_ARTIST_LIST_SELECT)
         .sort({ name: 1 })
         .skip(skip)
         .limit(limit)

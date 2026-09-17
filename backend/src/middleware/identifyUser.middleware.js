@@ -11,7 +11,9 @@ export const identifyUser = async (req, res, next) => {
 
     try {
       const decoded = verifyAccessToken(token);
-      const user = await User.findById(decoded.sub).lean();
+      const user = await User.findById(decoded.sub)
+        .select("_id email")
+        .lean();
 
       if (user) {
         req.user = {
