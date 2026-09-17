@@ -3,7 +3,6 @@ import { Album } from "../models/album.model.js";
 import { Artist } from "../models/artist.model.js";
 import { Playlist } from "../models/playlist.model.js";
 import { Song } from "../models/song.model.js";
-import { populatePlaylistEmbeddedSongs } from "./playlist.controller.js";
 import { orderByIds } from "../lib/home/homeFeedGenerator.service.js";
 import { attachPreviewCoversToHubs } from "../lib/recommendations/hubGenerator.service.js";
 import { HUB_SECTION_LIMIT } from "../constants/hub.js";
@@ -22,6 +21,10 @@ const toPublicHub = (hub) => {
   } = hub;
   return publicHub;
 };
+
+const ARTIST_LIST_SELECT = "_id name images createdAt updatedAt";
+const ALBUM_LIST_SELECT =
+  "_id title artist images coverAccentHex releaseYear type createdAt updatedAt";
 
 const SONG_MINIMAL_SELECT =
   "_id title images coverAccentHex duration playCount albumId createdAt trackNumber discNumber explicit";
@@ -68,9 +71,11 @@ const buildAlbumSection = async (albumIds = []) => {
   }
 
   const rawAlbums = await Album.find({ _id: { $in: albumIds } })
+    .select(ALBUM_LIST_SELECT)
     .populate("artist", "name images")
     .lean();
   const ordered = orderByIds(rawAlbums, albumIds);
+  // Only preview cards need tracks for hover-play; show-all items stay light.
   const previewBase = ordered.slice(0, HUB_SECTION_LIMIT);
   const preview = await attachSongsToAlbums(previewBase);
   const previewById = new Map(
@@ -89,7 +94,9 @@ const buildArtistSection = async (artistIds = []) => {
     return toSectionPayload([], []);
   }
 
-  const rawArtists = await Artist.find({ _id: { $in: artistIds } }).lean();
+  const rawArtists = await Artist.find({ _id: { $in: artistIds } })
+    .select(ARTIST_LIST_SELECT)
+    .lean();
   const items = orderByIds(rawArtists, artistIds);
   const preview = items.slice(0, HUB_SECTION_LIMIT);
 
@@ -101,10 +108,17 @@ const buildPlaylistSection = async (playlistIds = []) => {
     return toSectionPayload([], []);
   }
 
+  // List cards don't need embedded tracks — UniversalPlayButton lazy-loads.
   const rawPlaylists = await Playlist.find({ _id: { $in: playlistIds } })
-    .populate(populatePlaylistEmbeddedSongs)
+    .select(
+      "_id title description images coverAccentHex isPublic owner sourceName localizedNames type createdAt updatedAt",
+    )
+    .populate("owner", "fullName images")
     .lean();
-  const items = orderByIds(rawPlaylists, playlistIds);
+  const items = orderByIds(rawPlaylists, playlistIds).map((playlist) => ({
+    ...playlist,
+    songs: [],
+  }));
   const preview = items.slice(0, HUB_SECTION_LIMIT);
 
   return toSectionPayload(preview, items);

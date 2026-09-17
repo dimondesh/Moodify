@@ -6,10 +6,19 @@ import { User } from "../models/user.model.js";
 
 const SONG_MINIMAL_SELECT =
   "_id title artist albumId images coverAccentHex duration playCount explicit";
+const ARTIST_LIST_SELECT = "_id name images createdAt updatedAt";
+const ALBUM_LIST_SELECT =
+  "_id title artist images coverAccentHex releaseYear type createdAt updatedAt";
+const PLAYLIST_LIST_SELECT =
+  "_id title description images coverAccentHex isPublic owner sourceName localizedNames type createdAt updatedAt";
 
 const TOP_RESULTS_LIMIT = 4;
 const CATEGORY_DEFAULT_LIMIT = 10;
 const CATEGORY_MAX_LIMIT = 50;
+const MATCHING_ARTISTS_LIMIT = 20;
+
+const escapeRegex = (value) =>
+  String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const formatSong = (song) => ({
   ...song,
@@ -35,79 +44,23 @@ const formatSongWithAlbum = (song) => ({
 const formatAlbum = (album) => ({
   ...album,
   _id: album._id.toString(),
-  songs: album.songs ? album.songs.map(formatSong) : [],
+  // Play button lazy-loads tracks — don't embed full track lists in search.
+  songs: [],
 });
 
 const formatArtist = (artist) => ({
   ...artist,
   _id: artist._id.toString(),
+  songs: [],
 });
 
-const attachTopSongsToArtists = async (artists, perArtistLimit = 5) => {
-  if (!artists.length) return artists;
-
-  const artistIdSet = new Set(artists.map((artist) => artist._id.toString()));
-  const songs = await Song.find({ artist: { $in: artists.map((a) => a._id) } })
-    .select(SONG_MINIMAL_SELECT)
-    .populate({ path: "artist", select: "name images" })
-    .sort({ playCount: -1 })
-    .lean();
-
-  const songsByArtistId = new Map(
-    [...artistIdSet].map((id) => [id, []]),
-  );
-
-  for (const song of songs) {
-    for (const artistRef of song.artist || []) {
-      const artistKey = artistRef._id
-        ? artistRef._id.toString()
-        : artistRef.toString();
-      if (!artistIdSet.has(artistKey)) continue;
-      const bucket = songsByArtistId.get(artistKey);
-      if (bucket.length < perArtistLimit) {
-        bucket.push(song);
-      }
-    }
-  }
-
-  return artists.map((artist) => ({
-    ...artist,
-    songs: songsByArtistId.get(artist._id.toString()) || [],
-  }));
-};
-
-const attachSongsToAlbums = async (albums) => {
-  if (!albums.length) return albums;
-
-  const albumIds = albums.map((album) => album._id);
-  const songs = await Song.find({ albumId: { $in: albumIds } })
-    .select(SONG_MINIMAL_SELECT)
-    .populate({ path: "artist", select: "name images" })
-    .sort({ discNumber: 1, trackNumber: 1, createdAt: 1 })
-    .lean();
-
-  const songsByAlbumId = new Map();
-  for (const song of songs) {
-    if (!song.albumId) continue;
-    const albumKey = song.albumId.toString();
-    if (!songsByAlbumId.has(albumKey)) {
-      songsByAlbumId.set(albumKey, []);
-    }
-    songsByAlbumId.get(albumKey).push(song);
-  }
-
-  return albums.map((album) => ({
-    ...album,
-    songs: songsByAlbumId.get(album._id.toString()) || [],
-  }));
-};
-
 async function getSearchContext(q) {
-  const regex = new RegExp(q.trim(), "i");
-  const matchingArtistsRaw = await Artist.find({ name: regex })
-    .limit(50)
+  const regex = new RegExp(escapeRegex(q.trim()), "i");
+  // IDs only — used to expand song/album matches. Never pull embeddings or tracks here.
+  const matchingArtists = await Artist.find({ name: regex })
+    .select(ARTIST_LIST_SELECT)
+    .limit(MATCHING_ARTISTS_LIMIT)
     .lean();
-  const matchingArtists = await attachTopSongsToArtists(matchingArtistsRaw);
 
   const matchingArtistIds = matchingArtists.map((artist) => artist._id);
 
@@ -184,11 +137,15 @@ async function handleSearchPreview(q, res) {
       .limit(TOP_RESULTS_LIMIT)
       .lean(),
     Album.find(albumMatch)
+      .select(ALBUM_LIST_SELECT)
       .populate("artist", "name images")
       .sort({ releaseYear: -1 })
       .limit(TOP_RESULTS_LIMIT)
       .lean(),
-    Artist.find(artistMatch).limit(TOP_RESULTS_LIMIT).lean(),
+    Artist.find(artistMatch)
+      .select(ARTIST_LIST_SELECT)
+      .limit(TOP_RESULTS_LIMIT)
+      .lean(),
     Song.countDocuments(songMatch),
     Album.countDocuments(albumMatch),
     Artist.countDocuments(artistMatch),
@@ -228,18 +185,19 @@ async function handleSearchByType(q, type, limit, res) {
 
   if (type === "albums") {
     const albumsRaw = await Album.find(albumMatch)
+      .select(ALBUM_LIST_SELECT)
       .populate("artist", "name images")
       .sort({ releaseYear: -1 })
       .limit(limit)
       .lean();
-    const albumsWithSongs = await attachSongsToAlbums(albumsRaw);
     return res.json({
-      albums: albumsWithSongs.map(formatAlbum),
+      albums: albumsRaw.map(formatAlbum),
     });
   }
 
   if (type === "artists") {
     const artistsRaw = await Artist.find(artistMatch)
+      .select(ARTIST_LIST_SELECT)
       .sort({ name: 1 })
       .limit(limit)
       .lean();
@@ -287,13 +245,8 @@ export const searchSongs = async (req, res, next) => {
       return handleSearchByType(q, type, parsedLimit, res);
     }
 
-    const {
-      regex,
-      matchingArtists,
-      matchingArtistIds,
-      songMatch,
-      albumMatch,
-    } = await getSearchContext(q);
+    const { regex, matchingArtists, songMatch, albumMatch } =
+      await getSearchContext(q);
 
     const [songsRaw, albumsRaw, playlistsRaw, usersRaw] = await Promise.all([
       Song.find(songMatch)
@@ -304,6 +257,7 @@ export const searchSongs = async (req, res, next) => {
         .lean(),
 
       Album.find(albumMatch)
+        .select(ALBUM_LIST_SELECT)
         .populate("artist", "name images")
         .limit(50)
         .lean(),
@@ -319,12 +273,8 @@ export const searchSongs = async (req, res, next) => {
           { "localizedNames.uk": regex },
         ],
       })
+        .select(PLAYLIST_LIST_SELECT)
         .populate("owner", "fullName")
-        .populate({
-          path: "songs",
-          select: SONG_MINIMAL_SELECT,
-          populate: { path: "artist", select: "name images" },
-        })
         .limit(50)
         .lean(),
 
@@ -335,7 +285,7 @@ export const searchSongs = async (req, res, next) => {
     ]);
 
     const songs = songsRaw.map(formatSongWithAlbum);
-    const albums = (await attachSongsToAlbums(albumsRaw)).map(formatAlbum);
+    const albums = albumsRaw.map(formatAlbum);
     const playlists = playlistsRaw.map((playlist) => ({
       ...playlist,
       _id: playlist._id.toString(),
@@ -345,7 +295,7 @@ export const searchSongs = async (req, res, next) => {
             fullName: playlist.owner.fullName,
           }
         : null,
-      songs: playlist.songs ? playlist.songs.map(formatSong) : [],
+      songs: [],
     }));
     const artists = matchingArtists.map(formatArtist);
     const users = usersRaw.map((user) => ({
