@@ -662,23 +662,30 @@ class WebAudioService {
       currentNode = this.internalOutputNode;
     }
 
-    if (settings.waveAnalyzerEnabled) {
-      try {
-        this.internalOutputNode.disconnect(this.analyserNode);
-      } catch (e) {}
-      this.internalOutputNode.connect(this.analyserNode);
-    } else {
-      try {
-        this.internalOutputNode.disconnect(this.analyserNode);
-      } catch (e) {}
-    }
-
+    // Safari: AnalyserNode as a dead-end tap stays silent (flat wave line)
+    // while audio still plays via the parallel path to destination. Keep the
+    // analyser on the audible route when enabled.
     try {
       this.internalOutputNode.disconnect(this.outputNode);
     } catch (e) {}
-    this.internalOutputNode.connect(this.outputNode);
+    try {
+      this.analyserNode.disconnect();
+    } catch (e) {}
+
+    if (settings.waveAnalyzerEnabled) {
+      this.internalOutputNode.connect(this.analyserNode);
+      this.analyserNode.connect(this.outputNode);
+    } else {
+      this.internalOutputNode.connect(this.outputNode);
+    }
 
     console.log("WebAudioService audio graph rebuilt.");
+  }
+
+  public resumeIfNeeded(): void {
+    if (this.audioContext?.state === "suspended") {
+      void this.audioContext.resume();
+    }
   }
 
   private applyNormalizationSettings(mode: NormalizationMode) {

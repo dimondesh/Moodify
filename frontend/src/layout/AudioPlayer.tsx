@@ -167,14 +167,18 @@ const AudioPlayer = () => {
     }
 
     const resumeContext = () => {
+      webAudioService.resumeIfNeeded();
       if (audioContextRef.current?.state === "suspended") {
-        audioContextRef.current.resume();
+        void audioContextRef.current.resume();
       }
     };
-    document.addEventListener("click", resumeContext, { once: true });
+    // Safari may re-suspend after tab blur; keep gesture hooks (not once).
+    document.addEventListener("pointerdown", resumeContext);
+    document.addEventListener("keydown", resumeContext);
 
     return () => {
-      document.removeEventListener("click", resumeContext);
+      document.removeEventListener("pointerdown", resumeContext);
+      document.removeEventListener("keydown", resumeContext);
     };
   }, []);
 
@@ -214,6 +218,7 @@ const AudioPlayer = () => {
 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           if (usePlayerStore.getState().isPlaying) {
+            webAudioService.resumeIfNeeded();
             audioEl
               .play()
               .catch((e) => console.error("Autoplay failed on new track", e));
@@ -238,6 +243,7 @@ const AudioPlayer = () => {
     }
 
     if (isPlaying) {
+      webAudioService.resumeIfNeeded();
       audioEl.play().catch((e) => console.error("Play command failed", e));
     } else {
       audioEl.pause();
