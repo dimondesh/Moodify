@@ -38,6 +38,8 @@ import {
   Mic2,
   Waves,
   List,
+  AudioLines,
+  Loader2,
 } from "lucide-react";
 import { Slider } from "../components/ui/slider";
 import {
@@ -413,6 +415,9 @@ const PlaybackControls = () => {
   );
   const masterVolume = usePlayerStore((s) => s.masterVolume);
   const setMasterVolume = usePlayerStore((s) => s.setMasterVolume);
+  const instrumentalMode = usePlayerStore((s) => s.instrumentalMode);
+  const isInstrumentalLoading = usePlayerStore((s) => s.isInstrumentalLoading);
+  const toggleInstrumental = usePlayerStore((s) => s.toggleInstrumental);
 
   const { reverbEnabled, reverbMix, setReverbEnabled, setReverbMix } =
     useAudioSettingsStore();
@@ -937,6 +942,30 @@ const PlaybackControls = () => {
                               </DropdownMenuContent>
                             </DropdownMenu>
                           )}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className={`hover:text-white ${
+                              instrumentalMode
+                                ? "text-violet-500"
+                                : "text-zinc-400"
+                            } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
+                            disabled={!currentSong || !user || isInstrumentalLoading}
+                            title={
+                              !user
+                                ? t("auth.loginRequired")
+                                : isInstrumentalLoading
+                                  ? t("player.instrumentalGenerating")
+                                  : t("player.instrumental")
+                            }
+                            onClick={() => void toggleInstrumental()}
+                          >
+                            {isInstrumentalLoading ? (
+                              <Loader2 className="h-5 w-5 animate-spin" />
+                            ) : (
+                              <AudioLines className="h-5 w-5" />
+                            )}
+                          </Button>
                         </div>
 
                         <div className="flex items-center gap-2 justify-end">
@@ -1148,6 +1177,29 @@ const PlaybackControls = () => {
                   <Mic2 className="size-4.5" />
                 </Button>
               )}
+
+              <Button
+                size="icon"
+                variant="ghost"
+                className={`hover:text-white hover:bg-transparent! h-5 w-5 ${
+                  instrumentalMode ? "text-[#8b5cf6]" : "text-gray-400"
+                } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
+                disabled={!currentSong || !user || isInstrumentalLoading}
+                title={
+                  !user
+                    ? t("auth.loginRequired")
+                    : isInstrumentalLoading
+                      ? t("player.instrumentalGenerating")
+                      : t("player.instrumental")
+                }
+                onClick={() => void toggleInstrumental()}
+              >
+                {isInstrumentalLoading ? (
+                  <Loader2 className="size-4.5 animate-spin" />
+                ) : (
+                  <AudioLines className="size-4.5" />
+                )}
+              </Button>
 
               {!isIosDevice && (
                 <DropdownMenu>

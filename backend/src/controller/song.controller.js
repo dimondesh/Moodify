@@ -12,9 +12,21 @@ import {
   getRecentActivityEntities,
   recordRecentActivity,
 } from "../lib/activity/recentActivity.service.js";
+import { enqueueInstrumentalJob, hasActiveInstrumentalJob } from "../lib/media/instrumentalQueue.service.js";
 
 const SONG_MINIMAL_SELECT =
   "_id title artist albumId images coverAccentHex duration playCount explicit";
+
+const instrumentalPayload = async (song) => {
+  const instrumentalUrl = song?.instrumentalUrl || null;
+  if (instrumentalUrl) {
+    return { status: "ready", instrumentalUrl };
+  }
+  if (song?._id && (await hasActiveInstrumentalJob(song._id))) {
+    return { status: "pending", instrumentalUrl: null };
+  }
+  return { status: "none", instrumentalUrl: null };
+};
 
 export const getAllSongs = async (req, res, next) => {
   try {
@@ -354,5 +366,49 @@ export const getRecommendedSongs = async (req, res) => {
     res
       .status(500)
       .json({ message: "Server error while fetching recommendations" });
+  }
+};
+
+export const getSongInstrumental = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid song id" });
+    }
+
+    const song = await Song.findById(id).select("instrumentalUrl");
+    if (!song) return res.status(404).json({ message: "Song not found" });
+
+    res.status(200).json(await instrumentalPayload(song));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const requestSongInstrumental = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid song id" });
+    }
+
+    const song = await Song.findById(id).select("hlsUrl instrumentalUrl");
+    if (!song) return res.status(404).json({ message: "Song not found" });
+    if (!song.hlsUrl) {
+      return res.status(400).json({ message: "Song has no audio" });
+    }
+
+    if (song.instrumentalUrl) {
+      return res.status(200).json(await instrumentalPayload(song));
+    }
+
+    if (await hasActiveInstrumentalJob(id)) {
+      return res.status(200).json({ status: "pending", instrumentalUrl: null });
+    }
+
+    await enqueueInstrumentalJob(id);
+    return res.status(202).json({ status: "pending", instrumentalUrl: null });
+  } catch (error) {
+    next(error);
   }
 };

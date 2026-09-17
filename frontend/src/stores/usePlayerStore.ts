@@ -9,6 +9,8 @@ import {
   fetchSongById,
   fetchAlbumTitle,
   fetchAutoplayTracks,
+  requestSongInstrumental,
+  fetchSongInstrumental,
 } from "@/lib/api/music";
 import i18n from "@/lib/i18n";
 import { fetchPlaylistSmartShuffle } from "@/lib/api/playlists";
@@ -105,6 +107,9 @@ interface PlayerStore {
   autoplayPlayedIds: string[];
   /** Entity context active when autoplay was triggered (for shuffle UI). */
   autoplaySourceContext: PlayerStore["currentPlaybackContext"];
+  /** Play instrumental HLS when available. */
+  instrumentalMode: boolean;
+  isInstrumentalLoading: boolean;
 
   setAutoplayEnabled: (enabled: boolean) => void;
   disableRepeatAndShuffleForAutoplay: () => void;
@@ -142,6 +147,9 @@ interface PlayerStore {
     },
   ) => Promise<void>;
   setCurrentSong: (song: Song | null) => Promise<void>;
+  setInstrumentalMode: (enabled: boolean) => void;
+  /** Toggle instrumental; generates via API on first use. */
+  toggleInstrumental: () => Promise<void>;
   togglePlay: () => void;
   playNext: () => Promise<void>;
   playPrevious: () => Promise<void>;
@@ -325,6 +333,7 @@ export const usePlayerStore = create<PlayerStore>()(
             lyrics: fullData.lyrics,
             genres: fullData.genres,
             moods: fullData.moods,
+            instrumentalUrl: fullData.instrumentalUrl ?? null,
             // Если song уже пришёл с populated artist (name), не затираем его
             artist:
               Array.isArray((song as any).artist) &&
@@ -701,6 +710,8 @@ export const usePlayerStore = create<PlayerStore>()(
         isAutoplayActive: false,
         autoplayPlayedIds: [],
         autoplaySourceContext: null,
+        instrumentalMode: false,
+        isInstrumentalLoading: false,
 
         isDesktopLyricsOpen: false,
         isMobileLyricsFullScreen: false,
@@ -986,10 +997,13 @@ export const usePlayerStore = create<PlayerStore>()(
               currentIndex: -1,
               currentTime: 0,
               duration: 0,
+              instrumentalMode: false,
+              isInstrumentalLoading: false,
             });
             return;
           }
 
+          const prevId = get().currentSong?._id;
           const fullSong = await ensureSongData(song);
 
           if (!fullSong || !fullSong.hlsUrl) {
@@ -1004,6 +1018,10 @@ export const usePlayerStore = create<PlayerStore>()(
           silentAudioService.play();
 
           set((state) => {
+            const songChanged = prevId !== fullSong._id;
+            const instrumentalReset = songChanged
+              ? { instrumentalMode: false, isInstrumentalLoading: false }
+              : {};
             const userQueueIndex = state.userQueue.findIndex(
               (s) => s._id === fullSong._id,
             );
@@ -1014,6 +1032,7 @@ export const usePlayerStore = create<PlayerStore>()(
                 userQueue: state.userQueue.slice(userQueueIndex + 1),
                 currentTime: 0,
                 currentSongFromUserQueue: true,
+                ...instrumentalReset,
               };
             }
 
@@ -1051,6 +1070,7 @@ export const usePlayerStore = create<PlayerStore>()(
               shufflePointer: newShufflePointer,
               currentTime: 0,
               currentSongFromUserQueue: false,
+              ...instrumentalReset,
             };
           });
 
@@ -1062,6 +1082,84 @@ export const usePlayerStore = create<PlayerStore>()(
             afterState.currentIndex >= afterState.queue.length - 3
           ) {
             void get().appendAutoplayTracks();
+          }
+        },
+
+        setInstrumentalMode: (enabled) => {
+          const song = get().currentSong;
+          if (enabled && !song?.instrumentalUrl) return;
+          set({ instrumentalMode: enabled });
+        },
+
+        toggleInstrumental: async () => {
+          const state = get();
+          const song = state.currentSong;
+          if (!song?._id) return;
+
+          if (state.instrumentalMode) {
+            set({ instrumentalMode: false });
+            return;
+          }
+
+          if (song.instrumentalUrl) {
+            set({ instrumentalMode: true });
+            return;
+          }
+
+          if (state.isInstrumentalLoading) return;
+
+          set({ isInstrumentalLoading: true });
+          try {
+            let result = await requestSongInstrumental(song._id);
+            const deadline = Date.now() + 12 * 60 * 1000;
+
+            while (result.status === "pending") {
+              if (Date.now() > deadline) {
+                set({ isInstrumentalLoading: false });
+                toast.error(i18n.t("player.instrumentalFailed"));
+                return;
+              }
+              await new Promise((r) => setTimeout(r, 2000));
+              if (get().currentSong?._id !== song._id) {
+                set({ isInstrumentalLoading: false });
+                return;
+              }
+              result = await fetchSongInstrumental(song._id);
+            }
+
+            if (get().currentSong?._id !== song._id) {
+              set({ isInstrumentalLoading: false });
+              return;
+            }
+
+            if (result.status === "ready" && result.instrumentalUrl) {
+              const updated: Song = {
+                ...get().currentSong!,
+                instrumentalUrl: result.instrumentalUrl,
+              };
+              set({
+                currentSong: updated,
+                instrumentalMode: true,
+                isInstrumentalLoading: false,
+                queue: get().queue.map((s) =>
+                  s._id === updated._id ? { ...s, ...updated } : s,
+                ),
+              });
+              return;
+            }
+
+            set({ isInstrumentalLoading: false });
+            toast.error(
+              result.error || i18n.t("player.instrumentalFailed"),
+            );
+          } catch (error: any) {
+            console.error("Instrumental request failed", error);
+            set({ isInstrumentalLoading: false });
+            const msg =
+              error?.response?.data?.message ||
+              error?.response?.data?.error ||
+              error?.message;
+            toast.error(msg || i18n.t("player.instrumentalFailed"));
           }
         },
 

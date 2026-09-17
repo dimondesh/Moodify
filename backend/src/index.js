@@ -33,6 +33,10 @@ import {
   closeAlbumIngestWorker,
   recoverOrphanedAlbumIngests,
 } from "./lib/media/albumIngestQueue.service.js";
+import {
+  createInstrumentalWorker,
+  closeInstrumentalWorker,
+} from "./lib/media/instrumentalQueue.service.js";
 import { resetUploadLockOnBoot } from "./lib/media/activeUploads.service.js";
 
 const PORT = process.env.PORT || 5000;
@@ -133,6 +137,7 @@ const shutdown = async (signal) => {
   httpServer.close(async () => {
     await closeHomeFeedWorker();
     await closeAlbumIngestWorker();
+    await closeInstrumentalWorker();
     if (redisClient.isOpen) {
       try {
         await redisClient.quit();
@@ -169,6 +174,9 @@ httpServer.listen(PORT, async () => {
   }
   createAlbumIngestWorker();
   console.log("[albumIngestQueue] Worker started in API process");
+
+  createInstrumentalWorker();
+  console.log("[instrumentalQueue] Worker started in API process");
 
   if ((process.env.NODE_ENV || "development") === "development") {
     createHomeFeedWorker();

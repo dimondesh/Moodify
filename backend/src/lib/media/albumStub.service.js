@@ -168,6 +168,14 @@ export const deleteAlbumSongsAndMedia = async (album) => {
         await deleteFromBunny(hlsDir + "/");
       }
     }
+    if (song.instrumentalUrl) {
+      const instrPath = getPathFromUrl(song.instrumentalUrl);
+      if (instrPath) {
+        await deleteFromBunny(instrPath);
+        const instrDir = instrPath.replace("/master.m3u8", "");
+        await deleteFromBunny(instrDir + "/");
+      }
+    }
     const sameCover =
       song.imagePublicId &&
       album.imagePublicId &&

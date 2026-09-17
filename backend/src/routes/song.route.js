@@ -10,6 +10,8 @@ import {
   getSongById,
   getSongLyrics,
   getRecommendedSongs,
+  getSongInstrumental,
+  requestSongInstrumental,
 } from "../controller/song.controller.js";
 
 const router = Router();
@@ -19,6 +21,8 @@ router.get("/featured", protectRoute, getQuickPicks);
 router.get("/made-for-you", protectRoute, getMadeForYouSongs);
 router.get("/trending", getTrendingSongs);
 router.get("/:id/lyrics", getSongLyrics);
+router.get("/:id/instrumental", protectRoute, getSongInstrumental);
+router.post("/:id/instrumental", protectRoute, requestSongInstrumental);
 router.post("/:id/listen", protectRoute, recordListen);
 router.get("/:id/radio", attachUserIfPresent, getRecommendedSongs);
 router.get("/history", protectRoute, getListenHistory);

@@ -54,6 +54,11 @@ const songSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    /** Bunny HLS URL for Demucs instrumental stem (lazy-generated). */
+    instrumentalUrl: {
+      type: String,
+      default: null,
+    },
     duration: {
       type: Number,
       required: true,

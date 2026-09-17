@@ -303,6 +303,15 @@ export const deleteSong = async (req, res, next) => {
       }
     }
 
+    if (song.instrumentalUrl) {
+      const instrPath = getPathFromUrl(song.instrumentalUrl);
+      if (instrPath) {
+        await deleteFromBunny(instrPath);
+        const instrDir = instrPath.replace("/master.m3u8", "");
+        await deleteFromBunny(instrDir + "/");
+      }
+    }
+
     if (song.albumId) {
       const album = await Album.findById(song.albumId);
       const songsInAlbum = await Song.countDocuments({ albumId: song.albumId });
@@ -469,6 +478,15 @@ export const deleteAlbum = async (req, res, next) => {
           await deleteFromBunny(hlsPath);
           const hlsDir = hlsPath.replace("/master.m3u8", "");
           await deleteFromBunny(hlsDir + "/");
+        }
+      }
+
+      if (song.instrumentalUrl) {
+        const instrPath = getPathFromUrl(song.instrumentalUrl);
+        if (instrPath) {
+          await deleteFromBunny(instrPath);
+          const instrDir = instrPath.replace("/master.m3u8", "");
+          await deleteFromBunny(instrDir + "/");
         }
       }
 

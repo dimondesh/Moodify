@@ -34,6 +34,7 @@ export interface Song {
   explicit?: boolean;
   images?: ImageVariant[];
   hlsUrl?: string;
+  instrumentalUrl?: string | null;
   canvasUrl?: string;
   duration: number;
   playCount: number;

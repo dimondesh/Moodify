@@ -77,6 +77,7 @@ const AudioPlayer = () => {
   const masterGainNodeRef = useRef<GainNode | null>(null);
 
   const lastSongIdRef = useRef<string | null>(null);
+  const lastPlaybackUrlRef = useRef<string | null>(null);
   const listenRecordedRef = useRef(false);
   const fallbackTriggeredRef = useRef(false);
   const lastRecordedTimeRef = useRef<number>(0);
@@ -96,6 +97,8 @@ const AudioPlayer = () => {
     currentTime,
     seekVersion,
     currentPlaybackContext,
+    instrumentalMode,
+    setInstrumentalMode,
   } = usePlayerStore();
 
   const { playbackRateEnabled, playbackRatePreset, playbackRate } =
@@ -183,23 +186,43 @@ const AudioPlayer = () => {
     const audioEl = audioRef.current;
     if (!audioEl) return;
 
-    if (!currentSong || !currentSong.hlsUrl) {
+    if (!currentSong?.hlsUrl) {
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
       audioEl.src = "";
       lastSongIdRef.current = null;
+      lastPlaybackUrlRef.current = null;
       return;
     }
 
-    if (lastSongIdRef.current !== currentSong._id) {
-      listenRecordedRef.current = false;
-      fallbackTriggeredRef.current = false;
-      lastRecordedTimeRef.current = 0;
-      lastPlaybackTimeRef.current = 0;
-      lastPlaybackProgressAtRef.current = Date.now();
+    const songChanged = lastSongIdRef.current !== currentSong._id;
+    const useInstrumental =
+      !songChanged &&
+      instrumentalMode &&
+      Boolean(currentSong.instrumentalUrl);
+    const playbackUrl = useInstrumental
+      ? currentSong.instrumentalUrl!
+      : currentSong.hlsUrl;
+
+    const urlChanged = lastPlaybackUrlRef.current !== playbackUrl;
+
+    if (songChanged || urlChanged) {
+      const resumeAt =
+        urlChanged && !songChanged ? audioEl.currentTime || 0 : 0;
+
+      if (songChanged) {
+        if (instrumentalMode) setInstrumentalMode(false);
+        listenRecordedRef.current = false;
+        fallbackTriggeredRef.current = false;
+        lastRecordedTimeRef.current = 0;
+        lastPlaybackTimeRef.current = 0;
+        lastPlaybackProgressAtRef.current = Date.now();
+      }
+
       lastSongIdRef.current = currentSong._id;
+      lastPlaybackUrlRef.current = playbackUrl;
 
       enrichSongWithLyricsIfNeeded(currentSong);
 
@@ -209,10 +232,13 @@ const AudioPlayer = () => {
         }
         const hls = new Hls();
         hlsRef.current = hls;
-        hls.loadSource(currentSong.hlsUrl);
+        hls.loadSource(playbackUrl);
         hls.attachMedia(audioEl);
 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (resumeAt > 0) {
+            audioEl.currentTime = resumeAt;
+          }
           if (usePlayerStore.getState().isPlaying) {
             audioEl
               .play()
@@ -232,8 +258,11 @@ const AudioPlayer = () => {
           }
         });
       } else if (audioEl.canPlayType("application/vnd.apple.mpegurl")) {
-        audioEl.src = currentSong.hlsUrl;
+        audioEl.src = playbackUrl;
         audioEl.load();
+        if (resumeAt > 0) {
+          audioEl.currentTime = resumeAt;
+        }
       }
     }
 
@@ -242,7 +271,14 @@ const AudioPlayer = () => {
     } else {
       audioEl.pause();
     }
-  }, [currentSong, isPlaying, enrichSongWithLyricsIfNeeded, handleTrackEnd]);
+  }, [
+    currentSong,
+    isPlaying,
+    instrumentalMode,
+    enrichSongWithLyricsIfNeeded,
+    handleTrackEnd,
+    setInstrumentalMode,
+  ]);
 
   // Управление перемоткой
   useEffect(() => {

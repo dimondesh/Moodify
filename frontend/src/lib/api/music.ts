@@ -153,6 +153,28 @@ export async function fetchSongById(songId: string): Promise<Song> {
   return response.data;
 }
 
+export type InstrumentalStatus = "none" | "pending" | "ready" | "failed";
+
+export interface InstrumentalResponse {
+  status: InstrumentalStatus;
+  instrumentalUrl: string | null;
+  error?: string | null;
+}
+
+export async function requestSongInstrumental(
+  songId: string,
+): Promise<InstrumentalResponse> {
+  const response = await axiosInstance.post(`/songs/${songId}/instrumental`);
+  return response.data;
+}
+
+export async function fetchSongInstrumental(
+  songId: string,
+): Promise<InstrumentalResponse> {
+  const response = await axiosInstance.get(`/songs/${songId}/instrumental`);
+  return response.data;
+}
+
 export interface FetchAutoplayTracksOptions extends FetchSongRadioOptions {
   limit?: number;
 }
