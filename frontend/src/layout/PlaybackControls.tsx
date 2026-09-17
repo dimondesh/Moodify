@@ -299,22 +299,14 @@ const DrawerLyricsPreviewBlock = memo(function DrawerLyricsPreviewBlock({
 
         <div className="w-full text-left relative">
           {(() => {
-            const { playbackRateEnabled, playbackRatePreset, playbackRate } =
-              useAudioSettingsStore.getState();
-            const currentRate = resolvePlaybackRate(
-              playbackRateEnabled,
-              playbackRatePreset,
-              playbackRate,
-            );
-            const realCurrentTime = currentTime / currentRate;
             const preview = lyrics.slice(0, 5);
 
             return preview.map((line, index) => {
               const isActive =
-                realCurrentTime >= line.time &&
+                currentTime >= line.time &&
                 (index === preview.length - 1 ||
                   (lyrics[index + 1] !== undefined &&
-                    realCurrentTime < lyrics[index + 1].time));
+                    currentTime < lyrics[index + 1].time));
 
               return (
                 <p
@@ -339,6 +331,8 @@ function MediaSessionPositionSync() {
   const duration = usePlayerStore((s) => s.duration);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const currentSong = usePlayerStore((s) => s.currentSong);
+  const { playbackRateEnabled, playbackRatePreset, playbackRate } =
+    useAudioSettingsStore();
 
   useEffect(() => {
     if (
@@ -348,16 +342,45 @@ function MediaSessionPositionSync() {
     ) {
       return;
     }
-    if (currentSong && duration > 0) {
-      const safePosition = Math.min(currentTime, duration);
+    if (!currentSong) return;
+
+    const safeDuration =
+      Number.isFinite(duration) && duration > 0
+        ? duration
+        : Number.isFinite(currentSong.duration) && currentSong.duration > 0
+          ? currentSong.duration
+          : null;
+    if (safeDuration == null) return;
+
+    const rate = resolvePlaybackRate(
+      playbackRateEnabled,
+      playbackRatePreset,
+      playbackRate,
+    );
+    const safePosition = Math.min(
+      Math.max(0, Number.isFinite(currentTime) ? currentTime : 0),
+      safeDuration,
+    );
+
+    try {
       navigator.mediaSession.setPositionState({
-        duration: duration,
-        playbackRate: 1,
+        duration: safeDuration,
+        playbackRate: rate > 0 ? rate : 1,
         position: safePosition,
       });
       navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+    } catch (e) {
+      console.warn("mediaSession.setPositionState failed", e);
     }
-  }, [currentTime, duration, isPlaying, currentSong]);
+  }, [
+    currentTime,
+    duration,
+    isPlaying,
+    currentSong,
+    playbackRateEnabled,
+    playbackRatePreset,
+    playbackRate,
+  ]);
 
   return null;
 }

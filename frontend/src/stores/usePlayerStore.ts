@@ -5,6 +5,7 @@ import type { Song } from "../types";
 import toast from "react-hot-toast";
 import { useOfflineStore } from "./useOfflineStore";
 import { silentAudioService } from "@/lib/silentAudioService";
+import { unlockAudioElement } from "@/lib/audioBridge";
 import {
   fetchSongById,
   fetchAlbumTitle,
@@ -321,7 +322,7 @@ export const usePlayerStore = create<PlayerStore>()(
           return null;
         }
 
-        if (song.hlsUrl && song.lyrics) return song;
+        if (song.hlsUrl) return song;
 
         if (useOfflineStore.getState().isOffline) {
           try {
@@ -804,6 +805,7 @@ export const usePlayerStore = create<PlayerStore>()(
         },
 
         playAlbum: async (songs: Song[], startIndex = 0, context) => {
+          unlockAudioElement();
           if (songs.length === 0) {
             silentAudioService.pause();
             set({
@@ -1002,6 +1004,7 @@ export const usePlayerStore = create<PlayerStore>()(
         handleQueueEnd,
 
         setCurrentSong: async (song: Song | null) => {
+          unlockAudioElement();
           if (!song) {
             silentAudioService.pause();
             set({
@@ -1179,12 +1182,9 @@ export const usePlayerStore = create<PlayerStore>()(
         togglePlay: () => {
           const state = get();
           const willPlay = !state.isPlaying;
+          unlockAudioElement();
 
-          if (
-            willPlay &&
-            state.currentSong &&
-            (!state.currentSong.hlsUrl || !state.currentSong.lyrics)
-          ) {
+          if (willPlay && state.currentSong && !state.currentSong.hlsUrl) {
             void get()
               .hydrateCurrentSong()
               .then(() => {
@@ -1463,8 +1463,7 @@ export const usePlayerStore = create<PlayerStore>()(
 
         playNext: () =>
           withSkipLock(async () => {
-          if (get().repeatMode === "one") set({ repeatMode: "off" });
-
+          unlockAudioElement();
           const state = get();
           const {
             queue,
@@ -1699,12 +1698,12 @@ export const usePlayerStore = create<PlayerStore>()(
 
         playPrevious: () =>
           withSkipLock(async () => {
+          unlockAudioElement();
           const { currentTime } = get();
           if (currentTime > 3) {
             get().seekToTime(0);
             return;
           }
-          if (get().repeatMode === "one") set({ repeatMode: "off" });
 
           const state = get();
           const {
@@ -1881,7 +1880,6 @@ export const usePlayerStore = create<PlayerStore>()(
           set((state) => ({
             currentTime: time,
             seekVersion: state.seekVersion + 1,
-            isPlaying: true,
           })),
         setPlaybackContext: (context) => {
           const t = context

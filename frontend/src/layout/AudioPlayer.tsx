@@ -7,11 +7,11 @@ import {
   resolvePlaybackRate,
 } from "../lib/webAudio";
 import { isIosDevice } from "@/lib/platform";
+import { registerAudioBridge } from "@/lib/audioBridge";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { axiosInstance } from "@/lib/axios";
 import { invalidateListenHistory } from "@/lib/invalidateQueries";
 import { useOfflineStore } from "@/stores/useOfflineStore";
-import type { Song } from "../types";
 
 interface CustomWindow extends Window {
   webkitAudioContext?: typeof AudioContext;
@@ -68,7 +68,12 @@ function isAtEndOfTrack(
 
   return false;
 }
-// -------------------------------------------------------------------------
+
+function destroyHls(hlsRef: { current: Hls | null }) {
+  if (!hlsRef.current) return;
+  hlsRef.current.destroy();
+  hlsRef.current = null;
+}
 
 const AudioPlayer = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -79,43 +84,38 @@ const AudioPlayer = () => {
   );
   const masterGainNodeRef = useRef<GainNode | null>(null);
 
-  const lastSongIdRef = useRef<string | null>(null);
-  const lastPlaybackUrlRef = useRef<string | null>(null);
+  const loadGenRef = useRef(0);
   const listenRecordedRef = useRef(false);
   const fallbackTriggeredRef = useRef(false);
   const lastRecordedTimeRef = useRef<number>(0);
-  const loadGenRef = useRef(0);
   const lastPlaybackTimeRef = useRef(0);
   const lastPlaybackProgressAtRef = useRef(Date.now());
+  /** Suppress element→store sync while we drive play/pause from the store. */
+  const appDrivenRef = useRef(false);
+  /** True while a new HLS/src load is in flight — ignore spurious pause events. */
+  const sourceLoadingRef = useRef(false);
 
-  const {
-    currentSong,
-    isPlaying,
-    repeatMode,
-    masterVolume,
-    setCurrentTime,
-    setDuration,
-    currentTime,
-    seekVersion,
-    currentPlaybackContext,
-    instrumentalMode,
-    setInstrumentalMode,
-  } = usePlayerStore();
+  const songId = usePlayerStore((s) => s.currentSong?._id ?? null);
+  const hlsUrl = usePlayerStore((s) => s.currentSong?.hlsUrl ?? null);
+  const instrumentalUrl = usePlayerStore(
+    (s) => s.currentSong?.instrumentalUrl ?? null,
+  );
+  const songDuration = usePlayerStore((s) => s.currentSong?.duration);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const instrumentalMode = usePlayerStore((s) => s.instrumentalMode);
+  const repeatMode = usePlayerStore((s) => s.repeatMode);
+  const masterVolume = usePlayerStore((s) => s.masterVolume);
+  const seekVersion = usePlayerStore((s) => s.seekVersion);
+  const currentTime = usePlayerStore((s) => s.currentTime);
+  const setCurrentTime = usePlayerStore((s) => s.setCurrentTime);
+  const setDuration = usePlayerStore((s) => s.setDuration);
+  const setInstrumentalMode = usePlayerStore((s) => s.setInstrumentalMode);
+  const currentPlaybackContext = usePlayerStore((s) => s.currentPlaybackContext);
 
   const { playbackRateEnabled, playbackRatePreset, playbackRate } =
     useAudioSettingsStore();
   const { isOffline } = useOfflineStore();
   const { user } = useAuthStore();
-
-  const enrichSongWithLyricsIfNeeded = useCallback(
-    async (song: Song) => {
-      if (song.lyrics || isOffline) {
-        return;
-      }
-      // Lyrics уже должны быть в объекте песни
-    },
-    [isOffline],
-  );
 
   const handleTrackEnd = useCallback((audio: HTMLAudioElement) => {
     if (fallbackTriggeredRef.current) return;
@@ -127,7 +127,10 @@ const AudioPlayer = () => {
     if (state.repeatMode === "one") {
       fallbackTriggeredRef.current = false;
       audio.currentTime = 0;
-      void audio.play();
+      appDrivenRef.current = true;
+      void audio.play().finally(() => {
+        appDrivenRef.current = false;
+      });
       return;
     }
 
@@ -138,16 +141,32 @@ const AudioPlayer = () => {
     });
   }, []);
 
-  // Web Audio Graph
+  // Gesture unlock bridge — call unlockAudioElement() sync in store before awaits
+  useEffect(() => {
+    registerAudioBridge({
+      unlock: () => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        appDrivenRef.current = true;
+        void audio.play().finally(() => {
+          // If store says paused, re-pause after unlock attempt
+          if (!usePlayerStore.getState().isPlaying) {
+            audio.pause();
+          }
+          appDrivenRef.current = false;
+        });
+      },
+    });
+    return () => registerAudioBridge(null);
+  }, []);
+
+  // Web Audio graph (desktop only — iOS/iPadOS stay on native <audio> volume)
   useEffect(() => {
     if (iosNativePlayback) return;
 
     const AudioContextClass =
       window.AudioContext || (window as CustomWindow).webkitAudioContext;
-    if (!AudioContextClass) {
-      console.error("Web Audio API is not supported.");
-      return;
-    }
+    if (!AudioContextClass) return;
 
     if (!audioContextRef.current) {
       const context = new AudioContextClass();
@@ -172,167 +191,206 @@ const AudioPlayer = () => {
 
     const resumeContext = () => {
       if (audioContextRef.current?.state === "suspended") {
-        audioContextRef.current.resume();
+        void audioContextRef.current.resume();
       }
     };
     document.addEventListener("click", resumeContext, { once: true });
-
-    return () => {
-      document.removeEventListener("click", resumeContext);
-    };
+    return () => document.removeEventListener("click", resumeContext);
   }, []);
 
-  // Управление HLS и воспроизведением
+  // --- Source reconciler: only song id / playback URL ---
   useEffect(() => {
     const audioEl = audioRef.current;
     if (!audioEl) return;
 
-    const playIfNeeded = (loadGen: number) => {
+    const songChanged = audioEl.dataset.moodifySongId !== (songId ?? "");
+    if (songChanged) {
+      if (usePlayerStore.getState().instrumentalMode) {
+        setInstrumentalMode(false);
+      }
+      listenRecordedRef.current = false;
+      fallbackTriggeredRef.current = false;
+      lastRecordedTimeRef.current = 0;
+      lastPlaybackTimeRef.current = 0;
+      lastPlaybackProgressAtRef.current = Date.now();
+    }
+
+    // Never keep instrumental URL across a track change (mode flip is async).
+    const effectiveUrl =
+      !songChanged && instrumentalMode && instrumentalUrl
+        ? instrumentalUrl
+        : hlsUrl;
+
+    if (!songId || !effectiveUrl) {
+      loadGenRef.current += 1;
+      sourceLoadingRef.current = false;
+      destroyHls(hlsRef);
+      audioEl.removeAttribute("src");
+      audioEl.removeAttribute("data-moodify-url");
+      audioEl.removeAttribute("data-moodify-song-id");
+      audioEl.load();
+      return;
+    }
+
+    const prevUrl = audioEl.dataset.moodifyUrl ?? "";
+    if (!songChanged && prevUrl === effectiveUrl) {
+      return;
+    }
+
+    const loadGen = ++loadGenRef.current;
+    const resumeAt =
+      !songChanged && prevUrl && prevUrl !== effectiveUrl
+        ? audioEl.currentTime || 0
+        : 0;
+
+    audioEl.dataset.moodifySongId = songId;
+    audioEl.dataset.moodifyUrl = effectiveUrl;
+    sourceLoadingRef.current = true;
+
+    destroyHls(hlsRef);
+
+    const preferNative =
+      (iosNativePlayback || !Hls.isSupported()) && canPlayNativeHls(audioEl);
+
+    const afterReady = () => {
       if (loadGen !== loadGenRef.current) return;
-      if (!usePlayerStore.getState().isPlaying) return;
-      void audioEl.play().catch((e) => {
-        console.error("Play command failed", e);
-      });
+      sourceLoadingRef.current = false;
+      if (resumeAt > 0 && Number.isFinite(resumeAt)) {
+        try {
+          audioEl.currentTime = resumeAt;
+        } catch {
+          /* ignore seek-before-ready races */
+        }
+      }
+      if (usePlayerStore.getState().isPlaying) {
+        appDrivenRef.current = true;
+        void audioEl.play().finally(() => {
+          appDrivenRef.current = false;
+        });
+      }
     };
 
-    if (!currentSong?.hlsUrl) {
-      loadGenRef.current += 1;
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
+    if (preferNative) {
+      if ("disableRemotePlayback" in audioEl) {
+        (audioEl as HTMLAudioElement & { disableRemotePlayback: boolean })
+          .disableRemotePlayback = false;
       }
-      audioEl.removeAttribute("src");
+      audioEl.src = effectiveUrl;
       audioEl.load();
-      lastSongIdRef.current = null;
-      lastPlaybackUrlRef.current = null;
+      audioEl.addEventListener("loadedmetadata", afterReady, { once: true });
       return;
     }
 
-    const songChanged = lastSongIdRef.current !== currentSong._id;
-    const useInstrumental =
-      !songChanged &&
-      instrumentalMode &&
-      Boolean(currentSong.instrumentalUrl);
-    const playbackUrl = useInstrumental
-      ? currentSong.instrumentalUrl!
-      : currentSong.hlsUrl;
-
-    const urlChanged = lastPlaybackUrlRef.current !== playbackUrl;
-
-    if (songChanged || urlChanged) {
-      const resumeAt =
-        urlChanged && !songChanged ? audioEl.currentTime || 0 : 0;
-      const loadGen = ++loadGenRef.current;
-
-      if (songChanged) {
-        if (instrumentalMode) setInstrumentalMode(false);
-        listenRecordedRef.current = false;
-        fallbackTriggeredRef.current = false;
-        lastRecordedTimeRef.current = 0;
-        lastPlaybackTimeRef.current = 0;
-        lastPlaybackProgressAtRef.current = Date.now();
+    if (Hls.isSupported()) {
+      // ManagedMediaSource on iOS 17+ requires this for stable MSE + AirPlay picker
+      if ("disableRemotePlayback" in audioEl) {
+        (audioEl as HTMLAudioElement & { disableRemotePlayback: boolean })
+          .disableRemotePlayback = true;
       }
+      const hls = new Hls();
+      hlsRef.current = hls;
+      hls.loadSource(effectiveUrl);
+      hls.attachMedia(audioEl);
 
-      lastSongIdRef.current = currentSong._id;
-      lastPlaybackUrlRef.current = playbackUrl;
-
-      enrichSongWithLyricsIfNeeded(currentSong);
-
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
-
-      // iOS (and Safari): native HLS is more stable across track skips than hls.js MSE.
-      const useNativeHls =
-        (iosNativePlayback || !Hls.isSupported()) && canPlayNativeHls(audioEl);
-
-      if (useNativeHls) {
-        audioEl.src = playbackUrl;
-        audioEl.load();
-
-        const onReady = () => {
-          if (loadGen !== loadGenRef.current) return;
-          if (resumeAt > 0) {
-            audioEl.currentTime = resumeAt;
-          }
-          playIfNeeded(loadGen);
-        };
-        audioEl.addEventListener("loadedmetadata", onReady, { once: true });
-      } else if (Hls.isSupported()) {
-        const hls = new Hls();
-        hlsRef.current = hls;
-        hls.loadSource(playbackUrl);
-        hls.attachMedia(audioEl);
-
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          if (loadGen !== loadGenRef.current) return;
-          if (resumeAt > 0) {
-            audioEl.currentTime = resumeAt;
-          }
-          playIfNeeded(loadGen);
-        });
-
-        hls.on(Hls.Events.MEDIA_ENDED, () => {
-          if (loadGen !== loadGenRef.current) return;
-          handleTrackEnd(audioEl);
-        });
-
-        hls.on(Hls.Events.ERROR, (_event, data) => {
-          if (data.fatal) {
-            console.error("HLS Fatal Error:", data.details);
-          }
-        });
-      }
-
-      if (!isPlaying) {
-        audioEl.pause();
-      }
+      hls.on(Hls.Events.MANIFEST_PARSED, afterReady);
+      hls.on(Hls.Events.MEDIA_ENDED, () => {
+        if (loadGen !== loadGenRef.current) return;
+        handleTrackEnd(audioEl);
+      });
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (!data.fatal || loadGen !== loadGenRef.current) return;
+        console.error("HLS Fatal Error:", data.details);
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          hls.startLoad();
+        } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          hls.recoverMediaError();
+        } else {
+          usePlayerStore.setState({ isPlaying: false });
+        }
+      });
       return;
     }
 
-    if (isPlaying) {
-      playIfNeeded(loadGenRef.current);
-    } else {
-      audioEl.pause();
-    }
+    audioEl.src = effectiveUrl;
+    audioEl.load();
+    audioEl.addEventListener("loadedmetadata", afterReady, { once: true });
   }, [
-    currentSong,
-    isPlaying,
+    songId,
+    hlsUrl,
+    instrumentalUrl,
     instrumentalMode,
-    enrichSongWithLyricsIfNeeded,
     handleTrackEnd,
     setInstrumentalMode,
   ]);
 
-  // Управление перемоткой
+  // Cleanup hls on unmount
   useEffect(() => {
-    if (
-      audioRef.current &&
-      Math.abs(audioRef.current.currentTime - currentTime) > 1.5
-    ) {
-      audioRef.current.currentTime = currentTime;
-    }
-  }, [seekVersion, currentTime]);
+    return () => {
+      loadGenRef.current += 1;
+      destroyHls(hlsRef);
+    };
+  }, []);
 
-  // Управление звуком и скоростью
+  // --- Play / pause reconciler ---
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    const currentRate = resolvePlaybackRate(
+    if (isPlaying) {
+      appDrivenRef.current = true;
+      void audio
+        .play()
+        .catch((e: unknown) => {
+          const name =
+            e && typeof e === "object" && "name" in e
+              ? String((e as { name: string }).name)
+              : "";
+          console.error("Play command failed", e);
+          if (name === "NotAllowedError" || name === "NotSupportedError") {
+            usePlayerStore.setState({ isPlaying: false });
+          }
+        })
+        .finally(() => {
+          appDrivenRef.current = false;
+        });
+    } else {
+      appDrivenRef.current = true;
+      audio.pause();
+      appDrivenRef.current = false;
+    }
+  }, [isPlaying]);
+
+  // --- Seek reconciler: only seekVersion (ignore timeupdate echoes) ---
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const target = usePlayerStore.getState().currentTime;
+    if (!Number.isFinite(target)) return;
+    if (Math.abs(audio.currentTime - target) < 0.25) return;
+    try {
+      audio.currentTime = target;
+    } catch {
+      /* not ready */
+    }
+  }, [seekVersion]);
+
+  // Volume / rate
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const rate = resolvePlaybackRate(
       playbackRateEnabled,
       playbackRatePreset,
       playbackRate,
     );
     audio.preservesPitch = false;
-    audio.playbackRate = currentRate;
+    audio.playbackRate = rate;
 
     if (iosNativePlayback) {
       audio.volume = 1;
       return;
     }
-
     if (masterGainNodeRef.current) {
       masterGainNodeRef.current.gain.value = masterVolume / 100;
     }
@@ -341,79 +399,36 @@ const AudioPlayer = () => {
     playbackRate,
     playbackRatePreset,
     playbackRateEnabled,
-    currentSong,
+    songId,
   ]);
 
-  // Запись прослушивания
-  useEffect(() => {
-    if (
-      isPlaying &&
-      user &&
-      !user.isAnonymous &&
-      currentSong &&
-      currentSong._id &&
-      currentTime >= (currentSong.duration || 0) / 3 &&
-      !isOffline
-    ) {
-      const shouldRecordListen =
-        !listenRecordedRef.current ||
-        (repeatMode === "one" && currentTime < lastRecordedTimeRef.current);
-
-      if (shouldRecordListen) {
-        listenRecordedRef.current = true;
-        lastRecordedTimeRef.current = currentTime;
-
-        const playbackContext = currentPlaybackContext;
-        const validContextTypes = ["album", "playlist", "artist"];
-        const isValidContext =
-          playbackContext?.type &&
-          validContextTypes.includes(playbackContext.type);
-        const requestData = isValidContext ? { playbackContext } : {};
-
-        axiosInstance
-          .post(`/songs/${currentSong._id}/listen`, requestData)
-          .then(() => {
-            console.log(
-              `Listen recorded for ${currentSong.title}${
-                isValidContext
-                  ? ` from ${playbackContext.type}`
-                  : " (no context)"
-              }${repeatMode === "one" && currentTime < lastRecordedTimeRef.current ? " (repeat)" : ""}`,
-            );
-            void invalidateListenHistory();
-          })
-          .catch((e) => {
-            listenRecordedRef.current = false;
-            console.error("Failed to record listen", e);
-          });
-      }
-    }
-
-    if (
-      currentSong &&
-      currentTime < (currentSong.duration || 0) / 3 &&
-      listenRecordedRef.current
-    ) {
-      listenRecordedRef.current = false;
-      lastRecordedTimeRef.current = 0;
-    }
-  }, [
-    currentTime,
-    isPlaying,
-    currentSong,
-    user,
-    isOffline,
-    currentPlaybackContext,
-    repeatMode,
-  ]);
-
-  // End-of-track + progress (same path on iOS and desktop — avoids double playNext)
+  // Element → store sync + end-of-track
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
     let lastUpdateTime = 0;
     const UPDATE_INTERVAL = 500;
+
+    const syncPlayingFromElement = (playing: boolean) => {
+      if (appDrivenRef.current) return;
+      if (usePlayerStore.getState().isPlaying === playing) return;
+      usePlayerStore.setState({ isPlaying: playing });
+    };
+
+    const onPlay = () => syncPlayingFromElement(true);
+    const onPlaying = () => syncPlayingFromElement(true);
+    const onPause = () => {
+      // Ignore pause that is part of ended / source reload
+      if (audio.ended || sourceLoadingRef.current) return;
+      syncPlayingFromElement(false);
+    };
+    const onError = () => {
+      console.error("Audio element error", audio.error);
+      if (!appDrivenRef.current) {
+        usePlayerStore.setState({ isPlaying: false });
+      }
+    };
 
     const handleTimeUpdate = () => {
       const now = Date.now();
@@ -452,27 +467,96 @@ const AudioPlayer = () => {
       setCurrentTime(playbackTime, true);
     };
 
-    const handleDurationChange = () =>
-      setDuration(audio.duration, audio.duration);
-
-    const handleEnded = () => {
-      handleTrackEnd(audio);
+    const handleDurationChange = () => {
+      const d = audio.duration;
+      if (Number.isFinite(d) && d > 0) {
+        setDuration(d, d);
+      } else if (songDuration && songDuration > 0) {
+        setDuration(songDuration, songDuration);
+      }
     };
 
+    const handleEnded = () => handleTrackEnd(audio);
+
+    audio.addEventListener("play", onPlay);
+    audio.addEventListener("playing", onPlaying);
+    audio.addEventListener("pause", onPause);
+    audio.addEventListener("error", onError);
     audio.addEventListener("timeupdate", handleTimeUpdate);
     audio.addEventListener("durationchange", handleDurationChange);
     audio.addEventListener("ended", handleEnded);
 
     return () => {
+      audio.removeEventListener("play", onPlay);
+      audio.removeEventListener("playing", onPlaying);
+      audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("error", onError);
       audio.removeEventListener("timeupdate", handleTimeUpdate);
       audio.removeEventListener("durationchange", handleDurationChange);
       audio.removeEventListener("ended", handleEnded);
     };
-  }, [setCurrentTime, setDuration, handleTrackEnd]);
+  }, [setCurrentTime, setDuration, handleTrackEnd, songDuration]);
+
+  // Listen recording
+  useEffect(() => {
+    if (
+      isPlaying &&
+      user &&
+      !user.isAnonymous &&
+      songId &&
+      currentTime >= (songDuration || 0) / 3 &&
+      !isOffline
+    ) {
+      const shouldRecordListen =
+        !listenRecordedRef.current ||
+        (repeatMode === "one" && currentTime < lastRecordedTimeRef.current);
+
+      if (shouldRecordListen) {
+        listenRecordedRef.current = true;
+        lastRecordedTimeRef.current = currentTime;
+
+        const playbackContext = currentPlaybackContext;
+        const validContextTypes = ["album", "playlist", "artist"];
+        const isValidContext =
+          playbackContext?.type &&
+          validContextTypes.includes(playbackContext.type);
+        const requestData = isValidContext ? { playbackContext } : {};
+
+        axiosInstance
+          .post(`/songs/${songId}/listen`, requestData)
+          .then(() => {
+            void invalidateListenHistory();
+          })
+          .catch((e) => {
+            listenRecordedRef.current = false;
+            console.error("Failed to record listen", e);
+          });
+      }
+    }
+
+    if (
+      songId &&
+      currentTime < (songDuration || 0) / 3 &&
+      listenRecordedRef.current
+    ) {
+      listenRecordedRef.current = false;
+      lastRecordedTimeRef.current = 0;
+    }
+  }, [
+    currentTime,
+    isPlaying,
+    songId,
+    songDuration,
+    user,
+    isOffline,
+    currentPlaybackContext,
+    repeatMode,
+  ]);
 
   return (
     <audio
       ref={audioRef}
+      data-moodify-player
       playsInline
       style={{ display: "none" }}
       {...(!iosNativePlayback && { crossOrigin: "anonymous" })}
