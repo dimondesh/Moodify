@@ -105,7 +105,18 @@ const songSchema = new mongoose.Schema(
 songSchema.index({ title: 1 });
 songSchema.index({ artist: 1 });
 songSchema.index({ albumId: 1 });
-songSchema.index({ albumId: 1, discNumber: 1, trackNumber: 1 });
+// Prevent double-ingest from writing the same disc/track slot twice.
+songSchema.index(
+  { albumId: 1, discNumber: 1, trackNumber: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      albumId: { $type: "objectId" },
+      discNumber: { $type: "number" },
+      trackNumber: { $type: "number" },
+    },
+  },
+);
 songSchema.index({ playCount: -1 });
 songSchema.index({ genres: 1 });
 songSchema.index({ moods: 1 });

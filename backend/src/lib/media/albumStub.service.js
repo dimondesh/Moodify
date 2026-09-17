@@ -156,7 +156,8 @@ export const createQueuedAlbumStubFromSpotify = async (spotifyAlbumUrl) => {
   }
 };
 
-const deleteAlbumSongsAndMedia = async (album) => {
+/** Delete all songs for an album (HLS + non-shared covers). Exported for idempotent re-ingest. */
+export const deleteAlbumSongsAndMedia = async (album) => {
   const songsInAlbum = await Song.find({ albumId: album._id });
   for (const song of songsInAlbum) {
     if (song.hlsUrl) {

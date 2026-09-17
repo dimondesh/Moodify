@@ -36,7 +36,10 @@ import {
   toImageFields,
   uploadImageVariantsFromSource,
 } from "../media/imageVariants.service.js";
-import { deleteAlbumStubAndMedia } from "./albumStub.service.js";
+import {
+  deleteAlbumSongsAndMedia,
+  deleteAlbumStubAndMedia,
+} from "./albumStub.service.js";
 import {
   progressPercent,
   setAlbumUploadProgress,
@@ -115,6 +118,31 @@ export const ingestAlbumFromSpotify = async ({
       });
       if (!album) {
         throw new Error("Queued album stub not found.");
+      }
+
+      // Second job after a successful ingest (duplicate enqueue / multi-worker):
+      // do not create another full track set on the same albumId.
+      if (album.status === "completed") {
+        const existingSongs = await Song.find({ albumId: album._id }).sort({
+          discNumber: 1,
+          trackNumber: 1,
+          createdAt: 1,
+        });
+        if (existingSongs.length > 0) {
+          console.log(
+            `[AlbumIngest] Album ${album._id} already completed with ${existingSongs.length} songs — skipping re-ingest.`,
+          );
+          return { album, songs: existingSongs };
+        }
+      }
+
+      // Leftovers from a previous partial run on this stub.
+      const leftoverCount = await Song.countDocuments({ albumId: album._id });
+      if (leftoverCount > 0) {
+        console.log(
+          `[AlbumIngest] Wiping ${leftoverCount} leftover song(s) on stub ${album._id} before ingest.`,
+        );
+        await deleteAlbumSongsAndMedia(album);
       }
     }
 
@@ -406,27 +434,30 @@ export const ingestAlbumFromSpotify = async ({
   } catch (error) {
     console.error("[AlbumIngest] Critical error. Starting rollback...", error);
 
-    if (usedExistingStub && album?._id) {
-      await Promise.allSettled(
-        uploadedBunnyPaths.map((bunnyPath) => {
-          if (!bunnyPath) return Promise.resolve();
-          return deleteFromBunny(bunnyPath);
-        }),
-      );
-      try {
-        await deleteAlbumStubAndMedia(album._id);
-      } catch (cleanupErr) {
-        console.error("[AlbumIngest] Stub cleanup failed:", cleanupErr);
-      }
-      album = null;
-    } else {
-      await Promise.allSettled(
-        uploadedBunnyPaths.map((bunnyPath) => {
-          if (!bunnyPath) return Promise.resolve();
-          return deleteFromBunny(bunnyPath);
-        }),
-      );
+    await Promise.allSettled(
+      uploadedBunnyPaths.map((bunnyPath) => {
+        if (!bunnyPath) return Promise.resolve();
+        return deleteFromBunny(bunnyPath);
+      }),
+    );
 
+    if (usedExistingStub && album?._id) {
+      // Another job may have already completed this stub — never wipe a
+      // completed album; only remove songs created by this failed run.
+      const current = await Album.findById(album._id)
+        .setOptions({ includeQueued: true })
+        .catch(() => null);
+      if (current?.status === "queued") {
+        try {
+          await deleteAlbumStubAndMedia(album._id);
+        } catch (cleanupErr) {
+          console.error("[AlbumIngest] Stub cleanup failed:", cleanupErr);
+        }
+        album = null;
+      } else if (createdSongIds.length > 0) {
+        await Song.deleteMany({ _id: { $in: createdSongIds } });
+      }
+    } else {
       if (createdSongIds.length > 0) {
         await Song.deleteMany({ _id: { $in: createdSongIds } });
       }
@@ -438,7 +469,7 @@ export const ingestAlbumFromSpotify = async ({
       }
     }
 
-    throw error;
+    throw error
   } finally {
     clearUploadInProgress();
     await cleanUpTempDir(tempUnzipDir);

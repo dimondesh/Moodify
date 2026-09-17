@@ -71,6 +71,20 @@ const findHealthyJobForAlbum = async (queue, albumId) => {
   );
 };
 
+/** Blocks a second enqueue while a job is queued or actively running. */
+const findBlockingJobForAlbum = async (queue, albumId) => {
+  const jobs = await queue.getJobs([
+    "waiting",
+    "delayed",
+    "paused",
+    "waiting-children",
+    "active",
+  ]);
+  return (
+    jobs.find((j) => String(j.data?.albumId) === String(albumId)) || null
+  );
+};
+
 /** Drop zombie active/failed/completed jobs left after a process crash. */
 const clearUnhealthyJobsForAlbum = async (queue, albumId) => {
   const jobs = await queue.getJobs(["active", "failed", "completed"]);
@@ -134,8 +148,19 @@ export const enqueueAlbumIngest = async ({
   zipPath = null,
   lifo = false,
 }) => {
-  const jobId = uuidv4();
   const queue = getQueue();
+  const existing = await findBlockingJobForAlbum(queue, albumId);
+  if (existing) {
+    console.log(
+      `[albumIngestQueue] Skip enqueue for ${albumId}: job ${existing.id} already ${await existing.getState()}`,
+    );
+    await Album.findByIdAndUpdate(albumId, {
+      $set: { ingestJobId: existing.id },
+    }).setOptions({ includeQueued: true });
+    return existing.id;
+  }
+
+  const jobId = uuidv4();
   await queue.add(
     "ingest",
     { albumId, spotifyAlbumUrl, zipPath },
