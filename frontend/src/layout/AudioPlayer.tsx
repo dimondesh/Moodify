@@ -48,22 +48,14 @@ function isAtEndOfTrack(
 ): boolean {
   if (audio.ended) return true;
 
+  // Only media/metadata duration — never bufferedEnd: after seek, currentTime
+  // often sits at the edge of the downloaded range and is not the track end.
   const effectiveDuration = getEffectiveDuration(audio, songDuration);
   if (
     effectiveDuration &&
     audio.currentTime >= effectiveDuration - END_TOLERANCE_SEC
   ) {
     return true;
-  }
-
-  if (audio.buffered.length > 0) {
-    const bufferedEnd = audio.buffered.end(audio.buffered.length - 1);
-    if (
-      bufferedEnd > 0 &&
-      audio.currentTime >= bufferedEnd - END_TOLERANCE_SEC
-    ) {
-      return true;
-    }
   }
 
   return false;
