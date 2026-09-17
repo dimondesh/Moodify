@@ -19,10 +19,13 @@ interface CustomWindow extends Window {
 
 const iosNativePlayback = isIosDevice();
 
-// --- Новые константы и утилиты (будут использоваться только не на iOS) ---
 const END_TOLERANCE_SEC = 0.25;
 const STALL_NEAR_END_SEC = 2;
 const STALL_TIMEOUT_MS = 1500;
+
+function canPlayNativeHls(audio: HTMLAudioElement): boolean {
+  return Boolean(audio.canPlayType("application/vnd.apple.mpegurl"));
+}
 
 function getEffectiveDuration(
   audio: HTMLAudioElement,
@@ -81,15 +84,13 @@ const AudioPlayer = () => {
   const listenRecordedRef = useRef(false);
   const fallbackTriggeredRef = useRef(false);
   const lastRecordedTimeRef = useRef<number>(0);
-
-  // Рефы для новой логики (не iOS)
+  const loadGenRef = useRef(0);
   const lastPlaybackTimeRef = useRef(0);
   const lastPlaybackProgressAtRef = useRef(Date.now());
 
   const {
     currentSong,
     isPlaying,
-    playNext,
     repeatMode,
     masterVolume,
     setCurrentTime,
@@ -186,12 +187,22 @@ const AudioPlayer = () => {
     const audioEl = audioRef.current;
     if (!audioEl) return;
 
+    const playIfNeeded = (loadGen: number) => {
+      if (loadGen !== loadGenRef.current) return;
+      if (!usePlayerStore.getState().isPlaying) return;
+      void audioEl.play().catch((e) => {
+        console.error("Play command failed", e);
+      });
+    };
+
     if (!currentSong?.hlsUrl) {
+      loadGenRef.current += 1;
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
-      audioEl.src = "";
+      audioEl.removeAttribute("src");
+      audioEl.load();
       lastSongIdRef.current = null;
       lastPlaybackUrlRef.current = null;
       return;
@@ -211,6 +222,7 @@ const AudioPlayer = () => {
     if (songChanged || urlChanged) {
       const resumeAt =
         urlChanged && !songChanged ? audioEl.currentTime || 0 : 0;
+      const loadGen = ++loadGenRef.current;
 
       if (songChanged) {
         if (instrumentalMode) setInstrumentalMode(false);
@@ -226,48 +238,61 @@ const AudioPlayer = () => {
 
       enrichSongWithLyricsIfNeeded(currentSong);
 
-      if (Hls.isSupported()) {
-        if (hlsRef.current) {
-          hlsRef.current.destroy();
-        }
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+
+      // iOS (and Safari): native HLS is more stable across track skips than hls.js MSE.
+      const useNativeHls =
+        (iosNativePlayback || !Hls.isSupported()) && canPlayNativeHls(audioEl);
+
+      if (useNativeHls) {
+        audioEl.src = playbackUrl;
+        audioEl.load();
+
+        const onReady = () => {
+          if (loadGen !== loadGenRef.current) return;
+          if (resumeAt > 0) {
+            audioEl.currentTime = resumeAt;
+          }
+          playIfNeeded(loadGen);
+        };
+        audioEl.addEventListener("loadedmetadata", onReady, { once: true });
+      } else if (Hls.isSupported()) {
         const hls = new Hls();
         hlsRef.current = hls;
         hls.loadSource(playbackUrl);
         hls.attachMedia(audioEl);
 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (loadGen !== loadGenRef.current) return;
           if (resumeAt > 0) {
             audioEl.currentTime = resumeAt;
           }
-          if (usePlayerStore.getState().isPlaying) {
-            audioEl
-              .play()
-              .catch((e) => console.error("Autoplay failed on new track", e));
-          }
+          playIfNeeded(loadGen);
         });
 
-        if (!iosNativePlayback) {
-          hls.on(Hls.Events.MEDIA_ENDED, () => {
-            handleTrackEnd(audioEl);
-          });
-        }
+        hls.on(Hls.Events.MEDIA_ENDED, () => {
+          if (loadGen !== loadGenRef.current) return;
+          handleTrackEnd(audioEl);
+        });
 
         hls.on(Hls.Events.ERROR, (_event, data) => {
           if (data.fatal) {
             console.error("HLS Fatal Error:", data.details);
           }
         });
-      } else if (audioEl.canPlayType("application/vnd.apple.mpegurl")) {
-        audioEl.src = playbackUrl;
-        audioEl.load();
-        if (resumeAt > 0) {
-          audioEl.currentTime = resumeAt;
-        }
       }
+
+      if (!isPlaying) {
+        audioEl.pause();
+      }
+      return;
     }
 
     if (isPlaying) {
-      audioEl.play().catch((e) => console.error("Play command failed", e));
+      playIfNeeded(loadGenRef.current);
     } else {
       audioEl.pause();
     }
@@ -382,7 +407,7 @@ const AudioPlayer = () => {
     repeatMode,
   ]);
 
-  // Event Listeners для <audio> (Смешанная логика iOS vs Остальные)
+  // End-of-track + progress (same path on iOS and desktop — avoids double playNext)
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -392,85 +417,46 @@ const AudioPlayer = () => {
 
     const handleTimeUpdate = () => {
       const now = Date.now();
+      const playbackTime = audio.currentTime;
+      const { currentSong: song, isPlaying: playing } =
+        usePlayerStore.getState();
 
-      if (iosNativePlayback) {
-        // --- СТАРАЯ ЛОГИКА (iOS) ---
-        if (now - lastUpdateTime < UPDATE_INTERVAL) return;
-        lastUpdateTime = now;
-
-        setCurrentTime(audio.currentTime, true);
-
-        // Fallback: проверка близости к концу трека
-        if (
-          audio.duration &&
-          audio.currentTime >= audio.duration - 0.1 &&
-          !fallbackTriggeredRef.current
-        ) {
-          fallbackTriggeredRef.current = true;
-          const state = usePlayerStore.getState();
-          if (state.repeatMode === "one") {
-            audio.currentTime = 0;
-            audio.play();
-          } else {
-            state.playNext();
-          }
-        }
-      } else {
-        // --- НОВАЯ ЛОГИКА (Остальные платформы) ---
-        const playbackTime = audio.currentTime;
-        const { currentSong: song, isPlaying: playing } =
-          usePlayerStore.getState();
-
-        if (
-          !fallbackTriggeredRef.current &&
-          isAtEndOfTrack(audio, song?.duration)
-        ) {
-          handleTrackEnd(audio);
-          return;
-        }
-
-        if (
-          !fallbackTriggeredRef.current &&
-          playing &&
-          !audio.paused &&
-          song?.duration &&
-          playbackTime >= song.duration - STALL_NEAR_END_SEC &&
-          playbackTime === lastPlaybackTimeRef.current &&
-          now - lastPlaybackProgressAtRef.current >= STALL_TIMEOUT_MS
-        ) {
-          handleTrackEnd(audio);
-          return;
-        }
-
-        if (playbackTime !== lastPlaybackTimeRef.current) {
-          lastPlaybackTimeRef.current = playbackTime;
-          lastPlaybackProgressAtRef.current = now;
-        }
-
-        if (now - lastUpdateTime < UPDATE_INTERVAL) return;
-        lastUpdateTime = now;
-        setCurrentTime(playbackTime, true);
+      if (
+        !fallbackTriggeredRef.current &&
+        isAtEndOfTrack(audio, song?.duration)
+      ) {
+        handleTrackEnd(audio);
+        return;
       }
+
+      if (
+        !fallbackTriggeredRef.current &&
+        playing &&
+        !audio.paused &&
+        song?.duration &&
+        playbackTime >= song.duration - STALL_NEAR_END_SEC &&
+        playbackTime === lastPlaybackTimeRef.current &&
+        now - lastPlaybackProgressAtRef.current >= STALL_TIMEOUT_MS
+      ) {
+        handleTrackEnd(audio);
+        return;
+      }
+
+      if (playbackTime !== lastPlaybackTimeRef.current) {
+        lastPlaybackTimeRef.current = playbackTime;
+        lastPlaybackProgressAtRef.current = now;
+      }
+
+      if (now - lastUpdateTime < UPDATE_INTERVAL) return;
+      lastUpdateTime = now;
+      setCurrentTime(playbackTime, true);
     };
 
     const handleDurationChange = () =>
       setDuration(audio.duration, audio.duration);
 
     const handleEnded = () => {
-      if (iosNativePlayback) {
-        // --- СТАРАЯ ЛОГИКА (iOS) ---
-        const state = usePlayerStore.getState();
-        fallbackTriggeredRef.current = false;
-        if (state.repeatMode === "one") {
-          audio.currentTime = 0;
-          audio.play();
-        } else {
-          state.playNext();
-        }
-      } else {
-        // --- НОВАЯ ЛОГИКА (Остальные платформы) ---
-        handleTrackEnd(audio);
-      }
+      handleTrackEnd(audio);
     };
 
     audio.addEventListener("timeupdate", handleTimeUpdate);
@@ -482,7 +468,7 @@ const AudioPlayer = () => {
       audio.removeEventListener("durationchange", handleDurationChange);
       audio.removeEventListener("ended", handleEnded);
     };
-  }, [setCurrentTime, setDuration, playNext, repeatMode, handleTrackEnd]);
+  }, [setCurrentTime, setDuration, handleTrackEnd]);
 
   return (
     <audio

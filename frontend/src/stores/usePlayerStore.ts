@@ -276,6 +276,19 @@ function mergeSongIntoQueueCache(queue: Song[], song: Song): Song[] {
 export const usePlayerStore = create<PlayerStore>()(
   persist(
     (set, get) => {
+      // ponytail: single-flight skip — concurrent playNext/playPrevious races on iOS end+tap
+      let skipLocked = false;
+
+      const withSkipLock = async (fn: () => Promise<void>) => {
+        if (skipLocked) return;
+        skipLocked = true;
+        try {
+          await fn();
+        } finally {
+          skipLocked = false;
+        }
+      };
+
       const enrichSongWithAlbumTitleIfNeeded = async (song: Song) => {
         if (
           song.albumTitle ||
@@ -1448,7 +1461,8 @@ export const usePlayerStore = create<PlayerStore>()(
           });
         },
 
-        playNext: async () => {
+        playNext: () =>
+          withSkipLock(async () => {
           if (get().repeatMode === "one") set({ repeatMode: "off" });
 
           const state = get();
@@ -1681,9 +1695,10 @@ export const usePlayerStore = create<PlayerStore>()(
           ) {
             void get().appendAutoplayTracks();
           }
-        },
+          }),
 
-        playPrevious: async () => {
+        playPrevious: () =>
+          withSkipLock(async () => {
           const { currentTime } = get();
           if (currentTime > 3) {
             get().seekToTime(0);
@@ -1833,7 +1848,7 @@ export const usePlayerStore = create<PlayerStore>()(
           });
 
           enrichSongWithAlbumTitleIfNeeded(fullPrevSong);
-        },
+          }),
 
         setRepeatMode: (mode) => {
           if (get().isAutoplayActive && mode !== "off") return;
