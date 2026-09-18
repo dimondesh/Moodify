@@ -1,10 +1,10 @@
 """Demucs instrumental separation on Modal (T4).
 
+POST JSON: { "secret": "...", "audio_url": "https://..." }
+(audio_url = deemix MP3 on Bunny, or any ffmpeg-readable URL)
+
 Deploy:
   modal deploy modal/demucs_app.py
-
-Create a Modal secret named `moodify-demucs` with key MODAL_DEMUCS_SECRET,
-matching backend .env. Then set MODAL_DEMUCS_URL to the printed endpoint URL.
 """
 
 from __future__ import annotations
@@ -57,9 +57,9 @@ def separate(item: dict):
     if not expected or provided != expected:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    hls_url = (item or {}).get("hls_url")
-    if not hls_url or not isinstance(hls_url, str):
-        raise HTTPException(status_code=400, detail="hls_url required")
+    audio_url = (item or {}).get("audio_url") or (item or {}).get("hls_url")
+    if not audio_url or not isinstance(audio_url, str):
+        raise HTTPException(status_code=400, detail="audio_url required")
 
     os.environ.setdefault("TORCH_HOME", CACHE_DIR)
     os.environ.setdefault("XDG_CACHE_HOME", CACHE_DIR)
@@ -75,7 +75,7 @@ def separate(item: dict):
                     "ffmpeg",
                     "-y",
                     "-i",
-                    hls_url,
+                    audio_url,
                     "-vn",
                     "-ac",
                     "2",

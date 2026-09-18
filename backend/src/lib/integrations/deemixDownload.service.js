@@ -354,3 +354,78 @@ export const downloadAlbumWithDeemix = async (
 export const cleanupDeemixJob = async (jobRoot) => {
   if (jobRoot) await cleanUpTempDir(jobRoot);
 };
+
+/**
+ * Download a single track via Deezer search + deemix (same bitrate as album ingest).
+ * @param {{ title: string, artistName: string, jobId: string }} opts
+ * @returns {Promise<{ audioPath: string, jobRoot: string }>}
+ */
+export const downloadTrackWithDeemix = async ({ title, artistName, jobId }) => {
+  if (!title) throw new Error("Track title is required for deemix download");
+
+  const jobRoot = path.join(
+    process.cwd(),
+    "temp",
+    "deemix",
+    String(jobId || `track-${Date.now()}`),
+  );
+  const downloadDir = path.join(jobRoot, "downloads");
+
+  await cleanUpTempDir(jobRoot);
+  await fs.mkdir(downloadDir, { recursive: true });
+  await ensureDeemixHome(jobRoot);
+
+  const q = encodeURIComponent(`${artistName || ""} ${title}`.trim());
+  const { data } = await axios.get(
+    `https://api.deezer.com/search/track?q=${q}&limit=5`,
+    { timeout: 15000 },
+  );
+  const hits = data?.data || [];
+  if (hits.length === 0) {
+    await cleanUpTempDir(jobRoot);
+    throw new Error(
+      `No Deezer track found for "${artistName || "?"} - ${title}"`,
+    );
+  }
+
+  const normalize = (s) =>
+    String(s || "")
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]/gu, "");
+  const wantTitle = normalize(title);
+  const wantArtist = normalize(artistName);
+
+  const exact = hits.find(
+    (t) =>
+      normalize(t.title) === wantTitle &&
+      (!wantArtist || normalize(t.artist?.name).includes(wantArtist)),
+  );
+  const byTitle = hits.find((t) => normalize(t.title) === wantTitle);
+  const hit = exact || byTitle || hits[0];
+
+  console.log(
+    `[Deemix] Track match: ${hit.artist?.name} - ${hit.title} (${hit.link})`,
+  );
+
+  try {
+    await runDeemix(hit.link, downloadDir, jobRoot, jobId);
+  } catch (err) {
+    await cleanUpTempDir(jobRoot);
+    throw err;
+  }
+
+  const { files } = await getDownloadedAudioMap(downloadDir);
+  const audioExt = new Set([".mp3", ".flac", ".wav", ".m4a", ".ogg"]);
+  const audioPath = files.find((f) =>
+    audioExt.has(path.extname(f).toLowerCase()),
+  );
+
+  if (!audioPath) {
+    await cleanUpTempDir(jobRoot);
+    throw new Error(
+      `Deemix finished but no audio file found for "${artistName} - ${title}"`,
+    );
+  }
+
+  return { audioPath, jobRoot };
+};

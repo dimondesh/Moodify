@@ -27,6 +27,7 @@
     "migrate:artist-banners": "node src/scripts/migrations/migrateArtistBanners.js",
     "migrate:song-explicit": "node src/scripts/migrations/migrateSongExplicit.js",
     "migrate:dedupe-album-songs": "node src/scripts/migrations/dedupeAlbumSongs.js",
+    "cleanup:instrumentals": "node src/scripts/jobs/cleanupInstrumentals.js",
     "translate:mix-locales": "node src/scripts/jobs/translateMixLocales.js",
     "strip:category-mix-suffixes": "node src/scripts/migrations/stripCategoryMixSuffixes.js",
     "strip:playlist-searchable-names": "node src/scripts/migrations/removePlaylistSearchableNames.js"

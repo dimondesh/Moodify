@@ -2,7 +2,16 @@ import { Queue, Worker } from "bullmq";
 import fs from "fs/promises";
 import path from "path";
 import { Song } from "../../models/song.model.js";
-import { separateInstrumentalFromHls } from "../integrations/modalDemucs.service.js";
+import { separateInstrumentalFromUrl } from "../integrations/modalDemucs.service.js";
+import {
+  downloadTrackWithDeemix,
+  cleanupDeemixJob,
+} from "../integrations/deemixDownload.service.js";
+import {
+  uploadToBunny,
+  deleteFromBunny,
+  getPathFromUrl,
+} from "./bunny.service.js";
 import { processAndUploadSong } from "./songUpload.service.js";
 
 const QUEUE_NAME = "instrumental-separate";
@@ -67,6 +76,52 @@ export const enqueueInstrumentalJob = async (songId) => {
   return { enqueued: true, jobId: String(job.id) };
 };
 
+/**
+ * Prefer deemix MP3 staged on Bunny; fall back to song HLS if deemix misses.
+ * @returns {Promise<{ audioUrl: string, deemixJobRoot: string|null, tempBunnyPath: string|null }>}
+ */
+const resolveSourceAudio = async (song, songId, artistName) => {
+  try {
+    console.log(
+      `[instrumentalQueue] Deemix download for ${songId}: ${artistName} - ${song.title}`,
+    );
+    const downloaded = await downloadTrackWithDeemix({
+      title: song.title,
+      artistName,
+      jobId: `instr-${songId}`,
+    });
+    try {
+      const uploaded = await uploadToBunny(
+        downloaded.audioPath,
+        "temp/instrumental-src",
+      );
+      return {
+        audioUrl: uploaded.url,
+        deemixJobRoot: downloaded.jobRoot,
+        tempBunnyPath: getPathFromUrl(uploaded.url),
+      };
+    } catch (err) {
+      await cleanupDeemixJob(downloaded.jobRoot);
+      throw err;
+    }
+  } catch (err) {
+    console.warn(
+      `[instrumentalQueue] Deemix failed for ${songId}, falling back to HLS:`,
+      err.message,
+    );
+    if (!song.hlsUrl) {
+      throw new Error(
+        `Deemix failed and song has no hlsUrl: ${err.message}`,
+      );
+    }
+    return {
+      audioUrl: song.hlsUrl,
+      deemixJobRoot: null,
+      tempBunnyPath: null,
+    };
+  }
+};
+
 export const createInstrumentalWorker = () => {
   if (workerInstance) return workerInstance;
 
@@ -76,30 +131,44 @@ export const createInstrumentalWorker = () => {
       const { songId } = job.data;
       if (!songId) throw new Error("songId required");
 
-      const song = await Song.findById(songId);
+      const song = await Song.findById(songId).populate("artist", "name");
       if (!song) throw new Error(`Song ${songId} not found`);
 
       if (song.instrumentalUrl) {
         return { skipped: true, instrumentalUrl: song.instrumentalUrl };
       }
 
-      if (!song.hlsUrl) throw new Error("Song has no hlsUrl");
+      const artistName = Array.isArray(song.artist)
+        ? song.artist.map((a) => a?.name).filter(Boolean).join(" ")
+        : "";
 
       const tempDir = path.join(process.cwd(), "temp", "instrumental");
-      const tempMp3 = path.join(tempDir, `${songId}.mp3`);
+      const outMp3 = path.join(tempDir, `${songId}.mp3`);
+      let deemixJobRoot = null;
+      let tempBunnyPath = null;
 
       try {
-        console.log(`[instrumentalQueue] Separating song ${songId} via Modal`);
-        await separateInstrumentalFromHls(song.hlsUrl, tempMp3);
-        const { hlsUrl } = await processAndUploadSong(tempMp3);
+        const source = await resolveSourceAudio(song, songId, artistName);
+        deemixJobRoot = source.deemixJobRoot;
+        tempBunnyPath = source.tempBunnyPath;
+
+        console.log(`[instrumentalQueue] Modal demucs for ${songId}`);
+        await separateInstrumentalFromUrl(source.audioUrl, outMp3);
+        const { hlsUrl } = await processAndUploadSong(outMp3);
 
         await Song.findByIdAndUpdate(songId, { instrumentalUrl: hlsUrl });
-
         return { instrumentalUrl: hlsUrl };
-      } catch (error) {
-        throw error;
       } finally {
-        await fs.rm(tempMp3, { force: true }).catch(() => {});
+        await fs.rm(outMp3, { force: true }).catch(() => {});
+        if (deemixJobRoot) await cleanupDeemixJob(deemixJobRoot);
+        if (tempBunnyPath) {
+          await deleteFromBunny(tempBunnyPath).catch((err) =>
+            console.warn(
+              `[instrumentalQueue] Failed to delete temp source ${tempBunnyPath}:`,
+              err.message,
+            ),
+          );
+        }
       }
     },
     {
