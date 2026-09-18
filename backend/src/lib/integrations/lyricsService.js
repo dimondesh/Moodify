@@ -1,42 +1,105 @@
-// backend/src/lib/lyricsService.js
+// backend/src/lib/integrations/lyricsService.js
 import axios from "axios";
 
+const LRCLIB_API = "https://lrclib.net/api";
+
+const hasSyncedLyrics = (record) =>
+  typeof record?.syncedLyrics === "string" &&
+  record.syncedLyrics.trim().length > 0;
+
+/** First search hit that actually has synced LRC (not just plain text). */
+const pickSyncedLyrics = (records) => {
+  if (!Array.isArray(records)) return null;
+  const hit = records.find(hasSyncedLyrics);
+  return hit ? hit.syncedLyrics : null;
+};
+
+/**
+ * Exact match — same path LRCGET prefers.
+ * lrclib duration is seconds (integer).
+ */
+const getLyricsByExact = async (
+  artistName,
+  songName,
+  albumName,
+  durationSec,
+) => {
+  if (!albumName || !Number.isFinite(durationSec) || durationSec <= 0) {
+    return null;
+  }
+
+  try {
+    const { data, status } = await axios.get(`${LRCLIB_API}/get`, {
+      params: {
+        artist_name: artistName,
+        track_name: songName,
+        album_name: albumName,
+        duration: Math.round(durationSec),
+      },
+      validateStatus: (s) => s === 200 || s === 404,
+    });
+
+    if (status === 200 && hasSyncedLyrics(data)) {
+      return data.syncedLyrics;
+    }
+    return null;
+  } catch (error) {
+    console.error(`[Lrclib] Ошибка в /api/get:`, error.message);
+    return null;
+  }
+};
+
+const searchSyncedLyrics = async (params) => {
+  try {
+    const { data } = await axios.get(`${LRCLIB_API}/search`, { params });
+    return pickSyncedLyrics(data);
+  } catch (error) {
+    console.error(`[Lrclib] Ошибка в /api/search:`, error.message);
+    return null;
+  }
+};
+
+/**
+ * @param {{ artistName: string, songName: string, albumName?: string, songDuration?: number }} songData
+ * songDuration must be in seconds (same unit as Song.duration / ffprobe).
+ */
 export const getLrcLyricsFromLrclib = async (songData) => {
   const { artistName, songName, albumName, songDuration } = songData;
 
   if (!songName || !artistName) {
     console.warn(
-      "Недостаточно данных (название песни или артист) для поиска текстов на lrclib.net."
+      "Недостаточно данных (название песни или артист) для поиска текстов на lrclib.net.",
     );
     return null;
   }
 
-  let lyricsResult = null;
+  const durationSec = Number(songDuration);
 
   try {
-    console.log(`[Lrclib] Поиск по сигнатуре: ${artistName} - ${songName}`);
-    lyricsResult = await getLyricsBySignature(
+    console.log(`[Lrclib] Exact get: ${artistName} - ${songName}`);
+    let synced = await getLyricsByExact(
       artistName,
       songName,
       albumName,
-      songDuration
+      durationSec,
     );
+    if (synced) return synced;
 
-    if (lyricsResult && lyricsResult.foundSyncedLyrics) {
-      return lyricsResult.syncedLyrics.join("\n");
-    }
+    console.log(`[Lrclib] Search by fields: ${artistName} - ${songName}`);
+    synced = await searchSyncedLyrics({
+      artist_name: artistName,
+      track_name: songName,
+      ...(albumName ? { album_name: albumName } : {}),
+    });
+    if (synced) return synced;
 
-    console.log(
-      `[Lrclib] Поиск по запросу: ${artistName} - ${songName} ${albumName}`
-    );
-    lyricsResult = await getLyricsByQuery(artistName, songName, albumName);
-
-    if (lyricsResult && lyricsResult.foundSyncedLyrics) {
-      return lyricsResult.syncedLyrics.join("\n");
-    }
+    const q = [artistName, songName, albumName].filter(Boolean).join(" ");
+    console.log(`[Lrclib] Search by query: ${q}`);
+    synced = await searchSyncedLyrics({ q });
+    if (synced) return synced;
 
     console.warn(
-      `[Lrclib] Синхронизированные LRC-тексты не найдены для "${songName}" - "${artistName}".`
+      `[Lrclib] Синхронизированные LRC-тексты не найдены для "${songName}" - "${artistName}".`,
     );
     return null;
   } catch (error) {
@@ -44,75 +107,3 @@ export const getLrcLyricsFromLrclib = async (songData) => {
     return null;
   }
 };
-
-const getLyricsBySignature = async (
-  artistName,
-  songName,
-  albumName,
-  songDuration
-) => {
-  try {
-    const encodedArtistName = encodeURIComponent(artistName);
-    const encodedSongName = encodeURIComponent(songName);
-    const encodedAlbumName = encodeURIComponent(albumName);
-
-    const url = `https://lrclib.net/api/search?artist_name=${encodedArtistName}&track_name=${encodedSongName}&album_name=${encodedAlbumName}&duration=${songDuration}`;
-    const res = await axios.get(url);
-    if (res.data.length !== 0) {
-      return {
-        syncedLyrics:
-          res.data[0].syncedLyrics !== null
-            ? res.data[0].syncedLyrics.split("\n")
-            : ["Synced Lyrics Not Found!"],
-        plainLyrics:
-          res.data[0].plainLyrics !== null
-            ? res.data[0].plainLyrics.split("\n")
-            : ["Plain Lyrics not found!"],
-        foundSyncedLyrics: res.data[0].syncedLyrics != null,
-        foundPlainLyrics: res.data[0].plainLyrics != null,
-      };
-    }
-    return null;
-  } catch (error) {
-    console.error(`[Lrclib] Ошибка в getLyricsBySignature:`, error.message);
-    return null;
-  }
-};
-
-const getLyricsByQuery = async (artistName, songName, albumName) => {
-  try {
-    const encodedArtistName = encodeURIComponent(artistName);
-    const encodedSongName = encodeURIComponent(songName);
-    const encodedAlbumName = encodeURIComponent(albumName || "");
-
-    let query = `${encodedArtistName} ${encodedSongName}`;
-    if (encodedAlbumName) {
-      query += ` ${encodedAlbumName}`;
-    }
-
-    const reqUrl = `https://lrclib.net/api/search?q=${query}`;
-    const res = await axios.get(reqUrl);
-
-    if (res.data.length === 0) return null;
-
-    const bestMatch = res.data[0];
-
-    return {
-      syncedLyrics:
-        bestMatch.syncedLyrics != null
-          ? bestMatch.syncedLyrics.split("\n")
-          : ["Synced Lyrics Not Found!"],
-      plainLyrics:
-        bestMatch.plainLyrics != null
-          ? bestMatch.plainLyrics.split("\n")
-          : ["Plain Lyrics Not Found!"],
-      foundSyncedLyrics: bestMatch.syncedLyrics != null,
-      foundPlainLyrics: bestMatch.plainLyrics != null,
-    };
-  } catch (error) {
-    console.error(`[Lrclib] Ошибка в getLyricsByQuery:`, error.message);
-    return null;
-  }
-};
-
-export { getLyricsBySignature, getLyricsByQuery };

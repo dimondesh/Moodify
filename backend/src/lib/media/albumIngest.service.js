@@ -371,7 +371,7 @@ export const ingestAlbumFromSpotify = async ({
           artistName: primaryArtistName,
           songName,
           albumName: album.title,
-          songDuration: duration * 1000,
+          songDuration: duration,
         });
       }
 

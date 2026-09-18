@@ -5,7 +5,8 @@ const TEST_SONG_DATA = {
   artistName: "Queen",
   songName: "Bohemian Rhapsody",
   albumName: "A Night at the Opera",
-  songDuration: 354000,
+  // lrclib expects seconds (Bohemian Rhapsody ≈ 5:55)
+  songDuration: 355,
 };
 
 async function runTest() {
