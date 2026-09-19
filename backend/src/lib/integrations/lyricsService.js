@@ -44,7 +44,7 @@ const getLyricsByExact = async (
     }
     return null;
   } catch (error) {
-    console.error(`[Lrclib] Ошибка в /api/get:`, error.message);
+    console.error(`[Lrclib] /api/get failed:`, error.message);
     return null;
   }
 };
@@ -54,7 +54,7 @@ const searchSyncedLyrics = async (params) => {
     const { data } = await axios.get(`${LRCLIB_API}/search`, { params });
     return pickSyncedLyrics(data);
   } catch (error) {
-    console.error(`[Lrclib] Ошибка в /api/search:`, error.message);
+    console.error(`[Lrclib] /api/search failed:`, error.message);
     return null;
   }
 };
@@ -67,9 +67,7 @@ export const getLrcLyricsFromLrclib = async (songData) => {
   const { artistName, songName, albumName, songDuration } = songData;
 
   if (!songName || !artistName) {
-    console.warn(
-      "Недостаточно данных (название песни или артист) для поиска текстов на lrclib.net.",
-    );
+    console.warn("[Lrclib] Missing song or artist name");
     return null;
   }
 
@@ -98,12 +96,10 @@ export const getLrcLyricsFromLrclib = async (songData) => {
     synced = await searchSyncedLyrics({ q });
     if (synced) return synced;
 
-    console.warn(
-      `[Lrclib] Синхронизированные LRC-тексты не найдены для "${songName}" - "${artistName}".`,
-    );
+    console.warn(`[Lrclib] No synced LRC for "${songName}" - "${artistName}"`);
     return null;
   } catch (error) {
-    console.error(`[Lrclib] Ошибка при получении текстов:`, error.message);
+    console.error(`[Lrclib] Lyrics fetch failed:`, error.message);
     return null;
   }
 };

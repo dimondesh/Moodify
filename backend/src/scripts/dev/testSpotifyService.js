@@ -4,39 +4,28 @@ import { getAlbumDataFromSpotify } from "../../lib/integrations/spotifyService.j
 const TEST_ALBUM_URL = "https://open.spotify.com/album/47rlABSBChwZC7qxAKzOWw"; 
 
 async function runTest() {
-  console.log(
-    `Тестируем получение данных альбома из Spotify по URL: ${TEST_ALBUM_URL}`
-  );
+  console.log(`[test] Album from Spotify: ${TEST_ALBUM_URL}`);
 
   const albumData = await getAlbumDataFromSpotify(TEST_ALBUM_URL);
 
   if (albumData) {
-    console.log("\n--- Полученные данные альбома ---");
-    console.log("Название альбома:", albumData.name);
-    console.log("Артисты:", albumData.artists.map((a) => a.name).join(", "));
-    console.log("Год выпуска:", albumData.release_date.split("-")[0]); 
+    console.log("[test] Album data:");
+    console.log("Album:", albumData.name);
+    console.log("Artists:", albumData.artists.map((a) => a.name).join(", "));
+    console.log("Year:", albumData.release_date.split("-")[0]); 
     console.log(
-      "URL обложки (первый):",
-      albumData.images.length > 0 ? albumData.images[0].url : "Нет"
+      "Cover URL:",
+      albumData.images.length > 0 ? albumData.images[0].url : "none"
     );
-    console.log("Количество треков:", albumData.total_tracks);
-    console.log("\n--- Треки ---");
+    console.log("Tracks:", albumData.total_tracks);
+    console.log("[test] Track list:");
     albumData.tracks.forEach((track) => {
-      console.log(`- ${track.name} (Длительность: ${track.duration_ms} мс)`);
+      console.log(`- ${track.name} (${track.duration_ms} ms)`);
     });
-    console.log("------------------------------");
-    console.log("\nТест пройден успешно: Данные альбома получены из Spotify.");
+    console.log("[test] OK");
   } else {
-    console.log(
-      "\n!!! Тест не пройден: Не удалось получить данные альбома из Spotify или произошла ошибка. !!!"
-    );
-    console.log("Возможные причины:");
-    console.log(
-      "  - Неправильный SPOTIFY_CLIENT_ID или SPOTIFY_CLIENT_SECRET в .env."
-    );
-    console.log("  - Неверный Spotify URL альбома.");
-    console.log("  - Проблемы с интернет-соединением или API Spotify.");
-    console.log("  - Проверьте логи выше на наличие ошибок от SpotifyService.");
+    console.log("[test] FAIL: no album data");
+    console.log("[test] Hint: check Spotify env, album URL, or network/API");
   }
 }
 

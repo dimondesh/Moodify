@@ -8,11 +8,11 @@ const MIN_AGE_MS = 2 * 60 * 60 * 1000; // 2h
 
 const cleanAllTempDirectories = () => {
   if (isUploadInProgress()) {
-    console.log("[TempCleanup] Пропуск очистки - идет загрузка файлов");
+    console.log("[TempCleanup] Skip: upload in progress");
     return;
   }
 
-  console.log("[TempCleanup] Начинаем очистку временных директорий...");
+  console.log("[TempCleanup] Cleaning temp dirs...");
 
   const tempDirs = [
     path.join(process.cwd(), "temp"),
@@ -27,10 +27,7 @@ const cleanAllTempDirectories = () => {
 
     fs.readdir(tempDir, (err, files) => {
       if (err) {
-        console.log(
-          `[TempCleanup] Ошибка чтения директории ${tempDir}:`,
-          err,
-        );
+        console.log(`[TempCleanup] Readdir failed ${tempDir}:`, err);
         return;
       }
 
@@ -45,32 +42,27 @@ const cleanAllTempDirectories = () => {
 
           const ageMs = now - stats.mtimeMs;
           if (ageMs < MIN_AGE_MS) {
-            console.log(
-              `[TempCleanup] Пропуск (свежий <2h): ${filePath}`,
-            );
+            console.log(`[TempCleanup] Skip fresh (<2h): ${filePath}`);
             return;
           }
 
           if (stats.isDirectory()) {
             fs.rm(filePath, { recursive: true, force: true }, (rmErr) => {
               if (rmErr) {
-                console.log(
-                  `[TempCleanup] Ошибка удаления директории ${filePath}:`,
-                  rmErr,
-                );
+                console.log(`[TempCleanup] Rm dir failed ${filePath}:`, rmErr);
               } else {
-                console.log(`[TempCleanup] Удалена директория: ${filePath}`);
+                console.log(`[TempCleanup] Removed dir: ${filePath}`);
               }
             });
           } else {
             fs.unlink(filePath, (unlinkErr) => {
               if (unlinkErr) {
                 console.log(
-                  `[TempCleanup] Ошибка удаления файла ${filePath}:`,
+                  `[TempCleanup] Unlink failed ${filePath}:`,
                   unlinkErr,
                 );
               } else {
-                console.log(`[TempCleanup] Удален файл: ${filePath}`);
+                console.log(`[TempCleanup] Removed file: ${filePath}`);
               }
             });
           }

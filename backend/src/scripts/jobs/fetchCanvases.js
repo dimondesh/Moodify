@@ -18,7 +18,7 @@ const CANVAS_SERVICE_URL =
   process.env.CANVAS_SERVICE_URL || "http://localhost:3000";
 
 if (!MONGO_URL) {
-  console.error("❌ Ошибка: Не найдена переменная MONGODB_URI в .env");
+  console.error("MONGODB_URI or MONGO_URI is required");
   process.exit(1);
 }
 
@@ -72,7 +72,7 @@ const searchTrackId = async (token, title, artistName) => {
   } catch (e) {
     if (e.response && e.response.status === 429) throw e; // Пробрасываем 429 наверх для паузы
     console.error(
-      `   [Spotify Error] Ошибка поиска для "${title}":`,
+      `[canvas] Spotify search failed for "${title}":`,
       e.response?.data?.error?.message || e.message,
     );
   }
@@ -99,7 +99,7 @@ const getCanvasUrl = async (trackId) => {
     return { status: "ERROR", message: "Неожиданный формат ответа" };
   } catch (e) {
     if (e.response && e.response.status === 429) throw e; // Пробрасываем 429 наверх для паузы
-    console.error(`   [Canvas API Error] Ошибка для ${trackId}:`, e.message);
+    console.error(`[canvas] Canvas API failed for ${trackId}:`, e.message);
     return { status: "ERROR", message: e.message };
   }
 };
@@ -107,7 +107,7 @@ const getCanvasUrl = async (trackId) => {
 async function runCanvasMigration() {
   try {
     await mongoose.connect(MONGO_URL);
-    console.log("✅ Успешное подключение к MongoDB");
+    console.log("[canvas] Connected to MongoDB");
 
     // Исключаем треки, у которых канваса точно нет (они в skipped_canvases.json)
     const songs = await Song.find({
@@ -115,10 +115,10 @@ async function runCanvasMigration() {
       $or: [{ canvasUrl: null }, { canvasUrl: { $exists: false } }],
     }).populate("artist");
 
-    console.log(`🔍 Найдено ${songs.length} необработанных треков.`);
+    console.log(`[canvas] ${songs.length} tracks to process`);
 
     if (songs.length === 0) {
-      console.log("Все треки уже обработаны!");
+      console.log("[canvas] Nothing to do");
       return;
     }
 
@@ -132,7 +132,7 @@ async function runCanvasMigration() {
       const primaryArtistName = song.artist[0]?.name || "";
 
       console.log(
-        `\n⏳ [${i + 1}/${songs.length}] "${song.title}" - ${primaryArtistName}`,
+        `[canvas] [${i + 1}/${songs.length}] ${song.title} - ${primaryArtistName}`,
       );
 
       try {
@@ -143,30 +143,28 @@ async function runCanvasMigration() {
           primaryArtistName,
         );
         if (!trackId) {
-          console.log(`   ⏭️ Spotify ID не найден. Пропускаем навсегда.`);
+          console.log("[canvas] Skip forever: no Spotify ID");
           saveSkippedId(song._id);
           skippedCount++;
           await sleep(300);
           continue;
         }
 
-        console.log(`   🔎 ID: ${trackId}. Поиск Canvas...`);
+        console.log(`[canvas] Spotify ID ${trackId}, fetching canvas...`);
 
         // 2. Ищем Canvas
         const canvasResult = await getCanvasUrl(trackId);
 
         if (canvasResult.status === "ERROR") {
           console.log(
-            `   ⚠️ Ошибка микросервиса. Трек НЕ помечаем как пропущенный (повторим при следующем запуске).`,
+            "[canvas] Service error — will retry next run",
           );
           await sleep(1000);
           continue;
         }
 
         if (canvasResult.status === "EMPTY") {
-          console.log(
-            `   ⏭️ Микросервис вернул {"canvasesList":[]}. Пропускаем навсегда.`,
-          );
+          console.log("[canvas] Skip forever: empty canvasesList");
           saveSkippedId(song._id);
           skippedCount++;
           await sleep(300);
@@ -175,7 +173,7 @@ async function runCanvasMigration() {
 
         const canvasSpotifyUrl = canvasResult.url;
 
-        console.log(`   ⬇️ Canvas загружается в CDN...`);
+        console.log("[canvas] Uploading to CDN...");
         // 3. Загружаем
         const uploadResult = await uploadToBunny(
           canvasSpotifyUrl,
@@ -188,20 +186,20 @@ async function runCanvasMigration() {
         await song.save();
 
         updatedCount++;
-        console.log(`   ✅ Успешно! URL: ${uploadResult.url}`);
+        console.log(`[canvas] OK: ${uploadResult.url}`);
       } catch (error) {
         if (error.response && error.response.status === 401) {
-          console.log(`   🔄 Токен Spotify истек. Обновляем...`);
+          console.log("[canvas] Spotify token expired, refreshing...");
           spotifyToken = await getSpotifyToken();
           i--; // Откатываем цикл на 1 шаг назад, чтобы повторить этот же трек!
         } else if (error.response && error.response.status === 429) {
           // Spotify часто отдает заголовок 'retry-after' в секундах
           const retryAfter = error.response.headers["retry-after"] || 30;
-          console.log(`   ⚠️ [RATE LIMIT 429] Ждем ${retryAfter} секунд...`);
+          console.log(`[canvas] Rate limit 429, waiting ${retryAfter}s...`);
           await sleep(retryAfter * 1000);
           i--; // Откатываем цикл на 1 шаг назад, чтобы повторить этот же трек!
         } else {
-          console.error(`   ❌ Ошибка:`, error.message);
+          console.error(`[canvas] Failed:`, error.message);
         }
       }
 
@@ -209,11 +207,11 @@ async function runCanvasMigration() {
       await sleep(1000);
     }
 
-    console.log(`\n🎉 Миграция завершена!`);
-    console.log(`✅ Загружено видео: ${updatedCount}`);
-    console.log(`⏭️ Отсеяно (без видео): ${skippedCount}`);
+    console.log("[canvas] Done");
+    console.log(`[canvas] Uploaded ${updatedCount}`);
+    console.log(`[canvas] Skipped (no video) ${skippedCount}`);
   } catch (error) {
-    console.error("❌ Глобальная ошибка:", error);
+    console.error("[canvas] Fatal:", error);
   } finally {
     await mongoose.disconnect();
     process.exit(0);

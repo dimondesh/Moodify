@@ -83,7 +83,7 @@ export const enqueueInstrumentalJob = async (songId) => {
 const resolveSourceAudio = async (song, songId, artistName) => {
   try {
     console.log(
-      `[instrumentalQueue] Deemix download for ${songId}: ${artistName} - ${song.title}`,
+      `[instrumentalQueue] Deemix: ${songId} ${artistName} - ${song.title}`,
     );
     const downloaded = await downloadTrackWithDeemix({
       title: song.title,
@@ -106,7 +106,7 @@ const resolveSourceAudio = async (song, songId, artistName) => {
     }
   } catch (err) {
     console.warn(
-      `[instrumentalQueue] Deemix failed for ${songId}, falling back to HLS:`,
+      `[instrumentalQueue] Deemix failed ${songId}, HLS fallback:`,
       err.message,
     );
     if (!song.hlsUrl) {
@@ -164,7 +164,7 @@ export const createInstrumentalWorker = () => {
         if (tempBunnyPath) {
           await deleteFromBunny(tempBunnyPath).catch((err) =>
             console.warn(
-              `[instrumentalQueue] Failed to delete temp source ${tempBunnyPath}:`,
+              `[instrumentalQueue] Temp cleanup failed ${tempBunnyPath}:`,
               err.message,
             ),
           );

@@ -114,7 +114,7 @@ const parseTagsForTrack = async (tags) => {
 
 export const getTagsFromAI = async (artistName, trackName) => {
   if (!GEMINI_API_KEY) {
-    console.error("[AI Service] GEMINI_API_KEY не найден.");
+    console.error("[AI] GEMINI_API_KEY missing");
     return { genreIds: [], moodIds: [] };
   }
 
@@ -129,9 +129,7 @@ Constraints:
 3. Identify 1 to 3 moods.`;
 
   try {
-    console.log(
-      `[AI Service] Отправка запроса к Gemini: ${artistName} - ${trackName}`,
-    );
+    console.log(`[AI] Tagging: ${artistName} - ${trackName}`);
 
     // Передаем схему в генерацию
     const result = await aiModel.generateContent({
@@ -144,19 +142,14 @@ Constraints:
 
     // SDK сам вернет нам чистый текст в формате JSON, без ```json
     const tags = JSON.parse(result.response.text());
-    console.log(`[AI Service] Получены теги от Gemini:`, tags);
+    console.log(`[AI] Tags:`, tags);
 
     return parseTagsForTrack(tags);
   } catch (error) {
-    console.error(
-      "[AI Service] Ошибка при обращении к Gemini API:",
-      error.message,
-    );
+    console.error("[AI] Gemini error:", error.message);
 
     if (error.status === 429) {
-      console.log(
-        "[AI Service] Достигнут лимит запросов. Пауза на 2 секунды...",
-      );
+      console.log("[AI] Rate limited, pause 2s");
       await sleep(2000);
     } else {
       await sleep(1000);
@@ -168,7 +161,7 @@ Constraints:
 
 export const getBatchTagsFromAI = async (tracks) => {
   if (!GEMINI_API_KEY) {
-    console.error("[AI Service] GEMINI_API_KEY не найден.");
+    console.error("[AI] GEMINI_API_KEY missing");
     return {};
   }
 
@@ -194,9 +187,7 @@ Constraints for each track:
 Return an array of objects corresponding to the tracks.`;
 
   try {
-    console.log(
-      `[AI Service] Отправка batch-запроса для ${tracks.length} треков`,
-    );
+    console.log(`[AI] Batch tagging ${tracks.length} tracks`);
 
     const result = await aiModel.generateContent({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -207,7 +198,7 @@ Return an array of objects corresponding to the tracks.`;
     });
 
     const tagsArray = JSON.parse(result.response.text());
-    console.log(`[AI Service] Получены теги от Gemini (Batch):`, tagsArray);
+    console.log(`[AI] Batch tags:`, tagsArray);
 
     const resultMap = {};
 
@@ -220,10 +211,7 @@ Return an array of objects corresponding to the tracks.`;
 
     return resultMap;
   } catch (error) {
-    console.error(
-      "[AI Service] Ошибка при обращении к Gemini API (Batch):",
-      error.message,
-    );
+    console.error("[AI] Gemini batch error:", error.message);
     return {};
   }
 };

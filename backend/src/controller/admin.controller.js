@@ -151,12 +151,10 @@ export const createSong = async (req, res, next) => {
       );
       song.audioFeatures = audioFeatures;
       await song.save();
-      console.log(
-        `[AdminController] Аудио-характеристики сохранены для песни: ${song.title}`,
-      );
+      console.log(`[Admin] Audio features saved: ${song.title}`);
     } catch (audioAnalysisError) {
       console.warn(
-        `[AdminController] Не удалось проанализировать аудио для песни ${song.title}:`,
+        `[Admin] Audio analysis failed for ${song.title}:`,
         audioAnalysisError.message,
       );
       // Не прерываем создание песни, если анализ не удался
@@ -226,12 +224,10 @@ export const updateSong = async (req, res, next) => {
         );
         song.audioFeatures = audioFeatures;
         await song.save();
-        console.log(
-          `[AdminController] Аудио-характеристики обновлены для песни: ${song.title}`,
-        );
+        console.log(`[Admin] Audio features updated: ${song.title}`);
       } catch (audioAnalysisError) {
         console.warn(
-          `[AdminController] Не удалось проанализировать новое аудио для песни ${song.title}:`,
+          `[Admin] Audio analysis failed for ${song.title}:`,
           audioAnalysisError.message,
         );
       }
@@ -654,7 +650,7 @@ export const uploadChunk = async (req, res, next) => {
 };
 
 export const uploadFullAlbumAuto = async (req, res, next) => {
-  console.log("🚀 Reached HLS /admin/albums/upload-full-album route");
+    console.log("[Admin] upload-full-album route");
 
   const { spotifyAlbumUrl, uploadId } = req.body;
   const albumAudioZip = req.files ? req.files.albumAudioZip : null;

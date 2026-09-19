@@ -89,15 +89,15 @@ export const isUploadInProgress = () => {
  */
 export const tryAcquireUploadLock = () => {
   if (lockDepth > 0) {
-    console.log("[ActiveUploads] Upload lock busy — reject concurrent upload");
+    console.log("[ActiveUploads] Lock busy");
     return false;
   }
   if (!tryCreateLockFile()) {
-    console.log("[ActiveUploads] Upload lock busy — reject concurrent upload");
+    console.log("[ActiveUploads] Lock busy");
     return false;
   }
   lockDepth = 1;
-  console.log("[ActiveUploads] Upload lock acquired (exclusive)");
+  console.log("[ActiveUploads] Lock acquired");
   return true;
 };
 
@@ -105,20 +105,16 @@ export const tryAcquireUploadLock = () => {
 export const setUploadInProgress = () => {
   lockDepth += 1;
   touchUploadLock();
-  console.log(
-    `[ActiveUploads] Upload lock retained (depth=${lockDepth}) — cleanup blocked`,
-  );
+  console.log(`[ActiveUploads] Lock retain (depth=${lockDepth})`);
 };
 
 export const clearUploadInProgress = () => {
   lockDepth = Math.max(0, lockDepth - 1);
   if (lockDepth === 0) {
     removeLockFile();
-    console.log("[ActiveUploads] Upload lock released — cleanup allowed");
+    console.log("[ActiveUploads] Lock released");
   } else {
-    console.log(
-      `[ActiveUploads] Upload lock nested release (depth=${lockDepth})`,
-    );
+    console.log(`[ActiveUploads] Lock release (depth=${lockDepth})`);
   }
 };
 
@@ -129,7 +125,7 @@ export const clearUploadInProgress = () => {
 export const resetUploadLockOnBoot = () => {
   lockDepth = 0;
   removeLockFile();
-  console.log("[ActiveUploads] Upload lock cleared on boot");
+  console.log("[ActiveUploads] Lock cleared on boot");
 };
 
 export const uploadBusyError = () => {

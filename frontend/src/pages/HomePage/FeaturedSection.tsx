@@ -113,7 +113,7 @@ const FeaturedSectionComponent = ({
     if (albumId) {
       navigate(`/albums/${albumId}`);
     } else {
-      console.warn("albumId отсутствует");
+      console.warn("albumId missing");
     }
   };
 

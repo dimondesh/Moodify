@@ -130,7 +130,7 @@ export const ingestAlbumFromSpotify = async ({
         });
         if (existingSongs.length > 0) {
           console.log(
-            `[AlbumIngest] Album ${album._id} already completed with ${existingSongs.length} songs — skipping re-ingest.`,
+            `[AlbumIngest] Skip re-ingest: ${album._id} (${existingSongs.length} songs)`,
           );
           return { album, songs: existingSongs };
         }
@@ -140,7 +140,7 @@ export const ingestAlbumFromSpotify = async ({
       const leftoverCount = await Song.countDocuments({ albumId: album._id });
       if (leftoverCount > 0) {
         console.log(
-          `[AlbumIngest] Wiping ${leftoverCount} leftover song(s) on stub ${album._id} before ingest.`,
+          `[AlbumIngest] Wipe ${leftoverCount} leftover song(s) on ${album._id}`,
         );
         await deleteAlbumSongsAndMedia(album);
       }
@@ -179,9 +179,7 @@ export const ingestAlbumFromSpotify = async ({
     const tracksToProcess =
       spotifyAlbumData.tracks?.items || spotifyAlbumData.tracks || [];
 
-    console.log(
-      "[AlbumIngest] Performing pre-flight check for all required audio files...",
-    );
+    console.log("[AlbumIngest] Pre-flight: checking audio files...");
     for (const spotifyTrack of tracksToProcess) {
       const filesForTrack = findTrackFiles(trackFilesMap, spotifyTrack.name);
       if (!filesForTrack?.audioPath) {
@@ -190,7 +188,7 @@ export const ingestAlbumFromSpotify = async ({
         );
       }
     }
-    console.log("[AlbumIngest] Pre-flight check successful.");
+    console.log("[AlbumIngest] Pre-flight OK");
     assertNotCancelled();
 
     if (!existingAlbumId) {
@@ -264,7 +262,7 @@ export const ingestAlbumFromSpotify = async ({
         spotifyAlbumUrl: spotifyAlbumUrl || null,
       });
       await album.save();
-      console.log(`[AlbumIngest] Album created in DB: ${album.title}`);
+      console.log(`[AlbumIngest] Album created: ${album.title}`);
     }
 
     await setAlbumUploadProgress(album._id, {
@@ -286,9 +284,7 @@ export const ingestAlbumFromSpotify = async ({
       };
     });
 
-    console.log(
-      `[AlbumIngest] Requesting batch AI tags for ${tracksForAI.length} tracks...`,
-    );
+    console.log(`[AlbumIngest] AI tags for ${tracksForAI.length} tracks`);
     const batchTags = await getBatchTagsFromAI(tracksForAI);
     assertNotCancelled();
 
@@ -315,7 +311,7 @@ export const ingestAlbumFromSpotify = async ({
       });
       trackIndex++;
 
-      console.log(`[AlbumIngest] Processing track: ${songName}`);
+      console.log(`[AlbumIngest] Track: ${songName}`);
       const filesForTrack = findTrackFiles(trackFilesMap, songName);
 
       if (!filesForTrack?.audioPath) {
@@ -432,7 +428,7 @@ export const ingestAlbumFromSpotify = async ({
 
     return { album, songs: createdSongs };
   } catch (error) {
-    console.error("[AlbumIngest] Critical error. Starting rollback...", error);
+    console.error("[AlbumIngest] Failed, rolling back:", error);
 
     await Promise.allSettled(
       uploadedBunnyPaths.map((bunnyPath) => {

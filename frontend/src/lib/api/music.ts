@@ -48,7 +48,7 @@ export async function fetchAlbumById(id: string): Promise<Album> {
 
   if (isOffline) {
     if (isDownloaded(id) && userId) {
-      console.log(`[Offline] Загрузка альбома ${id} из IndexedDB.`);
+      console.log(`[Offline] Album from IndexedDB: ${id}`);
       const localAlbum = await getUserItem("albums", id, userId);
       if (!localAlbum) {
         throw new Error("Album not found in offline storage for this user.");

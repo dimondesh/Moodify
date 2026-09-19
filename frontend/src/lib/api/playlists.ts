@@ -46,7 +46,7 @@ export async function fetchPlaylistById(playlistId: string): Promise<Playlist> {
   const userId = useAuthStore.getState().user?.id;
 
   if (isDownloaded(playlistId) && userId) {
-    console.log(`[Offline] Загрузка плейлиста ${playlistId} из IndexedDB.`);
+    console.log(`[Offline] Playlist from IndexedDB: ${playlistId}`);
     const localPlaylist = await getUserItem("playlists", playlistId, userId);
     if (localPlaylist) return localPlaylist;
   }

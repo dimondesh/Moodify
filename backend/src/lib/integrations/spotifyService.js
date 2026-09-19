@@ -100,9 +100,7 @@ const getAccessToken = async () => {
     accessToken = response.data.access_token;
     tokenExpiresAt = Date.now() + response.data.expires_in * 1000;
 
-    console.log(
-      "[SpotifyService] Токен доступа Spotify успешно получен/обновлен."
-    );
+    console.log("[Spotify] Access token refreshed");
     return accessToken;
   } catch (error) {
     await handleSpotifyRequestError(error, "token");
@@ -118,10 +116,7 @@ const getAlbumIdFromUrl = (albumUrl) => {
 export const getAlbumDataFromSpotify = async (albumUrl) => {
   const albumId = getAlbumIdFromUrl(albumUrl);
   if (!albumId) {
-    console.error(
-      "[SpotifyService] Недействительный Spotify URL альбома:",
-      albumUrl
-    );
+    console.error("[Spotify] Invalid album URL:", albumUrl);
     return null;
   }
 
@@ -164,9 +159,7 @@ export const getAlbumDataFromSpotify = async (albumUrl) => {
       })),
     };
 
-    console.log(
-      `[SpotifyService] Данные альбома "${extractedData.name}" успешно получены со Spotify.`
-    );
+    console.log(`[Spotify] Album fetched: ${extractedData.name}`);
     return extractedData;
   } catch (error) {
     return handleSpotifyRequestError(
@@ -177,7 +170,7 @@ export const getAlbumDataFromSpotify = async (albumUrl) => {
 };
 export const getArtistDataFromSpotify = async (artistId) => {
   if (!artistId) {
-    console.error("[SpotifyService] ID артиста не предоставлен.");
+    console.error("[Spotify] Artist id missing");
     return null;
   }
 
@@ -192,9 +185,7 @@ export const getArtistDataFromSpotify = async (artistId) => {
       }
     );
 
-    console.log(
-      `[SpotifyService] Данные для артиста ${response.data.name} успешно получены.`
-    );
+    console.log(`[Spotify] Artist fetched: ${response.data.name}`);
     return response.data;
   } catch (error) {
     return handleSpotifyRequestError(error, `artist ${artistId}`);

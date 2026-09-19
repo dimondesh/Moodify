@@ -36,37 +36,37 @@ async function processCollection(Model, computeFn, label) {
     }
 
     if (processed % BATCH_SIZE === 0) {
-      console.log(`   ${label}: обработано ${processed}...`);
+      console.log(`[entityEmbed] ${label}: processed ${processed}...`);
     }
   }
 
   console.log(
-    `✅ ${label}: processed=${processed}, updated=${updated}, skipped=${skipped}`,
+    `[entityEmbed] ${label}: processed=${processed}, updated=${updated}, skipped=${skipped}`,
   );
 }
 
 async function run() {
   if (!process.env.MONGO_URI) {
-    console.error("MONGO_URI is required in .env");
+    console.error("MONGO_URI is required");
     process.exit(1);
   }
 
   try {
     await mongoose.connect(process.env.MONGO_URI);
-    console.log("✅ Подключение к MongoDB");
+    console.log("[entityEmbed] Connected to MongoDB");
 
-    console.log("\n📀 Альбомы...");
+    console.log("[entityEmbed] Albums...");
     await processCollection(Album, computeAlbumEmbedding, "Albums");
 
-    console.log("\n🎵 Плейлисты...");
+    console.log("[entityEmbed] Playlists...");
     await processCollection(Playlist, computePlaylistEmbedding, "Playlists");
 
-    console.log("\n🎤 Артисты...");
+    console.log("[entityEmbed] Artists...");
     await processCollection(Artist, computeArtistEmbedding, "Artists");
 
-    console.log("\n🎉 Пересчёт эмбеддингов сущностей завершён.");
+    console.log("[entityEmbed] Done");
   } catch (error) {
-    console.error("❌ Ошибка скрипта:", error);
+    console.error("[entityEmbed] Fatal:", error);
     process.exitCode = 1;
   } finally {
     await mongoose.disconnect();

@@ -45,7 +45,7 @@ const analyzeAudioFeatures = async (audioFilePath) => {
       result.beats = analysisResponse.value.data.beats || [];
     } else {
       console.error(
-        "[AudioAnalysisService] Ошибка анализа BPM:",
+        "[AudioAnalysis] BPM failed:",
         analysisResponse.reason.message,
       );
     }
@@ -54,14 +54,14 @@ const analyzeAudioFeatures = async (audioFilePath) => {
       result.embedding = embedResponse.value.data.embedding || null;
     } else {
       console.error(
-        "[AudioAnalysisService] Ошибка получения эмбеддинга:",
+        "[AudioAnalysis] Embedding failed:",
         embedResponse.reason.message,
       );
     }
 
     return result;
   } catch (error) {
-    console.error(`[AudioAnalysisService] Критическая ошибка:`, error.message);
+    console.error(`[AudioAnalysis] Fatal:`, error.message);
     throw new Error(`Failed to analyze audio: ${error.message}`);
   }
 };

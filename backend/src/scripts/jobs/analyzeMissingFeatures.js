@@ -23,9 +23,7 @@ const MONGO_URL = process.env.MONGODB_URI || process.env.MONGO_URI;
 const ANALYSIS_SERVICE_URL =
   process.env.ANALYSIS_SERVICE_URL || "http://127.0.0.1:5001";
 if (!MONGO_URL) {
-  console.error(
-    "❌ Ошибка: Не найдена переменная MONGODB_URI или MONGO_URI в файле .env",
-  );
+  console.error("MONGODB_URI or MONGO_URI is required");
   process.exit(1);
 }
 
@@ -75,7 +73,7 @@ async function downloadHlsAndMerge(hlsUrl, tempPath) {
 async function runAnalysisMigration() {
   try {
     await mongoose.connect(MONGO_URL);
-    console.log("✅ Успешное подключение к MongoDB");
+    console.log("[analyze] Connected to MongoDB");
 
     // Ищем треки, у которых отсутствуют нужные аудио-фичи
     const songs = await Song.find({
@@ -86,7 +84,7 @@ async function runAnalysisMigration() {
       ],
     });
 
-    console.log(`🔍 Найдено ${songs.length} треков для анализа.`);
+    console.log(`[analyze] ${songs.length} tracks to process`);
 
     // Создаем папку tmp если ее нет
     const tempDir = path.resolve(__dirname, "../../tmp");
@@ -98,20 +96,20 @@ async function runAnalysisMigration() {
 
     for (const song of songs) {
       if (!song.hlsUrl) {
-        console.warn(`⚠️ Пропуск трека ${song._id}: нет hlsUrl`);
+        console.warn(`[analyze] Skip ${song._id}: no hlsUrl`);
         continue;
       }
 
-      console.log(`\n⏳ Обработка трека: "${song.title}" (${song._id})`);
+      console.log(`[analyze] ${song.title} (${song._id})`);
       const tempFilePath = path.join(tempDir, `${song._id}.mp3`);
 
       try {
         // 1. Скачиваем HLS поток и склеиваем в один файл
-        console.log(`   ⬇️ Скачивание и склейка HLS чанков...`);
+        console.log("[analyze] Downloading HLS...");
         await downloadHlsAndMerge(song.hlsUrl, tempFilePath);
 
         // 2. Отправляем в Python-анализатор
-        console.log(`   🧠 Отправка в анализатор...`);
+        console.log("[analyze] Sending to analyzer...");
         const features = await analyzeAudio(tempFilePath);
 
         // 3. Обновляем документ в БД
@@ -127,11 +125,11 @@ async function runAnalysisMigration() {
         updatedCount++;
 
         console.log(
-          `   ✅ Успешно! BPM: ${features.bpm}, Camelot: ${features.camelot}`,
+          `[analyze] OK: BPM ${features.bpm}, Camelot ${features.camelot}`,
         );
       } catch (error) {
         console.error(
-          `   ❌ Ошибка обработки трека "${song.title}":`,
+          `[analyze] Failed ${song.title}:`,
           error.message,
         );
       } finally {
@@ -142,11 +140,9 @@ async function runAnalysisMigration() {
       }
     }
 
-    console.log(
-      `\n🎉 Анализ завершен. Успешно обновлено треков: ${updatedCount}`,
-    );
+    console.log(`[analyze] Done. Updated ${updatedCount}`);
   } catch (error) {
-    console.error("❌ Глобальная ошибка скрипта:", error);
+    console.error("[analyze] Fatal:", error);
   } finally {
     await mongoose.disconnect();
     process.exit(0);

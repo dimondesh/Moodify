@@ -20,9 +20,7 @@ const MONGO_URL = process.env.MONGODB_URI || process.env.MONGO_URI;
 const EMBEDDING_SERVICE_URL =
   process.env.EMBEDDING_SERVICE_URL || "http://127.0.0.1:5006";
 if (!MONGO_URL) {
-  console.error(
-    "❌ Ошибка: Не найдена переменная MONGODB_URI или MONGO_URI в файле .env",
-  );
+  console.error("MONGODB_URI or MONGO_URI is required");
   process.exit(1);
 }
 
@@ -67,7 +65,7 @@ async function downloadHlsAndMerge(hlsUrl, tempPath) {
 async function runEmbeddingMigration() {
   try {
     await mongoose.connect(MONGO_URL);
-    console.log("✅ Успешное подключение к MongoDB");
+    console.log("[embed] Connected to MongoDB");
 
     // Ищем треки, у которых отсутствует вектор (null, пустой массив или нет поля)
     const songs = await Song.find({
@@ -80,7 +78,7 @@ async function runEmbeddingMigration() {
       ],
     });
 
-    console.log(`🔍 Найдено ${songs.length} треков для генерации эмбеддингов.`);
+    console.log(`[embed] ${songs.length} tracks to process`);
 
     const tempDir = path.resolve(__dirname, "../../tmp");
     if (!fs.existsSync(tempDir)) {
@@ -91,18 +89,18 @@ async function runEmbeddingMigration() {
 
     for (const song of songs) {
       if (!song.hlsUrl) {
-        console.warn(`⚠️ Пропуск трека ${song._id}: нет hlsUrl`);
+        console.warn(`[embed] Skip ${song._id}: no hlsUrl`);
         continue;
       }
 
-      console.log(`\n⏳ Обработка трека: "${song.title}" (${song._id})`);
+      console.log(`[embed] ${song.title} (${song._id})`);
       const tempFilePath = path.join(tempDir, `embed_${song._id}.mp3`);
 
       try {
-        console.log(`   ⬇️ Скачивание и склейка HLS чанков...`);
+        console.log("[embed] Downloading HLS...");
         await downloadHlsAndMerge(song.hlsUrl, tempFilePath);
 
-        console.log(`   🧠 Отправка в сервис эмбеддингов...`);
+        console.log("[embed] Sending to embedding service...");
         const embeddingVector = await getEmbedding(tempFilePath);
 
         if (!embeddingVector || embeddingVector.length === 0) {
@@ -114,11 +112,11 @@ async function runEmbeddingMigration() {
         updatedCount++;
 
         console.log(
-          `   ✅ Успешно! Длина вектора: ${embeddingVector.length} измерений.`,
+          `[embed] OK: vector length ${embeddingVector.length}`,
         );
       } catch (error) {
         console.error(
-          `   ❌ Ошибка обработки трека "${song.title}":`,
+          `[embed] Failed ${song.title}:`,
           error.message,
         );
       } finally {
@@ -128,11 +126,9 @@ async function runEmbeddingMigration() {
       }
     }
 
-    console.log(
-      `\n🎉 Генерация завершена. Успешно обновлено треков: ${updatedCount}`,
-    );
+    console.log(`[embed] Done. Updated ${updatedCount}`);
   } catch (error) {
-    console.error("❌ Глобальная ошибка скрипта:", error);
+    console.error("[embed] Fatal:", error);
   } finally {
     await mongoose.disconnect();
     process.exit(0);

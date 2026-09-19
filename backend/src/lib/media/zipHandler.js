@@ -57,19 +57,19 @@ export const extractZip = (zipFilePath, tempDir) => {
         });
 
         zipfile.on("end", () => {
-          console.log(`[ZipHandler] ZIP-файл успешно распакован в: ${tempDir}`);
+          console.log(`[ZipHandler] Unzipped to ${tempDir}`);
           resolve(extractedFilePaths);
         });
 
         zipfile.on("error", (zipErr) => {
           reject(
-            new Error(`[ZipHandler] Критическая ошибка ZIP: ${zipErr.message}`),
+            new Error(`[ZipHandler] ZIP error: ${zipErr.message}`),
           );
         });
       });
     } catch (error) {
       reject(
-        new Error(`[ZipHandler] Не удалось начать распаковку: ${error.message}`),
+        new Error(`[ZipHandler] Unzip start failed: ${error.message}`),
       );
     }
   });
@@ -106,9 +106,7 @@ export const parseTrackFileName = (filename) => {
     return { songName, trackType: "audio" };
   }
 
-  console.warn(
-    `[ZipHandler] Не удалось распознать формат файла: ${filename}. Пропускаем.`,
-  );
+  console.warn(`[ZipHandler] Unknown file type, skip: ${filename}`);
   return null;
 };
 
@@ -213,13 +211,10 @@ export const listFilesRecursive = async (dirPath) => {
 export const cleanUpTempDir = async (dirPath) => {
   try {
     await fsp.rm(dirPath, { recursive: true, force: true });
-    console.log(`[ZipHandler] Временная директория удалена: ${dirPath}`);
+    console.log(`[ZipHandler] Removed temp dir: ${dirPath}`);
   } catch (error) {
     if (error.code !== "ENOENT") {
-      console.error(
-        `[ZipHandler] Ошибка при удалении ${dirPath}:`,
-        error.message,
-      );
+      console.error(`[ZipHandler] Rm failed ${dirPath}:`, error.message);
     }
   }
 };

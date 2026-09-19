@@ -144,10 +144,7 @@ export const initializeSocket = (server) => {
             console.log(`[Socket] Formatted activity object:`, activityData);
           }
         } catch (error) {
-          console.error(
-            "Ошибка при получении данных песни для активности:",
-            error
-          );
+            console.error("Activity song lookup failed:", error);
           activityData = "Idle";
         }
       }

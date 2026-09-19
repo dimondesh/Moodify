@@ -188,7 +188,7 @@ export function registerCronJobs() {
 
   tasks.push(
     cron.schedule("*/20 * * * *", () => {
-      console.log("[CronJob] Запуск очистки временных директорий...");
+      console.log("[Cron] Temp cleanup");
       cleanAllTempDirectories();
     }),
   );

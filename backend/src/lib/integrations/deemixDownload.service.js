@@ -66,8 +66,7 @@ const runDeemix = (downloadUrl, downloadDir, homeDir, jobId) =>
   new Promise((resolve, reject) => {
     const deemixBin = resolveDeemixBin();
     const args = ["-p", downloadDir, "-b", DEEMIX_BITRATE(), downloadUrl];
-    console.log(`[Deemix] Using binary: ${deemixBin}`);
-    console.log(`[Deemix] Running: ${deemixBin} ${args.join(" ")}`);
+    console.log(`[Deemix] ${deemixBin} ${args.join(" ")}`);
 
     const child = spawn(deemixBin, args, {
       env: { ...process.env, HOME: homeDir },
@@ -177,7 +176,7 @@ const searchDeezerAlbumUrl = async (artistName, albumName) => {
   const byTitle = albums.find((a) => normalize(a.title) === wantAlbum);
   const pick = exact || byTitle || albums[0];
   console.log(
-    `[Deemix] Deezer album match: "${pick.title}" by ${pick.artist?.name} (id ${pick.id})`,
+    `[Deemix] Album match: ${pick.title} — ${pick.artist?.name} (${pick.id})`,
   );
   return `https://www.deezer.com/album/${pick.id}`;
 };
@@ -204,14 +203,10 @@ const searchAndDownloadMissingTracks = async (
     );
     const hit = data?.data?.[0];
     if (!hit?.link) {
-      console.warn(
-        `[Deemix] No Deezer track found for "${artistName} - ${trackName}"`,
-      );
+      console.warn(`[Deemix] No track: ${artistName} - ${trackName}`);
       continue;
     }
-    console.log(
-      `[Deemix] Fallback track download: ${hit.artist?.name} - ${hit.title}`,
-    );
+    console.log(`[Deemix] Track DL: ${hit.artist?.name} - ${hit.title}`);
     try {
       await runDeemix(hit.link, downloadDir, homeDir, jobId);
       done += 1;
@@ -261,7 +256,7 @@ export const downloadAlbumWithDeemix = async (
   const total = spotifyTracks.length;
 
   console.log(
-    `[Deemix] Expecting ${total} tracks for "${spotifyAlbumData.name}" by ${primaryArtist}`,
+    `[Deemix] ${total} tracks: "${spotifyAlbumData.name}" — ${primaryArtist}`,
   );
 
   await onProgress?.({
@@ -282,7 +277,7 @@ export const downloadAlbumWithDeemix = async (
     );
     if (!deezerAlbumUrl) {
       console.warn(
-        `[Deemix] No Deezer album found for "${primaryArtist} - ${spotifyAlbumData.name}"`,
+        `[Deemix] No album: ${primaryArtist} - ${spotifyAlbumData.name}`,
       );
     } else {
       await runDeemix(deezerAlbumUrl, downloadDir, jobRoot, jobId);
@@ -290,8 +285,8 @@ export const downloadAlbumWithDeemix = async (
       missing = missingSpotifyTracks(spotifyTracks, trackFilesMap);
       const done = total - missing.length;
       console.log(
-        `[Deemix] After Deezer album: ${done}/${total} matched` +
-          (missing.length ? `; missing: ${missing.join(", ")}` : ""),
+        `[Deemix] Album DL: ${done}/${total}` +
+          (missing.length ? ` missing: ${missing.join(", ")}` : ""),
       );
       await onProgress?.({
         phase: "downloading",
@@ -329,8 +324,8 @@ export const downloadAlbumWithDeemix = async (
     ({ trackFilesMap } = await getDownloadedAudioMap(downloadDir));
     missing = missingSpotifyTracks(spotifyTracks, trackFilesMap);
     console.log(
-      `[Deemix] After per-track: ${total - missing.length}/${total} matched` +
-        (missing.length ? `; missing: ${missing.join(", ")}` : ""),
+      `[Deemix] Per-track DL: ${total - missing.length}/${total}` +
+        (missing.length ? ` missing: ${missing.join(", ")}` : ""),
     );
   }
 
@@ -403,9 +398,7 @@ export const downloadTrackWithDeemix = async ({ title, artistName, jobId }) => {
   const byTitle = hits.find((t) => normalize(t.title) === wantTitle);
   const hit = exact || byTitle || hits[0];
 
-  console.log(
-    `[Deemix] Track match: ${hit.artist?.name} - ${hit.title} (${hit.link})`,
-  );
+  console.log(`[Deemix] Track: ${hit.artist?.name} - ${hit.title}`);
 
   try {
     await runDeemix(hit.link, downloadDir, jobRoot, jobId);

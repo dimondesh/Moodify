@@ -160,9 +160,7 @@ export const transcodeToHls = (inputPath, outputDir) => {
       await fs.mkdir(outputDir, { recursive: true });
       const manifestPath = path.join(outputDir, "master.m3u8");
 
-      console.log(`[FFMPEG] Starting HLS transcoding...`);
-      console.log(`[FFMPEG] Input: ${inputPath}`);
-      console.log(`[FFMPEG] Output Dir: ${outputDir}`);
+      console.log(`[FFMPEG] HLS: ${inputPath} → ${outputDir}`);
 
       ffmpeg(inputPath)
         .outputOptions([
@@ -191,24 +189,20 @@ export const transcodeToHls = (inputPath, outputDir) => {
         .output(manifestPath)
         .format("hls")
         .on("start", (commandLine) => {
-          console.log(`[FFMPEG] Spawned Ffmpeg with command: ${commandLine}`);
+          console.log(`[FFMPEG] ${commandLine}`);
         })
         .on("end", () => {
-          console.log(`[FFMPEG] HLS transcoding finished for ${inputPath}`);
+          console.log(`[FFMPEG] HLS done: ${inputPath}`);
           resolve(manifestPath);
         })
         .on("error", (err, stdout, stderr) => {
-          console.error(`[FFMPEG] Error during HLS transcoding:`, err.message);
-          console.error(`[FFMPEG] STDOUT: ${stdout}`);
-          console.error(`[FFMPEG] STDERR: ${stderr}`);
+          console.error(`[FFMPEG] HLS failed:`, err.message);
+          if (stderr) console.error(`[FFMPEG] stderr:`, stderr);
           reject(err);
         })
         .run();
     } catch (error) {
-      console.error(
-        `[FFMPEG] Failed to create output directory or start process:`,
-        error,
-      );
+      console.error(`[FFMPEG] HLS setup failed:`, error);
       reject(error);
     }
   });
