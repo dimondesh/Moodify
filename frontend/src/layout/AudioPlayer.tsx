@@ -197,7 +197,8 @@ const AudioPlayer = () => {
 
     const songChanged = audioEl.dataset.moodifySongId !== (songId ?? "");
     if (songChanged) {
-      if (usePlayerStore.getState().instrumentalMode) {
+      // Chain break: sticky instrumental ends when the new track has no stem.
+      if (instrumentalMode && !instrumentalUrl) {
         setInstrumentalMode(false);
       }
       listenRecordedRef.current = false;
@@ -207,11 +208,9 @@ const AudioPlayer = () => {
       lastPlaybackProgressAtRef.current = Date.now();
     }
 
-    // Never keep instrumental URL across a track change (mode flip is async).
-    const effectiveUrl =
-      !songChanged && instrumentalMode && instrumentalUrl
-        ? instrumentalUrl
-        : hlsUrl;
+    // Prefer instrumental whenever mode is on and URL exists (including track skips).
+    const useInstrumental = instrumentalMode && Boolean(instrumentalUrl);
+    const effectiveUrl = useInstrumental ? instrumentalUrl : hlsUrl;
 
     if (!songId || !effectiveUrl) {
       loadGenRef.current += 1;

@@ -274,6 +274,15 @@ function mergeSongIntoQueueCache(queue: Song[], song: Song): Song[] {
   return [...queue, song];
 }
 
+/** Stay on across skips; break when the next song has no instrumentalUrl (or user toggles off). */
+function nextInstrumentalMode(
+  wasOn: boolean,
+  song: { instrumentalUrl?: string | null } | null | undefined,
+): boolean {
+  if (!wasOn) return false;
+  return Boolean(song?.instrumentalUrl);
+}
+
 export const usePlayerStore = create<PlayerStore>()(
   persist(
     (set, get) => {
@@ -1035,8 +1044,14 @@ export const usePlayerStore = create<PlayerStore>()(
 
           set((state) => {
             const songChanged = prevId !== fullSong._id;
-            const instrumentalReset = songChanged
-              ? { instrumentalMode: false, isInstrumentalLoading: false }
+            const instrumentalPatch = songChanged
+              ? {
+                  instrumentalMode: nextInstrumentalMode(
+                    state.instrumentalMode,
+                    fullSong,
+                  ),
+                  isInstrumentalLoading: false,
+                }
               : {};
             const userQueueIndex = state.userQueue.findIndex(
               (s) => s._id === fullSong._id,
@@ -1048,7 +1063,7 @@ export const usePlayerStore = create<PlayerStore>()(
                 userQueue: state.userQueue.slice(userQueueIndex + 1),
                 currentTime: 0,
                 currentSongFromUserQueue: true,
-                ...instrumentalReset,
+                ...instrumentalPatch,
               };
             }
 
@@ -1086,7 +1101,7 @@ export const usePlayerStore = create<PlayerStore>()(
               shufflePointer: newShufflePointer,
               currentTime: 0,
               currentSongFromUserQueue: false,
-              ...instrumentalReset,
+              ...instrumentalPatch,
             };
           });
 
@@ -1495,6 +1510,11 @@ export const usePlayerStore = create<PlayerStore>()(
               userQueue: remainingUserQueue,
               currentTime: 0,
               currentSongFromUserQueue: true,
+              instrumentalMode: nextInstrumentalMode(
+                get().instrumentalMode,
+                fullNextSong,
+              ),
+              isInstrumentalLoading: false,
             });
             enrichSongWithAlbumTitleIfNeeded(fullNextSong);
             return;
@@ -1575,6 +1595,11 @@ export const usePlayerStore = create<PlayerStore>()(
               ),
               currentTime: 0,
               currentSongFromUserQueue: false,
+              instrumentalMode: nextInstrumentalMode(
+                get().instrumentalMode,
+                fullNextSong,
+              ),
+              isInstrumentalLoading: false,
             });
             enrichSongWithAlbumTitleIfNeeded(fullNextSong);
             return;
@@ -1683,6 +1708,11 @@ export const usePlayerStore = create<PlayerStore>()(
             shufflePointer: tempShufflePointer,
             currentTime: 0,
             currentSongFromUserQueue: false,
+            instrumentalMode: nextInstrumentalMode(
+              get().instrumentalMode,
+              fullNextSong,
+            ),
+            isInstrumentalLoading: false,
           });
 
           enrichSongWithAlbumTitleIfNeeded(fullNextSong);
@@ -1773,6 +1803,11 @@ export const usePlayerStore = create<PlayerStore>()(
               ),
               currentTime: 0,
               currentSongFromUserQueue: false,
+              instrumentalMode: nextInstrumentalMode(
+                get().instrumentalMode,
+                fullPrevSong,
+              ),
+              isInstrumentalLoading: false,
             });
             enrichSongWithAlbumTitleIfNeeded(fullPrevSong);
             return;
@@ -1844,6 +1879,11 @@ export const usePlayerStore = create<PlayerStore>()(
             shufflePointer: tempShufflePointer,
             currentTime: 0,
             currentSongFromUserQueue: false,
+            instrumentalMode: nextInstrumentalMode(
+              get().instrumentalMode,
+              fullPrevSong,
+            ),
+            isInstrumentalLoading: false,
           });
 
           enrichSongWithAlbumTitleIfNeeded(fullPrevSong);
