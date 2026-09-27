@@ -67,6 +67,20 @@ function destroyHls(hlsRef: { current: Hls | null }) {
   hlsRef.current = null;
 }
 
+/** Source reload (HLS/src swap) resets HTMLMediaElement.playbackRate to 1. */
+function applyPlaybackRate(audio: HTMLAudioElement) {
+  const { playbackRateEnabled, playbackRatePreset, playbackRate } =
+    useAudioSettingsStore.getState();
+  const rate = resolvePlaybackRate(
+    playbackRateEnabled,
+    playbackRatePreset,
+    playbackRate,
+  );
+  audio.preservesPitch = false;
+  audio.defaultPlaybackRate = rate;
+  audio.playbackRate = rate;
+}
+
 const AudioPlayer = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -246,6 +260,9 @@ const AudioPlayer = () => {
     const afterReady = () => {
       if (loadGen !== loadGenRef.current) return;
       sourceLoadingRef.current = false;
+      // Re-apply after load: instrumental toggle swaps URL without songId change,
+      // so the rate effect would not re-run and slowed/reverb feel "reset".
+      applyPlaybackRate(audioEl);
       if (resumeAt > 0 && Number.isFinite(resumeAt)) {
         try {
           audioEl.currentTime = resumeAt;
@@ -370,13 +387,7 @@ const AudioPlayer = () => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    const rate = resolvePlaybackRate(
-      playbackRateEnabled,
-      playbackRatePreset,
-      playbackRate,
-    );
-    audio.preservesPitch = false;
-    audio.playbackRate = rate;
+    applyPlaybackRate(audio);
 
     if (iosNativePlayback) {
       audio.volume = 1;
