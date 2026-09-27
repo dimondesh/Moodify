@@ -331,7 +331,7 @@ export const usePlayerStore = create<PlayerStore>()(
           return null;
         }
 
-        if (song.hlsUrl) return song;
+        if (song.hlsUrl && song.lyrics !== undefined) return song;
 
         if (useOfflineStore.getState().isOffline) {
           try {
@@ -353,7 +353,7 @@ export const usePlayerStore = create<PlayerStore>()(
             ...song,
             hlsUrl: fullData.hlsUrl,
             canvasUrl: fullData.canvasUrl,
-            lyrics: fullData.lyrics,
+            lyrics: fullData.lyrics ?? "",
             genres: fullData.genres,
             moods: fullData.moods,
             instrumentalUrl: fullData.instrumentalUrl ?? null,
