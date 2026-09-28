@@ -226,7 +226,7 @@ const HomePageComponent = () => {
     [navigate, t],
   );
 
-  const renderSection = (section: HomeSection) => {
+  const renderSection = (section: HomeSection, sectionIndex: number) => {
     if (section.items.length === 0) {
       return null;
     }
@@ -242,6 +242,11 @@ const HomePageComponent = () => {
       );
     }
 
+    // First horizontal row shares the initial viewport with featured tiles.
+    const isFirstHorizontal =
+      visibleSections.findIndex((s) => !FEATURED_SECTION_IDS.has(s.id)) ===
+      sectionIndex;
+
     return (
       <HorizontalSection
         key={section.id}
@@ -250,6 +255,7 @@ const HomePageComponent = () => {
         isLoading={false}
         t={t}
         limit={12}
+        priorityCount={isFirstHorizontal ? 4 : 0}
         onShowAll={getShowAllHandler(section)}
       />
     );

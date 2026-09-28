@@ -22,11 +22,14 @@ import {
 export interface EntitySectionCardProps {
   item: DisplayItem;
   songsOnly: (Song & { itemType: "song" })[];
+  /** First viewport covers: skip lazy + bump fetch priority for LCP. */
+  priority?: boolean;
 }
 
 const EntitySectionCardComponent: React.FC<EntitySectionCardProps> = ({
   item,
   songsOnly,
+  priority = false,
 }) => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
@@ -78,6 +81,7 @@ const EntitySectionCardComponent: React.FC<EntitySectionCardProps> = ({
                     : CDN_DEFAULT_ARTIST_IMAGE,
                 )}
                 alt={title}
+                loading={priority ? "eager" : undefined}
                 className="object-cover h-auto w-auto rounded-full"
               />
               <AvatarFallback>{title?.[0] || "?"}</AvatarFallback>
@@ -88,6 +92,7 @@ const EntitySectionCardComponent: React.FC<EntitySectionCardProps> = ({
               size="card"
               defaultUrl={CDN_DEFAULT_ALBUM_COVER}
               alt={title}
+              priority={priority}
               className="absolute inset-0 h-full w-full object-cover rounded-md"
             />
           )}

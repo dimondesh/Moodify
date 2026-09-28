@@ -22,6 +22,8 @@ export interface CoverImageProps
   size: ImageSizeKey;
   defaultUrl: string;
   alt: string;
+  /** Above-the-fold LCP candidate: eager + high fetch priority. */
+  priority?: boolean;
 }
 
 export function CoverImage({
@@ -30,7 +32,9 @@ export function CoverImage({
   defaultUrl,
   alt,
   className,
-  loading = "lazy",
+  priority = false,
+  loading,
+  fetchPriority,
   decoding = "async",
   ...props
 }: CoverImageProps) {
@@ -45,7 +49,8 @@ export function CoverImage({
       alt={alt}
       width={IMAGE_SIZES[size]}
       height={IMAGE_SIZES[size]}
-      loading={loading}
+      loading={loading ?? (priority ? "eager" : "lazy")}
+      fetchPriority={fetchPriority ?? (priority ? "high" : undefined)}
       decoding={decoding}
       className={cn(className)}
       {...props}

@@ -15,8 +15,8 @@ import CheckedIcon from "@/components/ui/checkedIcon";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
 import { getPlaylistDisplayTitle } from "@/lib/entitySection";
-import { CDN_DEFAULT_ALBUM_COVER, CDN_LIKED_PLAYLIST_COVER } from "@/lib/cdn";
-import { buildStaticCdnImages, getImageUrlByKey } from "@/lib/imageUrl";
+import { CDN_DEFAULT_ALBUM_COVER, CDN_LIKED_PLAYLIST_IMAGES } from "@/lib/cdn";
+import { getImageUrlByKey } from "@/lib/imageUrl";
 import { useLibraryStore } from "../stores/useLibraryStore";
 import { usePlaylistStore } from "../stores/usePlaylistStore";
 import { useOwnedPlaylists } from "@/hooks/queries";
@@ -282,9 +282,9 @@ const SongLibraryPickerPanel = memo(function SongLibraryPickerPanel({
               checked={isLiked}
               density={density}
               coverSrc={getImageUrlByKey(
-                { images: buildStaticCdnImages(CDN_LIKED_PLAYLIST_COVER) },
+                { images: CDN_LIKED_PLAYLIST_IMAGES },
                 "thumb",
-                CDN_LIKED_PLAYLIST_COVER,
+                CDN_LIKED_PLAYLIST_IMAGES[0].url,
               )}
               title={t("sidebar.likedSongs")}
               actionLabel={likedActionLabel}

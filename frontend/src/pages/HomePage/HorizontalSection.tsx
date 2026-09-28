@@ -27,6 +27,8 @@ interface HorizontalSectionProps {
   limit?: number;
   /** Total stored items; when set, `items` is the server preview and Show all uses total vs preview length. */
   totalCount?: number;
+  /** First N cards skip lazy loading (home LCP). */
+  priorityCount?: number;
   t: TFunction;
 }
 
@@ -37,6 +39,7 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
   onShowAll,
   limit = 6,
   totalCount,
+  priorityCount = 0,
   t,
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -174,11 +177,12 @@ const HorizontalSectionComponent: React.FC<HorizontalSectionProps> = ({
         ref={scrollContainerRef}
       >
         <div className="flex pb-4">
-          {itemsToShow.map((item) => (
+          {itemsToShow.map((item, index) => (
             <EntitySectionCard
               key={`${item.itemType}-${item._id}`}
               item={item}
               songsOnly={songsOnly}
+              priority={index < priorityCount}
             />
           ))}
         </div>

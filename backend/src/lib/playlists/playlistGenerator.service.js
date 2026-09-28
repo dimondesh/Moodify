@@ -7,9 +7,9 @@ import { Playlist } from "../../models/playlist.model.js";
 import { Genre } from "../../models/genre.model.js";
 import { Mood } from "../../models/mood.model.js";
 import {
-  CDN_ON_REPEAT_IMAGE,
-  CDN_DISCOVER_WEEKLY_IMAGE,
-  CDN_ON_REPEAT_REWIND_IMAGE,
+  CDN_ON_REPEAT_IMAGES,
+  CDN_DISCOVER_WEEKLY_IMAGES,
+  CDN_ON_REPEAT_REWIND_IMAGES,
   CDN_DEFAULT_ALBUM_COVER,
   CDN_SYSTEM_PLAYLIST_ACCENT_BY_TYPE,
 } from "../../constants/cdn.js";
@@ -298,7 +298,7 @@ export const generateOnRepeatPlaylistForUser = async (userId) => {
       localizedNames,
       description: "",
       songs: songIds,
-      images: buildStaticCdnImages(CDN_ON_REPEAT_IMAGE),
+      images: CDN_ON_REPEAT_IMAGES,
       coverAccentHex: CDN_SYSTEM_PLAYLIST_ACCENT_BY_TYPE.ON_REPEAT,
       isPublic: false,
     },
@@ -406,7 +406,7 @@ export const generateDiscoverWeeklyForUser = async (userId) => {
         title,
         localizedNames,
         description: "",
-        images: buildStaticCdnImages(CDN_DISCOVER_WEEKLY_IMAGE),
+        images: CDN_DISCOVER_WEEKLY_IMAGES,
         coverAccentHex: CDN_SYSTEM_PLAYLIST_ACCENT_BY_TYPE.DISCOVER_WEEKLY,
         songs: finalTracks.map((song) => song._id),
         isPublic: false,
@@ -493,7 +493,7 @@ export const generateOnRepeatRewindForUser = async (userId) => {
         title,
         localizedNames,
         description: "",
-        images: buildStaticCdnImages(CDN_ON_REPEAT_REWIND_IMAGE),
+        images: CDN_ON_REPEAT_REWIND_IMAGES,
         coverAccentHex: CDN_SYSTEM_PLAYLIST_ACCENT_BY_TYPE.ON_REPEAT_REWIND,
         songs: finalTracks.map((song) => song._id),
         isPublic: false,

@@ -162,6 +162,7 @@ const FeaturedSectionComponent = ({
                 size="card"
                 defaultUrl={CDN_DEFAULT_ALBUM_COVER}
                 alt={song.title}
+                priority={index < 4}
                 className="w-14 h-14 sm:w-20 sm:h-20 object-cover"
               />
             </div>

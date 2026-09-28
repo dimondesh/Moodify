@@ -1,8 +1,5 @@
 import type { TFunction } from "i18next";
-import {
-  CDN_LIKED_PLAYLIST_COVER,
-} from "@/lib/cdn";
-import { buildStaticCdnImages } from "@/lib/imageUrl";
+import { CDN_LIKED_PLAYLIST_IMAGES } from "@/lib/cdn";
 import { getArtistNames } from "@/lib/utils";
 import { getPlaylistDisplayTitle } from "@/lib/entitySection";
 import { isLibraryMyPlaylist } from "@/lib/playlistKinds";
@@ -62,7 +59,7 @@ export function buildLibraryItems({
           playlist.images?.length
             ? playlist.images
             : playlist.type === "LIKED_SONGS"
-              ? buildStaticCdnImages(CDN_LIKED_PLAYLIST_COVER)
+              ? CDN_LIKED_PLAYLIST_IMAGES
               : undefined,
         createdAt: new Date(
           (playlist as { addedAt?: string }).addedAt ||

@@ -16,7 +16,7 @@ import {
 } from "../lib/media/coverAccent.service.js";
 import {
   CDN_DEFAULT_ALBUM_COVER,
-  CDN_LIKED_PLAYLIST_COVER,
+  CDN_LIKED_PLAYLIST_IMAGES,
   CDN_SYSTEM_PLAYLIST_ACCENT_BY_TYPE,
   applySystemPlaylistCoverAccent,
 } from "../constants/cdn.js";
@@ -78,7 +78,7 @@ export async function buildVirtualLikedPlaylist(
   return {
     _id: LIKED_PLAYLIST_ID,
     title: "Liked Songs",
-    images: buildStaticCdnImages(CDN_LIKED_PLAYLIST_COVER),
+    images: CDN_LIKED_PLAYLIST_IMAGES,
     coverAccentHex: CDN_SYSTEM_PLAYLIST_ACCENT_BY_TYPE.LIKED_SONGS,
     type: "LIKED_SONGS",
     isSystem: true,

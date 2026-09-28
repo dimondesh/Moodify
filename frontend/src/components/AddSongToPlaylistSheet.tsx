@@ -18,8 +18,8 @@ import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { getPlaylistDisplayTitle } from "@/lib/entitySection";
-import { CDN_DEFAULT_ALBUM_COVER, CDN_LIKED_PLAYLIST_COVER } from "@/lib/cdn";
-import { buildStaticCdnImages, getImageUrlByKey } from "@/lib/imageUrl";
+import { CDN_DEFAULT_ALBUM_COVER, CDN_LIKED_PLAYLIST_IMAGES } from "@/lib/cdn";
+import { getImageUrlByKey } from "@/lib/imageUrl";
 
 interface AddSongToPlaylistSheetProps {
   song: Song;
@@ -187,9 +187,9 @@ const AddSongToPlaylistSheet: React.FC<AddSongToPlaylistSheetProps> = ({
               checked={localIsLiked}
               onClick={handleLikeToggle}
               coverSrc={getImageUrlByKey(
-                { images: buildStaticCdnImages(CDN_LIKED_PLAYLIST_COVER) },
+                { images: CDN_LIKED_PLAYLIST_IMAGES },
                 "thumb",
-                CDN_LIKED_PLAYLIST_COVER,
+                CDN_LIKED_PLAYLIST_IMAGES[0].url,
               )}
               title={t("sidebar.likedSongs")}
             />
