@@ -33,10 +33,8 @@ function Slider({
       max={max}
       orientation={orientation}
       className={cn(
-        "relative flex w-full touch-none select-none group data-[disabled]:opacity-50",
-        ios
-          ? "items-center data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col"
-          : "data-[orientation=horizontal]:h-4 data-[orientation=horizontal]:items-center data-[orientation=horizontal]:[--radix-slider-thumb-transform:translate(-50%,-50%)] data-[orientation=horizontal]:[&>span:has([data-slot=slider-thumb])]:top-1/2 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col data-[orientation=vertical]:items-center",
+        "relative flex w-full touch-none select-none group items-center data-[disabled]:opacity-50",
+        "data-[orientation=horizontal]:h-4 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col",
         className,
       )}
       {...props}
@@ -53,7 +51,7 @@ function Slider({
         <SliderPrimitive.Range
           data-slot="slider-range"
           className={cn(
-            "bg-white absolute data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full",
+            "bg-white absolute rounded-full data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full",
           )}
         />
       </SliderPrimitive.Track>
@@ -62,10 +60,9 @@ function Slider({
           data-slot="slider-thumb"
           key={index}
           className={cn(
-            ios
-              ? "block size-2.5 shrink-0 rounded-full bg-white shadow-sm ring-ring/50 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
-              : "relative block size-2.5 shrink-0 rounded-full bg-white shadow-sm ring-ring/50 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity after:absolute after:-inset-3 after:content-['']",
-            !ios && orientation === "horizontal" && "-translate-y-1",
+            "block size-2.5 shrink-0 rounded-full bg-white shadow-sm ring-ring/50 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50",
+            !ios &&
+              "relative opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity after:absolute after:-inset-3 after:content-['']",
           )}
         />
       ))}
