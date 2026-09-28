@@ -14,33 +14,39 @@ function dist(a, b) {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
-// Two tight clusters in 8-d
-const clusterA = Array.from({ length: 8 }, () =>
-  Array.from({ length: 8 }, (_, i) => (i < 4 ? 1 : 0) + Math.random() * 0.05),
-);
-const clusterB = Array.from({ length: 8 }, () =>
-  Array.from({ length: 8 }, (_, i) => (i >= 4 ? 1 : 0) + Math.random() * 0.05),
-);
+// Two tight clusters in 8-d (enough points that perplexity=30 still separates)
+function makeCluster(centerOnes, n = 24) {
+  return Array.from({ length: n }, (_, row) =>
+    Array.from({ length: 8 }, (_, i) => {
+      const base = centerOnes(i) ? 1 : 0;
+      // Deterministic jitter — avoid flaky Math.random failures.
+      return base + (((row * 17 + i * 13) % 10) / 10 - 0.45) * 0.04;
+    }),
+  );
+}
 
-const points = projectEmbeddingsTo2d([...clusterA, ...clusterB]);
-assert(points.length === 16, `expected 16 points, got ${points.length}`);
+const clusterA = makeCluster((i) => i < 4);
+const clusterB = makeCluster((i) => i >= 4);
 
-const a = points.slice(0, 8);
-const b = points.slice(8);
+const { points, method } = projectEmbeddingsTo2d([...clusterA, ...clusterB]);
+assert(points.length === 48, `expected 48 points, got ${points.length}`);
+assert(method === "pca+tsne", `expected pca+tsne, got ${method}`);
+
+const a = points.slice(0, 24);
+const b = points.slice(24);
 const mean = (arr, key) => arr.reduce((s, p) => s + p[key], 0) / arr.length;
 const ca = { x: mean(a, "x"), y: mean(a, "y") };
 const cb = { x: mean(b, "x"), y: mean(b, "y") };
 
-const intraA =
-  a.reduce((s, p) => s + dist(p, ca), 0) / a.length;
-const intraB =
-  b.reduce((s, p) => s + dist(p, cb), 0) / b.length;
+const intraA = a.reduce((s, p) => s + dist(p, ca), 0) / a.length;
+const intraB = b.reduce((s, p) => s + dist(p, cb), 0) / b.length;
 const inter = dist(ca, cb);
 
 assert(inter > intraA * 2, `clusters not separated: inter=${inter} intraA=${intraA}`);
 assert(inter > intraB * 2, `clusters not separated: inter=${inter} intraB=${intraB}`);
 
-assert(projectEmbeddingsTo2d([]).length === 0, "empty input");
-assert(projectEmbeddingsTo2d([[1, 0, 0]]).length === 1, "single point");
+assert(projectEmbeddingsTo2d([]).points.length === 0, "empty input");
+assert(projectEmbeddingsTo2d([[1, 0, 0]]).points.length === 1, "single point");
+assert(projectEmbeddingsTo2d([[1, 0, 0]]).method === "pca", "single uses pca");
 
 console.log("projectTo2d.selfcheck: ok");

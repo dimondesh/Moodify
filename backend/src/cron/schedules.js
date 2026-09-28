@@ -12,6 +12,7 @@ import { warmTrendingCache } from "../lib/home/trending.service.js";
 import { User } from "../models/user.model.js";
 import { cleanAllTempDirectories } from "../lib/media/tempCleanup.service.js";
 import { runCategoryEmbeddingsAndHubs } from "../lib/recommendations/hubGenerator.service.js";
+import { refreshEmbeddingMapsIfNeeded } from "../lib/embeddings/embeddingMap.service.js";
 
 export const PERSONAL_MIX_MIN_LISTENS = 10;
 const HOME_FEED_BATCH_SIZE = 20;
@@ -107,6 +108,10 @@ export async function runTrendingCacheWarmup() {
   return warmTrendingCache();
 }
 
+export async function runEmbeddingMapRefresh() {
+  return refreshEmbeddingMapsIfNeeded();
+}
+
 export function registerCronJobs() {
   const tasks = [];
 
@@ -182,6 +187,21 @@ export function registerCronJobs() {
         console.log("CRON JOB: Trending cache warmed.");
       } catch (error) {
         console.error("CRON JOB: Error warming trending cache:", error);
+      }
+    }),
+  );
+
+  // 03:00 — embedding scatter maps (skip entity if fingerprint unchanged)
+  tasks.push(
+    cron.schedule("0 3 * * *", async () => {
+      console.log("CRON JOB: Refreshing embedding maps...");
+      try {
+        const { rebuilt, skipped } = await runEmbeddingMapRefresh();
+        console.log(
+          `CRON JOB: Embedding maps done (rebuilt=${rebuilt.join(",") || "none"}, skipped=${skipped.join(",") || "none"}).`,
+        );
+      } catch (error) {
+        console.error("CRON JOB: Error refreshing embedding maps:", error);
       }
     }),
   );

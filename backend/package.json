@@ -17,6 +17,7 @@
     "migrate:library-social": "node src/scripts/migrations/migrateLibraryAndSocial.js",
     "migrate:unbounded-arrays": "node src/scripts/migrations/migrateUnboundedArrays.js",
     "generate:entity-embeddings": "node src/scripts/jobs/generateEntityEmbeddings.js",
+    "generate:embedding-maps": "node src/scripts/jobs/generateEmbeddingMaps.js",
     "generate:hubs": "node src/scripts/jobs/generateAll.js -- --hubs",
     "generate:missing-embeddings": "node src/scripts/jobs/generateMissingEmbeddings.js",
     "pipeline:embeddings": "node src/scripts/jobs/embeddingPipeline.js",

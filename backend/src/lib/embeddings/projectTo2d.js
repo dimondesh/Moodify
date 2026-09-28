@@ -1,6 +1,7 @@
 /**
  * PCA → t-SNE projection for embedding scatter maps.
- * Mirrors embedding-visual/main.py (normalize → PCA → t-SNE → 2D).
+ * Mirrors embedding-visual / embedding/project_2d.py (normalize → PCA → t-SNE → 2D).
+ * Local JS fallback when the embedding service is down — prefer remote sklearn.
  */
 
 function l2NormalizeRows(matrix) {
@@ -200,18 +201,20 @@ function tsne(X, { perplexity, iterations = 750, learningRate = 200 } = {}) {
   const perp = Math.min(perplexity, Math.max(2, n - 1));
   const P = computeP(X, perp);
 
-  // PCA init (first 2 comps), scaled like sklearn
   let Y = X.map((row, i) => [
     (row[0] || 0) * 1e-4 + (i % 2 === 0 ? 1e-4 : -1e-4),
     (row[1] || 0) * 1e-4 + (i % 3 === 0 ? 1e-4 : -1e-4),
   ]);
   const gains = Array.from({ length: n }, () => [1, 1]);
   const iY = Array.from({ length: n }, () => [0, 0]);
+  // Reuse buffers — reallocating n×n each iter was the main killer at large n.
+  const num = Array.from({ length: n }, () => new Array(n).fill(0));
+  const dY = Array.from({ length: n }, () => [0, 0]);
 
   for (let iter = 0; iter < iterations; iter++) {
-    const num = Array.from({ length: n }, () => new Array(n).fill(0));
     let sumNum = 0;
     for (let i = 0; i < n; i++) {
+      num[i][i] = 0;
       for (let j = i + 1; j < n; j++) {
         const dx = Y[i][0] - Y[j][0];
         const dy = Y[i][1] - Y[j][1];
@@ -225,9 +228,10 @@ function tsne(X, { perplexity, iterations = 750, learningRate = 200 } = {}) {
 
     const exaggeration = iter < 100 ? 12 : 1;
     const momentum = iter < 250 ? 0.5 : 0.8;
-    const dY = Array.from({ length: n }, () => [0, 0]);
 
     for (let i = 0; i < n; i++) {
+      dY[i][0] = 0;
+      dY[i][1] = 0;
       for (let j = 0; j < n; j++) {
         if (i === j) continue;
         const q = Math.max(num[i][j] / sumNum, 1e-12);
@@ -263,13 +267,19 @@ function tsne(X, { perplexity, iterations = 750, learningRate = 200 } = {}) {
   return Y;
 }
 
+function pcaToPoints(reduced) {
+  return reduced.map((row) => ({ x: row[0] || 0, y: row[1] || 0 }));
+}
+
 /**
  * @param {number[][]} embeddings
- * @returns {{ x: number, y: number }[]}
+ * @returns {{ points: { x: number, y: number }[], method: string }}
  */
 export function projectEmbeddingsTo2d(embeddings) {
-  if (!embeddings.length) return [];
-  if (embeddings.length === 1) return [{ x: 0, y: 0 }];
+  if (!embeddings.length) return { points: [], method: "pca" };
+  if (embeddings.length === 1) {
+    return { points: [{ x: 0, y: 0 }], method: "pca" };
+  }
 
   const normalized = l2NormalizeRows(embeddings);
   const nPca = Math.min(50, normalized.length - 1, normalized[0].length);
@@ -277,15 +287,19 @@ export function projectEmbeddingsTo2d(embeddings) {
 
   // Tiny catalogs: PCA-2D is enough and more stable than t-SNE.
   if (embeddings.length < 5) {
-    return reduced.map((row) => ({ x: row[0] || 0, y: row[1] || 0 }));
+    return { points: pcaToPoints(reduced), method: "pca" };
   }
 
-  const perplexity = Math.min(30, Math.max(2, Math.floor((embeddings.length - 1) / 3)));
+  const perplexity = Math.min(30, Math.max(2, embeddings.length - 1));
+  const iterations = embeddings.length < 100 ? 750 : 1000;
   const projection = tsne(reduced, {
     perplexity,
-    iterations: embeddings.length < 100 ? 750 : 1000,
-    learningRate: Math.max(100, embeddings.length / 2),
+    iterations,
+    learningRate: Math.min(200, Math.max(100, embeddings.length / 2)),
   });
 
-  return projection.map(([x, y]) => ({ x, y }));
+  return {
+    points: projection.map(([x, y]) => ({ x, y })),
+    method: "pca+tsne",
+  };
 }

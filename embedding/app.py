@@ -2,6 +2,7 @@ import os
 import tempfile
 import numpy as np
 from fastapi import FastAPI, UploadFile, File, HTTPException
+from pydantic import BaseModel, Field
 import uvicorn
 import essentia.standard as es
 
@@ -158,6 +159,35 @@ async def get_embedding(file: UploadFile = File(...)):
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
+
+
+class Project2dRequest(BaseModel):
+    embeddings: list[list[float]] = Field(default_factory=list)
+
+
+@app.post("/project-2d")
+async def project_2d(body: Project2dRequest):
+    """PCA → Barnes-Hut t-SNE for admin embedding scatter maps."""
+    if not body.embeddings:
+        return {"points": [], "method": "pca"}
+    dim = len(body.embeddings[0])
+    if dim < 2:
+        raise HTTPException(status_code=400, detail="embeddings must be at least 2D")
+    for row in body.embeddings:
+        if len(row) != dim:
+            raise HTTPException(status_code=400, detail="all embeddings must share the same length")
+    try:
+        # Lazy import so /embed keeps working if scikit-learn isn't installed yet.
+        from project_2d import project_embeddings_to_2d
+
+        return project_embeddings_to_2d(body.embeddings)
+    except ImportError as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Projection deps missing (rebuild embedding image): {e}",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Projection error: {str(e)}")
 
 
 @app.get("/")
